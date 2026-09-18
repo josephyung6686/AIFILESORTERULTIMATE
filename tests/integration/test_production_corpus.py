@@ -118,9 +118,29 @@ FIELDS = ("school", "subject", "work_type")
 CORPUS = ("Columbia PHYS1401 Syllabus.pdf",
           "Columbia PHYS1401 Homework.pdf",
           "NYU BUSIB4300 Syllabus.pdf")
+#: For the two skipped-level tests since `106` Phase 7: a second Columbia
+#: course, so `subject` DIVIDES beneath `Columbia` and `PHYS1401` is a real
+#: folder there. On the three-file `CORPUS` each course holds one file per
+#: kind, which is `00`:98's two-file packet: the kinds fold into the course
+#: and the lone course then folds into the school (§B.1, §B.2), so no
+#: `subject` folder exists to show the skip by.
+SKIPPED_LEVEL_CORPUS = ("Columbia PHYS1401 Syllabus.pdf",
+                        "Columbia PHYS1401 Homework.pdf",
+                        "Columbia BUSIB4300 Syllabus.pdf",
+                        "NYU BUSIB4300 Syllabus.pdf")
 DEEP_FIELDS = ("school", "term", "subject", "work_type")
+#: Five files since `106` Phase 7, so that every level DIVIDES somewhere: a
+#: second homework makes the kind of work a real split under PHYS1401 (one
+#: file per kind beneath a built course is `00`:98's two-file packet and
+#: folds), and a second Columbia term makes the term a real split under
+#: Columbia. `_seed` zips the fields with the name's tokens and ignores the
+#: rest, so "Homework 2" is a second file recording `Homework`. The
+#: three-file corpus this used to be folded to two roots, which is the
+#: design's Georgetown shape and not the four-level nest this tests.
 DEEP_CORPUS = ("Columbia Fall2026 PHYS1401 Syllabus.pdf",
                "Columbia Fall2026 PHYS1401 Homework.pdf",
+               "Columbia Fall2026 PHYS1401 Homework 2.pdf",
+               "Columbia Spring2026 BUSIB4300 Syllabus.pdf",
                "NYU Spring2026 BUSIB4300 Syllabus.pdf")
 
 
@@ -1017,7 +1037,7 @@ def test_a_dimension_with_no_settled_value_is_skipped_not_collapsed(
     with no values now takes that same path instead of falling off the end of the
     function.
     """
-    shallow = run_corpus_through(conn, tmp_path)
+    shallow = run_corpus_through(conn, tmp_path, names=SKIPPED_LEVEL_CORPUS)
     shallow_labels = {node.display_label for node in shallow.tree.tree.nodes}
     assert "Columbia" in shallow_labels
     assert "PHYS1401" in shallow_labels, (
@@ -1033,7 +1053,7 @@ def test_a_skipped_level_hands_its_children_to_the_level_above_it(
     WAS settled and sits above the empty one -- because that is what "the level
     was skipped" means, as opposed to "the tree was flattened".
     """
-    shallow = run_corpus_through(conn, tmp_path)
+    shallow = run_corpus_through(conn, tmp_path, names=SKIPPED_LEVEL_CORPUS)
     by_id = {node.node_id: node for node in shallow.tree.tree.nodes}
     subject = next(node for node in shallow.tree.tree.nodes
                    if node.display_label == "PHYS1401")

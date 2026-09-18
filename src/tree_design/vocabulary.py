@@ -295,6 +295,12 @@ RESIDUAL_TEMPLATE_NAMES: tuple[str, ...] = (
     PROTECTED_RECORDS,
 )
 
+#: `00` amendment 13 (17 Sep 2026), the owner's: "Root-level 98 and 99, as my
+#: reference says." Two root-level homes for what no branch can hold. Closed
+#: vocabulary on the same footing as §7.3's nine names above.
+REVIEW_AND_UNSORTED: str = "98 Review and Unsorted"
+ARCHIVE: str = "99 Archive"
+
 #: §7.3 states a default parent for the first four only. The remaining five have
 #: none stated, and an invented default would be P10 authoring §7.3.
 RESIDUAL_DEFAULT_PARENTS: MappingProxyType = MappingProxyType({
@@ -495,6 +501,12 @@ WARN_REPEATED_PARENT: str = "repeated-parent-concept"
 WARN_EXCESSIVE_DEPTH: str = "excessive-depth"
 WARN_TINY_FOLDERS: str = "tiny-folder-distribution"
 RECOMMEND_FLATTEN: str = "flatten-recommendation"
+
+#: `106` Phase 7 §B. Why the projection measured a level under one parent and
+#: built no folder for it. Two words, for the two degenerate partitions
+#: `00`:98 names: one folder per file, and one folder for every file.
+FOLDED_ONE_PER_FILE: str = "one-folder-per-file"
+FOLDED_ONE_FOR_ALL: str = "one-folder-for-all"
 
 #: §5.9's four warnings plus its flattening recommendation. Every one needs a
 #: threshold the design deliberately does not set, so none can fire without

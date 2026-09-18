@@ -46,13 +46,13 @@ from tree_design.vocabulary import USER_CREATED
 from p10 import test_p10_pipeline as chain
 from p10.seam_corpus import seed_seam_corpus
 
-#: The branch whose leaves are `Homework` and `Syllabus`. Its ORIGIN, because
+#: The course whose two files rest on it directly since `106` Phase 7 §B.1
+#: (one folder per file beneath a built node folds). Its ORIGIN, because
 #: that is the identity a review action names and the identity a draft
 #: preserves -- and since `106` Phase 5.1 the origin is the node's KEY, spelled
 #: from the branch and what each folder is named by (`tree_design.node_key`),
 #: so it reads the same in every version of the chain and on every run.
 COURSE = "branch:Columbia coursework/subject=BUSIB 4300"
-HOMEWORK = COURSE + "/work_type=Homework"
 OTHER_COURSE = "branch:Columbia coursework/subject=PHYS1401"
 
 
@@ -148,10 +148,13 @@ def test_a_file_filed_as_deep_as_its_evidence_goes_demands_nothing(designed):
     putting a folder in somebody's tree on the strength of nothing.
     """
     _corpus, _auth, _dec, tree = designed
-    homework = _node_of(tree.tree, HOMEWORK)
+    # Since `106` Phase 7 the course IS the deepest folder that fits its
+    # files: the kind-of-work level beneath it folded, so a file placed on
+    # it with nothing left unfilled is exactly this control.
+    course = _node_of(tree.tree, COURSE)
 
     assert scoped_general_demand(
-        (_placed_on(homework.node_id, file_id="f-hw3", levels=()),),
+        (_placed_on(course.node_id, file_id="f-hw3", levels=()),),
         tree=tree.tree) == {}
 
 

@@ -300,7 +300,10 @@ def test_the_recipes_recommended_order_decides_the_tree_p11_indexes(corpus):
     """
     course_first = run_p10(corpus)
     labels = {e.display_label for e in index(corpus, course_first)}
-    assert {"BUSIB 4300", "PHYS1401", "Syllabus", "Homework"} <= labels
+    # `106` Phase 7 §B.1: `Syllabus` and `Homework` are one folder per file
+    # beneath `BUSIB 4300` and fold into it. (Both were labels here before.)
+    assert {"BUSIB 4300", "PHYS1401"} <= labels
+    assert not {"Syllabus", "Homework"} & labels
 
     # A second corpus, because a frozen version is immutable and the second run
     # must be a fresh design rather than an edit of the first.
@@ -313,22 +316,36 @@ def test_the_recipes_recommended_order_decides_the_tree_p11_indexes(corpus):
     assert "PHYS1401" not in other_labels, (
         "the recommended order made no difference to the tree, which is what a "
         "chain ignoring `candidate_orders` would produce")
-    assert {"Syllabus", "Homework", "BUSIB 4300"} <= other_labels
+    # The kinds are the first level and are built at the root (§B.1 does not
+    # reach the root); under each, the one course holding all of its files
+    # folds into it (§B.2) and is claimed there, so `BUSIB 4300` is no node.
+    assert {"Syllabus", "Homework"} <= other_labels
+    assert "BUSIB 4300" not in other_labels
 
 
 def test_the_two_orders_nest_the_same_two_dimensions_the_other_way_round(corpus):
     """The other half, read off `IndexEntry.ancestor_labels` — which is what P12
     composes a path from, so this is the field the difference actually lands in."""
-    course_first = index(corpus, run_p10(corpus))
-    homework = entry_labelled(course_first, "Homework")
-    assert homework.ancestor_labels[-1] == "BUSIB 4300"
+    from tree_design.records import ExpectedValue
+
+    # `106` Phase 7 §B: on this corpus neither order builds the second level
+    # as folders (one file per value beneath each first-level folder), so the
+    # nesting is read off what each first-level folder CLAIMS -- the chain a
+    # fact reaches it by, which is also what P12 composes a path from.
+    course_first = run_p10(corpus)
+    course = node_labelled(course_first.tree, "BUSIB 4300")
+    assert course.expected_values == (ExpectedValue("subject", "BUSIB 4300"),)
+    assert "each of its 2 files would have had a folder of its own" in course.explanation
 
     other = _fresh(corpus)
-    work_type_first = index(other, run_p10(other, auth_over={
-        "catalogue": two_dimension_catalogue(default_order_id="work_type_first")}))
-    nested_course = next(e for e in work_type_first
-                         if e.display_label == "BUSIB 4300" and e.depth == 2)
-    assert nested_course.ancestor_labels[-1] in {"Homework", "Syllabus"}
+    work_type_first = run_p10(other, auth_over={
+        "catalogue": two_dimension_catalogue(default_order_id="work_type_first")})
+    homework = node_labelled(work_type_first.tree, "Homework")
+    # As a set: the store keeps a node's expected values in field order.
+    assert set(homework.expected_values) == {
+        ExpectedValue("work_type", "Homework"),
+        ExpectedValue("subject", "BUSIB 4300")}
+    assert "every file there carries it" in homework.explanation
 
 
 # --- concept 7: `ResolvedDimension.display_label` -----------------------------------
@@ -351,14 +368,17 @@ def test_the_authored_level_name_reaches_p11_on_the_node_and_nowhere_else(corpus
     decision is re-made deliberately rather than drifting.
     """
     result = run_p10(corpus)
-    node = node_labelled(result.tree, "Homework")
+    # Since `106` Phase 7 §B.1 the kinds under `BUSIB 4300` are folded into
+    # it and SAID on it with the same authored name, so the course is the
+    # node the label reaches (`Homework` was, before the fold).
+    node = node_labelled(result.tree, "BUSIB 4300")
     assert "Assignment type" in node.explanation
     assert "work_type" not in node.explanation, (
         "the internal role key reached the user-visible sentence; the authored "
         "per-schema name is what `_label_of` exists to prefer")
 
     entries = index(corpus, result)
-    entry = entry_labelled(entries, "Homework")
+    entry = entry_labelled(entries, "BUSIB 4300")
     carried = [name for name, value in vars(entry).items()
                if isinstance(value, str) and "Assignment type" in value]
     assert carried == [], (
@@ -376,7 +396,9 @@ def test_a_different_authored_label_changes_the_node_and_not_the_tree(corpus):
     other = _fresh(corpus)
     renamed = run_p10(other, auth_over={
         "catalogue": two_dimension_catalogue(work_type_label="Kind of work")})
-    node = node_labelled(renamed.tree, "Homework")
+    # Since `106` Phase 7 §B.1 the authored name reaches the course, where the
+    # folded kinds are said (`Homework` was the node before the fold).
+    node = node_labelled(renamed.tree, "BUSIB 4300")
     assert "Kind of work" in node.explanation
     assert {n.display_label for n in renamed.tree.nodes} == baseline
 
@@ -787,9 +809,13 @@ def test_parent_concepts_is_computed_by_the_chain_and_reaches_no_p11_reader(corp
 
     result = run_p10(corpus)
     concepts = parent_concepts_for(result.tree.nodes)
-    course = node_labelled(result.tree, "Homework")
-    assert concepts[course.node_id] == ("subject",), (
-        "the chain's ancestors express the course level, read off stored state")
+    # Since `106` Phase 7 nothing is nested beneath a course on this corpus
+    # (the kinds fold), so the stored state expresses no ancestor concept
+    # under it; the positive case is driven with a synthetic child in
+    # `test_a_tree_that_repeats_a_parent_dimension_fires_59s_warning`.
+    course = node_labelled(result.tree, "BUSIB 4300")
+    assert concepts[course.node_id] == (), (
+        "a course under a branch with no dimension has no ancestor concept")
     # The chain ran §5.9's warnings over the real preview, which is the only
     # thing `parent_concepts_for` feeds.
     assert result.branches[0].warnings is not None
@@ -855,11 +881,17 @@ def test_a_tree_that_repeats_a_parent_dimension_fires_59s_warning(corpus):
     )
     from tree_design.vocabulary import WARN_REPEATED_PARENT
 
-    result = run_p10(corpus)
-    nodes = result.tree.nodes
-    course = node_labelled(result.tree, "BUSIB 4300")
-    child = node_labelled(result.tree, "Homework")
     import dataclasses
+
+    result = run_p10(corpus)
+    course = node_labelled(result.tree, "BUSIB 4300")
+    # A child beneath the course, hand-built since `106` Phase 7 folded the
+    # kinds into it: the tree under test is one whose child level repeats
+    # its parent's dimension, which is the shape and not the corpus.
+    child = dataclasses.replace(
+        course, node_id="n_repeat", origin_node_id="n_repeat",
+        parent_node_id=course.node_id, display_label="BUSIB 4300 again")
+    nodes = result.tree.nodes + (child,)
 
     repeated = tuple(
         dataclasses.replace(node, dimension="subject", dimension_role="subject")

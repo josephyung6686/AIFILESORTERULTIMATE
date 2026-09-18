@@ -963,3 +963,82 @@ def test_the_count_of_sets_under_a_heading_reads_after_the_name_alone():
     assert 'Held for review as "No folder matched (1 of 3)". 3 review sets of ' \
            'it have files under this heading' in flat, flat
     assert flat.count(REASON) == 1, flat
+
+
+
+# --- `106` Phase 7 §D.3: every leftover set is offered a home, or is a block ------
+
+
+def test_every_ordinary_review_set_key_has_an_offered_home_or_is_a_block():
+    """`00` amendment 13: every leftover set is offered a home. A set that is a
+    BLOCK (not classified, no model allowed, not allowed to cross, protected)
+    or a QUESTION the report prints (waiting on an answer, a branch whose
+    situation is not yet named, a run that stopped short, a model that gave no
+    answer this run) is not a leftover no branch can hold and is deliberately
+    absent. SABOTAGE: add a key to `REVIEW_SET_ORDER` without a row here and it
+    is a set with nowhere."""
+    from placement import vocabulary as pv
+
+    blocks = {cli.NOT_YET_CLASSIFIED, cli.NO_MODEL_ALLOWED, cli.NOT_ALLOWED_TO_CROSS,
+              cli.PROTECTED_REVIEW_SET, cli.WAITING_ON_AN_ANSWER,
+              pv.SITUATION_UNANSWERED, pv.BUDGET_DEFERRED, pv.NO_MODEL_JUDGEMENT}
+    for key in cli.REVIEW_SET_ORDER:
+        assert key in cli.REVIEW_HOME_FOR_SET or key in blocks, key
+    assert not set(cli.REVIEW_HOME_FOR_SET) & blocks
+    # The two characteristics amendment 13 names and the product lacked.
+    assert cli.UNSUPPORTED_REVIEW_SET in cli.REVIEW_SET_ORDER
+    assert cli.DUPLICATES_REVIEW_SET in cli.REVIEW_SET_ORDER
+
+
+
+# --- `106` Phase 7 §D.5: the screen offers each set its home, by name and command
+
+
+def _set_keyed(label, members, reason, *, key, protected=False):
+    item = _set(label, members, reason, protected=protected)
+    item.set_key = key
+    return item
+
+
+def _residual_node(node_id, label, *, parent):
+    node = _node(node_id, label, parent=parent, role="residual")
+    node.disposition = "physical-destination"
+    return node
+
+
+def test_a_held_set_is_offered_its_home_and_the_command_that_takes_it():
+    """`00` amendment 13: "every one is offered to the person before anything
+    moves". SABOTAGE: print `areas[0]` -- every set is offered the same area,
+    and the first enabled area is whichever sorted first."""
+    screenshots = _set_keyed("Screenshots with no accepted project or event", ("f1",),
+                             REASON, key=cli.SCREENSHOT_REVIEW_SET)
+    locked = _set_keyed("Unsupported or encrypted", ("f2",), REASON,
+                        key=cli.UNSUPPORTED_REVIEW_SET)
+    run = _run(
+        nodes=(_node("n_98", "98 Review and Unsorted"),
+               _residual_node("n_ts", "Temporary Screenshots", parent="n_98"),
+               _residual_node("n_ue", "Unsupported or Encrypted", parent="n_98")),
+        decisions=(_decision(file_id="f1", explanation=REASON),
+                   _decision(file_id="f2", explanation=REASON)),
+        sets=(screenshots, locked))
+    said = _printed(run, {"f1": "a.png", "f2": "b.zip"})
+    assert "Offered home: 98 Review and Unsorted / Temporary Screenshots" in said
+    assert "Offered home: 98 Review and Unsorted / Unsupported or Encrypted" in said
+    assert "--send-set 'Screenshots with no accepted project or event=Temporary Screenshots'" in said
+    assert "--send-set 'Unsupported or encrypted=Unsupported or Encrypted'" in said
+    assert "nowhere to put them yet" not in said
+
+
+def test_a_set_whose_home_is_not_in_the_tree_is_offered_what_exists_and_no_lie():
+    """A set whose offered home was not minted (a block, or a tree the person
+    trimmed) still gets a command the plan can honour -- the first area -- and
+    never an `Offered home` line naming a folder the tree does not hold."""
+    held = _set_keyed("Not yet placed", ("f1",), REASON, key=cli.NOT_YET_CLASSIFIED)
+    run = _run(
+        nodes=(_node("n_98", "98 Review and Unsorted"),
+               _residual_node("n_rl", "Review Later", parent="n_98")),
+        decisions=(_decision(file_id="f1", explanation=REASON),),
+        sets=(held,))
+    said = _printed(run, {"f1": "a.png"})
+    assert "Offered home:" not in said
+    assert "--send-set 'Not yet placed=Review Later'" in said

@@ -25,10 +25,12 @@ is gap 11b's subject and is pinned in
 `tests/p11/test_p11_the_shallower_approved_parent.py`; what a run does with one is
 this file's.
 
-The corpus is the P10--P11 seam corpus: `BUSIB 4300` has `Homework` and `Syllabus`
-beneath it and `PHYS1401` has nothing, so a file that settles the course and not
-the work type is `00`:99's own case standing in a tree the product designs rather
-than one this file wrote down.
+The corpus is the P10--P11 seam corpus: `BUSIB 4300` holds a syllabus and a
+homework and `PHYS1401` holds one file. Since `106` Phase 7 §B.1 the two kinds
+under `BUSIB 4300` are not folders (one folder per file beneath a built node
+folds), so the shallow decision below is RECORDED with `work_type` unfilled,
+as gap 11b's writer records one; what a run does with such a decision is
+this file's subject, and it is unchanged by where the leaves are.
 """
 from __future__ import annotations
 
@@ -56,9 +58,11 @@ from test_p10_p11_live_seam import _bootstrap, _inputs, index, node_labelled
 T0 = "2026-08-27T00:00:00Z"
 T1 = "2026-08-27T01:00:00Z"
 
-#: The course whose children are `Homework` and `Syllabus`. A file that settles
-#: the course and not the work type belongs here and in neither of them.
+#: The course a file that settles the course and not the work type belongs in.
 COURSE = "BUSIB 4300"
+#: The OTHER folder, for the decision that is as deep as its evidence goes
+#: and must be carried, not moved. `Homework` until `106` Phase 7 folded it.
+DEEP = "PHYS1401"
 
 
 @pytest.fixture()
@@ -88,10 +92,10 @@ def placed(corpus):
     tree = design_tree(corpus.conn, authorities=authorities, decisions=decisions)
     index(corpus, tree)
     course = node_labelled(tree.tree, COURSE)
-    homework = node_labelled(tree.tree, "Homework")
+    deepest = node_labelled(tree.tree, DEEP)
     short = _record(corpus, tree, node=course, name="hw3",
                     levels=("work_type",))
-    deep = _record(corpus, tree, node=homework, name="syllabus", levels=())
+    deep = _record(corpus, tree, node=deepest, name="syllabus", levels=())
     return corpus, authorities, decisions, tree, (short, deep)
 
 
@@ -271,11 +275,11 @@ def test_every_other_decision_is_carried_onto_the_version_the_person_is_shown(
     lineage and never by a plausible match.
     """
     corpus, _auth, _dec, tree, (_short, deep) = placed
-    was = node_labelled(tree.tree, "Homework")
+    was = node_labelled(tree.tree, DEEP)
 
     result = _mint(placed)
 
-    now = node_labelled(result.tree.tree, "Homework")
+    now = node_labelled(result.tree.tree, DEEP)
     carried = _for(result, deep.subject.file_id)
     assert now.node_id != was.node_id
     assert now.origin_node_id == was.origin_node_id
@@ -301,8 +305,8 @@ def test_a_decision_the_pass_already_withdrew_does_not_demand_a_folder(placed):
     no longer stands.
     """
     corpus, _auth, _dec, tree, (short, deep) = placed
-    homework = node_labelled(tree.tree, "Homework")
-    again = _record(corpus, tree, node=homework, name="hw3", levels=(),
+    deepest = node_labelled(tree.tree, DEEP)
+    again = _record(corpus, tree, node=deepest, name="hw3", levels=(),
                     supersedes=short.decision_id)
 
     assert scoped_general_demand((short, deep, again), tree=tree.tree) == {}
@@ -487,3 +491,95 @@ def test_the_general_is_legal_in_the_version_it_was_minted_into(placed):
     assert entry.node_role == v.SCOPED_GENERAL
     assert general.node_id in set(
         result.tree.tree.freeze_record.legal_destination_ids)
+
+
+
+# --- `106` Phase 7 §D.4 × `00` amendment 13: the homes the sets need, on demand --
+
+
+def _run_with(tree, decisions, sets):
+    """`_run`, plus the review sets the placement pass surfaced."""
+    return ProductionRun(
+        p1_p7=None, grouping=(), tree=tree, destinations=(),
+        placement=CorpusResult(
+            decisions=tuple(decisions), group_plans=(), residual_sets=tuple(sets),
+            unplaced_file_ids=(), subjects=(), calls_at_once=1),
+        evaluation=None)
+
+
+def _a_set(key, *, protected=False, label="x"):
+    from placement.residual import ResidualSet
+
+    return ResidualSet(
+        set_id=f"s:{label}", plan_version="v", label=label, file_count=1,
+        representative_examples=("f",), file_type_distribution=(("png", 1),),
+        age_range=("2026-01-01", "2026-01-01"), evidence_availability="none",
+        sensitivity_status="none", protected=protected, weak_graph_neighbours=(),
+        reason_not_placed="why", member_file_ids=("f",), set_key=key)
+
+
+def _mint_homes(placed, run):
+    corpus, authorities, decisions, _tree, _made = placed
+    return cli.mint_review_homes_on_demand(
+        corpus.conn, run, authorities=authorities, decisions=decisions,
+        placement_inputs=lambda result: _inputs(corpus, result),
+        component_version="seam", observed_at=T1)
+
+
+def test_a_run_with_leftover_sets_gains_the_homes_they_are_offered(placed):
+    """`00` amendment 13, minted the way `00`:99's General is: after placement
+    proved the need. One set keyed screenshots -> `98 / Temporary Screenshots`
+    exists in the re-frozen tree, is a residual node, and is a legal
+    destination. SABOTAGE: mint nothing -- the screen offers a home
+    `approved_residual_area` cannot find, and `--send-set` is refused."""
+    from tree_design.vocabulary import (
+        PHYSICAL_DESTINATION, RESIDUAL, REVIEW_AND_UNSORTED, TEMPORARY_SCREENSHOTS,
+    )
+
+    _c, _a, _d, tree, (short, deep) = placed
+    run = _run_with(tree, (short, deep),
+                    (_a_set(cli.SCREENSHOT_REVIEW_SET, label="Screenshots"),))
+    after = _mint_homes(placed, run)
+    nodes = {n.node_id: n for n in after.tree.tree.nodes}
+    home = next(n for n in nodes.values()
+                if n.node_role == RESIDUAL and n.display_label == TEMPORARY_SCREENSHOTS)
+    assert nodes[home.parent_node_id].display_label == REVIEW_AND_UNSORTED
+    assert home.node_id in after.tree.tree.freeze_record.legal_destination_ids
+    # The owner's ruling: residual homes DO move, and every filing into them is
+    # `REVIEW_REQUIRED` regardless (`run_residual_file`), so nothing moves
+    # before `--freeze` and `--apply`.
+    assert home.disposition == PHYSICAL_DESTINATION
+
+
+def test_a_run_with_no_ordinary_set_mints_nothing(placed):
+    """"Nothing happens when nothing is demanded" (`mint_generals_on_demand`).
+    A protected set is counted and offered nothing, by the standing rule."""
+    _c, _a, _d, tree, (short, deep) = placed
+    run = _run_with(tree, (short, deep),
+                    (_a_set(cli.PROTECTED_REVIEW_SET, protected=True, label="P"),))
+    assert _mint_homes(placed, run) is run
+
+
+def test_a_home_already_in_the_tree_is_not_minted_twice(placed):
+    """The `placed` tree already holds `Review Later` (the fixture enables it),
+    so a set offered that home demands nothing new and no version is opened."""
+    _c, _a, _d, tree, (short, deep) = placed
+    run = _run_with(tree, (short, deep),
+                    (_a_set(cli.NOT_YET_PLACED, label="Not yet placed"),))
+    assert _mint_homes(placed, run) is run
+
+
+def test_every_decision_is_carried_onto_the_re_frozen_version(placed):
+    """§8.8: the decisions the report joins by node id name the version the
+    person is shown. `carry_onto` re-projects them; `into_general` is empty
+    because no file moves here -- the homes are OFFERED, not filled."""
+    _c, _a, _d, tree, (short, deep) = placed
+    run = _run_with(tree, (short, deep),
+                    (_a_set(cli.SCREENSHOT_REVIEW_SET, label="Screenshots"),))
+    after = _mint_homes(placed, run)
+    ids = {n.node_id for n in after.tree.tree.nodes}
+    assert after.tree.tree.plan_version_id != tree.tree.plan_version_id
+    assert all(d.destination is None or d.destination.node_id in ids
+               for d in after.placement.decisions)
+    assert {d.plan_version for d in after.placement.decisions} \
+        == {after.tree.tree.plan_version_id}

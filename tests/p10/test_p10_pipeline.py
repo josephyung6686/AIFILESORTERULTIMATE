@@ -201,7 +201,12 @@ def test_a_real_corpus_produces_a_frozen_tree_built_from_its_own_facts(corpus):
 
     labels = {node.display_label for node in result.tree.nodes}
     assert {"BUSIB 4300", "PHYS1401"} <= labels
-    assert {"Syllabus", "Homework"} <= labels
+    # `106` Phase 7 §B.1: a syllabus and a homework under a two-file course
+    # are one folder per file beneath a built node, so they are not folders
+    # and the course says why. (Before Phase 7 both were labels here.)
+    assert not {"Syllabus", "Homework"} & labels
+    busib = next(n for n in result.tree.nodes if n.display_label == "BUSIB 4300")
+    assert "each of its 2 files would have had a folder of its own" in busib.explanation
     # And the two the user asked for by gesture rather than by evidence.
     assert {"Shared Course Material", "General", REVIEW_LATER} <= labels
     # The protected area P3 marked, present and counted.
@@ -964,8 +969,11 @@ def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     # group it was built from, and each level beneath it only the files carrying
     # that value. A chain that passed one number down would show the same count
     # on all five, which is the old defect wearing a comparison in front of it.
+    # `106` Phase 7 §B.1: `Homework` and `Syllabus` are no longer nodes on this
+    # corpus (one folder per file beneath `BUSIB 4300` folds), so three nodes
+    # are offered their own counts instead of five.
     assert dict(seen) == {"Columbia coursework": 3, "BUSIB 4300": 2,
-                          "Homework": 1, "Syllabus": 1, "PHYS1401": 1}, seen
+                          "PHYS1401": 1}, seen
     # And no node is judged on nothing: a count of zero would make "few enough
     # files" true of every branch there is.
     assert all(count > 0 for _, count in seen), seen
@@ -999,9 +1007,10 @@ def test_a_branch_that_gained_children_is_told_it_was_split(corpus):
     # second answer is the one that survives, so BOTH values appear for it and
     # `True` must be among them. A leaf is asked once and nothing hangs off it.
     assert True in seen["Columbia coursework"], seen
-    assert seen["BUSIB 4300"] == {True}, seen
-    assert seen["Homework"] == {False}, seen
-    assert seen["Syllabus"] == {False}, seen
+    # `106` Phase 7 §B.1: `BUSIB 4300` no longer gains `Homework` and
+    # `Syllabus` (one folder per file beneath a built node folds), so it is
+    # a leaf here and is told so; `Columbia coursework` still splits.
+    assert seen["BUSIB 4300"] == {False}, seen
     assert seen["PHYS1401"] == {False}, seen
 
 
@@ -1058,3 +1067,62 @@ def test_the_result_carries_every_top_level_candidate_not_only_the_chosen(corpus
                 if candidate.subject_id == "g_columbia_coursework")
     assert card.supporting_file_count > 0
     assert card.why_suggested
+
+
+# --- `106` Phase 7 §D × `00` amendment 13: residual homes live under a root `98` --
+
+
+def test_a_residual_home_with_no_parent_lives_under_the_review_root(corpus):
+    """`00` amendment 13: "root-level 98 ... visible at the root". A residual
+    home the person enabled without a parent used to hang under this run's
+    first proposed branch (`_enable_residual_library`); it now hangs under a
+    root named `98 Review and Unsorted`, which exists exactly when something
+    is under it. SABOTAGE: keep the first-branch parent -- `Review Later`
+    sits inside `Coursework`, which is the pollution §7.1 names."""
+    from tree_design.vocabulary import RESIDUAL, REVIEW_AND_UNSORTED
+
+    result = design(corpus)
+    nodes = {n.node_id: n for n in result.tree.nodes}
+    home = next(n for n in nodes.values() if n.node_role == RESIDUAL)
+    root = nodes[home.parent_node_id]
+    assert root.display_label == REVIEW_AND_UNSORTED
+    assert root.parent_node_id is None
+    assert root.accepts_placement is True
+    assert root.node_id in result.tree.freeze_record.legal_destination_ids
+
+
+def test_no_review_root_is_minted_when_nothing_is_under_it(corpus):
+    """`00`:121: "These templates are not automatically created." An empty
+    `98` would be a folder nobody asked for."""
+    from tree_design.vocabulary import REVIEW_AND_UNSORTED
+
+    result = design(corpus, dec=decisions(residual_choices=(), residual_configuration={}))
+    assert REVIEW_AND_UNSORTED not in {n.display_label for n in result.tree.nodes}
+
+
+def test_the_archive_is_a_home_of_its_own_at_the_root(corpus):
+    """`00` amendment 13's other root. `99 Archive` is exempt from `98` by name:
+    it is a root-level home, not a set inside the review root."""
+    from tree_design.residuals import ResidualChoice, ResidualTemplate
+    from tree_design.vocabulary import (
+        ARCHIVE, RESIDUAL, REVIEW_AND_UNSORTED, TREATMENT_RETAINED,
+    )
+
+    library = dict(decisions().residual_library)
+    library[ARCHIVE] = ResidualTemplate(
+        template_name=ARCHIVE, display_name=ARCHIVE, default_parent_location=None,
+        accepted_evidence_patterns=(), expected_file_types=(),
+        sensitivity_restrictions=(), optional_shallow_subfolders=(),
+        max_permitted_depth=0, treatment=TREATMENT_RETAINED, user_defined=True)
+    archive = ResidualChoice(
+        template_name=ARCHIVE, action="enable", disposition="physical-destination",
+        display_label=None, parent_node_id=None, root_anchor=ROOT_ANCHOR,
+        merge_into=None, replaces_node_id=None)
+    result = design(corpus, dec=decisions(
+        residual_library=library, residual_choices=(archive,),
+        residual_configuration={ARCHIVE: "enable"}))
+    nodes = {n.node_id: n for n in result.tree.nodes}
+    home = next(n for n in nodes.values()
+                if n.node_role == RESIDUAL and n.display_label == ARCHIVE)
+    assert home.parent_node_id is None
+    assert REVIEW_AND_UNSORTED not in {n.display_label for n in nodes.values()}

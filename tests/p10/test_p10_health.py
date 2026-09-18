@@ -648,16 +648,120 @@ def test_the_flatten_rule_has_a_measure_to_read():
         "retrieval, so the §5.9 flatten test has nothing to read")
 
 
-test_the_flatten_rule_has_a_measure_to_read = pytest.mark.xfail(
-    strict=True,
-    reason="`00`:99 states the RULE and no measure, and nothing in `tree_design` "
-           "computes one: `BranchCounts` counts children, descendants and members, "
-           "and the two `retrieval_*` fields in the library are authored prose. So "
-           "`cli.py` keeps `materially_improves_retrieval=lambda option: True` and "
-           "`RECOMMEND_FLATTEN` stays unfireable on a real run. XPASSes -- and "
-           "fails the suite, forcing this marker off -- the day a retrieval measure "
-           "reaches `BranchCounts`. LEFT MARKED by `104` §18.42's build "
-           "(2026-09-11): inventing a threshold over counts that mean something "
-           "else is the same defect from the other side, and §5.9 states no number "
-           "on purpose.",
-)(test_the_flatten_rule_has_a_measure_to_read)
+# The strict xfail that stood on the test above came off with `106` Phase 7
+# Task 7.1: `BranchCounts.retrieval_partition` is the carrier it named, and the
+# test now passes as an ordinary test.
+
+
+# --- `106` Phase 7 §B.4: the retrieval measure `00`:99 states no number for -----
+
+from tree_design.health import separates_files  # noqa: E402
+
+
+def _counts_with_children(nodes, members_by_node):
+    return {n.node_id: branch_counts(
+        nodes, node_id=n.node_id, members_by_node=members_by_node,
+        unresolved_by_node={}, evidence_gaps_by_node={},
+        sensitive_node_ids=frozenset()) for n in nodes}
+
+
+def test_branch_counts_carry_the_partition_a_level_makes_of_its_files():
+    """The carrier `test_the_flatten_rule_has_a_measure_to_read` named: a field
+    about RETRIEVAL on `BranchCounts`. It is the member count of each child,
+    largest first -- what a person would see on opening this folder."""
+    nodes = (_node("n_root", None, "Academics"),
+             _node("n_a", "n_root", "PHYS1401"),
+             _node("n_b", "n_root", "CHEM1101"))
+    counts = _counts_with_children(nodes, {
+        "n_root": ("f1", "f2", "f3"), "n_a": ("f1", "f2"), "n_b": ("f3",)})
+    assert counts["n_root"].retrieval_partition == (2, 1)
+    assert counts["n_a"].retrieval_partition == ()
+
+
+def test_a_level_with_one_folder_per_file_does_not_separate():
+    """`00`:98: "a two-file application packet may remain a single folder".
+    SABOTAGE: return True here and every one-file-per-folder level earns its
+    place -- the folder-per-file tree is the one the reference calls noise."""
+    nodes = (_node("n_root", None, "Vendors"),
+             _node("n_a", "n_root", "Acme"), _node("n_b", "n_root", "Beta"))
+    counts = _counts_with_children(nodes, {
+        "n_root": ("f1", "f2"), "n_a": ("f1",), "n_b": ("f2",)})
+    assert separates_files(counts["n_root"]) is False
+
+
+def test_a_level_with_one_child_is_not_this_measures_to_judge():
+    """`106` Phase 7 §B.4's own last line: "Rule 1's warning is already
+    `WARN_ONE_CHILD`; nothing is added for it." A one-part partition is the
+    one-child level, and `WARN_ONE_CHILD` already answers it WITH
+    `divides_below` -- it stays silent on `00`:78's own path, where `Columbia`
+    holds one term holding one course over a level that divides. Answering
+    `False` here would fire `RECOMMEND_FLATTEN` on `Columbia` and on
+    `2026-Spring`, on the design's own recommended tree, which is the exact
+    failure `health.py`'s module docstring records. So this measure has nothing
+    to say about one child and says `None`, as it does for a leaf.
+
+    The `106` draft wrote `is False` for this case; the code departs from the
+    draft here for the reason above, and the report says so."""
+    nodes = (_node("n_root", None, "Academics"), _node("n_a", "n_root", "Columbia"))
+    counts = _counts_with_children(nodes, {"n_root": ("f1", "f2"), "n_a": ("f1", "f2")})
+    assert separates_files(counts["n_root"]) is None
+
+
+def test_a_level_that_gathers_files_under_more_than_one_child_separates():
+    nodes = (_node("n_root", None, "Academics"),
+             _node("n_a", "n_root", "PHYS1401"), _node("n_b", "n_root", "CHEM1101"))
+    counts = _counts_with_children(nodes, {
+        "n_root": ("f1", "f2", "f3"), "n_a": ("f1", "f2"), "n_b": ("f3",)})
+    assert separates_files(counts["n_root"]) is True
+
+
+def test_a_leaf_has_nothing_to_say_and_says_none():
+    """`TreeLimits.materially_improves_retrieval` documents `None` as "no
+    authored test decides this yet" and that None must never round to False.
+    A leaf makes no partition, so the answer is None and no recommendation."""
+    nodes = (_node("n_root", None, "Academics"),)
+    counts = _counts_with_children(nodes, {"n_root": ("f1",)})
+    assert separates_files(counts["n_root"]) is None
+
+
+def test_the_recommendation_fires_from_the_measure_and_not_from_a_constant(conn):
+    """The predicate the composition root supplies is the measure itself."""
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
+    set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
+    real = tree_limits(conn, excessive_depth_warning=3, tiny_folder_max_files=2,
+                       tiny_folder_count_warning=3,
+                       materially_improves_retrieval=separates_files)
+    nodes = (_node("n_root", None, "Vendors", dimension="vendor",
+                   dimension_role="vendor"),
+             _node("n_a", "n_root", "Acme"), _node("n_b", "n_root", "Beta"))
+    counts = _counts_with_children(nodes, {
+        "n_root": ("f1", "f2"), "n_a": ("f1",), "n_b": ("f2",)})
+    fired = warnings_for(nodes, counts, limits=real, parent_concepts={})
+    assert RECOMMEND_FLATTEN in {w.kind for w in fired}
+
+
+def test_the_measure_stays_silent_on_the_designs_own_recommended_path(conn):
+    """`00`:78: `Academics/Columbia/2026-Spring/PHYS1401/{Homework, Syllabus}`.
+    Three single-child context levels over a level that divides. Wired as the
+    composition root wires it, the measure must not recommend flattening any of
+    them -- `health.py`'s docstring: "A warning that fires on a correct tree
+    spends that budget on nothing"."""
+    set_ceiling(conn, "tree.max_folder_proposals", 6)
+    set_ceiling(conn, "tree.max_depth", 6)
+    set_ceiling(conn, "model.max_dossier_tokens_per_call", 4000)
+    real = tree_limits(conn, excessive_depth_warning=6, tiny_folder_max_files=1,
+                       tiny_folder_count_warning=3,
+                       materially_improves_retrieval=separates_files)
+    every = ("f1", "f2", "f3")
+    nodes = (_node("n_root", None, "Academics"),
+             _node("n_col", "n_root", "Columbia", dimension="school", dimension_role="school"),
+             _node("n_term", "n_col", "2026-Spring", dimension="term", dimension_role="term"),
+             _node("n_phys", "n_term", "PHYS1401", dimension="course", dimension_role="course"),
+             _node("n_hw", "n_phys", "Homework", dimension="work_type", dimension_role="work_type"),
+             _node("n_syl", "n_phys", "Syllabus", dimension="work_type", dimension_role="work_type"))
+    counts = _counts_with_children(nodes, {
+        "n_root": every, "n_col": every, "n_term": every, "n_phys": every,
+        "n_hw": ("f1", "f2"), "n_syl": ("f3",)})
+    fired = warnings_for(nodes, counts, limits=real, parent_concepts={})
+    assert RECOMMEND_FLATTEN not in {w.kind for w in fired}, [w.reason for w in fired]

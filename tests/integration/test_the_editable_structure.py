@@ -450,3 +450,76 @@ def test_editing_the_structure_moves_no_file(proposed):
                        else line for line in lines]))
     assert code == 0, said
     assert _on_disk(proposed["corpus"]) == proposed["before"]
+
+
+# --- `106` Phase 7 §B.3 and §C: what a row says about a fold, and about a bundle --
+
+
+def _run_with_nodes(nodes):
+    """A `ProductionRun` with these nodes and nothing placed, the two fields
+    `structure_rows` reads."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        tree=SimpleNamespace(tree=SimpleNamespace(nodes=tuple(nodes))),
+        placement=SimpleNamespace(decisions=()))
+
+
+def _a_node(node_id, label, *, parent=None, node_type="proposed",
+            dimension=None, expected=(), accepts=True):
+    from tree_design.records import ExpectedValue, Node
+
+    return Node(
+        node_id=node_id, plan_version_id="p", node_type=node_type,
+        display_label=label, parent_node_id=parent,
+        root_anchor="root_documents", ordinal=0, associated_group_ids=(),
+        explanation="x", node_role="ordinary", accepts_placement=accepts,
+        handling_class="personal_non_sensitive", origin_node_id=node_id,
+        dimension_role=dimension, dimension=dimension,
+        expected_values=tuple(ExpectedValue(f, v) for f, v in expected))
+
+
+def test_a_row_names_the_values_folded_into_its_folder():
+    """`106` Phase 7 §B.3. A folder that claims more than its own level says so
+    on its line, so the person editing the outline sees what is inside without
+    a level for it. SABOTAGE: print only the count -- the fold is a decision
+    the product made and did not say."""
+    top = _a_node("n_g", "Georgetown Prep", parent="n_root", dimension="school",
+                  expected=(("school", "Georgetown Prep"), ("term", "2024-Fall"),
+                            ("subject", "ENG101")))
+    assert cli._node_claim(top) == ("school", "Georgetown Prep")
+    assert cli._folded_words(top) == (
+        "also every file's term 2024-Fall and subject ENG101")
+    rows = cli.structure_rows(
+        _run_with_nodes((_a_node("n_root", "Academics"), top)),
+        situations={}, words_of=lambda s: "", holds={})
+    assert "also every file's term 2024-Fall and subject ENG101" in rows[1].words
+
+
+def test_an_ancestors_value_on_the_chain_is_the_path_and_not_a_fold():
+    """Every node's chain carries its ancestors' values too (`materialise.py`),
+    and those are the path the person can already see. Only what was folded
+    INTO this folder is named on its line. SABOTAGE: name every value past the
+    node's own -- every term folder reads "also every file's school Columbia",
+    which is the folder above it."""
+    school = _a_node("n_c", "Columbia", parent="n_root", dimension="school",
+                     expected=(("school", "Columbia"),))
+    term = _a_node("n_t", "2026-Spring", parent="n_c", dimension="term",
+                   expected=(("school", "Columbia"), ("term", "2026-Spring")))
+    assert cli._node_claim(term) == ("term", "2026-Spring")
+    assert cli._folded_words(term, frozenset({"school"})) == ""
+    rows = cli.structure_rows(
+        _run_with_nodes((_a_node("n_root", "Academics"), school, term)),
+        situations={}, words_of=lambda s: "", holds={})
+    assert "also" not in rows[2].words
+
+
+def test_a_protected_root_says_it_is_protected_and_not_a_folder_of_the_plan():
+    """`106` Phase 7 §C producer 3. `represent_protected_areas` puts a bundle at
+    the root by the standing rule; the outline printed "0 files" beside it.
+    SABOTAGE: keep the count -- an app reads as an empty folder of the plan."""
+    area = _a_node("n_app", "Numbers.app", node_type="protected", accepts=False)
+    rows = cli.structure_rows(_run_with_nodes((area,)), situations={},
+                              words_of=lambda s: "", holds={})
+    assert rows[0].words == cli.PROTECTED_ROW_WORDS
+    assert "0 files" not in rows[0].words

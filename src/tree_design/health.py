@@ -64,6 +64,12 @@ class BranchCounts:
     evidence_gap_file_ids: tuple[str, ...]
     sensitive_isolated: bool
     stale: bool
+    #: `106` Phase 7 §B.4, the carrier `test_the_flatten_rule_has_a_measure_to_
+    #: read` named. The member count of each child, largest first: the partition
+    #: this level makes of the files a person would open it to find. Empty for
+    #: a leaf. It is a FACT about the tree, not a score, and `separates_files`
+    #: reads it without a number the design did not state.
+    retrieval_partition: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -261,6 +267,9 @@ def branch_counts(
     """
     members = tuple(dict.fromkeys(members_by_node.get(node_id, ())))
     index = _index(nodes)
+    partition = tuple(sorted(
+        (len(dict.fromkeys(members_by_node.get(child.node_id, ())))
+         for child in index.children.get(node_id, ())), reverse=True))
     return BranchCounts(
         node_id=node_id,
         child_count=len(index.children.get(node_id, ())),
@@ -271,7 +280,33 @@ def branch_counts(
         evidence_gap_file_ids=tuple(evidence_gaps_by_node.get(node_id, ())),
         sensitive_isolated=node_id in sensitive_node_ids,
         stale=stale,
+        retrieval_partition=partition,
     )
+
+
+def separates_files(counts: BranchCounts) -> bool | None:
+    """§5.9's "materially improves retrieval", read off the partition.
+
+    `00`:98 gives both ends: `Georgetown Prep` "may remain shallow because it
+    contains only a handful of files", and "a two-file application packet may
+    remain a single folder". A level separates its files when it puts them
+    under more than one child and at least one child gathers more than one --
+    one file per child is the filename restated as a directory. Not a
+    threshold: it is the degenerate partition, as many parts as elements.
+
+    `None` for a leaf, and `None` for ONE child. `TreeLimits.materially_
+    improves_retrieval` says None "must never round to False"; a folder with
+    no children has made no partition to judge, and a folder with one child
+    is `WARN_ONE_CHILD`'s question, which already answers it with
+    `divides_below` so that `00`:78's own `Columbia/2026-Spring/PHYS1401`
+    stays unwarned. `106` Phase 7 §B.4: "Rule 1's warning is already
+    `WARN_ONE_CHILD`; nothing is added for it" -- answering False here would
+    add exactly that, on the design's own recommended path.
+    """
+    parts = counts.retrieval_partition
+    if len(parts) <= 1:
+        return None
+    return any(part > 1 for part in parts)
 
 
 def _run_below(index: _TreeIndex, node_id: str) -> tuple[str, ...]:

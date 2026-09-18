@@ -30,6 +30,7 @@ from tree_design.materialise import (
     BranchEvidence,
     BranchPreview,
     child_counts,
+    folded_sentence,
     narrow_wide_date_levels,
 )
 from tree_design.node_key import protected_key
@@ -492,8 +493,17 @@ def _summarise(counts: Mapping[str, int]) -> str:
     untouched -- `cli._nesting_key` derives a recorded ANSWER's durable identity
     from its keys, so emptying it would rename the shape a person answered for.
     The sentence is what was wrong, so the sentence is what changes.
+
+    SINCE `106` PHASE 7 THE INPUT IS WHAT WAS BUILT, NOT WHAT WAS COUNTED.
+    `vertical_options` hands this the folders per level in the preview the
+    projection actually produced, after §B.1's and §B.2's folds, so a level
+    at exactly one is a REAL folder that something divides beneath (or a
+    single child holding a strict subset), and dropping it would hide a
+    level from the sentence. So `if count`, no longer `if count > 1`: the
+    one-value case this used to drop is now never in the input, because the
+    projection did not build it. The folds are said beside this sentence.
     """
-    parts = [f"{count} {role}" for role, count in counts.items() if count > 1]
+    parts = [f"{count} {role}" for role, count in counts.items() if count]
     if not parts:
         return "no child branches"
     if len(parts) == 1:
@@ -545,12 +555,14 @@ def _counts_for_preview(preview: BranchPreview,
     sensitive = frozenset(
         node_id for node_id, files in preview.members_by_node.items()
         if files & evidence.protected_file_ids)
+    # EVERY node's members, not the one node's: `106` Phase 7 §B.4 reads the
+    # children's counts off `BranchCounts.retrieval_partition`, and a map
+    # holding one node could never say what its children hold.
+    members_by_node = {node_id: sorted(files)
+                       for node_id, files in preview.members_by_node.items()}
     return {
         node.node_id: branch_counts(
-            tree, node_id=node.node_id,
-            members_by_node={
-                node.node_id: sorted(
-                    preview.members_by_node.get(node.node_id, ()))},
+            tree, node_id=node.node_id, members_by_node=members_by_node,
             unresolved_by_node={preview.parent.node_id: unresolved},
             evidence_gaps_by_node={},
             sensitive_node_ids=sensitive)
@@ -655,7 +667,19 @@ def vertical_options(
         stated = (() if built is None else
                   tuple((expected.field, expected.value)
                         for expected in built.branch_expectations))
-        summary = f"This option would create {_summarise(counts)}."
+        # `106` Phase 7 §B.3: the sentence names what the projection BUILT, in
+        # level order, and then says each level it measured and folded. `counts`
+        # still holds every level's distinct values for `resulting_child_counts`,
+        # whose keys are a recorded answer's identity (`cli._nesting_key`).
+        built_counts: dict[str, int] = {
+            level.dimension_role: 0
+            for level in (() if evidence is None else evidence.levels)}
+        for node in (() if built is None else built.nodes):
+            role = node.dimension_role or ""
+            built_counts[role] = built_counts.get(role, 0) + 1
+        summary = f"This option would create {_summarise(built_counts)}."
+        for fold in (() if built is None else built.folded):
+            summary += f" {folded_sentence(fold)}."
         if stated:
             # `counts` says "1 school, and 1 term" here and no such folder is
             # built: `child_counts` counts a level's distinct VALUES and never

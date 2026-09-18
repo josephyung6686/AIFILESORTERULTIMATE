@@ -321,15 +321,20 @@ def test_the_projection_nests_by_shared_files_and_never_multiplies(seeded):
     # a one-child level -- so this shape was unreachable in a real run and only a
     # unit test ever saw it. What this test pins is unchanged: nesting is by
     # SHARED FILES and never a product.
-    assert set(by_label) == {"BUSIB 4300", "PHYS1401", "Syllabus", "Homework"}
-    # PHYS1401's only file has no work_type, so PHYS1401 gets no children at all.
+    # `106` Phase 7 §B.1: `Syllabus` and `Homework` under `BUSIB 4300` were one
+    # folder per file beneath a built node -- `00`:98's two-file packet -- so
+    # they are measured and not built, and BUSIB 4300 holds both files. The
+    # fold is SAID on the node. (Before Phase 7 both were nodes here.)
+    assert set(by_label) == {"BUSIB 4300", "PHYS1401"}
+    assert "each of its 2 files would have had a folder of its own" in (
+        by_label["BUSIB 4300"].explanation)
+    # PHYS1401's only file has no work_type, so PHYS1401 gets no children and
+    # no fold is said against it: the intersection, not the product -- a
+    # kind-of-work measured under PHYS1401 would be the multiplication this
+    # test is named for.
     assert [n.display_label for n in nodes
             if n.parent_node_id == by_label["PHYS1401"].node_id] == []
-    # Syllabus and Homework hang under BUSIB 4300 -- the intersection, not the
-    # product: a Syllabus node under PHYS1401 would be the multiplication this
-    # test is named for.
-    assert by_label["Syllabus"].parent_node_id == by_label["BUSIB 4300"].node_id
-    assert by_label["Homework"].parent_node_id == by_label["BUSIB 4300"].node_id
+    assert "was not made a folder" not in by_label["PHYS1401"].explanation
 
 
 def test_every_node_carries_the_ancestor_chain_as_expected_values(seeded):
@@ -345,10 +350,16 @@ def test_every_node_carries_the_ancestor_chain_as_expected_values(seeded):
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
         template_context_for=NO_CONTEXT)
-    homework = next(n for n in nodes if n.display_label == "Homework")
-    assert homework.expected_values == (
+    # `106` Phase 7 §B.1: `Homework` is no longer a node on this corpus (one
+    # folder per file beneath `BUSIB 4300` is folded), so the chain is read
+    # off the folder that kept the files. A §B.1 fold appends NOTHING to it --
+    # the folded values differ per file, so no one of them is the folder's
+    # claim. The full-chain case on a fold that does append is pinned by
+    # `test_the_folded_values_are_claimed_by_the_folder_that_keeps_the_files`
+    # in `test_p10_candidates.py`.
+    busib = next(n for n in nodes if n.display_label == "BUSIB 4300")
+    assert busib.expected_values == (
         ExpectedValue(field="subject", value="BUSIB 4300"),
-        ExpectedValue(field="work_type", value="Homework"),
     )
     # §6.1's worked example is exactly this shape: the Homework node's expected
     # values are the whole chain, not its own level alone.

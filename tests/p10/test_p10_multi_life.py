@@ -155,8 +155,13 @@ def test_a_corpus_that_spans_three_lives_produces_a_branch_for_each(corpus):
     labels = {node.display_label for node in result.tree.nodes}
     assert {ACADEMIC_LABEL, LAW_LABEL, MEDICAL_LABEL} <= labels
     # Each coverable life split by the recipe authored for it, and by no other.
-    assert {"BUSIB 4300", "PHYS1401", "Syllabus", "Homework"} <= labels
-    assert {"Acme Industries", "Pleading", "Retainer"} <= labels
+    # `106` Phase 7 §B: a course with one syllabus and one homework, and a
+    # client with one pleading and one retainer, are `00`:98's two-file
+    # packets; the kind-of-work folders fold into the course and the client
+    # and are SAID there. (Before Phase 7 all four kinds were labels here.)
+    assert {"BUSIB 4300", "PHYS1401"} <= labels
+    assert {"Acme Industries", "Borden Trust"} <= labels
+    assert not {"Syllabus", "Homework", "Pleading", "Retainer"} & labels
 
 
 def test_every_accepted_group_reaches_a_branch(corpus):
@@ -186,8 +191,12 @@ def test_each_life_is_split_by_its_own_recipe_and_by_no_other(corpus):
         if node.dimension:
             dimensions.setdefault(area_of(node), set()).add(node.dimension)
 
-    assert dimensions[ACADEMIC_LABEL] == {"subject", "work_type"}
-    assert dimensions[LAW_LABEL] == {"client", "work_type"}
+    # `106` Phase 7 §B folds `work_type` on this corpus (one file per kind
+    # beneath every built course and client), so each life is split by the
+    # first level of its own recipe -- and by nothing of the other's, which
+    # is the property this test is named for.
+    assert dimensions[ACADEMIC_LABEL] == {"subject"}
+    assert dimensions[LAW_LABEL] == {"client"}
     # The uncoverable life is split by nothing at all, which is not the same as
     # being split by somebody else's recipe.
     assert MEDICAL_LABEL not in dimensions

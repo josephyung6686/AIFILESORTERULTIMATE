@@ -60,7 +60,8 @@ from tree_design.records import (
 from tree_design.residuals import ResidualChoice, ResidualTemplate, project_residual_nodes
 from tree_design.routing import BranchContext, CompositionCandidate, RoutingReport, route_branch
 from tree_design.store import (
-    apply_review_action, nodes_for_version, write_node, write_plan_version,
+    apply_review_action, nodes_for_version, open_draft, write_node,
+    write_plan_version,
 )
 from tree_design.templates import CompositionConflict
 from tree_design.user_edits import UserLevelEdit, user_level_edits
@@ -73,7 +74,8 @@ from tree_design.upstream import (
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
-    ACCEPT, ADD_SCOPED_GENERAL, C3, EXISTING, ORDINARY, PROPOSED,
+    ACCEPT, ADD_SCOPED_GENERAL, ARCHIVE, C3, DISABLE, ENABLE, EXISTING,
+    ORDINARY, PROPOSED, REPLACE_WITH_EXISTING, REVIEW_AND_UNSORTED,
     REVIEW_SURFACES, SET_SHARED_MATERIAL_POLICY, check,
 )
 
@@ -1038,6 +1040,56 @@ def mint_scoped_generals(conn: sqlite3.Connection, *,
         plan_version_ids=tree.plan_version_ids + tuple(versions))
 
 
+def mint_review_homes(conn: sqlite3.Connection, *,
+                      authorities: TreeDesignAuthorities,
+                      decisions: TreeDesignDecisions,
+                      tree: TreeDesignResult,
+                      homes: Sequence[str],
+                      disposition: str) -> TreeDesignResult:
+    """`00` amendment 13's homes, minted AFTER placement proved which sets exist.
+
+    The tree freezes before placement (`STEPS`) and §7.5's sets exist only
+    after it, so a home a set is offered can only be added the way `00`:99's
+    General is: a draft opened from the frozen version, the nodes written,
+    the version frozen again. Returns `tree` unchanged, having written
+    NOTHING, when `homes` is empty.
+    """
+    if not homes:
+        return tree
+    groups, _folders, areas, _moves = _upstream(conn, authorities, decisions)
+    version = authorities.mint_version_id()
+    open_draft(conn, from_version=tree.tree.plan_version_id,
+               new_version_id=version, created_at=decisions.created_at,
+               mint_node_id=authorities.mint_node_id)
+    choices = tuple(ResidualChoice(
+        template_name=name, action=ENABLE, disposition=disposition,
+        display_label=None, parent_node_id=None,
+        root_anchor=authorities.root_anchor, merge_into=None,
+        replaces_node_id=None) for name in homes)
+    enable_review_homes(conn, authorities, decisions, version=version,
+                        choices=choices)
+    profiles = build_profiles(
+        conn, plan_version_id=version,
+        groups_by_id={group.group_id: group for group in groups},
+        document_types_by_node={}, anchor_excerpts_by_node={},
+        user_edits_by_node={}, node_scoped_rejections={})
+    freeze(
+        conn, plan_version_id=version, created_at=decisions.created_at,
+        user_id=decisions.user_id, surface=decisions.surface,
+        component_version=decisions.component_version,
+        residual_configuration={**decisions.residual_configuration,
+                                **{name: ENABLE for name in homes}},
+        approved_branch_ids=tuple(
+            node.node_id for node in nodes_for_version(conn, version)
+            if node.accepts_placement),
+        profiles=profiles, protected_areas=areas,
+        catalogue_release_id=getattr(authorities.catalogue, "release_id", None),
+        template_versions=tree.tree.freeze_record.template_versions)
+    return dataclasses.replace(
+        tree, tree=frozen_tree(conn, plan_version=version),
+        plan_version_ids=tree.plan_version_ids + (version,))
+
+
 def _open_first_draft(conn, authorities, decisions, cross_folder: bool) -> str:
     """The version the chain starts from, carrying P3's §1.1 permission.
 
@@ -1256,39 +1308,77 @@ def _enable_residual_library(conn, authorities, decisions, *, version: str) -> N
     """
     if not decisions.residual_choices:
         return
+    enable_review_homes(conn, authorities, decisions, version=version,
+                        choices=decisions.residual_choices)
+
+
+def enable_review_homes(conn, authorities, decisions, *, version: str,
+                        choices: Sequence[ResidualChoice]) -> tuple[Node, ...]:
+    """`00` amendment 13: residual homes live under a root-level `98`.
+
+    The root is minted the first time a home needs it and never otherwise --
+    `00`:121's "not automatically created" is kept for the root as for the
+    homes. A choice that names its own parent or replaces an existing folder
+    keeps that; only a parentless one goes under `98`. `99 Archive` is a home
+    of its own at the root: it is in the library as the owner's user-defined
+    template (`cli._residual_library`), its choice names no parent, and it is
+    exempt from `98` by name.
+
+    This supersedes the first-proposed-branch parent a parentless home used
+    to get: `00`:99's "a global catch-all folder should not become the
+    product's default answer" is kept by amendment 13's own words -- the
+    catch-all "MUST exist, be typed, and be visible at the root", and a file
+    reaches it only when no branch can hold it. The parent is still a branch
+    THIS RUN proposed and never a folder the person already had (`00`:100).
+
+    Published so `mint_review_homes` can call it after placement, on a draft
+    opened from the frozen tree -- the same seam `mint_scoped_generals` uses
+    for `00`:99's General.
+    """
     existing = {node.node_id: node for node in nodes_for_version(conn, version)}
-    # The parent must be a branch THIS RUN proposed, and never a folder the
-    # person already had. `00`:100 forbids reorganising an existing folder
-    # "simply because a template would produce a different structure", and
-    # nesting a product-created residual home inside somebody's own `Memes`
-    # folder is that, done as a side effect of enabling something else.
-    # `existing_path` is what tells the two apart: it is set only on an adopted
-    # folder. When this run proposed no top-level branch there is no meaningful
-    # parent to use, and the honest answer is none -- the node sits at the root
-    # rather than inside a folder chosen because it happened to be first.
-    default_parent = next(
-        (node for node in existing.values()
-         if node.parent_node_id is None and node.existing_path is None), None)
+    root = next((node for node in existing.values()
+                 if node.parent_node_id is None
+                 and node.display_label == REVIEW_AND_UNSORTED), None)
+    parentless = [choice for choice in choices
+                  if choice.parent_node_id is None
+                  and choice.action not in (DISABLE, REPLACE_WITH_EXISTING)
+                  and choice.template_name != ARCHIVE]
+    if parentless and root is None:
+        node_id = authorities.mint_node_id()
+        root = _with_refinement(Node(
+            node_id=node_id, plan_version_id=version, node_type=PROPOSED,
+            display_label=REVIEW_AND_UNSORTED, parent_node_id=None,
+            root_anchor=authorities.root_anchor,
+            ordinal=sum(1 for node in existing.values() if node.parent_node_id is None),
+            associated_group_ids=(),
+            explanation=("Files no branch of this plan can hold are gathered "
+                         "here, in named sets, and offered to you before "
+                         "anything moves (`00` amendment 13)."),
+            node_role=ORDINARY,
+            accepts_placement=derive_accepts_placement(
+                PROPOSED, protected_movement_permitted=False),
+            handling_class=authorities.collapse_handling_classes(frozenset()),
+            origin_node_id=node_id),
+            lambda _node, _count, *, was_split: decisions.residual_refinement,
+            file_count=0, was_split=False)
+        write_node(conn, root)
+        existing[root.node_id] = root
+    rehomed = tuple(
+        dataclasses.replace(choice, parent_node_id=root.node_id)
+        if choice in parentless else choice
+        for choice in choices)
     nodes = project_residual_nodes(
-        decisions.residual_library, decisions.residual_choices,
-        plan_version_id=version,
+        decisions.residual_library, rehomed, plan_version_id=version,
         handling_class_for_template=decisions.residual_handling_class,
         mint_node_id=authorities.mint_node_id, existing_nodes=existing)
     for node in nodes:
-        if node.parent_node_id is None and default_parent is not None:
-            # `00`:99 again: a residual branch belongs inside a meaningful
-            # parent, and "a global catch-all folder should not become the
-            # product's default answer to ambiguity". A choice that named no
-            # parent gets this run's top-level branch rather than the root.
-            node = dataclasses.replace(node,
-                                       parent_node_id=default_parent.node_id)
         # A residual home is a template: it is created empty and P11/P12 put
         # files in it later, so the number it holds AT DESIGN TIME is zero and
         # that is the count handed over rather than a stand-in. §7.4 asks the
         # user once for all of them, so `residual_refinement` is a fixed pair and
-        # reads neither argument.
+        # reads neither argument. §7.4's home is flat DELIBERATELY, so neither
+        # number is a claim about anything measured: the answer is the user's.
         write_node(conn, _with_refinement(
             node, lambda _node, _count, *, was_split: decisions.residual_refinement,
-            # §7.4's home is flat DELIBERATELY, so neither number is a claim
-            # about anything measured: the answer is the user's, verbatim.
             file_count=0, was_split=False))
+    return nodes

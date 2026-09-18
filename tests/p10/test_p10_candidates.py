@@ -239,7 +239,14 @@ def test_a_whole_option_preview_states_what_each_option_would_create(conn):
                                limits=_limits(conn), preview=_preview_binding())
     split = options[0]
     assert split.resulting_child_counts == {"school": 3, "term": 3}
-    assert "3 school" in split.summary and "3 term" in split.summary
+    assert "3 school" in split.summary
+    # `106` Phase 7 §B.2: each school here holds one term holding one file --
+    # `00`:98's "Georgetown Prep may remain shallow" three times over -- so
+    # the term is folded into its school and SAID, not promised as three
+    # folders the tree does not hold. (Before Phase 7 this asserted
+    # `"3 term" in split.summary`.)
+    assert "3 term" not in split.summary
+    assert split.summary.count("every file there carries it") == 3
     assert split.unresolved_file_ids == ("f3",)
     assert options[-1].kind == NO_SPLIT
 
@@ -763,12 +770,18 @@ def test_total_child_branches_counts_the_branches_the_option_would_create(conn):
 
     Three schools, each with two terms, is 3 + 6 = 9 branches. The old number
     said 6, which is not a count of anything the user can see.
+
+    Two files per term since `106` Phase 7: with one file per term the six
+    term folders are one folder per file beneath a built node, which §B.1
+    folds -- `00`:98's "two-file packet" -- and the count is then honestly 3.
     """
     evidence = _evidence(
         _level("school", "school", 0,
-               {"Columbia": {"f1", "f2"}, "NYU": {"f3", "f4"}, "MIT": {"f5", "f6"}}),
+               {"Columbia": {"f1", "f2", "f3", "f4"}, "NYU": {"f5", "f6", "f7", "f8"},
+                "MIT": {"f9", "f10", "f11", "f12"}}),
         _level("term", "term", 1,
-               {"2026": {"f1", "f3", "f5"}, "2025": {"f2", "f4", "f6"}}))
+               {"2026": {"f1", "f2", "f5", "f6", "f9", "f10"},
+                "2025": {"f3", "f4", "f7", "f8", "f11", "f12"}}))
     option = _options(conn, evidence, "school", "term")[0]
     assert option.resulting_child_counts == {"school": 3, "term": 2}
     assert len(option.children) == 9
@@ -999,3 +1012,170 @@ def test_example_members_is_a_sample_and_the_count_is_not(conn):
         assert set(option.example_members) <= files
         assert option.member_count == len(files), (
             "the sample is shorter; the number the user reads is not")
+
+
+# --- `106` Phase 7 §B.1: a folder per file beneath a built node is not built ----
+
+
+def test_one_file_per_value_beneath_a_built_node_is_folded_into_it(conn):
+    """`00`:98: "a two-file application packet may remain a single folder."
+    Three files in one course, each a different kind of work: the course folder
+    holds the three files and no kind-of-work folder is built under it.
+
+    SABOTAGE: build the three -- the person opens PHYS1401 to find three folders
+    with one file each, which is the filename restated as a directory."""
+    every = {"f1", "f2", "f3"}
+    evidence = _evidence(
+        _level("subject", "subject", 0, {"PHYS1401": every, "CHEM1101": {"f4"}}),
+        _level("work_type", "work_type", 1,
+               {"Homework": {"f1"}, "Lectures": {"f2"}, "Syllabus": {"f3"},
+                "Lab": {"f4"}}))
+    option = _options(conn, evidence, "subject", "work_type")[0]
+    labels = [child.label_chain[-1] for child in option.children]
+    assert "PHYS1401" in labels and "CHEM1101" in labels
+    assert not {"Homework", "Lectures", "Syllabus", "Lab"} & set(labels)
+    assert option.total_child_branches == 2
+
+
+def test_a_folded_level_is_said_on_the_option_and_not_promised(conn):
+    """`00`:99 puts the counts before the choice, and `104` §18.42's rule is that
+    the sentence may not offer folders the shape will not build. SABOTAGE: keep
+    `_summarise(counts)` -- the option reads "2 subject, and 4 work_type" and
+    builds two folders."""
+    every = {"f1", "f2", "f3"}
+    evidence = _evidence(
+        _level("subject", "subject", 0, {"PHYS1401": every, "CHEM1101": {"f4"}}),
+        _level("work_type", "work_type", 1,
+               {"Homework": {"f1"}, "Lectures": {"f2"}, "Syllabus": {"f3"},
+                "Lab": {"f4"}}))
+    option = _options(conn, evidence, "subject", "work_type")[0]
+    assert "4 work_type" not in option.summary
+    assert "not made a folder under 'PHYS1401'" in option.summary
+    assert "each of its 3 files would have had a folder of its own" in option.summary
+
+
+def test_a_mixed_level_beneath_a_built_node_is_still_built(conn):
+    """The negative twin: one child gathering two files earns the level, and
+    the single-file siblings beside it stay (they are `WARN_TINY_FOLDERS`'
+    business, not this rule's)."""
+    every = {"f1", "f2", "f3"}
+    evidence = _evidence(
+        _level("subject", "subject", 0, {"PHYS1401": every, "CHEM1101": {"f4"}}),
+        _level("work_type", "work_type", 1,
+               {"Homework": {"f1", "f2"}, "Syllabus": {"f3"}, "Lab": {"f4"}}))
+    option = _options(conn, evidence, "subject", "work_type")[0]
+    labels = [child.label_chain[-1] for child in option.children]
+    assert "Homework" in labels and "Syllabus" in labels
+
+
+def test_the_rule_does_not_reach_the_branch_root(conn):
+    """§A's last paragraph: at the root there is no chain a folded file could
+    still be reached by, so three one-file courses under the branch stay three
+    folders and the tiny-folder warning speaks. SABOTAGE: fold here and the
+    three files have no reachable home -- `104` Q-H's cost, silently."""
+    from tree_design.vocabulary import WARN_TINY_FOLDERS
+
+    evidence = _evidence(_level("subject", "subject", 0, {
+        "PHYS1401": {"f1"}, "CHEM1101": {"f2"}, "MATH2000": {"f3"}}))
+    option = _options(conn, evidence, "subject", tiny_folder_count_warning=2)[0]
+    assert option.total_child_branches == 3
+    assert WARN_TINY_FOLDERS in {w.kind for w in option.warnings}
+
+
+# --- `106` Phase 7 §B.2: a single-child run that never divides folds ------------
+
+
+def test_a_school_with_one_term_one_course_and_nothing_below_stays_shallow(conn):
+    """`00`:98: "Academics/Georgetown Prep may remain shallow because it
+    contains only a handful of files." Two schools divide; under Georgetown
+    every file shares one term and one course and nothing divides beneath, so
+    Georgetown holds its files flat and CLAIMS the term and the course.
+
+    SABOTAGE: skip the fold -- Georgetown/2024-Fall/ENG101 is three folders a
+    person opens to find one folder each, on the design's own example."""
+    georgetown = {"g1", "g2"}
+    columbia = {"c1", "c2", "c3"}
+    evidence = _evidence(
+        _level("school", "school", 0, {"Georgetown Prep": georgetown, "Columbia": columbia}),
+        _level("term", "term", 1, {"2024-Fall": georgetown, "2026-Spring": columbia}),
+        _level("subject", "subject", 2, {"ENG101": georgetown, "PHYS1401": columbia}),
+        _level("work_type", "work_type", 3,
+               {"Homework": {"c1", "c2"}, "Syllabus": {"c3"}, "Essays": georgetown}))
+    option = _options(conn, evidence, "school", "term", "subject", "work_type")[0]
+    chains = {child.label_chain for child in option.children}
+    assert ("Academics", "Georgetown Prep") in chains
+    assert not any(chain[1] == "Georgetown Prep" and len(chain) > 2 for chain in chains)
+    # `00`:78's own path is untouched: something divides beneath Columbia.
+    assert ("Academics", "Columbia", "2026-Spring", "PHYS1401", "Homework") in chains
+    assert "every file there carries it" in option.summary
+
+
+def test_the_folded_values_are_claimed_by_the_folder_that_keeps_the_files(conn):
+    """A destination that states nothing cannot be reached by a fact
+    (`materialise.branch_expectations`); the fold appends the values it folded
+    to the top's chain so P11's direct-fact channel still lands there."""
+    from tree_design.records import ExpectedValue
+
+    georgetown = {"g1", "g2"}
+    columbia = {"c1", "c2", "c3"}
+    evidence = _evidence(
+        _level("school", "school", 0, {"Georgetown Prep": georgetown, "Columbia": columbia}),
+        _level("term", "term", 1, {"2024-Fall": georgetown, "2026-Spring": columbia}),
+        _level("subject", "subject", 2, {"ENG101": georgetown, "PHYS1401": columbia}),
+        _level("work_type", "work_type", 3,
+               {"Homework": {"c1", "c2"}, "Syllabus": {"c3"}, "Essays": georgetown}))
+    preview = _preview_binding()(None, evidence)
+    top = next(node for node in preview.nodes if node.display_label == "Georgetown Prep")
+    assert top.expected_values == (
+        ExpectedValue("school", "Georgetown Prep"),
+        ExpectedValue("term", "2024-Fall"),
+        ExpectedValue("subject", "ENG101"),
+        ExpectedValue("work_type", "Essays"))
+    assert preview.members_by_node[top.node_id] == frozenset(georgetown)
+
+
+def test_a_single_child_holding_a_strict_subset_is_a_real_split_and_stays(conn):
+    """One child with SOME of the parent's files divides them from the rest.
+    SABOTAGE: fold on `len(children) == 1` alone and the parent claims a value
+    two of its files do not carry."""
+    evidence = _evidence(
+        _level("school", "school", 0, {"Georgetown Prep": {"g1", "g2", "g3"}, "Columbia": {"c1"}}),
+        _level("term", "term", 1, {"2024-Fall": {"g1"}, "2026-Spring": {"c1"}}))
+    preview = _preview_binding()(None, evidence)
+    labels = {node.display_label for node in preview.nodes}
+    assert "2024-Fall" in labels
+
+
+def test_a_fold_beneath_a_folded_run_is_still_said_on_the_folder_that_survives(conn):
+    """§B.1 and §B.2 together, the shape neither rule's own test has. Under
+    Georgetown: one term, one course, and then one file per kind of work. The
+    kind-of-work level folds under ENG101 (§B.1), and ENG101 and its term then
+    fold into Georgetown (§B.2) -- so the folder the first fold was said
+    against no longer exists.
+
+    "Every fold must be SAID." SABOTAGE: stamp the §B.1 sentence on ENG101
+    before the run folds, or leave its `parent_node_id` pointing at a removed
+    node -- either way the person is never told their essays and notes were
+    not given folders."""
+    from tree_design.vocabulary import FOLDED_ONE_PER_FILE
+
+    georgetown = {"g1", "g2"}
+    columbia = {"c1", "c2", "c3"}
+    evidence = _evidence(
+        _level("school", "school", 0, {"Georgetown Prep": georgetown, "Columbia": columbia}),
+        _level("term", "term", 1, {"2024-Fall": georgetown, "2026-Spring": columbia}),
+        _level("subject", "subject", 2, {"ENG101": georgetown, "PHYS1401": columbia}),
+        _level("work_type", "work_type", 3,
+               {"Essay": {"g1"}, "Notes": {"g2"}, "Homework": {"c1", "c2"}, "Syllabus": {"c3"}}))
+    preview = _preview_binding()(None, evidence)
+    ids = {node.node_id for node in preview.nodes}
+    labels = {node.display_label for node in preview.nodes}
+    assert "ENG101" not in labels and "2024-Fall" not in labels
+    assert all(fold.parent_node_id in ids for fold in preview.folded), preview.folded
+    per_file = [fold for fold in preview.folded if fold.reason == FOLDED_ONE_PER_FILE]
+    assert len(per_file) == 1 and per_file[0].parent_label == "Georgetown Prep"
+    top = next(node for node in preview.nodes if node.display_label == "Georgetown Prep")
+    assert "each of its 2 files would have had a folder of its own" in top.explanation
+    assert "every file there carries it" in top.explanation
+    option = _options(conn, evidence, "school", "term", "subject", "work_type")[0]
+    assert "not made a folder under 'Georgetown Prep'" in option.summary

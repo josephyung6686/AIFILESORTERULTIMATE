@@ -305,6 +305,10 @@ def latest_plan_version(conn: sqlite3.Connection) -> str | None:
     `tools/groundtruth/measure.py`, called it careless, and reverted it, before an
     analyst found it shipping here. It is not a typo: it is what "break the tie on
     the id" means once ids carry numbers.
+
+    Found independently TWICE on the same day -- by the analyst reading `R-38`'s
+    caller, and by the Phase 7 analyst, whose own words add the reason the suffix
+    misleads: it is a COUNTER SHARED WITH NODE IDS, not a number to sort on.
     """
     row = conn.execute(
         "SELECT plan_version_id FROM plan_versions "

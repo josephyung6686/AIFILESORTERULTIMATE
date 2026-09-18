@@ -86,6 +86,11 @@ class ResidualSet:
     weak_graph_neighbours: tuple[str, ...]
     reason_not_placed: str
     member_file_ids: tuple[str, ...]
+    #: `106` Phase 7 §D.3. The partition's own key for this set -- the reason
+    #: code or the characteristic (`cli.REVIEW_SET_ORDER`'s member) -- which is
+    #: what the offered home is read off. Last and defaulted: a row an earlier
+    #: run wrote carries none and reads as "", which is the truth about it.
+    set_key: str = ""
 
     def __post_init__(self) -> None:
         if not self.reason_not_placed:
@@ -227,6 +232,7 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
                     weak_graph_neighbours=tuple(group["weak_graph_neighbours"]),
                     reason_not_placed=group["reason_not_placed"],
                     member_file_ids=batch,
+                    set_key=str(group.get("key", "")),
                 )
                 conn.execute(
                     "INSERT INTO residual_sets (record_id, plan_version, label, "

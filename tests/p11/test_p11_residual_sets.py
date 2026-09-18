@@ -527,3 +527,29 @@ def test_the_spend_gate_is_actually_called_before_a_residual_model_call():
 
 
 
+
+
+# --- `106` Phase 7 §D.3: every surfaced set carries the key its partition gave it
+
+
+def test_a_surfaced_set_carries_the_key_its_partition_gave_it(p11_conn):
+    """`106` Phase 7 §D.3: the offer is read off the set's KEY, not its label,
+    because the label carries `(i of n)` on a split set and is the person's
+    words rather than an address. SABOTAGE: drop the field -- the offer has to
+    be re-derived from the label, and a renamed label offers nothing."""
+    sets = _surface(p11_conn, partition=lambda ids: (
+        _group("Screenshots with no association", tuple(ids), key="screenshots"),))
+    assert {item.set_key for item in sets} == {"screenshots"}
+
+
+def test_a_set_written_before_the_key_existed_reads_back_with_no_key(p11_conn):
+    """The payload is `asdict`; a row from an older run has no `set_key` and
+    must read as the default, never as a traceback."""
+    item = ResidualSet(
+        set_id="plan-1:x", plan_version="plan-1", label="x", file_count=1,
+        representative_examples=("f",), file_type_distribution=(("png", 1),),
+        age_range=("2026-01-01", "2026-01-01"), evidence_availability="ocr",
+        sensitivity_status="public_low", protected=False,
+        weak_graph_neighbours=(), reason_not_placed="why",
+        member_file_ids=("f",))
+    assert item.set_key == ""

@@ -504,8 +504,13 @@ def test_a_level_that_makes_no_folder_is_not_counted_in_the_summary():
     """
     from tree_design.candidates import _summarise
 
-    assert _summarise({"school": 0, "term": 1, "subject": 3, "work_type": 0}) == (
+    # `106` Phase 7 Task 7.2: the input is now the folders BUILT per level,
+    # so a level that built nothing arrives as 0 (the fixture below changed
+    # from `term: 1` to `term: 0` for that reason), and a level at exactly one
+    # is a real folder and is named. The assertions keep their meaning: no
+    # folder the shape will not build is promised.
+    assert _summarise({"school": 0, "term": 0, "subject": 3, "work_type": 0}) == (
         "3 subject")
-    # A level with one value is dropped for the same reason a level with none is.
-    assert _summarise({"school": 0, "term": 1}) == "no child branches"
+    assert _summarise({"school": 0, "term": 0}) == "no child branches"
     assert _summarise({"school": 0}) == "no child branches"
+    assert _summarise({"term": 1}) == "1 term"

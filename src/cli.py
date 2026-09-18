@@ -424,13 +424,14 @@ from tree_design.candidates import (
     EXISTING_FOLDER_SOURCES, folder_label, node_type_for,
 )
 from tree_design.catalogue import TemplateCatalogue
-from tree_design.health import TreeHealth, tree_health
+from tree_design.health import TreeHealth, separates_files, tree_health
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
 from tree_design.materialise import MaterialisationRefused
 from tree_design.pipeline import (
     NothingToDesign, ScopedGeneralAnswer, SharedMaterialAnswer,
-    TreeDesignAuthorities, TreeDesignDecisions, mint_scoped_generals,
+    TreeDesignAuthorities, TreeDesignDecisions, mint_review_homes,
+    mint_scoped_generals,
 )
 from tree_design.store import ReviewActionRefused
 from tree_design.template_schema import (
@@ -626,24 +627,11 @@ TREE_LIMITS = TreeLimits(
     max_folder_proposals=4, max_depth=5, max_dossier_tokens=4000,
     excessive_depth_warning=4, tiny_folder_max_files=1,
     tiny_folder_count_warning=2,
-    # §5.9's flattening test. A deployment with no retrieval telemetry cannot
-    # measure it, and answering `False` would suppress every vertical option; this
-    # answers `True` and leaves the judgement to the user, who sees the option's
-    # counts and warnings before taking it.
-    #
-    # `104` §18.42 item 2 names this among the "predicates wired to constants
-    # that make them unfireable", and it is LEFT AS IT IS DELIBERATELY. The
-    # predicate is handed a `BranchCounts`, which counts children, descendants
-    # and members and measures no retrieval; the two `retrieval_*` fields in the
-    # template library are authored prose rather than a number about this corpus.
-    # So there is nothing real to feed it, and a threshold invented over counts
-    # that mean something else would be worse than the constant -- `TreeLimits`
-    # says so in its own words: "a flattening recommendation the product cannot
-    # justify is worse than none". `tests/p10/test_p10_health.py::test_the_
-    # flatten_rule_has_a_measure_to_read` is the strict xfail that names the
-    # carrier the measure would arrive on, and turns the suite red the day it
-    # does.
-    materially_improves_retrieval=lambda option: True)
+    # §5.9's flattening test, `106` Phase 7 §B.4: the partition a level makes
+    # of its files, read off `BranchCounts.retrieval_partition`. `104` §18.42
+    # item 2 named this predicate as wired to a constant; the measure it
+    # lacked is `00`:98's two degenerate partitions, and no number is set.
+    materially_improves_retrieval=separates_files)
 
 #: P9's bounds. Same status as the tree limits: named by §8.6, valued here.
 GROUPING_LIMITS = GroupingLimits(
@@ -5095,8 +5083,18 @@ def _residual_library(defined: Mapping[str, str] | None = None
             "max_permitted_depth", RESIDUAL_MAX_DEPTH))
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
-    return build_library(slot_values, user_defined=tuple(
+    return build_library(slot_values, user_defined=(
+        # `00` amendment 13 (`106` Phase 7 §D.1): `99 Archive` is a root-level
+        # home in its own right, always in the library -- built, not enabled
+        # -- before the person's own `--define-residual` ones.
         ResidualTemplate(
+            template_name=tv.ARCHIVE, display_name=tv.ARCHIVE,
+            default_parent_location=None, accepted_evidence_patterns=(),
+            expected_file_types=(), sensitivity_restrictions=(),
+            optional_shallow_subfolders=(),
+            max_permitted_depth=RESIDUAL_MAX_DEPTH,
+            treatment=tv.TREATMENT_RETAINED, user_defined=True),
+        *(ResidualTemplate(
             template_name=name, display_name=name,
             # §7.3 leaves five of the nine shipped defaults unstated and P10
             # refuses to invent one; a person's own area has none by the same
@@ -5110,7 +5108,7 @@ def _residual_library(defined: Mapping[str, str] | None = None
             sensitivity_restrictions=(), optional_shallow_subfolders=(),
             max_permitted_depth=RESIDUAL_MAX_DEPTH, treatment=treatment,
             user_defined=True)
-        for name, treatment in (defined or {}).items()))
+          for name, treatment in (defined or {}).items())))
 
 
 def residual_library_choices(library: Mapping[str, ResidualTemplate],
@@ -15610,6 +15608,12 @@ PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
 SCREENSHOT_REVIEW_SET: str = "screenshots-with-no-accepted-project-or-event"
 STANDALONE_PDF_REVIEW_SET: str = "standalone-pdfs-and-forms"
 SPREADSHEET_REVIEW_SET: str = "spreadsheets-and-presentations"
+#: `00` amendment 13's two missing characteristics (`106` Phase 7 §D.3). Both
+#: are read off records this run already wrote and derive nothing: a locked
+#: archive is P4's own `unreadable` row (`locked_reasons`), and a duplicate or
+#: version is P6's `duplicate_family` / `version_family` fact (`facts.families`).
+UNSUPPORTED_REVIEW_SET: str = "unsupported-or-encrypted"
+DUPLICATES_REVIEW_SET: str = "possible-duplicates-and-versions"
 
 #: The two signals, NAMED out of the vocabularies that publish them rather than
 #: spelled here. `SCREENSHOT_MEDIA_TYPE` is §2.6's second hypothesis, in the order
@@ -15626,19 +15630,39 @@ assert PDF_FORMAT in SOURCE_TYPE_BY_FORMAT
 SPREADSHEET_FAMILIES: tuple[str, ...] = ("spreadsheet", "presentation")
 assert set(SPREADSHEET_FAMILIES) <= set(SOURCE_TYPES)
 
-#: The reasons a characteristic may divide. One member, and the docstring above is
-#: the argument for its being one.
-REFINED_BY_CHARACTERISTIC: frozenset[str] = frozenset({pv.NO_SUPPORTED_DESTINATION})
+#: The reasons each characteristic may divide (`106` Phase 7 §D.3 made this a
+#: mapping). The three `00` names divide exactly the reason that means the
+#: product looked and nothing matched, and the docstring above is the argument.
+#: A copy or an earlier version divides the same reason. A locked archive is
+#: unread and therefore unclassified, so it stops under `NOT_YET_CLASSIFIED`
+#: today and would never reach the set amendment 13 names for it: that
+#: characteristic divides both.
+REFINED_BY_CHARACTERISTIC: Mapping[str, frozenset[str]] = MappingProxyType({
+    SCREENSHOT_REVIEW_SET: frozenset({pv.NO_SUPPORTED_DESTINATION}),
+    STANDALONE_PDF_REVIEW_SET: frozenset({pv.NO_SUPPORTED_DESTINATION}),
+    SPREADSHEET_REVIEW_SET: frozenset({pv.NO_SUPPORTED_DESTINATION}),
+    DUPLICATES_REVIEW_SET: frozenset({pv.NO_SUPPORTED_DESTINATION}),
+    UNSUPPORTED_REVIEW_SET: frozenset({pv.NO_SUPPORTED_DESTINATION,
+                                       NOT_YET_CLASSIFIED}),
+})
 
-REVIEW_SET_CHARACTERISTICS: tuple[tuple[str, str, str], ...] = tuple(
-    (key, label, dict(
-        (row[0], row[2]) for row in REVIEW_SET_REASONS)[pv.NO_SUPPORTED_DESTINATION])
-    for key, label in (
-        (SCREENSHOT_REVIEW_SET, "Screenshots with no accepted project or event"),
-        (STANDALONE_PDF_REVIEW_SET, "Standalone PDFs and forms"),
-        (SPREADSHEET_REVIEW_SET,
-         "Spreadsheets and presentations with unclear purpose"),
-    ))
+_NOTHING_MATCHED: str = dict(
+    (row[0], row[2]) for row in REVIEW_SET_REASONS)[pv.NO_SUPPORTED_DESTINATION]
+
+REVIEW_SET_CHARACTERISTICS: tuple[tuple[str, str, str], ...] = (
+    (SCREENSHOT_REVIEW_SET, "Screenshots with no accepted project or event",
+     _NOTHING_MATCHED),
+    (STANDALONE_PDF_REVIEW_SET, "Standalone PDFs and forms", _NOTHING_MATCHED),
+    (SPREADSHEET_REVIEW_SET,
+     "Spreadsheets and presentations with unclear purpose", _NOTHING_MATCHED),
+    # `00` amendment 13's two, each with ITS OWN sentence.
+    (UNSUPPORTED_REVIEW_SET, "Unsupported or encrypted",
+     "these could not be read: password-protected, damaged or in a format "
+     "nothing here opens. Nothing inside them was opened and nothing moved."),
+    (DUPLICATES_REVIEW_SET, "Possible duplicates and versions",
+     "each of these is a copy or an earlier version of a file this run also "
+     "holds, and nothing matched it on its own."),
+)
 
 REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
     **{key: (label, reason) for key, label, reason in REVIEW_SET_REASONS},
@@ -15649,10 +15673,10 @@ REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
 #: The order the screen names its sets in, protected last. A characteristic sits
 #: where the reason it divides sits, so the three named sets are read together and
 #: the remainder of that reason keeps its own place immediately before them.
-REVIEW_SET_ORDER: tuple[str, ...] = tuple(
+REVIEW_SET_ORDER: tuple[str, ...] = tuple(dict.fromkeys(
     key for row in REVIEW_SET_REASONS
-    for key in ((row[0], *(name for name, _, _ in REVIEW_SET_CHARACTERISTICS))
-                if row[0] in REFINED_BY_CHARACTERISTIC else (row[0],)))
+    for key in (row[0], *(name for name, _, _ in REVIEW_SET_CHARACTERISTICS
+                          if row[0] in REFINED_BY_CHARACTERISTIC[name]))))
 
 #: The rows a decision's own reason may name, and the protected key is NOT in it.
 #: `PROTECTED_REVIEW_SET` is the string `"protected"`, which is also
@@ -15664,9 +15688,35 @@ REVIEW_SET_ORDER: tuple[str, ...] = tuple(
 ORDINARY_REVIEW_SET_KEYS: frozenset[str] = frozenset(
     key for key, _, _ in REVIEW_SET_REASONS)
 
+#: `00` amendment 13: "every one is offered to the person before anything
+#: moves". Set key -> the home offered for it (`106` Phase 7 §D.3). §7.3's own
+#: nine under `98 Review and Unsorted`, and `99 Archive` for copies and earlier
+#: versions. A key absent here is a BLOCK (not classified, no model allowed, a
+#: move not permitted, protected) or a question the report prints (waiting on
+#: an answer, a situation not yet named, a run that stopped short, a model that
+#: gave no answer), and is offered nothing because a branch may still hold it;
+#: `test_every_ordinary_review_set_key_has_an_offered_home_or_is_a_block` pins
+#: the two lists against each other.
+REVIEW_HOME_FOR_SET: Mapping[str, str] = MappingProxyType({
+    SCREENSHOT_REVIEW_SET: tv.TEMPORARY_SCREENSHOTS,
+    STANDALONE_PDF_REVIEW_SET: tv.INDEPENDENT_RECORDS,
+    SPREADSHEET_REVIEW_SET: tv.REVIEW_LATER,
+    UNSUPPORTED_REVIEW_SET: tv.UNSUPPORTED_OR_ENCRYPTED,
+    DUPLICATES_REVIEW_SET: tv.ARCHIVE,
+    pv.NO_SUPPORTED_DESTINATION: tv.REVIEW_LATER,
+    pv.MULTIPLE_SUPPORTED_HOMES: tv.REVIEW_LATER,
+    pv.LOW_MARGIN: tv.REVIEW_LATER,
+    pv.CONFLICTING_FACTS: tv.REVIEW_LATER,
+    pv.SEMANTIC_ONLY: tv.REVIEW_LATER,
+    pv.GENERIC_HUB_ONLY: tv.REVIEW_LATER,
+    pv.NO_SHARED_BRANCH: tv.REVIEW_LATER,
+    NOT_YET_PLACED: tv.REVIEW_LATER,
+})
+
 
 def residual_characteristics(conn: sqlite3.Connection,
-                             file_ids: Sequence[str]) -> dict[str, str]:
+                             file_ids: Sequence[str], *,
+                             scan_run_id: str = "") -> dict[str, str]:
     """Which of `00` §residual's named characteristics each file HAS, read back.
 
     `104` R-42 item 2. Two readers, both of records this run already wrote, and
@@ -15719,6 +15769,19 @@ def residual_characteristics(conn: sqlite3.Connection,
             "AND v.canonical_value = ? AND ff.active = 1",
             (*file_ids, MEDIA_TYPE_FIELD, SCREENSHOT_MEDIA_TYPE)):
         found[row["file_id"]] = SCREENSHOT_REVIEW_SET
+    # `106` Phase 7 §D.3, amendment 13's two. Precedence: locked, then a copy or
+    # version, then the three above -- "cannot be read" outranks "is a copy"
+    # outranks "is a screenshot" for what a person can do about it, so the
+    # stronger readings are written last. Both are READ off records this run
+    # wrote: P6's family facts, and P4's locked-archive row for THIS scan.
+    for file_id in file_ids:
+        if any(preferred_fact(conn, file_id=file_id, field_key=field) is not None
+               for field in (DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD)):
+            found[file_id] = DUPLICATES_REVIEW_SET
+    locked = locked_reasons(conn, scan_run_id) if scan_run_id else {}
+    for file_id in file_ids:
+        if file_id in locked:
+            found[file_id] = UNSUPPORTED_REVIEW_SET
     return found
 
 
@@ -15888,6 +15951,61 @@ def mint_generals_on_demand(conn: sqlite3.Connection, finished, *,
                               for file_id in files},
                 component_version=component_version,
                 observed_at=observed_at)))
+
+
+def mint_review_homes_on_demand(conn: sqlite3.Connection, finished, *,
+                                authorities: TreeDesignAuthorities,
+                                decisions: TreeDesignDecisions,
+                                placement_inputs,
+                                component_version: str, observed_at: str):
+    """`00` amendment 13, the step after the General's: the homes the leftover
+    sets are offered exist in the tree before the screen offers them.
+
+    NOTHING HAPPENS WHEN NO ORDINARY SET WAS SURFACED, and a home already in
+    the tree (the person enabled it by `--residual`) is not minted twice:
+    `project_residual_nodes` refuses two decisions for one template, and this
+    reads the tree first so it never asks for one. A protected set is counted
+    and offered nothing, by the standing rule.
+
+    `106` Phase 7 §D.5, the owner's ruling: the auto-enabled homes carry
+    `physical-destination` -- residual homes DO move -- and every filing into
+    them is `REVIEW_REQUIRED` regardless, because `run_residual_file` files
+    with `unique_direct_match=False` (`placement/pipeline.py`), so nothing
+    moves before `--freeze` and `--apply`. A home the person enables by
+    `--residual` keeps its authored treatment.
+    """
+    # A home the person has already DECIDED about is never minted here: one
+    # they enabled is in the tree (by its display label, which a rename may
+    # have changed), and one they renamed, merged, relocated or DISABLED is
+    # in the frozen record's residual configuration under its template name.
+    # Minting a disabled template would overrule the person; minting a
+    # renamed one twice is `DuplicateNodeKey`.
+    have = {node.display_label for node in finished.tree.tree.nodes
+            if node.node_role == tv.RESIDUAL}
+    have |= set(finished.tree.tree.freeze_record.residual_configuration)
+    homes = tuple(dict.fromkeys(
+        REVIEW_HOME_FOR_SET[item.set_key]
+        for item in finished.placement.residual_sets
+        if not item.protected and item.set_key in REVIEW_HOME_FOR_SET
+        and REVIEW_HOME_FOR_SET[item.set_key] not in have))
+    if not homes:
+        return finished
+    before = finished.tree.tree
+    tree = mint_review_homes(
+        conn, authorities=authorities, decisions=decisions,
+        tree=finished.tree, homes=homes, disposition=PHYSICAL_DESTINATION)
+    inputs = placement_inputs(tree)
+    build_destination_index(
+        conn, tree.tree, component_version=component_version,
+        observed_at=observed_at, canonical=inputs.canonical_value)
+    return dataclasses.replace(
+        finished, tree=tree,
+        placement=dataclasses.replace(
+            finished.placement,
+            decisions=carry_onto(
+                conn, decisions=finished.placement.decisions,
+                from_tree=before, to_tree=tree.tree, into_general={},
+                component_version=component_version, observed_at=observed_at)))
 
 
 def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
@@ -16864,8 +16982,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # are not automatically created", so a run that names none passes an empty
     # library and the tree is exactly the tree it was. `residual_library_choices`
     # is where the shape of each decision is argued.
-    residual_library = (_residual_library(defined_residuals)
-                        if residuals or library_actions else {})
+    # `106` Phase 7 §D.1: the library is built unconditionally -- it is a
+    # LIBRARY, not an enablement. Enablement is still `residual_choices`,
+    # which stays empty unless typed, and `mint_review_homes_on_demand`
+    # reads the library after placement for the homes the sets are offered.
+    residual_library = _residual_library(defined_residuals)
     residual_choices = residual_library_choices(
         residual_library, residuals, library_actions,
         landscape=tuple(high_level_folders(directory, also_read,
@@ -17664,7 +17785,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         protected = _protected_among(unplaced)
         records = _file_records(unplaced)
-        characteristic = residual_characteristics(conn, tuple(unplaced))
+        characteristic = residual_characteristics(
+            conn, tuple(unplaced), scan_run_id=scan_run_id[0])
         decided = {decision.subject.file_id: decision
                    for decision in decisions_for_plan(conn,
                                                       plan_version=plan_version)
@@ -17675,7 +17797,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             return (row["filename"] if row is not None else "", file_id)
 
         def _why(file_id: str) -> str:
-            """Which set this file is in, off its own recorded decision."""
+            """Which set this file is in: its reason, divided by a characteristic
+            where `REFINED_BY_CHARACTERISTIC` says that reason may be."""
+            reason = _reason_of(file_id)
+            found = characteristic.get(file_id)
+            if found is not None and reason in REFINED_BY_CHARACTERISTIC[found]:
+                return found
+            return reason
+
+        def _reason_of(file_id: str) -> str:
+            """Which reason holds this file, off its own recorded decision."""
             decision = decided.get(file_id)
             if decision is None:
                 return NOT_YET_PLACED
@@ -17713,12 +17844,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 return (NOT_YET_CLASSIFIED if is_unclassified(decision.privacy)
                         else NO_MODEL_ALLOWED)
             if reason in ORDINARY_REVIEW_SET_KEYS:
-                # `104` R-42 item 2, and ONLY over the reason that means the
-                # product looked and nothing matched. The characteristic is what
-                # `00` names its sets by; the reason stays the sentence under
-                # them, word for word, because it is still true of each one.
-                if reason in REFINED_BY_CHARACTERISTIC:
-                    return characteristic.get(file_id, reason)
+                # `104` R-42 item 2: the characteristic divides this in `_why`,
+                # and only where `REFINED_BY_CHARACTERISTIC` says it may. The
+                # reason stays the sentence under them, word for word.
                 return reason
             if decision.outcome == pv.ASK_USER:
                 # Not an abstention: the run turned it into a question the report
@@ -17773,7 +17901,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     "evidence_availability": "partial",
                     "sensitivity_status": "protected" if is_protected else "none",
                     "protected": is_protected, "weak_graph_neighbours": (),
-                    "reason_not_placed": reason}
+                    "reason_not_placed": reason,
+                    # `106` Phase 7 §D.3: the key the offer is read off.
+                    "key": key}
 
         return tuple(
             _set(key, tuple(held[key]))
@@ -20222,6 +20352,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         decisions=design_decisions(_accepted),
         placement_inputs=placement_inputs,
         component_version=COMPONENT_VERSION, observed_at=now())
+    # `106` Phase 7 §D.4 × `00` amendment 13, immediately after the General
+    # and under the same authorities and decisions, so the version the sets
+    # are answered against (`act_on_residual_sets`, through
+    # `placement_inputs(result.tree)`) is the one that holds the homes.
+    result = mint_review_homes_on_demand(
+        conn, result, authorities=design_authorities(catalogue, _accepted),
+        decisions=design_decisions(_accepted),
+        placement_inputs=placement_inputs,
+        component_version=COMPONENT_VERSION, observed_at=now())
 
     _two_home_questions(
         conn, result, asked_at=clock,
@@ -22654,7 +22793,8 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                  slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
                  = MappingProxyType({}),
                  reason_already_said: bool = False,
-                 under: Sequence[str] = ()
+                 under: Sequence[str] = (),
+                 home_for=None,
                  ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
 
@@ -22729,6 +22869,23 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
         by_reason.setdefault((item.protected, item.reason_not_placed),
                              []).append(item)
     lines: list[str] = []
+
+    # `106` Phase 7 §D.5, `00` amendment 13: the home each set is OFFERED,
+    # read off its key (`REVIEW_HOME_FOR_SET`) -- the one table, unless the
+    # caller hands over another reader. A set with no key is a row an older
+    # run wrote, and is offered what any set was before: the first area.
+    def _home_of(item):
+        if home_for is not None:
+            return home_for(item)
+        return REVIEW_HOME_FOR_SET.get(getattr(item, "set_key", "") or "")
+
+    def _is_block(item) -> bool:
+        """A set that is offered no home BY DESIGN: a block, or a question
+        the report prints. A keyless set is not one -- nothing is known."""
+        key = getattr(item, "set_key", "") or ""
+        return bool(key) and key not in REVIEW_HOME_FOR_SET
+
+    blocks_only = all(_is_block(item) for item in items if not item.protected)
     # Whether anything under this heading is a hold a `--residual` area could
     # take. A group holding only PROTECTED sets gets no closing sentence, because
     # `--send-set` refuses protected material and the sentence offers it.
@@ -22786,7 +22943,18 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
             # which is the whole of why they were reachable by no command before
             # `104` R-42: the screen only ever offered the answer that needed
             # somewhere to put things.
-            if areas:
+            offered = _home_of(item)
+            if offered is not None and offered in areas:
+                # `00` amendment 13: "every one is offered to the person
+                # before anything moves" -- by name, and by the command
+                # that takes it there. Only a home the tree HOLDS is offered:
+                # naming one it does not would promise a filing
+                # `approved_residual_area` cannot find.
+                lines.append(f"Offered home: {tv.ARCHIVE}" if offered == tv.ARCHIVE
+                             else f"Offered home: {tv.REVIEW_AND_UNSORTED} / {offered}")
+                lines.append(f'      --send-set '
+                             f'{shlex.quote(f"{item.label}={offered}")}')
+            elif areas:
                 lines.append(f'      --send-set '
                              f'{shlex.quote(f"{item.label}={areas[0]}")}')
             lines.append(f'      --leave-set {shlex.quote(item.label)}')
@@ -22810,6 +22978,14 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
     if unprotected:
         if areas[1:]:
             closing = (f'This plan also has {", ".join(areas[1:])}.',)
+        elif not areas and blocks_only:
+            # `106` Phase 7 §D.5: after the homes are minted on demand, a
+            # screen with no area and only ordinary sets means every set here
+            # is a block or a question -- waiting on the person, not on a
+            # folder -- and saying "nowhere to put them" would be untrue.
+            closing = (
+                "These are waiting on you, not on a folder: answer what is "
+                "asked above and they are placed like any other file.",)
         elif not areas:
             closing = (
                 "This plan has nowhere to put them yet: enable an area with "
@@ -23235,12 +23411,41 @@ def _outline_walk(nodes: Sequence):
 
 def _node_claim(node) -> tuple[str, str] | None:
     """The one fact value this folder is named by, or `None` for a folder that is
-    not named by one at all -- a root, or a level the template owns."""
+    not named by one at all -- a root, or a level the template owns.
+
+    The value of the node's OWN dimension, not `expected[-1]`: since `106`
+    Phase 7 a folder may carry the values of levels folded into it after its
+    own, and a rename gesture keyed on the last of those would rename the
+    wrong thing.
+    """
+    dimension = getattr(node, "dimension", None)
     expected = getattr(node, "expected_values", ())
-    if not expected:
-        return None
-    last = expected[-1]
-    return (last.field, last.value)
+    if dimension is None:
+        # A template-local node (Contract W5) has no dimension and carries only
+        # its ancestors' chain; this is what it always answered, kept so the
+        # rename gestures over the integration corpus's own template-local
+        # branch key on the same row they keyed on before.
+        return (expected[-1].field, expected[-1].value) if expected else None
+    for one in expected:
+        if one.field == dimension:
+            return (one.field, one.value)
+    return None
+
+
+def _folded_words(node, ancestor_fields: frozenset[str] = frozenset()) -> str:
+    """`106` Phase 7 §B.3: what this folder holds without a level for it.
+
+    Every node's chain carries its ANCESTORS' values too (`materialise.py`),
+    and those are the path, not a fold; the walk hands them over so only the
+    values folded INTO this folder are named. Empty when nothing was.
+    """
+    own = getattr(node, "dimension", None)
+    folded = [expected for expected in getattr(node, "expected_values", ())
+              if expected.field != own and expected.field not in ancestor_fields]
+    if not folded:
+        return ""
+    return "also every file's " + " and ".join(
+        f"{expected.field} {expected.value}" for expected in folded)
 
 
 #: Where the editable proposal is written when the person names no path. Beside
@@ -23248,6 +23453,12 @@ def _node_claim(node) -> tuple[str, str] | None:
 #: nothing in it -- "nothing was moved" has to be true of a file the product made
 #: as well as of one it found.
 STRUCTURE_FILENAME: str = "proposed-structure.txt"
+
+#: `106` Phase 7 §C producer 3. What the outline says beside a protected
+#: container at the root instead of "0 files": marked and counted by the
+#: standing rule, never opened, and not a folder this plan proposes.
+PROTECTED_ROW_WORDS: str = (
+    "protected: marked and counted, never opened; not a folder of this plan")
 
 
 def _situation_row(situation_id: str):
@@ -23339,6 +23550,17 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
                 holds.setdefault(decision.destination.node_id, []).extend(
                     _files_of(decision))
     by_parent = _children_of(result.tree.tree.nodes)
+    by_id = {node.node_id: node for node in result.tree.tree.nodes}
+
+    def ancestor_fields(node) -> frozenset[str]:
+        """The fields the folders ABOVE this one already claim -- the path."""
+        fields: set[str] = set()
+        above = by_id.get(node.parent_node_id) if node.parent_node_id else None
+        while above is not None:
+            fields.update(e.field for e in getattr(above, "expected_values", ()))
+            above = (by_id.get(above.parent_node_id)
+                     if above.parent_node_id else None)
+        return frozenset(fields)
 
     def under(node_id: str) -> list[str]:
         files = list(holds.get(node_id, ()))
@@ -23349,7 +23571,16 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
     rows: list[StructureRow] = []
     for marker, depth, node in _outline_walk(result.tree.tree.nodes):
         files = under(node.node_id)
-        said = [f"{len(files)} file{'' if len(files) == 1 else 's'}"]
+        if node.node_type == PROTECTED_NODE_TYPE:
+            # `106` Phase 7 §C producer 3: a bundle at the root is not a folder
+            # of the plan, and "0 files" beside it read as an empty one.
+            said = [PROTECTED_ROW_WORDS]
+        else:
+            said = [f"{len(files)} file{'' if len(files) == 1 else 's'}"]
+            # `106` Phase 7 §B.3: what the folder holds without a level for it.
+            folded = _folded_words(node, ancestor_fields(node))
+            if folded:
+                said.append(folded)
         # THE SITUATION ON THE BRANCH AND NOT ON EVERY LINE. A situation is a
         # branch's answer -- every folder beneath it is built from the same one --
         # and repeating it on forty lines would make the file harder to read and

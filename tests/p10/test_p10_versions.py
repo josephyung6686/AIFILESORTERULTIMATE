@@ -884,3 +884,30 @@ def test_a_surface_outside_the_closed_set_is_refused_rather_than_printed(seeded)
         apply_review_action(
             seeded, action, new_version_id="plan_2", created_at=T1,
             mint_node_id=_ids("n2"), component_version="p10-1")
+
+
+# --- `104` §18.111: the version suffix is not a number to sort on ----------------
+
+
+def test_the_version_written_last_in_one_second_is_the_latest(conn):
+    """`104` §18.111 recorded this defect for `measure.py`; the store had it too.
+
+    A run mints its version ids from the counter it also mints node ids from
+    (`cli.py`: `version_{token}_{next(ids)}`), so the suffixes of one run are
+    `_0`, `_6`, `_13` and change whenever the tree's node count does. The three
+    are written in one frozen second, so the tie-break decides -- and as a
+    STRING `_6` sorts after `_13`, which handed `--structure` a "latest" plan
+    older than the outline it had just written. Surfaced by `106` Phase 7,
+    whose folds build fewer nodes and moved the suffixes across a digit.
+
+    The newest version is the one written last. SABOTAGE: tie-break on the id.
+    """
+    from tree_design.store import latest_plan_version
+
+    create_tree_schema(conn)
+    for suffix, predecessor in (("0", None), ("6", "version_x_0"), ("13", "version_x_6")):
+        write_plan_version(conn, PlanVersion(
+            plan_version_id=f"version_x_{suffix}", predecessor_id=predecessor,
+            state="draft", created_at="2026-09-18T00:00:00+00:00",
+            cross_folder_moves=False, selection_id="sel"))
+    assert latest_plan_version(conn) == "version_x_13"

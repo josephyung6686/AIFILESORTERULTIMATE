@@ -49,7 +49,10 @@ from tree_design.validation import (
     MaterialisedLevel,
     ValidationReport,
 )
-from tree_design.vocabulary import ORDINARY, PROPOSED, SCOPE_TEMPLATE_LOCAL
+from tree_design.vocabulary import (
+    FOLDED_ONE_FOR_ALL, FOLDED_ONE_PER_FILE, ORDINARY, PROPOSED,
+    SCOPE_TEMPLATE_LOCAL,
+)
 
 
 class MaterialisationRefused(RuntimeError):
@@ -132,6 +135,37 @@ class BranchEvidence:
     #: naming them is how the interface shows it. Removing them would be the
     #: silent omission the standing rule forbids.
     protected_file_ids: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True)
+class FoldedLevel:
+    """One level measured under one parent and not built, and why (`00`:98).
+
+    Carried as DATA on the preview so the sentence is composed once, in
+    `candidates.vertical_options`, and the node's own explanation says the same
+    thing in the same words: two spellings of one fold is how a screen comes to
+    promise a folder the tree does not hold. `106` Phase 7 §B.3: silence here
+    is the product deciding something and not saying so.
+    """
+
+    parent_node_id: str
+    parent_label: str
+    dimension_role: str
+    label: str
+    values: tuple[str, ...]
+    file_count: int
+    reason: str
+
+
+def folded_sentence(fold: FoldedLevel) -> str:
+    """The one clause both the option and the node say about a fold."""
+    if fold.reason == FOLDED_ONE_PER_FILE:
+        return (f"{fold.label} was not made a folder under {fold.parent_label!r}: "
+                f"each of its {fold.file_count} files would have had a folder of "
+                "its own")
+    return (f"{fold.label} {' / '.join(repr(v) for v in fold.values)} was not made "
+            f"a folder under {fold.parent_label!r}: every file there carries it, "
+            "so it would be a folder you open to find one folder")
 
 
 def materialise_branch(
@@ -560,6 +594,9 @@ class BranchPreview:
     #: tell what this branch was MEASURED to hold from what its directory was
     #: seen to hold.
     branch_expectations: tuple[ExpectedValue, ...] = ()
+    #: `106` Phase 7 §B. Every level the walk measured under a built node and
+    #: did not build, with the reason. Empty is the common case.
+    folded: tuple[FoldedLevel, ...] = ()
 
     @property
     def tree(self) -> tuple[Node, ...]:
@@ -620,13 +657,28 @@ def project_branch_preview(
 
     nodes: list[Node] = []
     members: dict[str, frozenset[str]] = {}
+    folded: list[FoldedLevel] = []
     _project(evidence, level_index=0, parent=parent,
              eligible=evidence.member_file_ids, chain=(),
              plan_version_id=plan_version_id, mint_node_id=mint_node_id,
              handling_class_for=handling_class_for,
              template_context_for=template_context_for,
              protected_movement_permitted=protected_movement_permitted,
-             out=nodes, members_out=members)
+             out=nodes, members_out=members,
+             under_built=False, folded_out=folded)
+    # `106` Phase 7 §B.2 after the walk, because "nothing beneath divides" is
+    # a fact about a subtree the walk has not finished at the top of a chain.
+    nodes = _fold_single_child_runs(nodes, members, folded, evidence)
+    # §B.3: every fold is SAID on the folder that kept the files, so the
+    # frozen tree carries the reason and the canvas can show it.
+    said: dict[str, list[FoldedLevel]] = {}
+    for fold in folded:
+        said.setdefault(fold.parent_node_id, []).append(fold)
+    nodes = [
+        dataclasses.replace(node, explanation=node.explanation + "".join(
+            f" {folded_sentence(fold)}." for fold in said[node.node_id]))
+        if node.node_id in said else node
+        for node in nodes]
     # Only when the walk built nothing. A branch with a child has reachable
     # destinations already, and a second claim on the parent would give one file
     # two direct-fact homes where its evidence names one.
@@ -640,12 +692,21 @@ def project_branch_preview(
     return BranchPreview(
         parent=parent, nodes=tuple(nodes),
         members_by_node={parent.node_id: evidence.member_file_ids, **members},
-        branch_expectations=stated)
+        branch_expectations=stated, folded=tuple(folded))
 
 
 def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
              mint_node_id, handling_class_for, template_context_for,
-             protected_movement_permitted, out, members_out) -> None:
+             protected_movement_permitted, out, members_out,
+             under_built: bool = False, folded_out: list | None = None) -> None:
+    """One level under one parent, then the next level under each child.
+
+    `under_built` says whether `parent` is a node THIS walk minted rather than
+    the branch's own node: `106` Phase 7 §B.1's fold applies only beneath a
+    built node, and `folded_out` collects what was measured and not built.
+    """
+    if folded_out is None:
+        folded_out = []
     if level_index >= len(evidence.levels):
         return
     level = evidence.levels[level_index]
@@ -656,10 +717,11 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  mint_node_id=mint_node_id, handling_class_for=handling_class_for,
                  template_context_for=template_context_for,
                  protected_movement_permitted=protected_movement_permitted,
-                 out=out, members_out=members_out)
+                 out=out, members_out=members_out,
+                 under_built=under_built, folded_out=folded_out)
         return
 
-    ordinal = 0
+    children: list[tuple[str, frozenset[str]]] = []
     for value in level.values:
         members = level.members_by_value[value] & eligible
         if not members:
@@ -688,6 +750,39 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
             # matter number shared with four ordinary documents stays a folder;
             # a passport number that appears nowhere else does not.
             continue
+        children.append((value, members))
+
+    # `106` Phase 7 §B.1, `00`:98: "a two-file application packet may remain a
+    # single folder". Beneath a built node -- and only there, because at the
+    # root there is no chain a folded file could still be reached by -- a level
+    # that would give every file a folder of its own is measured and not built.
+    # The files stay members of `parent`; the fold is recorded so the option
+    # and the node both say it. `len(members) == 1` is the degenerate
+    # partition, not a threshold.
+    #
+    # NOT a template-local level (Contract W5, `field_ref is None`): its
+    # children are the person's own ACCEPTED GROUPS, not fact values, and
+    # `00`:68 forbids silently reorganising what the person made. A rule
+    # about which facts earn a folder does not reach a folder the person
+    # asked for by accepting a group.
+    if under_built and level.field_ref is not None and len(children) > 1 and all(
+            len(members) == 1 for _value, members in children):
+        folded_out.append(FoldedLevel(
+            parent_node_id=parent.node_id, parent_label=parent.display_label,
+            dimension_role=level.dimension_role, label=_label_of(level),
+            values=tuple(value for value, _members in children),
+            file_count=len(children), reason=FOLDED_ONE_PER_FILE))
+        _project(evidence, level_index=level_index + 1, parent=parent,
+                 eligible=eligible, chain=chain, plan_version_id=plan_version_id,
+                 mint_node_id=mint_node_id, handling_class_for=handling_class_for,
+                 template_context_for=template_context_for,
+                 protected_movement_permitted=protected_movement_permitted,
+                 out=out, members_out=members_out,
+                 under_built=under_built, folded_out=folded_out)
+        return
+
+    ordinal = 0
+    for value, members in children:
         node_id = mint_node_id()
         label = level.display_labels.get(value, value)
         # Contract W4.2-4.3: a template-local level writes NO expected value.
@@ -737,7 +832,8 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  handling_class_for=handling_class_for,
                  template_context_for=template_context_for,
                  protected_movement_permitted=protected_movement_permitted,
-                 out=out, members_out=members_out)
+                 out=out, members_out=members_out,
+                 under_built=True, folded_out=folded_out)
 
     if ordinal == 0:
         # This level said NOTHING about these files -- either it settled no value
@@ -767,7 +863,80 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                  handling_class_for=handling_class_for,
                  template_context_for=template_context_for,
                  protected_movement_permitted=protected_movement_permitted,
-                 out=out, members_out=members_out)
+                 out=out, members_out=members_out,
+                 under_built=under_built, folded_out=folded_out)
+
+
+def _fold_single_child_runs(nodes: list[Node], members: dict[str, frozenset[str]],
+                            folded: list[FoldedLevel],
+                            evidence: BranchEvidence) -> list[Node]:
+    """`106` Phase 7 §B.2, `00`:98: a run of single children that never divides.
+
+    A node with ONE child holding EVERY one of its files, whose child has one
+    such child, and so on to a node with no children, is a chain of folders a
+    person opens to find one folder each. The chain folds into its top: the
+    top keeps the files and gains the folded values on its own chain, so a
+    fact still reaches it (`00`:110). A child holding a strict subset divides
+    the parent's files from the rest and is NOT folded -- `WARN_ONE_CHILD`
+    is the advice about that one. `00`:78's own path is untouched because
+    something divides beneath it. The branch root is never a top: it is not
+    in `nodes`, and at the root there is no chain a folded value could be
+    reached by.
+
+    Post-order by construction: `nodes` is in creation order, so a top is
+    visited before anything beneath it, and a run's members are removed
+    before a later node could treat one of them as a top.
+
+    A §B.1 fold said against a node this removes is re-said against the top
+    that kept its files, so every fold still names a folder that exists.
+    """
+    labels = {level.dimension_role: _label_of(level) for level in evidence.levels}
+    kids: dict[str | None, list[Node]] = {}
+    for node in nodes:
+        kids.setdefault(node.parent_node_id, []).append(node)
+    removed: set[str] = set()
+    top_of: dict[str, str] = {}
+    rewritten: dict[str, Node] = {}
+    for top in nodes:
+        if top.node_id in removed:
+            continue
+        run: list[Node] = []
+        current = top
+        while True:
+            below = [kid for kid in kids.get(current.node_id, ())
+                     if kid.node_id not in removed]
+            if len(below) != 1 or members[below[0].node_id] != members[current.node_id]:
+                break
+            if below[0].dimension is None:
+                # A template-local node (Contract W5) is an accepted group of
+                # the person's: it carries no value to fold onto the top, so
+                # folding it would delete their name from the tree. It stays,
+                # and it ends the run for the same reason §B.1 skips it.
+                break
+            run.append(below[0])
+            current = below[0]
+        if not run or below:
+            continue
+        extra = run[-1].expected_values[len(top.expected_values):]
+        folded.extend(FoldedLevel(
+            parent_node_id=top.node_id, parent_label=top.display_label,
+            dimension_role=node.dimension_role or "",
+            label=labels.get(node.dimension_role, node.dimension_role or ""),
+            values=(node.display_label,), file_count=len(members[top.node_id]),
+            reason=FOLDED_ONE_FOR_ALL) for node in run)
+        rewritten[top.node_id] = dataclasses.replace(
+            top, expected_values=top.expected_values + extra)
+        for node in run:
+            removed.add(node.node_id)
+            top_of[node.node_id] = top.node_id
+            members.pop(node.node_id, None)
+    for index, fold in enumerate(folded):
+        if fold.parent_node_id in top_of:
+            top = rewritten[top_of[fold.parent_node_id]]
+            folded[index] = dataclasses.replace(
+                fold, parent_node_id=top.node_id, parent_label=top.display_label)
+    return [rewritten.get(node.node_id, node) for node in nodes
+            if node.node_id not in removed]
 
 
 #: A value that is a whole calendar day, and a value that is a whole month. Both

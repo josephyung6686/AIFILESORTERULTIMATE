@@ -2235,8 +2235,14 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     for heading in ("Tree health:", "What each level of this plan is called:",
                     "Groups put to a model as groups:", "Files:"):
         folders = folders.split(heading, 1)[0]
+    # `106` Phase 7 × `00` amendment 13: `98 Review and Unsorted` is a root by
+    # the owner's word and not a category branch, so it is not a root this
+    # gap counts (`106` Phase 7 §G: "must not be counted among the lives").
+    from tree_design.vocabulary import REVIEW_AND_UNSORTED
+
     roots = [line for line in folders.splitlines()
-             if line.startswith("  ") and not line.startswith("    ")]
+             if line.startswith("  ") and not line.startswith("    ")
+             and REVIEW_AND_UNSORTED not in line]
 
     assert len(roots) > 1, (
         "every category was filed under one top-level branch; the person's legal "
@@ -2698,8 +2704,18 @@ def test_no_residual_area_is_created_unless_the_person_asks_for_it(tmp_path):
     printed = out.getvalue()
 
     folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # `00` amendment 13 (`106` Phase 7 §D.4) qualifies §7.4's sentence: a home
+    # is still never created for its own sake, but a leftover set that no
+    # branch can hold IS offered one under `98 Review and Unsorted`, minted
+    # after placement proved the need, and nothing moves. So the nine may
+    # appear only as an OFFERED home of a set on this screen, never merely
+    # because the library carries them.
+    offered = {line.split("/", 1)[1].strip()
+               for line in printed.splitlines() if "Offered home:" in line
+               and "/" in line}
     for name in RESIDUAL_TEMPLATE_NAMES:
-        assert name not in folders, f"{name} was created without being asked for"
+        assert name not in folders or name in offered, (
+            f"{name} was created without being asked for or offered")
 
 
 def test_a_residual_name_the_library_does_not_carry_is_refused_not_ignored(tmp_path):
@@ -2750,9 +2766,19 @@ def test_an_enabled_residual_home_is_never_put_inside_a_folder_the_person_made(t
     home = next(line for line in lines if "Temporary Screenshots" in line)
     adopted = [line for line in lines if "[yours already]" in line]
     assert adopted, folders
-    shallowest_adopted = min(len(line) - len(line.lstrip()) for line in adopted)
-    assert (len(home) - len(home.lstrip())) <= shallowest_adopted, (
+    # `106` Phase 7 × `00` amendment 13: the home now hangs under the root
+    # `98 Review and Unsorted`, a proposal of this run. What this test pins is
+    # unchanged: the line above it with less indent -- its parent -- is never
+    # a folder the person made.
+    from tree_design.vocabulary import REVIEW_AND_UNSORTED
+
+    indent = len(home) - len(home.lstrip())
+    above = [line for line in lines[:lines.index(home)]
+             if len(line) - len(line.lstrip()) < indent]
+    parent = above[-1] if above else None
+    assert parent is None or "[yours already]" not in parent, (
         f"the residual home is nested inside a folder the person made:\n{folders}")
+    assert parent is not None and REVIEW_AND_UNSORTED in parent, folders
 
 
 def test_importing_the_product_does_not_load_apples_vision_framework():
@@ -3483,10 +3509,16 @@ def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path)
                 f"{command!r} splits into {tokens!r}: pasting it would pass "
                 f"{tokens[1]!r} to --send-set and leave the rest as stray "
                 f"arguments")
-            assert tokens[1].endswith(f"={area}"), (
-                f"the report offers {tokens[1]!r}, which does not name the "
-                f"area {area!r} this plan actually has, so the command it "
-                f"prints would be refused")
+            # `106` Phase 7 §D.5: a set is offered the home its KEY names
+            # (`REVIEW_HOME_FOR_SET`), minted on demand beside the area the
+            # person enabled, so the target is whichever of the two the
+            # plan holds for that set -- and it must be one the plan holds.
+            target = tokens[1].split("=", 1)[1]
+            folders = printed.split("Folders in this plan:", 1)[1]
+            assert target in folders, (
+                f"the report offers {tokens[1]!r}, which does not name an "
+                f"area this plan actually has, so the command it prints "
+                f"would be refused")
 
 
 def _two_lives_one_semester_corpus(tmp_path):
@@ -4692,9 +4724,15 @@ def _residual_nodes(database):
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     try:
+        # The LATEST version only: since `106` Phase 7 a run may re-freeze after
+        # placement (`mint_review_homes_on_demand`), and a draft copies every
+        # node under a new id, so a read across versions counts a home twice.
         return [(row["display_label"], row["disposition"]) for row in conn.execute(
             "SELECT display_label, disposition FROM tree_nodes "
-            "WHERE node_role = 'residual' ORDER BY display_label")]
+            "WHERE node_role = 'residual' AND plan_version_id = ("
+            "  SELECT plan_version_id FROM plan_versions "
+            "  ORDER BY created_at DESC, rowid DESC LIMIT 1) "
+            "ORDER BY display_label")]
     finally:
         conn.close()
 
@@ -4775,7 +4813,10 @@ def test_an_area_the_person_defines_is_enabled_end_to_end(tmp_path):
         tmp_path, "--define-residual", "Stuff to Sort=retained",
         "--residual", "Stuff to Sort")
     assert code == 0, printed
-    assert _residual_nodes(database) == [("Stuff to Sort", "physical-destination")], (
+    # `106` Phase 7 §D.4: the leftover set this corpus produces is offered
+    # `Review Later` on demand beside the person's own area, so the person's
+    # area is IN the tree with the treatment they gave it, and not alone.
+    assert ("Stuff to Sort", "physical-destination") in _residual_nodes(database), (
         _residual_nodes(database))
 
 
