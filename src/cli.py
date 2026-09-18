@@ -144,7 +144,7 @@ from facts.states import (
     strength,
 )
 from facts.kind import tokens as kind_tokens
-from facts.kind import compile_vocabulary, kind_facts
+from facts.kind import KindVocabulary, compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.seeds import ANCHOR_STATES
 from grouping.config import GroupingLimits
@@ -4967,18 +4967,51 @@ SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
 #: different question for `SUBJECT_RULE` and still does.
 
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
-#: no default because the slot is the caller's, and THIS DEPLOYMENT NOW SHIPS NONE.
-#: That is a decision and not an omission: the one slot it had read a shape out of
-#: body text and stated it `direct`, which `SUBJECT_RULE` above records in full, and
-#: §3.5's own example of a direct fact is a filesystem timestamp, which does not
-#: come through a slot. An empty set is honest -- `direct_facts` runs, claims
-#: nothing, and the stage stays bound so a slot with a real location to name can be
-#: added without re-deciding the composition.
+#: no default because the slot is the caller's, and THIS DEPLOYMENT SHIPS ONE, OVER
+#: A METADATA LOCATOR AND NEVER A TEXT ZONE (`CAPTURE_YEAR_SLOT` below, `106` Phase
+#: 6.1). No TEXT slot ships, and that is a decision and not an omission: the one
+#: slot it had read a shape out of body text and stated it `direct`, which
+#: `SUBJECT_RULE` above records in full. The set was empty from 2026-09-04 until
+#: Phase 6.1, on the reasoning that "a slot with a real location to name can be
+#: added without re-deciding the composition" -- and the EXIF capture time is that
+#: slot: §3.5's own example of a direct fact is an EXIF timestamp.
 #:
 #: The `/Title` metadata slot §3.5 also names is deliberately absent for its own
 #: reason: its observation carries no text span, P7's gate cannot release a span-less
 #: excerpt, and a group anchored on it could never be reviewed.
-DIRECT_SLOTS = DirectSlots(slots=())
+
+#: §3.11's Photos time dimension: the first folder level of eight of the library's
+#: ten photo situations and required in seven (`production.folder_levels_for`).
+#: `106` Phase 6.1: NOTHING WROTE IT. The catalogue declared the key
+#: (`facts.fields._PHOTOS`), the image reader published the tag on every camera
+#: photograph, and the slot that joins them was declared in `tests/p6/test_p6_direct.py`
+#: and nowhere else. §3.5's own example of a direct fact is "an EXIF timestamp".
+CAPTURE_YEAR_FIELD = "capture_year"
+
+#: The reader's own tag name (`readers.image_headers`: `kCGImagePropertyExifDateTimeOriginal`),
+#: on the locator as `metadata:field=DateTimeOriginal` (`extractors.image`). Spelled
+#: HERE and not in `facts.direct`, which is the injection that module's docstring asks
+#: for. `DateTime` (last edit) and `DateTimeDigitized` (when a scan was made) are not
+#: claimed: neither is when the picture was taken.
+CAPTURE_TIME_TAG = "DateTimeOriginal"
+
+#: A year, alone or opening EXIF's `YYYY:MM:DD HH:MM:SS`. A reading that does not
+#: open with a plausible year is refused rather than sliced: a camera with an unset
+#: clock writes `0000:00:00 00:00:00`, and `0000` as a folder is worse than none.
+#: The bare form is for `normalize_for_model`, which runs a model's value through
+#: this same slot; a grounded `2024` off a scanned document's own text is a year.
+#: OWNER ITEM, recorded and not decided here: `1970`, `1980` and `2000` are also
+#: unset-clock defaults on some cameras, and this pattern admits them. Where the
+#: floor sits is a threshold, and a threshold is the owner's number.
+_CAPTURE_YEAR = re.compile(r"(?P<year>[12]\d{3})(?::\d{2}:\d{2}(?:\s.*)?)?$")
+
+CAPTURE_YEAR_SLOT = DirectSlot(
+    slot_id="exif-capture-year", field_key=CAPTURE_YEAR_FIELD,
+    names=lambda locator: locator.endswith(f"field={CAPTURE_TIME_TAG}"),
+    matches=lambda raw: _CAPTURE_YEAR.match(raw.strip()) is not None,
+    canonical=lambda raw: _CAPTURE_YEAR.match(raw.strip()).group("year"))
+
+DIRECT_SLOTS = DirectSlots(slots=(CAPTURE_YEAR_SLOT,))
 
 #: THE TERM SLOT IS GONE, AND THE SPEC IS WHY. P6 SPEC:409-410: "Filesystem
 #: timestamps are direct; dates recovered from text or filenames are not, and take
@@ -5472,6 +5505,15 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # a `possible` fact out of every folder proposal until somebody says
             # yes.
             return WORK_TYPE_VOCABULARY.terms.get(kind_tokens(text))
+        if field_key in ROUTED_TYPE_KEY_VOCABULARY:
+            # `106` Phase 6.3. The other two type keys, held to the same promise as
+            # `work_type` above: a member is returned in the LIBRARY's spelling. A
+            # non-member is returned as written, which is what this field did before
+            # -- `normalize_for_review` answers for three fields and an owner decision
+            # keeps it there, so refusing here would end an unseen value's life at
+            # `VALUE_NOT_NORMALIZABLE` with nobody shown it.
+            return ROUTED_TYPE_KEY_VOCABULARY[field_key].terms.get(
+                kind_tokens(text), text)
         if field_key == SUBJECT_RULE.field_key:
             # AND NEITHER HAS `subject`, SINCE 2026-09-04. It moved from a slot to
             # `SUBJECT_RULE` above, and this branch is what stops that move from
@@ -5773,7 +5815,19 @@ MINIMUM_MARGIN = 0.5
 #: levels could never be built and every file in the situation went unplaced.
 WORK_TYPE_FIELD = "work_type"
 
-#: THE TWO FIELDS THAT CAN SAY WHAT, OR WHEN, AND NEVER WHOSE. P11's
+#: `60` H6.1's other two type keys. ONE mechanism (`facts.kind`), three keys, routed by
+#: the schema that declares them (H6.2). `work_type` is filled corpus-wide by
+#: `_rule_stage` before anything has named a schema; these two could not be, because
+#: their vocabularies collide across schemas (H6.3: `resume` under two keys on 15
+#: files) and the schema was unknown when the producer ran. IT IS KNOWN NOW: `00`
+#: amendment 7(c) has site G name it per file before the fact pass walks the roster,
+#: and `_model_fact_pass` builds one resolver per schema. `type_key_rule` below
+#: `_rule_stage` is that resolver's `rule` stage. `106` Phase 6.2.
+ARTIFACT_TYPE_FIELD = "artifact_type"
+RECORD_TYPE_FIELD = "record_type"
+TYPE_KEYS: tuple[str, ...] = (WORK_TYPE_FIELD, ARTIFACT_TYPE_FIELD, RECORD_TYPE_FIELD)
+
+#: THE FIELDS THAT CAN SAY WHAT, OR WHEN, AND NEVER WHOSE. P11's
 #: `_without_kind_only_moves` refuses to carry a file out of the folder it is in
 #: on one of these alone; this is where the deployment says which fields they are,
 #: because the roles are the template library's and the FIELDS each role binds to
@@ -5783,16 +5837,23 @@ WORK_TYPE_FIELD = "work_type"
 #: are what-or-when: `artifact_kind`, `cycle_period`, `capture_time`,
 #: `capture_kind`, `scope_period`, `lifecycle_stage` and every other `*_period`.
 #: This is not a list of those roles. It is the list of FIELDS this catalogue can
-#: actually fill with one, and there are two: §8.6's producers fill `work_type`
-#: and `term` and nothing else that answers what-or-when.
+#: actually fill with one. Until `106` Phase 6.2 there were two -- §8.6's producers
+#: filled `work_type` and `term` and nothing else that answers what-or-when -- and
+#: "the day either changes, this set is where it changes" was this sentence's own
+#: instruction. That day: `type_key_rule` fills `artifact_type` and `record_type`
+#: at `validated`, and a `validated` what-kind fact on a field five (or seven)
+#: schemas declare would otherwise activate every one of them
+#: (`_schema_reached_by_the_facts`) and hold an un-named file between their
+#: branches (`partition_by_branch`). `capture_year` is deliberately NOT here: it is
+#: declared by `photos` alone, and a capture time reaching `photos` is the truth
+#: about the file, exactly as `media_type` reaches it today.
 #:
 #: `media_type` is the omission that shows the shape of the decision. §2.6's
 #: photograph-or-screenshot answer is a what-kind fact and belongs here on the
 #: reasoning; it is left out because no folder in this deployment expects it, so
 #: naming it would be a rule with nothing to act on. The same is true of every
-#: role above that no producer fills. The day either changes, this set is where
-#: it changes.
-FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({WORK_TYPE_FIELD, TERM_FIELD})
+#: role above that no producer fills.
+FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({*TYPE_KEYS, TERM_FIELD})
 #: `artifact_kind`'s closed vocabulary, WHICH THE LIBRARY ALREADY SHIPPED. The
 #: compiled recognition release carries `work_type_terms` per schema and nothing had
 #: ever read them for a field -- the detector tokenises them to decide handling and
@@ -5814,17 +5875,29 @@ FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({WORK_TYPE_FIELD, TERM_FIELD})
 #: classifies -- so the vocabulary cannot be narrowed per file. It does not need to
 #: be: a term two of the four authored is the same VALUE either way, and the
 #: `work_type` a file carries does not change with which of them claims it.
-def _work_type_vocabulary():
-    """The shipped terms of every schema that declares the field. Read once."""
+def _type_key_vocabulary_across_schemas(field_key: str) -> KindVocabulary:
+    """The shipped terms of every schema that declares `field_key`. Read once.
+
+    For `work_type` this is what `_work_type_vocabulary` was. For the other two keys
+    it is the normaliser's seed only -- the PRODUCER reads one schema at a time
+    (`type_key_rule`), and this union exists so a model's spelling of a member can
+    be folded to the library's whatever schema authored it: the value is the same
+    value either way, which is the argument `WORK_TYPE_VOCABULARY` already makes.
+    `106` Phase 6.3.
+    """
     schemas = json.loads(_RECOGNITION_MANIFEST.read_text())["schemas"]
     return compile_vocabulary(
         term
         for schema_id, fields in DOMAIN_FIELDS.items()
-        if WORK_TYPE_FIELD in fields
+        if field_key in fields
         for term in schemas.get(schema_id, {}).get("work_type_terms", ()))
 
 
-WORK_TYPE_VOCABULARY = _work_type_vocabulary()
+WORK_TYPE_VOCABULARY = _type_key_vocabulary_across_schemas(WORK_TYPE_FIELD)
+ROUTED_TYPE_KEY_VOCABULARY: Mapping[str, KindVocabulary] = MappingProxyType({
+    ARTIFACT_TYPE_FIELD: _type_key_vocabulary_across_schemas(ARTIFACT_TYPE_FIELD),
+    RECORD_TYPE_FIELD: _type_key_vocabulary_across_schemas(RECORD_TYPE_FIELD),
+})
 
 #: THE THREE FIELDS `normalize_for_review` ANSWERS FOR, spelled once because two
 #: readers need the set and neither may re-spell it: the normaliser branches on it,
@@ -6437,6 +6510,62 @@ def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
         zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
         minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
     return written + _media_type_stage(conn, file_id, content_hash)
+
+
+def type_key_for(schema_id: str) -> str | None:
+    """The ONE type key a schema-routed rule may fill for this schema, or `None`.
+
+    H6.2: "a file whose routed type key is not declared by the active schema returns
+    unknown; it is never re-routed to the nearest declared type key." A schema that
+    declares `work_type` routes nothing here -- `_rule_stage` already answered its
+    type question for every file, and `career` declaring both `work_type` and
+    `record_type` is exactly the collision H6.3 measured. A schema declaring two of
+    the remaining keys (none today) gets neither: choosing would be this function
+    deciding what kind of thing a file is.
+    """
+    declared = [key for key in TYPE_KEYS if key in DOMAIN_FIELDS.get(schema_id, ())]
+    if len(declared) != 1 or declared[0] == WORK_TYPE_FIELD:
+        return None
+    return declared[0]
+
+
+_TYPE_KEY_VOCABULARIES: dict[str, KindVocabulary] = {}
+
+
+def _type_key_vocabulary(schema_id: str) -> KindVocabulary:
+    """This schema's OWN shipped terms, compiled once. Per schema and never the union,
+    for H6.3's reason: values are schema-qualified, and `research`'s `protocol` must
+    not be found in a `finance` file."""
+    if schema_id not in _TYPE_KEY_VOCABULARIES:
+        schemas = json.loads(_RECOGNITION_MANIFEST.read_text())["schemas"]
+        _TYPE_KEY_VOCABULARIES[schema_id] = compile_vocabulary(
+            schemas.get(schema_id, {}).get("work_type_terms", ()))
+    return _TYPE_KEY_VOCABULARIES[schema_id]
+
+
+def type_key_rule(schema_id: str):
+    """`FactResolver`'s `rule` stage for a file site G named `schema_id` for, or
+    `None` where the schema routes no key -- `None` being `FactResolver`'s own word
+    for a stage that does not exist, so nothing is barred and no row is written.
+
+    The four §3.7 numbers, the naming zones and the first page are `_rule_stage`'s
+    own, unchanged: a syllabus and a poster are the same kind of claim about what a
+    file IS, and a term in body prose is a document mentioning some other document.
+    `106` Phase 6.2.
+    """
+    field_key = type_key_for(schema_id)
+    if field_key is None:
+        return None
+    vocabulary = _type_key_vocabulary(schema_id)
+
+    def stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
+        return kind_facts(
+            conn, file_id=file_id, content_hash=content_hash,
+            field_key=field_key, vocabulary=vocabulary,
+            naming_zones=WORK_TYPE_NAMING_ZONES, first_page=FIRST_PAGE,
+            zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+            minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+    return stage
 
 
 #: The one thing about a file this deployment reads before asking §2.6's question:
@@ -10319,8 +10448,12 @@ def budget_exhausted_for(conn: sqlite3.Connection, *, budget: ScanBudget,
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
-                        authorities: FactCallAuthorities) -> FactResolver:
-    """P6 again, with ONLY the model producer. A second pass, and deliberately so.
+                        authorities: FactCallAuthorities,
+                        rule=None) -> FactResolver:
+    """P6 again: the model producer, and since `106` Phase 6.2 the type-key rule the
+    schema routes (`type_key_rule`, or `None` where it routes no key), run before it
+    for the same file so its value reaches the model as a settled field with a flag
+    (`104` §18.2 gap 1) in the same call. A second pass, and deliberately so.
 
     **Why it is not the `llm` stage of the resolver P1-P7 already runs.** Two
     things the gate requires do not exist yet at that point in the run, and neither
@@ -10343,7 +10476,7 @@ def model_fact_resolver(conn: sqlite3.Connection, *,
     bytes.
     """
     return FactResolver(
-        stages={"direct": None, "rule": None,
+        stages={"direct": None, "rule": rule,
                 "llm": fact_call_stage(authorities)},
         # WHAT THE BARRED ROUTE WOULD HAVE ATTEMPTED. `_write_bars` writes one
         # `unresolved` row per pending field when the privacy or budget bar fires,
@@ -18325,7 +18458,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         by_situation: dict[str, FactResolver] = (
             {} if unsettled
             else {said().situation: model_fact_resolver(
-                conn, authorities=authorities)})
+                conn, authorities=authorities,
+                rule=type_key_rule(pass_schema))})
         #: schema -> the resolver for a file OF that schema whose SITUATION is
         #: still open: the schema's fields, no folder levels, no anchor levels.
         #: Filled beside `by_situation` below and read by `resolver_for`.
@@ -18337,7 +18471,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 levels = folder_levels_for(catalogue, branch.situation)
                 group_levels = group_level_fields_for(catalogue, branch.situation)
                 by_situation[branch.situation] = model_fact_resolver(
-                    conn, authorities=dataclasses.replace(
+                    conn, rule=type_key_rule(branch.schema),
+                    authorities=dataclasses.replace(
                         authorities,
                         activation_signals=evidence_activation(branch.schema),
                         folder_levels=tuple(
@@ -18550,7 +18685,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 levels = folder_levels_for(catalogue, situation)
                 group_levels = group_level_fields_for(catalogue, situation)
                 by_situation[situation] = model_fact_resolver(
-                    conn, authorities=dataclasses.replace(
+                    conn, rule=type_key_rule(schema_id),
+                    authorities=dataclasses.replace(
                         authorities,
                         activation_signals=evidence_activation(schema_id),
                         folder_levels=tuple(
@@ -18570,7 +18706,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # and no resolver here, every file site G named came out of the pass
             # with an empty facts column.
             no_levels_by_schema[schema_id] = model_fact_resolver(
-                conn, authorities=dataclasses.replace(
+                conn, rule=type_key_rule(schema_id),
+                authorities=dataclasses.replace(
                     authorities,
                     activation_signals=evidence_activation(schema_id),
                     folder_levels=None, anchor_only=None,
@@ -18608,7 +18745,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             levels = folder_levels_for(catalogue, resolved)
             group_levels = group_level_fields_for(catalogue, resolved)
             by_situation[resolved] = model_fact_resolver(
-                conn, authorities=dataclasses.replace(
+                conn, rule=type_key_rule(schema_id),
+                authorities=dataclasses.replace(
                     authorities,
                     activation_signals=evidence_activation(schema_id),
                     folder_levels=tuple(level for level in levels

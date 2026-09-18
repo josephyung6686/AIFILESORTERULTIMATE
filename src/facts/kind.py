@@ -11,9 +11,14 @@ per schema, which routes to whichever type key that schema declares. So this mod
 takes the field key and the vocabulary as parameters and names neither: binding it to
 a second key is a line in the composition root, not a change here.
 `tests/p6/test_p6_kind.py` wires `artifact_type` through this same function to prove
-that, and the production root wires only `work_type` -- see WHY, below.
+that. The production root wired only `work_type` until `106` Phase 6.2 (18 Sep 2026),
+for the reason recorded below; since then `cli.type_key_rule` binds `artifact_type`
+and `record_type` too -- one key per schema, over that schema's own terms and never
+the union (H6.3) -- as the `rule` stage of the MODEL pass's resolver, which is built
+after site G has named a schema per file (`00` amendment 7(c)). `_rule_stage`, which
+runs before any schema is named, still wires `work_type` alone.
 
-WHY ONLY ONE IS WIRED, AND IT IS NOT A PROPERTY OF THIS CODE. H6.2 requires exactly
+WHY ONLY ONE WAS WIRED, AND IT WAS NOT A PROPERTY OF THIS CODE. H6.2 requires exactly
 one type key per file, chosen by the ACTIVE SCHEMA: "a file whose routed type key is
 not declared by the active schema returns unknown; it is never re-routed to the
 nearest declared type key." The schema is not known when this runs --

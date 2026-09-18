@@ -448,8 +448,11 @@ def test_the_same_function_fills_a_second_type_key_with_no_new_logic(
     both parameters, and `research`'s own shipped terms are the vocabulary here.
 
     THIS IS A TEST AND NOT A PRODUCTION WIRING, deliberately. H6.2 requires the
-    active schema to choose the key, and the schema is not known when the producer
-    runs, so `cli.py` wires `work_type` alone. See `facts.kind`'s docstring.
+    active schema to choose the key, and the schema is not known when `_rule_stage`
+    runs, so `cli.py` wires `work_type` alone THERE. Since `106` Phase 6.2 the
+    production wiring for the other two keys is `cli.type_key_rule`, bound per
+    schema in the model pass; `test_p6_type_key_routed_by_the_schema.py` pins it.
+    See `facts.kind`'s docstring.
     """
     library = json.loads(
         (Path(__file__).resolve().parents[2] / "src" / "recognition" / "library"

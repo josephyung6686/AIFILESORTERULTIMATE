@@ -92,7 +92,11 @@ from types import MappingProxyType
 #: The fields that never carry a file into a branch, spelled once here and
 #: asserted equal to `cli.FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` by the composition
 #: root's tests rather than imported, so this module stays free of `cli`.
-BRIDGES_THAT_DO_NOT_REACH: frozenset[str] = frozenset({"work_type", "term"})
+#: `106` Phase 6.2 added the two other type keys: a `validated` `artifact_type`
+#: is declared by five schemas and `record_type` by seven, and a what-kind fact
+#: must not hold one file between four branches.
+BRIDGES_THAT_DO_NOT_REACH: frozenset[str] = frozenset(
+    {"work_type", "artifact_type", "record_type", "term"})
 
 #: The scope a per-branch situation question is asked at, `questions.vocabulary.
 #: SCOPE_BRANCH`'s word. Spelled here for the same reason as the set above; the
