@@ -3072,6 +3072,76 @@ the 39 destination-eligible ones. The Work -> employer -> year -> project shape
 cannot be built by any library row today. That is a library question, and it is
 owed before any sort can aim at that column.
 
+### 18.112 THE TEMPLATE LIBRARY IS BUILT FOR A DIFFERENT PERSON (18 Sep, 17:20)
+
+The owner: *"make sure everything aligns with our product design and also the new
+template guidelines."* `107` is now in the repository, so its branch-template table
+can be checked against what the library actually does. It never has been.
+
+**WHAT `107` SAYS, AND WHAT THE LIBRARY DOES:**
+
+```
+COURSEWORK  107: institution -> program -> term -> course -> work type
+            lib: school -> subject -> work_type            [3 situations]
+                 term -> subject -> work_type              [2]
+                 school -> term -> subject -> work_type    [1 of 11]
+            `program` DOES NOT EXIST as a level. Only ONE of eleven academic
+            situations carries four levels; the owner's own corpus is 95 files here.
+
+CURRENT WORK 107: employer -> year -> project or activity -> stage
+            lib: `employer` is a level in 1 of 208; there is NO `year` field among
+                 the 39 destination-eligible ones.
+
+CAREER APPS 107: year -> organization and role -> application stage
+            lib: job_title -> recruiting_cycle -> record_type      [1]
+                 employer -> job_title -> record_type              [1]
+                 target_employer -> job_title -> recruiting_cycle -> work_type [1]
+            Three situations, three different orders, no `year`.
+
+TAXES       107: tax year -> record class
+            lib: institution -> record_type   [8 of 18]. No year.
+
+PHOTOS      107: year -> event -> rendition
+            lib: capture_year -> event        [4 of 9]. `rendition`
+                 (Originals/Selects/Edited/Exports) does not exist.
+
+RESEARCH    107: project -> stage or artifact class
+            lib: project -> artifact_type -> stage   ALIGNED, and richer.
+```
+
+**AND THE DISTRIBUTION IS THE REAL FINDING.** 208 situations across 19 schemas:
+
+```
+creative 28 | law_practice 26 | construction_property 22 | finance 18 |
+manufacturing 15 | engineering 15 | retail_hospitality 12 | academic 11 |
+photos 9 | business_operations 8 | resource_operations 8 | research 8 |
+hr 6 | logistics 6 | college_applications 5 | government 3 | career 3 |
+code 3 | nonprofit 2 | MEDICAL 0
+```
+
+**113 of the 208 situations serve professional and trade contexts** -- law practice,
+construction, manufacturing, engineering, retail, resource operations, logistics,
+HR, government -- for a product whose stated reference is a PERSONAL file tree.
+Against the owner's own corpus:
+
+```
+their files   academic 95 | research 60 | photos 27 | career 22 | medical 4 | creative 3
+library rows  academic 11 | research  8 | photos  9 | career  3 | medical 0 | creative 28
+```
+
+**`medical` HAS NO SITUATIONS AT ALL.** Health is one of the sixteen ratified lives
+and a major branch of `107`, and no file can ever receive a folder level under it.
+`travel` has two situations and they resolve to `finance` and `photos`, which
+`schema_for_situation` already documents -- so Travel, another `107` branch, has no
+schema of its own either.
+
+**THE CONCLUSION, STATED PLAINLY.** The flat tree is not only a fact-production
+problem (§18.108) and not only a routing problem (§18.100). **The library's
+coverage is weighted away from the person it is being run for.** `creative` has 28
+situations for 3 of their files; `academic` has 11 for 95. No amount of work in
+`cli.py` reaches this: it is an authoring gap, and it is the owner's to rule on
+because every row is their vocabulary.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
