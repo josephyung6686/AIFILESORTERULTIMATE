@@ -586,7 +586,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.retrospective-postmortem",
@@ -630,7 +631,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.market-research",
@@ -669,7 +671,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.procurement-sourcing",
@@ -703,7 +706,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.customer-account-management",
@@ -745,7 +749,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.corporate-regulatory-filings",
@@ -789,7 +794,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.compliance-audit",
@@ -828,7 +834,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.business_operations.risk-register",
@@ -866,7 +873,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.compensation-planning",
@@ -900,7 +908,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.engagement-survey",
@@ -934,7 +943,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.onboarding-offboarding",
@@ -968,7 +978,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.payroll-benefits-administration",
@@ -1001,7 +1012,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.performance-cycle",
@@ -1034,7 +1046,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.hr.workforce-analytics",
@@ -1066,7 +1079,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.nonprofit.restricted-fund",
@@ -1108,7 +1122,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Personal"
   },
   {
    "applicability_id": "ap.nonprofit.member-association",
@@ -1142,7 +1157,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Personal"
   },
   {
    "applicability_id": "ap.government.grant-programme-administration",
@@ -1175,7 +1191,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.government.international-development",
@@ -1208,7 +1225,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   },
   {
    "applicability_id": "ap.government.statistical-programme",
@@ -1241,7 +1259,8 @@
     "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
     "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
    ],
-   "privacy_floor": null
+   "privacy_floor": null,
+   "life": "Career"
   }
  ],
  "refusals": [

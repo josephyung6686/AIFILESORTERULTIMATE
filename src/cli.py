@@ -96,7 +96,9 @@ from facts.families import (
     shared_family_field, version_family,
 )
 from facts.lineage import title_block_key, title_lineage
-from facts.llm_seam import SITUATION_FIELD, record_the_situation
+from facts.llm_seam import (
+    SITUATION_ALTERNATIVE_FIELD, SITUATION_FIELD, record_the_situation,
+)
 # `106` Phase 2: an unsettled branch reads what the judge named for its files.
 from facts.supersede import preferred_fact
 from facts.values import values_in_field
@@ -353,7 +355,8 @@ from production import (
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
     group_level_fields_for_schema,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
-    nearest_situations, read_packaged_library_file, schema_for_situation,
+    life_of, life_of_kind, nearest_situations, read_packaged_library_file,
+    schema_for_situation,
     shipped_situations, situation_schema_family, template_id_for_situation,
     # THE TWO HALVES AND NOT `run_production_corpus`, which is those two halves in
     # one call with `downstream(p1_p7)` evaluated inline as the second's
@@ -7226,13 +7229,25 @@ def site_destination(routing: TierRouting, call_site: str):
 
 
 def the_situation_each_branch_carries(
-        branches: "Sequence[Branch]") -> dict[str, str]:
-    """What P11 is told each branch's settled situation is, BY THE NAME ITS ROOT
-    NODE WEARS.
+        branches: "Sequence[Branch]", *,
+        situation_of: Callable[[str], str | None] = lambda _file_id: None,
+        ) -> dict[str, frozenset[str]]:
+    """What P11 is told each branch HOLDS, BY THE NAME ITS ROOT NODE WEARS.
 
     P11 matches this map against the root node's `display_label`
     (`placement/pipeline.py:1790`), and that label is what `_grouped_by_branch`
     names the merged draft -- which is `Branch.folder_name`.
+
+    **A SET, NOT ONE SITUATION** (`00` amendment 12). A branch is a LIFE and
+    legitimately holds several situations -- Education holds coursework beside
+    an application packet, a typed `Coursework` holds a packet site G named as
+    another kind of the same life. P11's guard asks "is this file's situation
+    one this branch holds?" (`_only_this_files_own_branch`), and the answer is
+    read off the SAME per-file function P11 reads as `situation_of`, so a
+    file's own branch holds its situation by construction. Keyed to the one
+    settled situation, the guard dropped every candidate under the packet's
+    own root and a file that had a home before the rename had none -- `104`
+    §17.2's rule broken.
 
     **IT WAS KEYED BY `Branch.label` UNTIL 18 Sep AND THE GUARD WENT INERT.** The
     two strings are equal only for a branch with no authored display name, which
@@ -7245,11 +7260,20 @@ def the_situation_each_branch_carries(
     Caught by an analyst reading the code rather than by a test, which is why
     `tests/test_p11_guard_is_keyed_by_the_name_the_root_node_wears.py` now exists.
 
-    A branch whose situation is unsettled names nothing, and P11 then leaves its
-    folders alone -- silence, not an answer of `None`.
+    A branch whose situation is unsettled and whose files carry none names
+    nothing, and P11 then leaves its folders alone -- silence, not an answer
+    of `None`.
     """
-    return {branch.folder_name: branch.situation for branch in branches
-            if branch.situation is not None}
+    carried: dict[str, frozenset[str]] = {}
+    for branch in branches:
+        held = frozenset(
+            situation for situation in (
+                branch.situation,
+                *(situation_of(file_id) for file_id in branch.file_ids))
+            if situation is not None)
+        if held:
+            carried[branch.folder_name] = held
+    return carried
 
 
 def folders_that_separate_nothing(
@@ -11090,6 +11114,7 @@ def draft_for_review(conn: sqlite3.Connection,
                      branch_for: Callable[[str], Branch | None] | None = None,
                      default_branch: Branch | None = None,
                      on_accepted: Callable[[str, Branch | None], None] | None = None,
+                     schema_of_file: Callable[[str], str | None] | None = None,
                      ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named DRAFT.
 
@@ -11200,7 +11225,8 @@ def draft_for_review(conn: sqlite3.Connection,
         if default_branch is None:
             raise ValueError("accepting per branch needs the default branch to "
                              "accept the rest under")
-        buckets = _grouped_by_branch(conn, grouped, branch_for, default_branch)
+        buckets = _grouped_by_branch(conn, grouped, branch_for, default_branch,
+                                     schema_of_file or (lambda _file_id: None))
     drafted: list[str] = []
     for branch, category, branch_label, bucket in buckets:
         merged_id = _draft_as_one(
@@ -11215,14 +11241,29 @@ def draft_for_review(conn: sqlite3.Connection,
 def _grouped_by_branch(conn: sqlite3.Connection,
                        grouped: Sequence[GroupingResult],
                        branch_for: Callable[[str], Branch | None],
-                       default: Branch):
-    """P9's formed groups, bucketed by the branch most of their members are under.
+                       default: Branch,
+                       schema_of_file: Callable[[str], str | None]):
+    """P9's formed groups, bucketed by the branch most of their members are under
+    AND by the kind most of their members are -- one draft per (branch, schema).
 
-    In BRANCH order, the default first, and within a bucket in P9's own order, so
-    two runs over one folder accept the same groups under the same addresses.
-    A group with no member under any branch, or with two branches tied for its
-    members, is the DEFAULT's -- see `draft_for_review` for why it is not
-    dropped.
+    In BRANCH order, the default first, then by category, and within a bucket in
+    P9's own order, so two runs over one folder accept the same groups under the
+    same addresses. A group with no member under any branch, or with two
+    branches tied for its members, is the DEFAULT's -- see `draft_for_review`
+    for why it is not dropped.
+
+    **THE CATEGORY IS THE GROUP'S, NOT THE BRANCH'S** (`00` amendment 12). A
+    branch is a LIFE and Education holds `academic.coursework` beside
+    `applications.undergraduate-packet`, two schemas; `_draft_as_one` writes one
+    `group_category` per draft and `routing.eligible_rows` admits a recipe only
+    for a domain the branch's drafts carry, so a life with two kinds needs two
+    drafts, both wearing the life's name. The kind is voted over the members'
+    situations (`schema_of_file`, the schema each member's `situation` fact
+    resolves to): one leader is the group's category; no member with a schema
+    falls back to the branch's only schema when it has one; a tie, or no
+    schema and a branch of several, sends the group to the DEFAULT under the
+    default's own kind -- "a tie decides nothing", the branch vote's rule
+    applied to the category. Phase 4 folds same-label drafts into one area.
 
     **The vote is over the group's STORED members, not over `result.memberships`.**
     A `GroupingResult` is one subject file through the sequence and carries that
@@ -11233,9 +11274,17 @@ def _grouped_by_branch(conn: sqlite3.Connection,
     what `_draft_as_one` carries into the merged group, so the vote and the
     merge read the same members.
     """
-    buckets: dict[str, tuple[Branch, list[GroupingResult]]] = {}
+    def _the_one_leader(votes: dict[str, int]) -> str | None:
+        if not votes:
+            return None
+        most = max(votes.values())
+        leaders = [name for name, count_ in votes.items() if count_ == most]
+        return leaders[0] if len(leaders) == 1 else None
+
+    buckets: dict[tuple[str, str], tuple[Branch, str, list[GroupingResult]]] = {}
     for result in grouped:
         votes: dict[str, int] = {}
+        kinds: dict[str, int] = {}
         branches: dict[str, Branch] = {}
         for membership in memberships_for_group(conn, result.group.group_id):
             branch = branch_for(membership.file_id)
@@ -11243,23 +11292,34 @@ def _grouped_by_branch(conn: sqlite3.Connection,
                 continue
             votes[branch.label] = votes.get(branch.label, 0) + 1
             branches[branch.label] = branch
-        chosen = default
-        if votes:
-            most = max(votes.values())
-            leaders = [name for name, count_ in votes.items() if count_ == most]
-            if len(leaders) == 1:
-                chosen = branches[leaders[0]]
-        buckets.setdefault(chosen.label, (chosen, []))[1].append(result)
+            kind = schema_of_file(membership.file_id)
+            if kind is not None:
+                kinds[kind] = kinds.get(kind, 0) + 1
+        leader = _the_one_leader(votes)
+        chosen = default if leader is None else branches[leader]
+        category = _the_one_leader(kinds)
+        if category is None and len(chosen.schemas) == 1:
+            category = chosen.schemas[0]
+        if category is None or category not in chosen.schemas:
+            # A tie decides nothing, and a kind the branch does not hold is not
+            # this branch's draft: the DEFAULT's, under its own kind, where
+            # `draft_for_review` says nothing is dropped.
+            chosen, category = default, default.schemas[0]
+        buckets.setdefault((chosen.label, category),
+                           (chosen, category, []))[2].append(result)
     ordered = sorted(buckets.values(),
-                     key=lambda pair: (not pair[0].is_default, pair[0].label))
+                     key=lambda item: (not item[0].is_default, item[0].label,
+                                       item[1]))
     # THE THIRD ITEM IS WHAT THE MERGED DRAFT IS CALLED, and `_draft_as_one`
     # writes it straight through to `display_label` -- which is the string that
     # becomes a FOLDER on the person's disk. The owner's ruling of 18 Sep:
     # "the names and folder and stuff all human readable and not machine
-    # readable". `folder_name` is the authored name of the kind, or the person's
-    # own `--label`, and falls back to the scope key so it is never empty.
-    return [(branch, branch.schema, branch.folder_name, bucket)
-            for branch, bucket in ordered]
+    # readable". `folder_name` is the life, or the person's own `--label`, and
+    # falls back to the scope key so it is never empty. Two drafts of one life
+    # wear one name and differ in category, which `_draft_as_one`'s address
+    # keeps distinct.
+    return [(branch, category, branch.folder_name, bucket)
+            for branch, category, bucket in ordered]
 
 
 def _draft_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
@@ -16422,8 +16482,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # `104` R-37: every branch's schema, not only the typed situation's.
             # With one branch this is `(schema,)`, exactly as it was.
             active_domains=tuple(dict.fromkeys(
-                branch.schema for branch in (
-                    partition_cell[0].branches if partition_cell else ()))
+                schema for branch in (
+                    partition_cell[0].branches if partition_cell else ())
+                for schema in branch.schemas)
                 or (said().schema,)),
             # Which accepted groups hold sensitive material. `104` §18.2 gap 14:
             # this named `frozenset()` on the true premise that P7 classifies
@@ -16546,6 +16607,55 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     del theirs[file_id]
             _their_situation_cache.append(theirs)
         return _their_situation_cache[0]
+
+    #: Every situation name the shipped release carries, read once. A fact
+    #: naming anything else -- the KIND the first pass writes before the level
+    #: pass refines it (`104` §18.108), or a situation a later release dropped --
+    #: is not a situation to a reader, exactly as `_the_situation_the_judge_
+    #: named` already refuses one the release no longer carries.
+    _shipped_names = frozenset(row.name for row in shipped_situations(catalogue))
+
+    def _situation_fact_of(file_id: str) -> str | None:
+        """This file's `situation` fact as a reader sees it -- `preferred_fact`,
+        so a `user_confirmed` row wins and an unresolvable slot answers `None`.
+
+        `None` too for a value that is not a shipped situation name, AND for one
+        that is a KIND. The kind pass writes the schema id into this field and
+        the level pass retires it with the situation (`104` §18.108); where the
+        level pass declined or was refused, the kind row stands, and for the
+        one schema whose id is also a situation name (`nonprofit`) it would read
+        as the judge's answer to a question the judge did not answer. A kind is
+        never a situation here; the level answer `nonprofit` itself is then
+        read per file off the pass (`_the_situation_the_judge_named`) and the
+        branch asks its question once more -- the smaller loss.
+        """
+        row = preferred_fact(conn, file_id=file_id, field_key=SITUATION_FIELD)
+        if row is None:
+            return None
+        value = _situation_values().get(row["value_id"])
+        if value in SCHEMA_IDS:
+            return None
+        return value if value in _shipped_names else None
+
+    def _alternatives_of(file_id: str) -> tuple[str, ...]:
+        """Every live `situation_alternative` row's value that is a shipped
+        situation. A set, not a rank: the store does not keep the judge's order
+        (`file_facts.py:308`)."""
+        return tuple(sorted({
+            row["canonical_value"] for row in conn.execute(
+                'SELECT v.canonical_value FROM file_facts ff '
+                'JOIN "values" v USING (value_id) '
+                'WHERE ff.file_id = ? AND ff.field_key = ? '
+                'AND ff.superseded_by IS NULL',
+                (file_id, SITUATION_ALTERNATIVE_FIELD))
+            if row["canonical_value"] in _shipped_names}))
+
+    def _schema_of_file(file_id: str) -> str | None:
+        """The kind this file's situation fact belongs to, off the library row,
+        or `None` where it carries none. `_grouped_by_branch`'s category vote."""
+        situation = _situation_fact_of(file_id)
+        return None if situation is None else schema_for_situation(
+            catalogue, situation)
 
     def _situations_of_these_files(file_ids) -> set[str]:
         """What the judge named for these files, off the FACTS it wrote.
@@ -16803,7 +16913,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                                        label=said().label, created_at=clock,
                                        branch_for=partition.branch_of,
                                        default_branch=partition.default,
-                                       on_accepted=remember)
+                                       on_accepted=remember,
+                                       schema_of_file=_schema_of_file)
         if drafts is not None:
             drafts.extend(drafted)
         if accept_drafts:
@@ -17968,7 +18079,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # branch from. A branch whose situation is unsettled names nothing,
             # and P11 then leaves its folders alone.
             the_situation_each_branch_carries=the_situation_each_branch_carries(
-                partition_cell[0].branches if partition_cell else ()))
+                partition_cell[0].branches if partition_cell else (),
+                # THE SAME PER-FILE ANSWER AS `situation_of` ABOVE, so every
+                # file's own branch holds its situation (`00` amendment 12).
+                situation_of=_the_situation_this_file_is_under))
 
     #: `104` R-175. ONE CEILING FOR THE WHOLE RUN, built here from the seconds the
     #: caller stated and handed to the authorities both per-file loops read. Built
@@ -18068,16 +18182,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     def _the_situation_the_person_chose(schema_id: str) -> str | None:
         """THE ANSWER TO THE BRANCH'S OWN QUESTION, where the person has given one.
 
-        `question_for_situation` puts the question at `branch:<branch_label>` and a
-        branch site G opened is labelled with its SCHEMA, so this is the same scope
-        `_the_branches` binds as `chosen_situation` and the same answer
-        `branch_situation._situation_for` reads -- asked here because the branch
-        that carries it does not exist yet when the fact pass runs. Site G names a
-        schema per file INSIDE the pass, so the partition the pass reads is the
-        deterministic one, and without this the answer a person typed to the
-        question this run printed would settle a branch on the next partition and
-        still leave every file that branch was opened for unresolved. A question
-        with no answer path is not a question.
+        `question_for_situation` puts the question at `branch:<branch_label>`, and
+        until `00` amendment 12 a branch site G opened was labelled with its
+        SCHEMA, so `branch:<schema>` is the scope every such answer in a person's
+        database is filed under. THE SCOPE STAYS THE KIND'S. A branch is a life
+        now and no question is recorded at a life's scope, but the answer given
+        at the kind's must keep reaching the kind's files -- `104` §17.9, the
+        model's answer refines the person's and never replaces it -- and
+        `branch_situation.partition_by_branch` reads the same scope for the same
+        files (its arm 0), so the two readers hold one answer. Asked here
+        because the branch that carries the file does not exist yet when the
+        fact pass runs: site G names a schema per file INSIDE the pass, so the
+        partition the pass reads is the deterministic one. A question with no
+        answer path is not a question.
 
         Checked against the library's own list for `_situation_for`'s reason: an
         answer naming a situation of another schema settles nothing.
@@ -18374,17 +18491,26 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # 5.4), and where both exist theirs is the one the partition reads:
             # a file the person has named is filed under that situation's
             # branch, which for a PROTECTED file -- one site G is never asked
-            # about -- is the only way it reaches any branch at all.
+            # about -- is the only way it reaches any branch at all. Its KIND
+            # is what rides here; its SITUATION reaches the partition as the
+            # `user_confirmed` fact on its slot, which `_situation_fact_of`
+            # reads through `preferred_fact` ahead of every judge's row.
             named_by_the_model={
                 **situation_cell[0].named,
                 **{file_id: schema_for_situation(catalogue, situation)
                    for file_id, situation in _their_situations().items()}},
-            # AND THE SECOND STAGE'S ANSWER BESIDE IT (`00` amendment 1 of 14
-            # Sep). A branch the judge named one situation for over every one of
-            # its files needs no question: that is the question it was asked in
-            # the person's place, and it answered.
-            situations_named_by_the_model={
-                **situation_cell[0].situations, **_their_situations()})
+            # `00` AMENDMENT 12: THE LIFE, off the library row of each file's
+            # situation. The judge's second-stage answer reaches the partition
+            # as the FACT it wrote (`00` amendment 11, "the sort reads both"),
+            # which also carries the person's `user_confirmed` override; the
+            # in-memory pass object no longer does.
+            life_of=lambda situation: life_of(catalogue, situation),
+            # AND THE KIND'S OWN LIFE where nothing finer is known -- the arm
+            # the owner's corpus mostly takes, since its situation facts hold
+            # the kind (`104` §18.108).
+            life_of_kind=lambda schema_id: life_of_kind(catalogue, schema_id),
+            situation_fact_of=_situation_fact_of,
+            alternatives_of=_alternatives_of)
 
     def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
         """The per-branch situation question, recorded for every unsettled branch.
@@ -18412,14 +18538,51 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # file anchored into a sibling or was held between two, and its
             # situation is still what the whole run is waiting on -- so a run that
             # skipped the question would refuse and offer nothing to type.
-            if branch.settled or (not branch.file_ids and not branch.is_default):
+            # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES AND IS ASKED
+            # NOTHING (`00` amendment 12): "which situation is Education?" is
+            # not a question when Education holds coursework and a thesis.
+            if (branch.settled or not branch.candidate_situations
+                    or (not branch.file_ids and not branch.is_default)):
                 continue
+            # A LIFE BRANCH OF ONE KIND ASKS THE KIND'S QUESTION AT THE KIND'S
+            # SCOPE. The scope is the key every reader of the person's answer
+            # reads -- `_the_situation_the_person_chose`, the partition's own
+            # arm 0, the resolver loop -- and the key every answer already in
+            # the person's database was filed under while a kind was a branch.
+            # Recording it under the life would put the new answers where none
+            # of those readers look. The default branch's key is its label.
             question = question_for_situation(
-                branch_label=branch.label,
+                branch_label=(branch.label if branch.is_default
+                              else branch.schemas[0]),
                 situations=branch.candidate_situations,
                 file_count=len(branch.file_ids))
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = branch.file_ids
+            asked.append(question)
+        # AND THE KINDS THE DEFAULT BRANCH HOLDS WITHOUT A LIFE (`00` amendment
+        # 12; `106` §B, "what this trades"). A file site G named a kind for,
+        # whose life nothing could read -- the kind spans lives, the judge
+        # declined its situation, and the folder's other files of that kind
+        # settle nothing -- is the default branch's (R-140). Its kind's question
+        # is still the person's one door out (amendment 1 of 14 Sep: asked
+        # where the judge cannot), so it is recorded exactly as it was when the
+        # kind was a branch: at the kind's scope, which the answer's every
+        # reader already reads. The files are the ones G named that kind AND
+        # whose situation nothing has answered -- a packet the judge named a
+        # situation for sits in the default branch by the typed rule (its life
+        # is the typed one) and has nothing left to ask.
+        default = partition.default
+        for kind in default.schemas[1:]:
+            files = tuple(file_id for file_id in default.file_ids
+                          if situation_cell[0].named.get(file_id) == kind
+                          and _the_situation_this_file_is_under(file_id) is None)
+            options = _situations_of(kind)
+            if not files or len(options) < 2:
+                continue
+            question = question_for_situation(
+                branch_label=kind, situations=options, file_count=len(files))
+            record_question(conn, question, asked_at=clock)
+            branch_reaches[question.question_id] = files
             asked.append(question)
         return asked
 
@@ -18571,7 +18734,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # call is built from it. `()` would still refuse, which is the guard doing
         # its job.
         unsettled = not of_the_run
-        pass_schema = (partition_cell[0].default.schema if unsettled
+        # The default branch's OWN kind is always first in `schemas`.
+        pass_schema = (partition_cell[0].default.schemas[0] if unsettled
                        else said().schema)
         authorities = fact_call_authorities(
             conn, routing=routing, scan_run_id=run_id,
@@ -18669,17 +18833,20 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     continue
                 levels = folder_levels_for(catalogue, branch.situation)
                 group_levels = group_level_fields_for(catalogue, branch.situation)
+                # A settled branch has one situation and therefore one kind,
+                # whatever kinds its other files were (`Branch.schemas`).
+                schema = schema_for_situation(catalogue, branch.situation)
                 by_situation[branch.situation] = model_fact_resolver(
-                    conn, rule=type_key_rule(branch.schema),
+                    conn, rule=type_key_rule(schema),
                     authorities=dataclasses.replace(
                         authorities,
-                        activation_signals=evidence_activation(branch.schema),
-                        schema_fields=schema_fields(branch.schema),
+                        activation_signals=evidence_activation(schema),
+                        schema_fields=schema_fields(schema),
                         folder_levels=tuple(
                             level for level in levels
                             if level.field not in group_levels),
                         deferred_readings=rules.schemas[
-                            branch.schema].deferred_readings))
+                            schema].deferred_readings))
         # THE FILE IDS AND NOT JUST HOW MANY, since `104` §18.2 gap 10. A count
         # cannot be reconciled: two buckets of four and five over nine files could
         # both have missed the same file and double-counted another, and the

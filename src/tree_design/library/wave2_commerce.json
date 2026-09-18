@@ -511,7 +511,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - D30 ships and this is one of the rows it had none of",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.career.employment-records",
@@ -557,7 +558,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - D30 ships and this is one of the rows it had none of",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.career.employer-side-hiring",
@@ -602,7 +604,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.shipment",
@@ -647,7 +650,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.last-mile-pod",
@@ -688,7 +692,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.customs-export",
@@ -727,7 +732,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.fleet-vehicle",
@@ -768,7 +774,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.warehouse-ops",
@@ -808,7 +815,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.logistics.driver-compliance",
@@ -842,7 +850,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.bookings-reservations",
@@ -887,7 +896,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.pos-reporting",
@@ -932,7 +942,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.stocktake",
@@ -978,7 +989,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.store-operations",
@@ -1023,7 +1035,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.returns-warranty",
@@ -1068,7 +1081,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.supplier-order",
@@ -1114,7 +1128,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.catering-contract",
@@ -1153,7 +1168,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.event-production",
@@ -1193,7 +1209,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.food-safety",
@@ -1238,7 +1255,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.ecommerce-ops",
@@ -1283,7 +1301,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.guest-feedback",
@@ -1323,7 +1342,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.retail_hospitality.premises-licensing",
@@ -1363,7 +1383,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     }
   ]
 }

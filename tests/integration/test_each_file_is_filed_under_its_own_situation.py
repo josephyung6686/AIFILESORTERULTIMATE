@@ -114,21 +114,32 @@ CONFERENCE = "NeurIPS 2026"
 
 
 def _root_name(schema_id: str) -> str:
-    """What a branch opened for this schema is CALLED on the tree.
+    """What a branch opened for this schema is CALLED on the tree: ITS LIFE.
 
-    **THE OWNER'S RULING OF 18 Sep 2026**: *"the names and folder and stuff all
-    human readable and not machine readable."* A branch site G opens used to be
-    labelled with the raw schema id, so the person's disk grew folders called
-    `career` and `research`. It now wears the name the recognition rules author
-    for that schema, and the SCOPE is untouched -- `--answer situation:career=`
-    is unchanged, because the label is the key and `display_name` is the folder.
+    **`00` AMENDMENT 12 (17 Sep 2026), then amendment 18.** A branch is a life,
+    not a kind, and the root site G opens for a kind wears the life the library
+    places that kind in (`production.life_of_kind`, `branch_situation.
+    partition_by_branch` arm 3) -- `Career` for `career`. Until 18 Sep it wore
+    the name the recognition rules authored for the schema (`Career and
+    recruiting`), which was the owner's ruling of 18 Sep ("human readable and
+    not machine readable") applied one step short of amendment 12; the SCOPE is
+    still untouched either way, because the label is the key and the question
+    is recorded at `branch:<kind>`.
 
-    ASKED OF THE LIBRARY rather than spelled here, so a re-authored name does not
+    `research` is another KIND of the typed run's own life (Education), so the
+    conference files sit under `Education` BESIDE `Coursework` -- the root of
+    their own they always had -- and not inside it (`_stays_home`, pinned by
+    `test_a_life_mate_of_another_kind_is_still_placed.py`).
+
+    ASKED OF THE LIBRARY rather than spelled here, so a re-ruled life does not
     quietly turn this file red.
     """
-    rules = cli.load_rules(cli._RECOGNITION_MANIFEST.read_text)
-    schema = rules.schemas.get(schema_id)
-    return cli.folder_name_for_schema(getattr(schema, "name", None), schema_id)
+    from production import (
+        life_of_kind, load_shipped_catalogue, read_packaged_library_file)
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    life = life_of_kind(catalogue, schema_id)
+    assert life is not None, (schema_id, "the library places this kind in no life")
+    return life
 
 #: Three files in it. Two state nothing a coursework rule reads, and are what
 #: gives the branch a group to be built from; the third states its course beside
@@ -406,8 +417,10 @@ def test_no_placed_file_sits_under_a_root_carrying_another_situation(run):
     """
     placed = _placed(run)
     #: The situation each root carries. `Coursework` is the person's typed answer;
-    #: `research` is the one G's name settled the branch on; `career` is unsettled
-    #: and `NeurIPS 2026` is not a branch at all, so neither names one.
+    #: `Education` -- the research kind's life, beside the typed branch -- is
+    #: settled on the one situation the judge named for every file under it
+    #: (`_settled_by_its_files`); `Career` is unsettled and `NeurIPS 2026` is
+    #: not a branch at all, so neither names one.
     of_the_root = {LABEL: SITUATION,
                    _root_name(RESEARCH_SCHEMA): RESEARCH_SITUATION,
                    _root_name("career"): None, CONFERENCE: None}

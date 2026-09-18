@@ -4,6 +4,13 @@
 The composition root's tests (`tests/integration/test_r37_*`) drive the whole
 command; these pin the rules of the partition itself, with every signal handed in
 as a table, so a rule that moves is caught by name rather than by a changed screen.
+
+Since `00` amendment 12 a branch is a LIFE and not a kind, so `LIVES` below maps
+each fixture kind's situations to one life -- `academic` to Education, `career`
+to Career, `code` to Technology -- and the pins that used to read a kind off a
+branch read its life. `test_branch_situation_lives.py` pins the fold itself;
+these pin the REACH, which is unchanged: which kind each file is, and therefore
+which life.
 """
 from __future__ import annotations
 
@@ -29,6 +36,11 @@ SITUATIONS = {"academic": ("academic.coursework", "academic.teaching"),
               "career": ("career.employer-side-hiring", "career.employment-records",
                          "career.recruiting"),
               "code": ("code.software-project",)}
+LIVES = {"academic.coursework": "Education", "academic.teaching": "Education",
+         "career.employer-side-hiring": "Career",
+         "career.employment-records": "Career", "career.recruiting": "Career",
+         "code.software-project": "Technology", "code.dotfiles": "Technology"}
+LIVES_OF_KIND = {"academic": "Education", "career": "Career", "code": "Technology"}
 
 
 def _partition(files, *, facts, verdicts=None, chosen=None, situations=SITUATIONS,
@@ -45,7 +57,11 @@ def _partition(files, *, facts, verdicts=None, chosen=None, situations=SITUATION
         fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
         verdict_of=lambda file_id, _hash: verdicts.get(file_id, _Verdict()),
         situations_of=lambda schema_id: situations.get(schema_id, ()),
-        chosen_situation=lambda scope: chosen.get(scope))
+        chosen_situation=lambda scope: chosen.get(scope),
+        life_of=LIVES.get,
+        life_of_kind=LIVES_OF_KIND.get,
+        situation_fact_of=lambda _file_id: None,
+        alternatives_of=lambda _file_id: ())
 
 
 def test_the_two_spellings_this_module_keeps_agree_with_their_owners():
@@ -83,8 +99,8 @@ def test_an_anchor_of_another_schema_opens_a_second_branch():
                "cover letter": (("work_type", "cover letter"),)})
 
     assert not partition.single
-    assert [branch.label for branch in partition.branches] == ["Coursework", "career"]
-    assert partition.branch_of("cover letter").schema == "career"
+    assert [branch.label for branch in partition.branches] == ["Coursework", "Career"]
+    assert partition.branch_of("cover letter").schemas == ("career",)
     assert partition.branch_of("cover letter").anchor_file_ids == ("cover letter",)
 
 
@@ -135,12 +151,13 @@ def test_the_recognisers_reading_reaches_a_branch_that_exists_and_opens_none():
                   "survey": _Verdict("medical"),
                   "cv": _Verdict(None, tied=("career", "college_applications"))})
 
-    assert partition.branch_of("posting").label == "career"
-    assert partition.branch_of("cv").label == "career"
+    assert partition.branch_of("posting").label == "Career"
+    assert partition.branch_of("cv").label == "Career"
     # `medical` opens no branch and the survey reaches none: the default's.
     assert partition.branch_of("survey").is_default
     assert partition.held == ()
-    assert {branch.schema for branch in partition.branches} == {"academic", "career"}
+    assert {schema for branch in partition.branches
+            for schema in branch.schemas} == {"academic", "career"}
 
 
 def test_a_file_two_branches_reach_is_held_not_guessed():
@@ -167,10 +184,15 @@ def test_an_anchors_own_reading_never_moves_it():
                "resume": (("work_type", "resume"),)},
         verdicts={"resume": _Verdict("college_applications")})
 
-    assert partition.branch_of("resume").label == "career"
+    assert partition.branch_of("resume").label == "Career"
 
 
 def test_a_branch_with_one_shipped_situation_is_settled_and_otherwise_asked():
+    """A kind the library carries ONE situation for resolves every file of that
+    kind, so the life branch holding them is settled: an answer, not a choice.
+    A kind with three is not, and the life branch of that one kind carries the
+    kind's situations for the person's question -- asked under the life's name
+    and recorded at the kind's scope (`cli._ask_which_situation_each_branch_is`)."""
     owners = dict(OWNERS, notebook="code")
     partition = partition_by_branch(
         roster=(("syllabus", "h" * 64), ("nb", "h" * 64), ("cv", "h" * 64)),
@@ -185,24 +207,31 @@ def test_a_branch_with_one_shipped_situation_is_settled_and_otherwise_asked():
         verdict_of=lambda *_: _Verdict(),
         situations_of=lambda schema_id: SITUATIONS.get(schema_id, ()),
         chosen_situation=lambda scope: None,
-        named_by_the_model={})
+        named_by_the_model={},
+        life_of=LIVES.get,
+        life_of_kind=LIVES_OF_KIND.get,
+        situation_fact_of=lambda _file_id: None,
+        alternatives_of=lambda _file_id: ())
 
-    code = partition.by_label("code")
-    career = partition.by_label("career")
-    assert code.settled and code.situation == "code.software-project"
+    technology = partition.by_label("Technology")
+    career = partition.by_label("Career")
+    assert technology.settled and technology.situation == "code.software-project"
     assert not career.settled
     assert career.candidate_situations == SITUATIONS["career"]
-    assert career.scope == "branch:career"
+    assert career.scope == "branch:Career"
 
 
 def test_the_persons_answer_settles_the_branch_and_only_that_branch():
+    """The answer is stored at the KIND's scope, `branch:career`, from when a
+    kind was a branch; it still reaches career's files and settles their life
+    branch (the condition on amendment 12, `104` §17.9)."""
     partition = _partition(
         ("syllabus", "cover letter"),
         facts={"syllabus": (("work_type", "syllabus"),),
                "cover letter": (("work_type", "cover letter"),)},
         chosen={"branch:career": "career.recruiting"})
 
-    assert partition.by_label("career").situation == "career.recruiting"
+    assert partition.by_label("Career").situation == "career.recruiting"
     assert partition.default.situation == "academic.coursework"
 
 
@@ -213,7 +242,7 @@ def test_an_answer_naming_a_situation_of_another_schema_settles_nothing():
                "cover letter": (("work_type", "cover letter"),)},
         chosen={"branch:career": "academic.teaching"})
 
-    assert not partition.by_label("career").settled
+    assert not partition.by_label("Career").settled
 
 
 def test_a_schema_site_g_named_opens_its_own_branch_and_takes_its_file():
@@ -233,16 +262,16 @@ def test_a_schema_site_g_named_opens_its_own_branch_and_takes_its_file():
         named={"paper": "code", "cv": "academic"},
         situations={**SITUATIONS, "code": ("code.dotfiles", "code.software-project")})
 
-    assert partition.by_label("code").file_ids == ("paper",)
+    assert partition.by_label("Technology").file_ids == ("paper",)
     # G's name outranks the anchor: the résumé's `work_type` says career and G
-    # says the run's own schema, so the file is the default branch's and the
-    # branch its anchor opened stands empty.
+    # says the run's own schema, so the file is the default branch's, and no
+    # Career branch is opened for an anchor nothing is under.
     assert "cv" in partition.default.file_ids
-    assert partition.by_label("career").file_ids == ()
+    assert partition.by_label("Career") is None
 
 
 def test_a_branch_site_g_opened_is_unsettled_like_every_other_branch():
-    """G NAMED A SCHEMA AND NOBODY NAMED THE SITUATION, so the branch is asked.
+    """G NAMED A SCHEMA AND NOBODY NAMED THE SITUATION, so the branch is open.
 
     This used to read `situations_of(schema)[0]` -- "the same resolution
     `cli._situation_of` already makes of this name" -- and that resolution was
@@ -250,7 +279,8 @@ def test_a_branch_site_g_opened_is_unsettled_like_every_other_branch():
     `research`, of the eighteen for `finance`. G chose a SCHEMA from valid
     options; which of that schema's situations the branch is was never put to
     anybody. So the branch carries no situation and its candidates are carried
-    for the question, exactly as an anchored branch's are.
+    for the question, exactly as an anchored branch's are -- under the life's
+    name, at the kind's scope.
     """
     partition = _partition(
         ("syllabus", "paper", "cv"),
@@ -262,20 +292,20 @@ def test_a_branch_site_g_opened_is_unsettled_like_every_other_branch():
         situations={**SITUATIONS,
                     "code": ("code.software-project", "code.dotfiles")})
 
-    opened = partition.by_label("code")
+    opened = partition.by_label("Technology")
     assert opened.situation is None
     assert opened.candidate_situations == ("code.software-project",
                                            "code.dotfiles")
-    assert not partition.by_label("career").settled
+    assert not partition.by_label("Career").settled
 
 
 def test_a_branch_site_g_opened_is_settled_by_the_librarys_one_situation():
     """The first arm, at the branch: one situation is an answer and not a choice.
 
     The control for the test above. Nothing about `named_by_the_model` decides
-    this -- `_situation_for` is the same function every branch is settled by, and
-    a schema the library carries exactly one situation for settles every branch
-    under it, G-opened or anchored.
+    this -- a kind the library carries exactly one situation for resolves every
+    file of that kind, and a life branch whose every file resolves to one
+    situation is settled by it, G-opened or anchored.
     """
     partition = _partition(
         ("syllabus", "paper"),
@@ -283,7 +313,7 @@ def test_a_branch_site_g_opened_is_settled_by_the_librarys_one_situation():
         named={"paper": "code"},
         situations={**SITUATIONS, "code": ("code.software-project",)})
 
-    assert partition.by_label("code").situation == "code.software-project"
+    assert partition.by_label("Technology").situation == "code.software-project"
 
 
 def test_a_named_schema_the_library_carries_no_situation_for_opens_nothing():
@@ -301,10 +331,12 @@ def test_a_named_schema_the_library_carries_no_situation_for_opens_nothing():
 
 def test_the_partition_refuses_a_file_in_two_places():
     from branch_situation import Branch
-    default = Branch(label="a", schema="academic", situation="academic.coursework",
+    default = Branch(label="a", life="Education", schemas=("academic",),
+                     situations=(), situation="academic.coursework",
                      is_default=True, anchor_file_ids=(), file_ids=("f",))
-    other = Branch(label="career", schema="career", situation=None,
-                   is_default=False, anchor_file_ids=(), file_ids=("f",))
+    other = Branch(label="Career", life="Career", schemas=("career",),
+                   situations=(), situation=None, is_default=False,
+                   anchor_file_ids=(), file_ids=("f",))
     with pytest.raises(ValueError):
         BranchPartition(branches=(default, other), held=())
     with pytest.raises(ValueError):

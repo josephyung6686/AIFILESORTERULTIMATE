@@ -34,10 +34,12 @@ from branch_situation import Branch  # noqa: E402
 from cli import the_situation_each_branch_carries  # noqa: E402
 
 
-def _branch(label, *, display_name="", situation="academic.coursework"):
-    return Branch(label=label, schema="academic", display_name=display_name,
+def _branch(label, *, display_name="", situation="academic.coursework",
+            file_ids=("f1",)):
+    return Branch(label=label, life="Education", schemas=("academic",),
+                  situations=(), display_name=display_name,
                   situation=situation, is_default=False,
-                  anchor_file_ids=(), file_ids=("f1",))
+                  anchor_file_ids=(), file_ids=file_ids)
 
 
 def test_a_branch_with_an_authored_name_is_keyed_by_that_name():
@@ -49,7 +51,7 @@ def test_a_branch_with_an_authored_name_is_keyed_by_that_name():
     got = the_situation_each_branch_carries(
         (_branch("career", display_name="Career and recruiting"),))
 
-    assert got == {"Career and recruiting": "academic.coursework"}, (
+    assert got == {"Career and recruiting": frozenset({"academic.coursework"})}, (
         "P11 matches the root node's display_label, and that is what "
         "`_grouped_by_branch` writes from `folder_name`")
 
@@ -62,12 +64,13 @@ def test_a_branch_with_no_authored_name_is_unchanged():
     """
     got = the_situation_each_branch_carries((_branch("Coursework"),))
 
-    assert got == {"Coursework": "academic.coursework"}
+    assert got == {"Coursework": frozenset({"academic.coursework"})}
 
 
 def test_an_unsettled_branch_names_nothing():
     """Unchanged behaviour, pinned. A branch whose situation the person has not
-    settled tells P11 nothing, and P11 leaves its folders alone.
+    settled, and whose files carry none, tells P11 nothing, and P11 leaves its
+    folders alone.
 
     SABOTAGE: include `None`. P11 would read a settled situation of `None` as an
     answer rather than as silence.
@@ -76,7 +79,30 @@ def test_an_unsettled_branch_names_nothing():
         (_branch("career", display_name="Career and recruiting", situation=None),
          _branch("Coursework"),))
 
-    assert got == {"Coursework": "academic.coursework"}
+    assert got == {"Coursework": frozenset({"academic.coursework"})}
+
+
+def test_a_branch_holding_several_situations_carries_every_one_of_them():
+    """`00` amendment 12: a branch is a LIFE and legitimately holds several
+    situations -- Education holds coursework beside an application packet, and
+    a typed `Coursework` holds a packet site G named as another kind of the
+    same life. P11's question is "is this file's situation one this branch
+    holds?", asked of the same per-file answer P11 reads as `situation_of`,
+    so a file's own branch holds its situation by construction.
+
+    SABOTAGE: carry only `branch.situation`. The packet's own branch does not
+    hold the packet's situation, `_only_this_files_own_branch` drops every
+    candidate under it, and a file that had a root before amendment 12 has no
+    supported destination at all -- `104` §17.2 broken.
+    """
+    coursework = _branch("Coursework", file_ids=("hw", "packet"))
+    of_file = {"hw": "academic.coursework",
+               "packet": "applications.undergraduate-packet"}
+
+    got = the_situation_each_branch_carries((coursework,), situation_of=of_file.get)
+
+    assert got == {"Coursework": frozenset(
+        {"academic.coursework", "applications.undergraduate-packet"})}
 
 
 def test_the_key_is_exactly_what_the_draft_is_named():

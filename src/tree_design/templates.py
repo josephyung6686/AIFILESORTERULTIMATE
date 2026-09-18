@@ -505,6 +505,17 @@ class TemplateApplicability:
     #: the common case; requiring every row to restate its fragment's floor
     #: would put a copy in every row for it to drift from.
     privacy_floor: str | None = None
+    #: `00` amendment 12 (17 Sep 2026). WHICH LIFE this situation is part of, in
+    #: the owner's own words, one of the sixteen the reference tree names -- and
+    #: none of the sixteen is spelled in `src/`, by `tests/p10/test_library_lives.py`'s
+    #: pin. The partition keys on it and the root node wears it; the situation
+    #: itself never does (amendment 9).
+    #:
+    #: `None` is the `privacy_floor` marker one field up: this row states none.
+    #: 12a permits a row outside every life; the partition says what it does
+    #: with such a file, and `tests/p10/test_library_lives.py` says whether the
+    #: shipped release has any.
+    life: str | None = None
 
     def __post_init__(self) -> None:
         _require(self.applicability_id, name="TemplateApplicability.applicability_id")

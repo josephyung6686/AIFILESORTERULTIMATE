@@ -1,0 +1,27 @@
+{
+  "schema_lives": {
+    "academic": "Education",
+    "college_applications": "Education",
+    "research": "Education",
+    "career": "Career",
+    "photos": "Photos and Media",
+    "code": "Technology",
+    "finance": "Finance and Taxes",
+    "identity": "Personal",
+    "medical": "Health",
+    "legal": "Legal and Insurance",
+    "business_operations": "Career",
+    "clinical_practice": "Career",
+    "construction_property": "Career",
+    "creative": "Creative and Hobbies",
+    "engineering": "Career",
+    "government": "Career",
+    "hr": "Career",
+    "law_practice": "Career",
+    "logistics": "Career",
+    "manufacturing": "Career",
+    "nonprofit": "Personal",
+    "resource_operations": "Career",
+    "retail_hospitality": "Career"
+  }
+}

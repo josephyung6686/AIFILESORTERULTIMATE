@@ -679,9 +679,26 @@ def _without_kind_only_moves(
     return _ranked_below(retrieval, carried, _RANKED_BELOW_KIND_ONLY)
 
 
+def _holds(carried: object, situation: str) -> bool:
+    """Whether a branch that carries `carried` holds `situation`.
+
+    `None` is a branch this run named nothing for, and it holds every file
+    (the rule leaves it alone). A branch is otherwise given as ONE situation --
+    the shape every deployment passed until `00` amendment 12 -- or as the SET
+    of situations it holds, because a branch is now a LIFE and a life holds
+    several: `cli.the_situation_each_branch_carries` says why. Both are read
+    here so no caller has to change shape to keep the guard live.
+    """
+    if carried is None:
+        return True
+    if isinstance(carried, str):
+        return carried == situation
+    return situation in carried
+
+
 def _only_this_files_own_branch(
         retrieval: Retrieval, *, situation: str | None,
-        situation_under: Mapping[str, str | None]) -> Retrieval:
+        situation_under: Mapping[str, object]) -> Retrieval:
     """Step 6's fifth half: A BRANCH IS ONE SITUATION AND A FILE IS UNDER ONE.
 
     `00` amendment 7 gives every file its own situation -- the one site G named
@@ -722,10 +739,10 @@ def _only_this_files_own_branch(
         return retrieval
     foreign = {
         candidate.node_id for candidate in retrieval.candidates
-        if situation_under.get(candidate.node_id) not in (None, situation)}
+        if not _holds(situation_under.get(candidate.node_id), situation)}
     set_aside = tuple(
         item for item in retrieval.set_aside
-        if situation_under.get(item.candidate.node_id) in (None, situation))
+        if _holds(situation_under.get(item.candidate.node_id), situation))
     if not foreign and len(set_aside) == len(retrieval.set_aside):
         return retrieval
     return dataclasses.replace(
@@ -1949,7 +1966,8 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         group_answer.sits_apart or group_answer.node_id in {
             node_id for conflict in retrieval.conflicts
             for node_id in conflict.suppressed_node_ids
-        } or groups_branch_situation not in (None, own_situation))
+        } or (own_situation is not None
+              and not _holds(groups_branch_situation, own_situation)))
     if group_answer is not None and not contradicts_the_group:
         # THE GROUP'S ANSWER IS THIS FILE'S BRANCH.
         # Checked against the index for the reason a model-chosen node is checked

@@ -838,12 +838,23 @@ def design_tree(conn: sqlite3.Connection, *,
     # `64` §1's hole 3 in a different disguise.
     edits = user_level_edits(conn)
 
+    wanted = frozenset(decisions.branch_group_ids)
     candidates = horizontal_candidates(
         conn, accepted=groups, existing_folders=folders, user_labels=(),
         active_domains=authorities.active_domains,
-        sensitive_group_ids=authorities.sensitive_group_ids)
+        sensitive_group_ids=authorities.sensitive_group_ids,
+        # Only the drafts this decision names fold into an area; a stale draft
+        # of the same label stays its own unchosen card (`same_label_areas`).
+        foldable=wanted)
+    # An AREA folded from several accepted drafts (`candidates.same_label_areas`,
+    # `00`:67) is chosen when any of them was: `cli.design_decisions` names
+    # every accepted draft, and a card keyed `area:<label>` is in no
+    # `branch_group_ids` by itself. A single-draft card's `subject_id` is its
+    # group id, so the first test is the one every existing pin passes.
     chosen = tuple(candidate for candidate in candidates
-                   if candidate.subject_id in set(decisions.branch_group_ids))
+                   if candidate.subject_id in wanted
+                   or any(group_id in wanted
+                          for group_id in candidate.accepted_group_ids))
     if not chosen:
         raise NothingToDesign(
             f"none of {sorted(decisions.branch_group_ids)} is a top-level branch "

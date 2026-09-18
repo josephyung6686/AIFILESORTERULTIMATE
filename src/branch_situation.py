@@ -65,19 +65,37 @@ under the default branch, nothing is held, and the run is the run it was; that i
 ruling (4) and `tests/integration/test_r37_single_branch_is_byte_identical.py`
 pins it against a fixture captured before this module existed.
 
+**A branch is a LIFE, not a kind** (`00` amendment 12 with 12a, 17 Sep 2026).
+The signals above still decide which KIND each file is; the branch it is under
+is the LIFE the library places that file's situation in (`production.life_of`,
+read off the applicability row exactly as the folder levels are), and a branch
+exists only for a life some file reached -- the sixteen the owner ratified are a
+menu and never a skeleton. `partition_by_branch`'s docstring spells the five
+arms that give a file its life and the one rule that keeps a typed run's own
+life at home.
+
 **A branch's situation.** The default branch's is the one the person typed --
 and when they typed none (the owner's ruling of 11 Sep 2026; `--situation` is
 optional) it is settled by exactly the rule below, because a branch the corpus
-named is no more the person's answer than a branch its anchors opened. Any
-other branch's is the person's own answer to the per-branch question
+named is no more the person's answer than a branch its anchors opened: the
+person's own answer to the per-branch question
 `questions.triggers.question_for_situation` -- the trigger R-37 says was
 registered and never fired, read back through `questions.store.selected_situation`
-at scope `branch:<label>` -- or, when the library carries exactly one situation for
+at scope `branch:<label>`, and at `branch:<kind>` where an earlier run labelled
+the branch with its kind -- or, when the library carries exactly one situation for
 that schema, that one. Otherwise it is UNSETTLED: the question is recorded, its
 files are asked nothing until it is answered, and the branch is still proposed so
-the person sees where those files would go. This module chooses no situation on
-the person's behalf: `104` §11.2 step 4's ruling is that the person, or a model
-from valid options, decides, never a rule picking the first of twenty-six.
+the person sees where those files would go. A LIFE branch is settled when every
+file under it resolves to one situation -- the person's answer for the file's
+kind (at `branch:<kind>`, the scope its question is recorded at), the judge's
+fact, or the library's one situation for the kind -- and is otherwise
+unsettled. Holding ONE kind, it asks that kind's question under the life's
+name; holding two, or files already carrying two situations, it asks nothing:
+"which situation is Education?" is not a question when Education holds
+coursework and a thesis.
+This module chooses no situation on the person's behalf: `104` §11.2 step 4's
+ruling is that the person, or a model from valid options, decides, never a rule
+picking the first of twenty-six.
 
 This module reads no database and imports nothing from the composition root. Every
 signal arrives as a callable or a table, so `cli.run` remains the one place that
@@ -87,7 +105,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from types import MappingProxyType
 
 #: The fields that never carry a file into a branch, spelled once here and
 #: asserted equal to `cli.FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` by the composition
@@ -106,12 +123,28 @@ SCOPE_BRANCH: str = "branch"
 
 @dataclass(frozen=True)
 class Branch:
-    """One proposed top-level branch and the situation it carries."""
+    """One proposed top-level branch: a LIFE the corpus put files under, or the
+    folder's own default branch."""
 
     label: str
-    schema: str
-    #: `None` while the branch's situation is unsettled: the library carries more
-    #: than one situation for the schema and the person has not said which.
+    #: `00` amendment 12: the life this branch IS, read off the library rows of
+    #: its files' situations. `None` only for a default branch whose situation
+    #: nothing has settled. It is the partition KEY and, for a life branch, the
+    #: label; a situation is never one (amendment 9).
+    life: str | None
+    #: Every kind its files belong to, first-seen order. PLURAL since amendment
+    #: 12: Education holds `academic.coursework` beside
+    #: `applications.undergraduate-packet`, and those are two schemas.
+    #: `cli._grouped_by_branch` drafts one group per member of this tuple. The
+    #: default branch's own kind is always first.
+    schemas: tuple[str, ...]
+    #: The situations its files' `situation` facts carry, distinct, first-seen
+    #: order. Empty on the partition that runs before the judge.
+    situations: tuple[str, ...]
+    #: `None` while unsettled. A life branch is settled only when every file
+    #: under it resolves to one situation (`_settled_by_its_files`: the
+    #: person's answer for the file's kind, the judge's fact, or the library's
+    #: one); the default branch by the rule `_situation_for` spells.
     situation: str | None
     is_default: bool
     anchor_file_ids: tuple[str, ...]
@@ -153,6 +186,17 @@ class BranchPartition:
     def __post_init__(self) -> None:
         if not self.branches or not self.branches[0].is_default:
             raise ValueError("the default branch comes first and always exists")
+        # THE LABEL IS AN IDENTITY -- the question scope, the draft bucket, the
+        # vote key -- so two branches wearing one label would be one branch to
+        # every reader and two to this one. It happens when a folder scanned
+        # untyped is named exactly as a life its files reach; the person types
+        # `--label` and the refusal says so.
+        labels = [branch.label for branch in self.branches]
+        repeated = sorted({label for label in labels if labels.count(label) > 1})
+        if repeated:
+            raise ValueError(
+                f"two branches wear one label {repeated}: the folder is named as "
+                "a life its files belong to, so name it with --label")
         seen: set[str] = set()
         for branch in self.branches:
             overlap = seen & set(branch.file_ids)
@@ -313,11 +357,64 @@ def partition_by_branch(
         situations_of: Callable[[str], Sequence[str]],
         chosen_situation: Callable[[str], str | None],
         named_by_the_model: Mapping[str, str],
-        situations_named_by_the_model: Mapping[str, str] = MappingProxyType({}),
+        life_of: Callable[[str], str | None],
+        life_of_kind: Callable[[str], str | None],
+        situation_fact_of: Callable[[str], str | None],
+        alternatives_of: Callable[[str], Sequence[str]],
         name_of_schema: Callable[[str], str | None] = lambda _schema: None,
         default_display_name: str | None = None,
 ) -> BranchPartition:
     """The run's branches, from the deterministic signals it already holds.
+
+    **THE TOP LEVEL IS A LIFE, NOT A KIND** (`00` amendment 12, with 12a). Every
+    line up to `under` still decides which KIND each file is -- G's name first,
+    then the anchor, then the schema's own field, then the recogniser's reading.
+    What changes is the last step: kinds are folded into LIVES before branches
+    are built, `life_of(situation)` being the library's own word for the life a
+    situation is part of. A branch exists only for a life some file reached
+    (12a(i)); the sixteen are a menu and never a skeleton.
+
+    `life_of` is `production.life_of` bound to the catalogue and `life_of_kind`
+    is `production.life_of_kind`; `situation_fact_of(file_id)` is the file's
+    `situation` fact as a reader sees it (a `user_confirmed` row wins);
+    `alternatives_of(file_id)` is its live `situation_alternative` values, read
+    as a set because the store keeps no rank. `name_of_schema` has had no
+    reader since amendment 12 -- no branch is opened for a schema any more --
+    and is accepted so the binding site is unchanged; `default_display_name`
+    still names the default branch's folder.
+
+    **The life of one file, four arms, none of them a pick:**
+
+    0. THE PERSON'S OWN ANSWER FOR THE FILE'S KIND -- the word they typed when
+       the kind is the run's own, else their answer at `branch:<kind>`, the scope
+       a kind's question was recorded at while a kind was a branch. Read first
+       because `104` §17.9 is not negotiable: the model's answer refines the
+       person's and never replaces it, and an answer given across runs 13-23
+       must keep reaching the files it was always about.
+    1. The `situation` fact -- the judge's first choice.
+    2. Failing that, the alternatives: exactly one distinct life among them is
+       that life; two is nothing. The tie-break, order-free.
+    3. Failing that, THE LIBRARY'S OWN WORD FOR THE KIND (`life_of_kind`): a
+       kind belongs to a life just as its situations do, and `academic` is
+       Education whether or not anyone has said which coursework it is. This
+       is the arm the owner's corpus mostly takes (`104` §18.108: the kind
+       pass wrote the schema id and the level pass has mostly not refined
+       it), and it is EXPLICIT library data, never the rows' or the corpus's
+       agreement -- which said nothing for `academic` and left 218 of 257
+       files in no life.
+    4. Otherwise the file has no life, and it is the default branch's (R-140).
+
+    **A typed run keeps its own KIND at home.** With `--situation` typed a file
+    of the typed situation's life whose kind is the run's own (or none) stays
+    in the default branch, under the label they typed -- the byte pin. A file
+    of that life but of ANOTHER kind is under its life beside the typed
+    branch (`_stays_home` says why). With nothing typed the top level is lives
+    and the default branch holds only the residue: files with no life.
+
+    **Single-ness is decided AFTER the fold.** One kind spans several lives
+    (Priya's `academic` folder is Education and Teaching), so there is no early
+    return on one kind; `BranchPartition.single` is true exactly when the fold
+    yielded no life branch.
 
     `anchor_facts_of(file_id, content_hash)` returns the file's `(field, value)`
     facts at or above P9's anchor bar (`direct`, `validated`); `owner_of_term` is
@@ -347,12 +444,15 @@ def partition_by_branch(
     such a schema has no folder levels, so there is nothing a branch under it
     could be asked from.
 
-    **`situations_named_by_the_model` IS THE JUDGE'S SECOND ANSWER PER FILE**
-    (`00` amendment 1 of 14 Sep): the SITUATION each file is part of, which is
-    `cli._model_fact_pass`'s `situation_pass.situations`, and it is EMPTY on the
-    call that runs before the model pass. It settles a branch the judge answered
-    for -- see `_settled_by_the_judge` -- and it opens none: a branch is opened by
-    an anchor or by a KIND, and a situation is a refinement inside one.
+    **THE JUDGE'S SECOND ANSWER PER FILE** (`00` amendment 1 of 14 Sep) -- the
+    SITUATION each file is part of -- arrives as the FACT it wrote,
+    `situation_fact_of`, and not as the pass object it used to
+    (`situations_named_by_the_model`, retired with `106` Phase 3): the fact is
+    the same answer written down, it carries the person's `user_confirmed`
+    override, and it is what every other reader of the sort reads (`00`
+    amendment 11). It settles a life branch the judge answered for -- see
+    `_settled_by_its_files` -- and it opens no KIND: a situation is what a file's
+    life is read off, not a branch of its own.
 
     **`default_situation` IS `None` WHEN THE PERSON TYPED NO `--situation`**, on
     the owner's ruling of 11 Sep 2026 (`00` Amendments of 2026-09-11 item 2). The
@@ -374,52 +474,23 @@ def partition_by_branch(
         THE SCOPE IS THE BRANCH'S LABEL and not its schema, because the label is
         what `questions.triggers.question_for_situation` puts the question under
         (`branch:<branch_label>`) and an answer looked for anywhere else is an
-        answer the person gave and the run never found. They are the same string
-        for every branch but a default one the person named with `--label`.
+        answer the person gave and the run never found. AND THEN THE KIND'S OWN
+        SCOPE: an untyped run's default branch was labelled with its kind until
+        amendment 12, so the answer to "Which of these is academic?" is stored
+        at `branch:academic`, and a branch now called by its folder still reads
+        it -- `104` §17.9, the person's answer is never dropped for a rename.
         """
         candidates = tuple(dict.fromkeys(situations_of(schema_id)))
-        chosen = chosen_situation(f"{SCOPE_BRANCH}:{branch_label}")
-        if chosen is not None and chosen in candidates:
-            return chosen, ()
+        for scope in dict.fromkeys((branch_label, schema_id)):
+            chosen = chosen_situation(f"{SCOPE_BRANCH}:{scope}")
+            if chosen is not None and chosen in candidates:
+                return chosen, ()
         # `the_one_situation`'s first arm, and it is the same rule spelled once:
         # a branch is not a file, so there is no per-file raised set to hand it.
         one = the_one_situation(schema_id, situations_of=situations_of)
         if one is not None:
             return one, ()
         return None, candidates
-
-    def _settled_by_the_judge(file_ids: Sequence[str],
-                              candidates: Sequence[str]) -> str | None:
-        """The one situation the judge named for EVERY file of this branch.
-
-        `00` amendment 1 of 14 Sep: the judge names the situation and "the person
-        is asked only where the judge cannot", so a branch the judge answered for
-        is a branch with nothing left to ask about -- its question is not
-        recorded, its files are asked their own situation's fields, and its
-        folders are built. This is the one place that becomes true of a BRANCH;
-        `cli._the_situation_this_file_is_under` is where it becomes true of a file.
-
-        UNANIMOUS, AND OVER EVERY FILE RATHER THAN EVERY ANSWERED FILE. One file
-        the judge declined is one file whose situation the person still has to
-        settle, and the question they are asked is the branch's -- so a branch
-        carrying such a file stays unsettled and asks it. Two situations named
-        under one branch is the same state seen the other way: the branch is not
-        one piece of work, and picking the majority would be this module choosing
-        a situation on the person's behalf, which `104` §11.2 step 4 forbids in
-        the words the third arm of `_situation_for` already stands on.
-
-        CHECKED AGAINST THE BRANCH'S OWN CANDIDATES, so a stale answer replayed
-        out of an earlier run's records cannot settle a branch on a situation this
-        release no longer carries under its schema.
-        """
-        if not file_ids:
-            return None
-        named = {situations_named_by_the_model.get(file_id)
-                 for file_id in file_ids}
-        if len(named) != 1:
-            return None
-        one = next(iter(named))
-        return one if one in candidates else None
 
     def _default() -> tuple[str | None, tuple[str, ...]]:
         if default_situation is not None:
@@ -450,15 +521,8 @@ def partition_by_branch(
     schemas = [default_schema] + sorted(
         {schema_id for schema_id in anchors_of if schema_id != default_schema}
         | model_named)
-    if len(schemas) == 1:
-        situation, candidates = _default()
-        return BranchPartition(branches=(Branch(
-            label=default_label, schema=default_schema,
-            display_name=default_display_name or default_label,
-            situation=situation, is_default=True,
-            anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
-            file_ids=tuple(file_id for file_id, _hash in roster),
-            candidate_situations=candidates),), held=())
+    # No early return on one kind: one kind spans several lives (see the
+    # docstring), so the reach runs over every file and the fold below decides.
 
     # The fields that carry a file into each branch: the schema's own, less the
     # two bridges.
@@ -468,6 +532,10 @@ def partition_by_branch(
 
     under: dict[str, list[str]] = {schema_id: [] for schema_id in schemas}
     held: list[str] = []
+    #: Files NO branch reached. R-140 puts them in the default bucket, and that
+    #: bucket's kind is not evidence about the file, so the fold reads no kind
+    #: for them.
+    fell_through: set[str] = set()
     for file_id, content_hash in roster:
         if file_id in named_of:
             # SITE G'S NAME FIRST. See the docstring: the fact pass has already
@@ -486,57 +554,208 @@ def partition_by_branch(
             under[next(iter(reached))].append(file_id)
         elif not reached:
             under[default_schema].append(file_id)
+            fell_through.add(file_id)
         else:
             held.append(file_id)
 
-    branches: list[Branch] = []
-    for schema_id in schemas:
-        if schema_id == default_schema:
-            situation, candidates = _default()
-            branches.append(Branch(
-                label=default_label, schema=schema_id,
-                display_name=default_display_name or default_label,
-                situation=situation, is_default=True,
-                anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
-                file_ids=tuple(under[schema_id]),
-                candidate_situations=candidates))
-            continue
-        situation, candidates = _situation_for(schema_id, schema_id)
-        if situation is None:
-            # THE JUDGE'S OWN ANSWER, where it gave one for every file here
-            # (`00` amendment 1 of 14 Sep). Third in the order and not first:
-            # the person's answer and the library's single situation both still
-            # outrank it, which is `104` §17.9's standing rule that the model's
-            # answer is a refinement of the person's and never a replacement.
-            situation = _settled_by_the_judge(under[schema_id], candidates)
-            if situation is not None:
-                candidates = ()
-        # A BRANCH SITE G OPENED IS SETTLED BY THE SAME RULE AS EVERY OTHER, and
-        # `situations_of(schema_id)[0]` used to stand here for it. The argument
-        # was that G naming a schema is "a model choosing from valid options" --
-        # but G chose a SCHEMA, and which of that schema's situations the branch
-        # is was never put to anybody. On the shipped release that took the
-        # alphabetically first of eight for `research` and of eighteen for
-        # `finance`. So the branch is unsettled like any other, its question is
-        # recorded, and the person answers it.
+    default_situation_settled, default_candidates = _default()
+    default_life = (None if default_situation_settled is None
+                    else life_of(default_situation_settled))
+    #: The person's own word for the folder keeps its life at home; with nothing
+    #: typed the top level is lives and the default holds the residue.
+    typed = default_situation is not None
+
+    def _persons_answer_for(kind: str) -> str | None:
+        """Arm 0: the situation the PERSON has said files of this kind are.
+
+        The typed word for the run's own kind, exactly as `cli._the_situation_
+        already_settled` reads it; else their answer at the kind's own scope,
+        which for the default kind is also the default branch's (its question
+        is the kind's question). Checked against the library's list for
+        `_situation_for`'s reason.
+        """
+        if kind == default_schema:
+            if typed:
+                return default_situation
+            return default_situation_settled
+        chosen = chosen_situation(f"{SCOPE_BRANCH}:{kind}")
+        return chosen if chosen in situations_of(kind) else None
+
+    def _first_arm_life(file_id: str) -> str | None:
+        fact = situation_fact_of(file_id)
+        return None if fact is None else life_of(fact)
+
+    def _of_this_life(kind: str, life: str) -> tuple[str, ...]:
+        """The kind's situations that ARE this life, in the library's order."""
+        return tuple(dict.fromkeys(
+            s for s in situations_of(kind) if life_of(s) == life))
+
+    def _resolved_situation(file_id: str, kind: str | None,
+                            life: str) -> str | None:
+        """WHICH SITUATION THIS FILE IS, in `cli._the_situation_this_file_is_
+        under`'s own order: the person's answer for its kind, else the judge's
+        fact, else the library's one situation for the kind -- of which the
+        one situation the kind has IN THIS LIFE is the same arm read one level
+        down: an academic file under Education is the one Education situation
+        academic has, if it has exactly one. `None` otherwise; never a pick."""
+        if kind is not None:
+            answered = _persons_answer_for(kind)
+            if answered is not None:
+                return answered
+        fact = situation_fact_of(file_id)
+        if fact is not None:
+            return fact
+        if kind is not None:
+            one = the_one_situation(kind, situations_of=situations_of)
+            if one is not None:
+                return one
+            in_life = _of_this_life(kind, life)
+            if len(in_life) == 1:
+                return in_life[0]
+        return None
+
+    def _settled_by_its_files(life: str, file_ids: Sequence[str]) -> str | None:
+        """The one situation EVERY file of this life branch resolves to.
+
+        `00` amendment 1 of 14 Sep: the judge names the situation and "the person
+        is asked only where the judge cannot", so a branch answered for is a
+        branch with nothing left to ask about -- its files are asked their own
+        situation's fields and its folders are built. The person's answer for a
+        file's kind and the library's one situation for it are answers of the
+        same standing (`the_one_situation`'s first arm: an answer, not a choice).
+
+        UNANIMOUS, AND OVER EVERY FILE RATHER THAN EVERY ANSWERED FILE. One file
+        nothing resolves is one file whose situation is still open, and two
+        situations under one branch is a branch that is not one piece of work;
+        picking the majority would be this module choosing a situation on the
+        person's behalf, which `104` §11.2 step 4 forbids.
+
+        CHECKED AGAINST THE LIFE, so a stale fact replayed out of an earlier
+        run's records cannot settle a branch on a situation of another life.
+        """
+        if not file_ids:
+            return None
+        resolved = {_resolved_situation(file_id, kind_of[file_id], life)
+                    for file_id in file_ids}
+        if len(resolved) != 1:
+            return None
+        one = next(iter(resolved))
+        return one if one is not None and life_of(one) == life else None
+
+    def _asked_of_a_life(life: str, kinds: Sequence[str],
+                         carried: Sequence[str]) -> tuple[str, ...]:
+        """WHAT AN UNSETTLED LIFE BRANCH ASKS THE PERSON, or nothing.
+
+        `00` amendment 1 of 14 Sep: the person is asked only where the judge
+        cannot -- and IS asked there. A branch of ONE kind whose files carry at
+        most one situation is that kind's question under the life's name
+        ("which of these is Career?"), offered the kind's situations that are
+        this life; `cli._ask_which_situation_each_branch_is` records it at the
+        KIND's scope, so the answer is read where every reader of the person's
+        answer already reads it (arm 0). A branch of two kinds, or whose files
+        already carry two situations, is not one piece of work and has no
+        question; the router is handed what its files carry instead. Fewer
+        than two options is not a question either (`question_for_situation`).
+        """
+        if len(kinds) != 1 or len(carried) > 1:
+            return ()
+        offered = _of_this_life(kinds[0], life)
+        return offered if len(offered) >= 2 else ()
+
+    #: file -> the KIND the reach put it under; `None` for a file no branch
+    #: reached.
+    kind_of: dict[str, str | None] = {
+        file_id: (None if file_id in fell_through else schema_id)
+        for schema_id, files in under.items() for file_id in files}
+
+    def _life_of_file(file_id: str, kind: str | None) -> str | None:
+        """Four arms, none a pick. See the docstring's 'The life of one file'."""
+        if kind is not None:
+            answered = _persons_answer_for(kind)
+            if answered is not None and life_of(answered) is not None:
+                return life_of(answered)
+        first = _first_arm_life(file_id)
+        if first is not None:
+            return first
+        named = {life_of(a) for a in alternatives_of(file_id)} - {None}
+        if len(named) == 1:
+            return next(iter(named))
+        if kind is None:
+            return None
+        return life_of_kind(kind)
+
+    def _stays_home(life: str | None, kind: str | None) -> bool:
+        """Whether a file is the default branch's rather than its life's.
+
+        A file with no life is (R-140). On a typed run, a file of the typed
+        life whose KIND is the run's own -- or no kind at all -- is too: the
+        typed word is a statement about the run's own kind of material, and
+        `cli._the_situation_this_file_is_under` already treats a kind site G
+        named that is not the run's as not covered by it. Such a file -- an
+        application packet in a `--situation academic.coursework` folder -- is
+        under its LIFE beside the typed branch, the root of its own it had
+        before amendment 12: kept home, its group is drafted inside the typed
+        branch in its own kind and P11 files an application essay into a
+        course folder (R-23). The one exception is the person having typed the
+        life itself as the folder's label: that word IS the life, and a second
+        branch wearing it would be two branches with one key.
+        """
+        if life is None:
+            return True
+        if not typed or life != default_life:
+            return False
+        return kind in (None, default_schema) or life == default_label
+
+    lives: dict[str, list[str]] = {}
+    default_files: list[str] = []
+    for file_id, _hash in roster:
+        if file_id not in kind_of:
+            continue  # held
+        life = _life_of_file(file_id, kind_of[file_id])
+        if _stays_home(life, kind_of[file_id]):
+            default_files.append(file_id)
+        else:
+            lives.setdefault(life, []).append(file_id)
+
+    def _situations_carried(file_ids: Sequence[str]) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(
+            fact for fact in (situation_fact_of(f) for f in file_ids)
+            if fact is not None))
+
+    def _schemas_carried(file_ids: Sequence[str]) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(
+            kind for kind in (kind_of[f] for f in file_ids) if kind is not None))
+
+    branches: list[Branch] = [Branch(
+        label=default_label, life=default_life,
+        display_name=default_display_name or default_label,
+        schemas=tuple(dict.fromkeys([default_schema, *_schemas_carried(default_files)])),
+        situations=_situations_carried(default_files),
+        situation=default_situation_settled, is_default=True,
+        anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
+        file_ids=tuple(default_files),
+        candidate_situations=default_candidates)]
+    for life in sorted(lives):
+        files = lives[life]
+        carried = _situations_carried(files)
+        kinds = _schemas_carried(files)
+        # The person's answer reaches a life branch through its files' KINDS
+        # (`_persons_answer_for`, read inside `_resolved_situation`): the
+        # question is recorded at the kind's scope, and no reader looks for one
+        # at `branch:<life>`.
+        situation = _settled_by_its_files(life, files)
         branches.append(Branch(
-            # **THE LABEL IS THE SCOPE KEY AND IS NOT A DISPLAY STRING.**
-            # `Branch.scope` is `f"{SCOPE_BRANCH}:{self.label}"`, which is what
-            # records this branch's question, what `--answer situation:academic=`
-            # matches on, and what every stored answer in an existing database is
-            # keyed by. The lead changed it to the authored name on 18 Sep and
-            # broke the question-and-answer round trip across sixteen integration
-            # tests: a person's typed gesture stopped matching the scope it was
-            # recorded at. It stays the id. `display_name` beside it is what a
-            # FOLDER is called.
-            label=schema_id,
-            display_name=folder_name_for_schema(
-                name_of_schema(schema_id), schema_id),
-            schema=schema_id, situation=situation,
-            is_default=False,
-            anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
-            file_ids=tuple(under[schema_id]),
-            candidate_situations=candidates))
+            # THE LABEL IS THE SCOPE KEY, and for a life branch the life is the
+            # only key it has: a life spanning two schemas has no schema id, and
+            # the owner's word is the row's value verbatim (`106` §A). It is
+            # also what the folder is called.
+            label=life, life=life, display_name=life,
+            schemas=kinds, situations=carried,
+            situation=situation, is_default=False,
+            anchor_file_ids=tuple(f for f in files if f in anchored_to),
+            file_ids=tuple(files),
+            candidate_situations=(() if situation is not None
+                                  else _asked_of_a_life(life, kinds, carried))))
     return BranchPartition(branches=tuple(branches), held=tuple(held))
 
 

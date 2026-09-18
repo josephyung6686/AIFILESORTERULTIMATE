@@ -5,25 +5,26 @@ folder and stuff all human readable and not machine readable."*
 **WHAT THEY ARE LOOKING AT.** The tree the product built over their 371 files has
 seven top-level folders and five of them are `nonprofit`, `photos`, `research`,
 `career`, `finance` -- lowercase internal identifiers, written onto a real disk as
-real folder names. `partition_by_branch` builds a branch with `label=schema_id`
-(`branch_situation.py:464`) and the label becomes the folder.
+real folder names. `partition_by_branch` built a branch with `label=schema_id`
+and the label became the folder.
 
 **THE NAMES ALREADY EXIST AND ARE SIMPLY NOT USED.** Every schema in the
 recognition rules carries an authored `name` -- `academic` is `'Academic'`,
-`nonprofit` is `'Nonprofit, civic and member organisations'` -- and `cli.py:18267`
+`nonprofit` is `'Nonprofit, civic and member organisations'` -- and `cli.py`
 already hands those names to site G so the MODEL reads a sentence rather than an
-id. The person got the id and the model got the sentence. This inverts that.
+id. `folder_name_for_schema` is that inversion, pinned in the first four tests.
 
 **THE PARENTHETICAL IS A GLOSS AND IS NOT PART OF A NAME.** Several authored names
 carry one: *"Business operations (the organisation's own running record)"*. It is
 there to tell one schema from another on a MENU, and a folder called that is worse
 than the id it replaces. The head of the name is the name.
 
-**THIS IS NOT PHASE 3.** Phase 3 replaces the KIND with a LIFE as the partition
-key -- `research` becomes Education. This changes nothing about which branch a
-file lands in; it changes only what that branch is CALLED. The two compose: a life
-is named by the owner's own word, and until Phase 3 lands a kind should at least
-be spelled the way the library spells it.
+**AND THEN PHASE 3 LANDED** (`00` amendment 12). A branch is a LIFE and not a
+kind, so no branch is opened per schema any more and `name_of_schema` has no
+reader in the partition. The partition tests below say what holds now: a life
+branch is called by the owner's word for the life, the label IS that word
+because it is the only key a life spanning two kinds can have, the kinds
+underneath stay ids, and the person's own `--label` still names the default.
 """
 from __future__ import annotations
 
@@ -91,7 +92,14 @@ def test_a_name_that_is_only_a_gloss_keeps_its_id():
     assert folder_name_for_schema("(see the other one)", "odd") == "odd"
 
 
-def _partition(*, name_of_schema, default_label="Typed", default_schema="academic"):
+#: The fixture lives: both kinds are Work by the library's own word for the
+#: kind, so the research file reaches Work and nothing here invents a name.
+LIVES = {"kind.one": "Work", "kind.two": "Work"}
+LIVES_OF_KIND = {"academic": "Work", "research": "Work"}
+
+
+def _partition(*, name_of_schema, default_label="Typed", default_schema="academic",
+               default_display_name=None):
     """`partition_by_branch` over two files of two kinds, with every other input
     held at its most boring: the naming is the only thing under test."""
     return partition_by_branch(
@@ -111,43 +119,47 @@ def _partition(*, name_of_schema, default_label="Typed", default_schema="academi
         chosen_situation=lambda _scope: None,
         named_by_the_model={"f1": "academic", "f2": "research"},
         name_of_schema=name_of_schema,
+        default_display_name=default_display_name,
+        life_of=LIVES.get,
+        life_of_kind=LIVES_OF_KIND.get,
+        situation_fact_of=lambda _f: None,
+        alternatives_of=lambda _f: (),
     )
 
 
 def test_the_partition_gives_an_opened_branch_a_human_folder_name():
-    """The end of the wire: the branch site G opened is CALLED something a person
-    would write, on the FOLDER.
+    """The end of the wire: the branch opened for a life is CALLED the owner's
+    own word for that life, on the FOLDER.
 
-    SABOTAGE: drop `display_name` from the `Branch(` in the non-default arm.
-    Green above, red here, and the fix never reaches the disk.
+    SABOTAGE: drop `display_name` from the `Branch(` in the life arm and give
+    the label a machine spelling. The fix never reaches the disk.
     """
     partition = _partition(name_of_schema=AUTHORED.get)
 
     opened = [b for b in partition.branches if not b.is_default]
-    assert opened, "site G named a second kind, so a branch was opened for it"
+    assert opened, "both files reached a life, so a branch was opened for it"
     for branch in opened:
-        assert branch.folder_name == folder_name_for_schema(
-            AUTHORED.get(branch.schema), branch.schema)
-        assert branch.folder_name != branch.schema, (
-            f"the folder for {branch.schema!r} is still its id")
+        assert branch.folder_name == branch.life == "Work"
+        assert branch.folder_name.islower() is False, "not an id"
 
 
 def test_the_scope_key_is_untouched_and_that_is_the_whole_point():
     """**THE REGRESSION THIS FILE EXISTS TO PREVENT, and the lead caused it.**
 
-    The first cut of this change put the authored name in `Branch.label`. But
-    `Branch.scope` is `f"{SCOPE_BRANCH}:{self.label}"` -- the label is the key a
-    branch's QUESTION is recorded at, the key `--answer situation:academic=...`
-    matches on, and the key every answer already stored in a person's database is
-    filed under. Renaming it broke the question-and-answer round trip across
-    sixteen integration tests, and on a real database it would have silently
-    orphaned every answer the person had ever given.
+    The first cut of the naming change put the authored name in `Branch.label`.
+    But `Branch.scope` is `f"{SCOPE_BRANCH}:{self.label}"` -- the label is the
+    key a branch's QUESTION is recorded at, the key `--answer situation:...`
+    matches on, and the key every answer already stored in a person's database
+    is filed under. Renaming it broke the question-and-answer round trip across
+    sixteen integration tests.
 
     A display string and a primary key are not the same thing even when they
-    start out spelled the same.
-
-    SABOTAGE: set `label=folder_name_for_schema(...)` again. Every other test in
-    this file still passes and the product stops being able to hear the person.
+    start out spelled the same. For a LIFE branch they ARE the same string, and
+    on purpose: a life spanning two kinds has no other key, so the life is the
+    key and the folder wears it; the DEFAULT branch's key is still the person's
+    own typed `--label`, and an answer stored at a kind's old scope
+    (`branch:academic`) is still read for that kind's files
+    (`test_branch_situation_lives.py`).
     """
     partition = _partition(name_of_schema=AUTHORED.get)
 
@@ -155,12 +167,11 @@ def test_the_scope_key_is_untouched_and_that_is_the_whole_point():
         assert branch.scope.endswith(f":{branch.label}"), (
             "the scope is built from the label, so the label is a key")
         if branch.is_default:
-            # The DEFAULT branch's key has always been the person's own typed
-            # `--label`, or the schema id when they typed none. Untouched.
+            assert branch.label == "Typed"
             continue
-        assert branch.label == branch.schema, (
-            f"the branch for {branch.schema!r} is keyed by something other than "
-            "its id, and every answer already recorded against it is orphaned")
+        assert branch.label == branch.life, (
+            f"the branch for {branch.life!r} is keyed by something other than "
+            "the life, and the life is the only key it has")
 
 
 def test_the_persons_own_label_outranks_the_librarys_name():
@@ -172,36 +183,42 @@ def test_the_persons_own_label_outranks_the_librarys_name():
     product overruling them about the name of their own folder.
     """
     partition = _partition(name_of_schema=AUTHORED.get,
-                           default_label="Coursework")
+                           default_label="Coursework",
+                           default_display_name="Coursework")
 
     (default,) = [b for b in partition.branches if b.is_default]
     assert default.folder_name == "Coursework"
 
 
-def test_the_schema_is_untouched_so_every_other_reader_still_works():
-    """The LABEL is what a person reads; the SCHEMA is what the code joins on.
+def test_the_schemas_are_untouched_so_every_other_reader_still_works():
+    """The LABEL is what a person reads; the SCHEMAS are what the code joins on.
 
-    SABOTAGE: rename `Branch.schema` too. Every applicability lookup, every
-    `DOMAIN_FIELDS` join and P11's guards are keyed on the schema id, and a human
-    name would match none of them -- the tree would be beautifully named and
-    completely empty.
+    SABOTAGE: put the life or the authored name in `Branch.schemas`. Every
+    applicability lookup, every `DOMAIN_FIELDS` join and the per-kind draft in
+    `_grouped_by_branch` are keyed on the schema id, and a human name would
+    match none of them -- the tree would be beautifully named and completely
+    empty.
     """
     partition = _partition(name_of_schema=AUTHORED.get)
 
-    assert {b.schema for b in partition.branches} <= {"academic", "research"}
-    for branch in partition.branches:
-        assert branch.schema.islower(), "the id stays the id"
+    kinds = {schema for b in partition.branches for schema in b.schemas}
+    assert kinds <= {"academic", "research"}
+    for schema in kinds:
+        assert schema.islower(), "the id stays the id"
 
 
 def test_without_a_name_table_nothing_changes():
-    """A caller that passes no names gets exactly today's behaviour.
+    """`name_of_schema` has had no reader since amendment 12: a branch is a life
+    and is called by the life. A caller that passes a name table and one that
+    passes none get the same partition.
 
-    SABOTAGE: default `name_of_schema` to something that invents a name. Every
-    caller that has not been taught about names -- tests, tools, an older
-    composition root -- silently starts renaming the person's folders.
+    SABOTAGE: read the table again for a life branch's folder. A life spanning
+    two kinds would be called after whichever kind was read last.
     """
-    partition = _partition(name_of_schema=lambda _s: None)
+    with_names = _partition(name_of_schema=AUTHORED.get)
+    without = _partition(name_of_schema=lambda _s: None)
 
-    for branch in partition.branches:
+    assert with_names == without
+    for branch in without.branches:
         if not branch.is_default:
-            assert branch.label == branch.schema
+            assert branch.folder_name == branch.life

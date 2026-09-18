@@ -32,8 +32,9 @@ from cli import signals_for_branch  # noqa: E402
 
 
 def _branch(situation, file_ids=("f1", "f2")):
-    return Branch(label="academic", schema="academic", situation=situation,
-                  is_default=False, anchor_file_ids=(), file_ids=file_ids)
+    return Branch(label="Education", life="Education", schemas=("academic",),
+                  situations=(), situation=situation, is_default=False,
+                  anchor_file_ids=(), file_ids=file_ids)
 
 
 def test_a_settled_branch_names_its_own_situation_and_nothing_else():

@@ -259,6 +259,36 @@ def protected_area_nodes(
     return tuple(nodes)
 
 
+def same_label_areas(accepted: Sequence[AcceptedGroup], *,
+                     foldable: frozenset[str] | None = None,
+                     ) -> tuple[tuple[AcceptedGroup, ...], ...]:
+    """`00`:67's aggregation, keyed on the LABEL the drafts wear.
+
+    Two accepted groups wearing one label are one area, whether the label is a
+    life (`00` amendment 12: `cli._grouped_by_branch` drafts a life once per
+    schema it spans, so `routing.eligible_rows` sees every kind's recipe) or
+    the person's own word on two drafts (12a(ii)). No life is read here, so a
+    life the library never imagined folds like any other.
+
+    **ONLY THE GROUPS THE DECISION NAMES FOLD** (`foldable`; `None` folds every
+    group, for a canvas with no decision yet). A draft accepted in an earlier
+    run and superseded in content by this run's draft of the same label is
+    still accepted at `PLAN_VERSION`, a constant, so `accepted_groups` keeps
+    returning it; unfolded it is a card nobody chose, folded it would ride into
+    the area on the new draft's id and P11 would refuse the whole branch at the
+    tree's version (`GroupNotAcceptedInVersion`). Such a group is its own
+    single-group area, exactly the card it was.
+
+    Accepted order kept, first-seen order of labels kept, nothing dropped.
+    """
+    areas: dict[object, list[AcceptedGroup]] = {}
+    for group in accepted:
+        key: object = (group.label if foldable is None or group.group_id in foldable
+                       else ("unfolded", group.group_id))
+        areas.setdefault(key, []).append(group)
+    return tuple(tuple(groups) for groups in areas.values())
+
+
 def horizontal_candidates(
     conn: sqlite3.Connection,
     *,
@@ -267,8 +297,12 @@ def horizontal_candidates(
     user_labels: Sequence[str],
     active_domains: Sequence[str],
     sensitive_group_ids: frozenset[str],
+    foldable: frozenset[str] | None = None,
 ) -> tuple[BranchCandidate, ...]:
     """A small candidate set of top-level branches, each with its evidence.
+
+    `foldable` is the set of group ids the decision names, and only those fold
+    into a same-label area (`same_label_areas`); `None` folds every group.
 
     The learning query runs first. §8.7: "Rejected groups, rejected destination
     matches, rejected labels, and rejected residual recommendations must be
@@ -300,8 +334,17 @@ def horizontal_candidates(
         folder.directory_path: folder for folder in existing_folders
     }
 
-    for group in accepted:
-        if suppressed_label(group.label):
+    # ONE CARD PER AREA, and an area is every accepted group wearing one label
+    # (`same_label_areas`). Folded HERE, over the groups and not over the cards
+    # built from them: a card carries a count and no member ids, and `00`:63
+    # lets one file be in two groups, so a fold over cards would count a
+    # shared file twice. A label with one group keeps `subject_id = group_id`,
+    # so every existing pin holds; a label with several is `area:<label>`, and
+    # `design_tree` admits it when ANY of its drafts was chosen.
+    for area in same_label_areas(accepted, foldable=foldable):
+        first = area[0]
+        label = first.label
+        if suppressed_label(label):
             continue
         # A group whose domain did not activate on this corpus USED TO BE
         # DROPPED HERE, silently and with no record anywhere. That is the one
@@ -315,33 +358,47 @@ def horizontal_candidates(
         # like: a rejected label, recorded with its evidence, which
         # `suppressed_label` above honours. An inactive domain is not that. So
         # the group is still offered and the card says what the engine found.
-        inactive = group.domain is not None and group.domain not in active_domains
+        members = {member.file_id for group in area for member in group.members}
+        domains = tuple(dict.fromkeys(
+            group.domain for group in area if group.domain))
+        inactive = tuple(domain for domain in domains
+                         if domain not in active_domains)
         resembling = tuple(
             path for path, folder in folders_by_path.items()
-            if folder_label(path).lower() in group.label.lower()
-            or group.label.lower() in folder_label(path).lower()
+            if folder_label(path).lower() in label.lower()
+            or label.lower() in folder_label(path).lower()
         )
-        sensitive = group.group_id in sensitive_group_ids
-        detail = (
-            f"{len(group.members)} file(s) in the accepted group "
-            f"{group.label!r} share validated facts"
-        )
-        if group.domain:
-            detail += f" in the {group.domain} schema"
+        sensitive = any(group.group_id in sensitive_group_ids for group in area)
+        if len(area) == 1:
+            detail = (
+                f"{len(members)} file(s) in the accepted group "
+                f"{label!r} share validated facts"
+            )
+        else:
+            detail = (
+                f"{len(members)} file(s) in {len(area)} accepted groups "
+                f"labelled {label!r} share validated facts"
+            )
+        if domains:
+            detail += (f" in the {domains[0]} schema" if len(domains) == 1
+                       else f" in the {', '.join(domains)} schemas")
         if inactive:
+            named = (f"that schema" if len(domains) == 1
+                     else f"the {', '.join(inactive)} schema"
+                     + ("s" if len(inactive) > 1 else ""))
             detail += (
-                "; that schema did not activate on this corpus, so no recipe "
+                f"; {named} did not activate on this corpus, so no recipe "
                 "will offer a structure for it and it is shown as it is rather "
                 "than left out")
         if sensitive:
             detail += "; this area holds sensitive material and is shown without filenames"
         candidates.append(BranchCandidate(
-            subject_id=group.group_id,
-            display_label=group.label,
+            subject_id=(first.group_id if len(area) == 1 else f"area:{label}"),
+            display_label=label,
             why_suggested=detail + ".",
-            supporting_file_count=len(group.members),
-            accepted_group_ids=(group.group_id,),
-            representative_group_labels=(group.label,),
+            supporting_file_count=len(members),
+            accepted_group_ids=tuple(group.group_id for group in area),
+            representative_group_labels=(label,),
             resembling_existing_folders=resembling,
             sensitive_content_present=sensitive,
             source="accepted-group",

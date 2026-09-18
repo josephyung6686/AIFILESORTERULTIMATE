@@ -45,7 +45,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.continuing-education",
@@ -86,7 +87,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.online-course",
@@ -127,7 +129,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.study-abroad",
@@ -168,7 +171,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.standardized-testing",
@@ -203,7 +207,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.teaching",
@@ -244,7 +249,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Teaching"
     },
     {
       "applicability_id": "ap.academic.homeschool",
@@ -285,7 +291,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Family and Household"
     },
     {
       "applicability_id": "ap.academic.transcripts-credentials",
@@ -320,7 +327,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.academic.k12-schooling",
@@ -361,7 +369,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Family and Household"
     },
     {
       "applicability_id": "ap.academic.recommendation-letters",
@@ -396,7 +405,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Teaching"
     },
     {
       "applicability_id": "ap.academic.iep-plans",
@@ -433,7 +443,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Family and Household"
     },
     {
       "applicability_id": "ap.code.notebooks-experiments",
@@ -468,7 +479,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Technology"
     },
     {
       "applicability_id": "ap.code.pkm-vault",
@@ -497,7 +509,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Technology"
     },
     {
       "applicability_id": "ap.code.dotfiles-environment",
@@ -532,7 +545,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Technology"
     },
     {
       "applicability_id": "ap.applications.undergraduate-packet",
@@ -573,7 +587,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.applications.graduate-professional",
@@ -608,7 +623,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.applications.scholarship-fellowship",
@@ -649,7 +665,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.applications.k12-admission",
@@ -684,7 +701,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.applications.purpose-packet",
@@ -716,7 +734,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.finance.personal-records",
@@ -757,7 +776,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.investment-brokerage",
@@ -798,7 +818,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.insurance-corporate",
@@ -839,7 +860,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.finance.insurance-personal",
@@ -874,7 +896,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Legal and Insurance"
     },
     {
       "applicability_id": "ap.finance.insurance-healthcare",
@@ -909,7 +932,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Health"
     },
     {
       "applicability_id": "ap.finance.crypto-assets",
@@ -944,7 +968,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.cap-table-equity",
@@ -979,7 +1004,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.finance.hoa-residents-association",
@@ -1014,7 +1040,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Home and Property"
     },
     {
       "applicability_id": "ap.finance.receipts-expenses",
@@ -1049,7 +1076,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.student-financial-aid",
@@ -1084,7 +1112,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.finance.subscriptions-utilities",
@@ -1119,7 +1148,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.payroll-received",
@@ -1160,7 +1190,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.tax-filings",
@@ -1195,7 +1226,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.loans-mortgage",
@@ -1230,7 +1262,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Finance and Taxes"
     },
     {
       "applicability_id": "ap.finance.small-business-bookkeeping",
@@ -1265,7 +1298,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Career"
     },
     {
       "applicability_id": "ap.travel.bookings-confirmations",
@@ -1300,7 +1334,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Travel"
     },
     {
       "applicability_id": "ap.finance.household-property",
@@ -1329,7 +1364,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Home and Property"
     },
     {
       "applicability_id": "ap.finance.vehicle-records",
@@ -1358,7 +1394,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Vehicles"
     },
     {
       "applicability_id": "ap.photos.camera-events",
@@ -1393,7 +1430,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.drone-captures",
@@ -1428,7 +1466,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.home-video",
@@ -1463,7 +1502,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.messenger-export",
@@ -1492,7 +1532,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.social-media-export",
@@ -1533,7 +1574,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.family-archive",
@@ -1568,7 +1610,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.screenshot-captures",
@@ -1603,7 +1646,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.photos.scanned-documents",
@@ -1638,7 +1682,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Photos and Media"
     },
     {
       "applicability_id": "ap.travel.trip-photos",
@@ -1673,7 +1718,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Travel"
     },
     {
       "applicability_id": "ap.research.lab-notebook-protocols",
@@ -1714,7 +1760,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.ethics-compliance",
@@ -1749,7 +1796,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.reading-library",
@@ -1784,7 +1832,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.dataset-analysis",
@@ -1825,7 +1874,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.thesis-dissertation",
@@ -1866,7 +1916,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.grants-funding",
@@ -1901,7 +1952,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.manuscript-publication",
@@ -1942,7 +1994,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     },
     {
       "applicability_id": "ap.research.conference-presentation",
@@ -1983,7 +2036,8 @@
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
         "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
       ],
-      "privacy_floor": null
+      "privacy_floor": null,
+      "life": "Education"
     }
   ]
 }

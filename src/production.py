@@ -181,7 +181,12 @@ LIBRARY_FILES: tuple[str, ...] = (
     "wave2_industrial.json",
     "wave2_organisational.json",
     "wave2_practice.json",
+    "lives.json",
 )
+
+#: The one section that is a TABLE and not a list of records: schema id -> life,
+#: `00` amendment 12 at the kind's grain (`life_of_kind`).
+LIBRARY_TABLES: tuple[str, ...] = ("schema_lives",)
 
 #: The three record kinds a manifest carries. A library file supplies any subset.
 LIBRARY_SECTIONS: tuple[str, ...] = ("fragments", "definitions", "applicabilities")
@@ -230,11 +235,22 @@ def shipped_catalogue_manifest(
     digest = hashlib.sha256()
     sections: dict[str, list[dict]] = {name: [] for name in LIBRARY_SECTIONS}
     seen: dict[str, dict[tuple, str]] = {name: {} for name in LIBRARY_SECTIONS}
+    tables: dict[str, dict[str, str]] = {name: {} for name in LIBRARY_TABLES}
+    table_seen: dict[str, dict[str, str]] = {name: {} for name in LIBRARY_TABLES}
     for name in LIBRARY_FILES:
         raw = read_library_file(name)
         digest.update(name.encode("utf-8"))
         digest.update(raw.encode("utf-8"))
         document = json.loads(raw)
+        for table in LIBRARY_TABLES:
+            for key, value in document.get(table, {}).items():
+                first = table_seen[table].get(key)
+                if first is not None:
+                    raise ConfigurationRequired(
+                        f"{table} {key!r} appears in both {first!r} and {name!r}; "
+                        "one release holds one life per kind")
+                table_seen[table][key] = name
+                tables[table][key] = value
         for section in LIBRARY_SECTIONS:
             id_key, version_key = _LIBRARY_KEYS[section]
             for record in document.get(section, ()):
@@ -250,6 +266,7 @@ def shipped_catalogue_manifest(
                 sections[section].append(record)
     manifest = {"release_id": f"lib-{digest.hexdigest()[:16]}"}
     manifest.update(sections)
+    manifest.update(tables)
     return json.dumps(manifest)
 
 
@@ -601,6 +618,53 @@ def folder_levels_for(catalogue: TemplateCatalogue,
         levels.append(FolderLevel(field=bound.field_ref, label=bound.label,
                                   requirement=dimension.requirement))
     return tuple(levels)
+
+
+def life_of(catalogue: TemplateCatalogue, situation: str) -> str | None:
+    """WHICH LIFE this situation is part of, ASKED of the library. `None` when
+    the row states none.
+
+    `00` amendment 12: the life is an attribute of the template the situation
+    points at, exactly as `folder_levels_for` reads the levels off the same row.
+    A situation never becomes a folder name (amendment 9); its LIFE may, because
+    the life is the library's word and not the file's kind.
+
+    Refused when the release carries no row for the situation, for
+    `folder_levels_for`'s reason. `None` rather than a refusal when the row
+    carries no `life`: that is a row the library has not placed in a life, which
+    12a permits, and the partition says what it does with such a file.
+    """
+    ref = f"recognition:{situation}"
+    rows = [row for row in catalogue.applicabilities.values()
+            if ref in row.detection_signal_refs]
+    if not rows:
+        raise ConfigurationRequired(
+            f"{situation!r} names no situation in template release "
+            f"{catalogue.release_id}, so there is no row to read a life from")
+    if len(rows) > 1:
+        raise ConfigurationRequired(
+            f"{situation!r} is carried by {len(rows)} applicability rows, and which "
+            "life these files belong to is the person's answer to give rather than "
+            "this module's to pick")
+    return rows[0].life
+
+
+def life_of_kind(catalogue: TemplateCatalogue, schema_id: str) -> str | None:
+    """WHICH LIFE a file of this KIND belongs to when nothing finer is known,
+    ASKED of the library's own table. `None` when the table has no word for
+    the kind.
+
+    `00` amendment 12 at the kind's grain. Measured by the lead on the owner's
+    corpus (18 Sep): 257 files carry a situation fact and 218 of them carry
+    the KIND -- `academic`, not `academic.coursework` -- because the level
+    stage that writes the finer value has mostly not run. A life answerable
+    only per situation left one folder standing and 218 files in no life. A
+    kind belongs to a life just as its situations do: `academic` is Education
+    whether or not anyone has said which coursework it is. `life_of` stays the
+    finer authority where a situation exists; this is the explicit fallback,
+    read off `lives.json` and never derived from the rows' agreement.
+    """
+    return catalogue.schema_lives.get(schema_id)
 
 
 @dataclass(frozen=True)

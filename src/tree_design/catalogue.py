@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from tree_design.config import ConfigurationRequired
 from tree_design.templates import (
@@ -34,6 +34,13 @@ class TemplateCatalogue:
     fragments: Mapping[tuple[str, int], TemplateFragment]
     definitions: Mapping[tuple[str, int], TemplateDefinition]
     applicabilities: Mapping[tuple[str, int], TemplateApplicability]
+    #: `00` amendment 12, at the KIND's grain: schema id -> the life a file of
+    #: that kind belongs to when nothing finer is known. The situation's row is
+    #: the finer authority (`production.life_of`); this is the library's word
+    #: for the kind itself, which is what the owner's corpus mostly carries
+    #: (`104` §18.108: the kind pass writes the schema id and the level pass has
+    #: mostly not refined it). Empty on a manifest that predates the table.
+    schema_lives: Mapping[str, str] = field(default_factory=dict)
 
     def has_fragment(self, fragment_id: str, fragment_version: int) -> bool:
         return (fragment_id, fragment_version) in self.fragments
@@ -116,6 +123,7 @@ def _applicability(raw: dict) -> TemplateApplicability:
         exclusions=tuple(raw["exclusions"]),
         provenance=tuple(raw["provenance"]),
         privacy_floor=raw.get("privacy_floor"),
+        life=raw.get("life"),
     )
 
 
@@ -156,4 +164,5 @@ def load_catalogue(read_manifest: Callable[[], str]) -> TemplateCatalogue:
         fragments=fragments,
         definitions=definitions,
         applicabilities=applicabilities,
+        schema_lives=dict(manifest.get("schema_lives", {})),
     )
