@@ -96,7 +96,10 @@ from facts.families import (
     shared_family_field, version_family,
 )
 from facts.lineage import title_block_key, title_lineage
-from facts.llm_seam import record_the_situation
+from facts.llm_seam import SITUATION_FIELD, record_the_situation
+# `106` Phase 2: an unsettled branch reads what the judge named for its files.
+from facts.supersede import preferred_fact
+from facts.values import values_in_field
 from facts.discount import MetadataScreen
 from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
@@ -16073,12 +16076,46 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             mint_node_id=lambda: f"node_{run_token}_{next(ids)}",
             mint_version_id=lambda: f"version_{run_token}_{next(ids)}")
 
+    _situation_value_cache: dict[str, str] = {}
+
+    def _situation_values() -> dict[str, str]:
+        """value_id -> canonical value, for the situation field, read ONCE.
+
+        `values_in_field` is the published read; calling it per file would be one
+        statement per file for a map that does not change inside a run.
+        """
+        if not _situation_value_cache:
+            for row in values_in_field(conn, SITUATION_FIELD):
+                _situation_value_cache[row["value_id"]] = row["canonical_value"]
+        return _situation_value_cache
+
+    def _situations_of(file_ids) -> set[str]:
+        """What the judge named for these files, off the FACTS it wrote.
+
+        `00` amendment 11's "the sort reads both" begins here. Only the first
+        choice: an alternative is a thing the judge also said, not a thing it
+        concluded, and a recipe chosen from an alternative would build levels for
+        material the branch may not hold. The alternatives stay available to the
+        person and to a later phase that asks a narrower question.
+        """
+        found = set()
+        for file_id in file_ids:
+            row = preferred_fact(conn, file_id=file_id,
+                                 field_key=SITUATION_FIELD)
+            if row is None:
+                continue
+            # The slot resolves to a row; the SITUATION is its value. A file
+            # whose slot holds several values with none preferred resolves to
+            # `None` above -- `preferred_fact`'s own third case -- and a branch
+            # is not given a recipe on a value nobody chose.
+            value = _situation_values().get(row["value_id"])
+            if value:
+                found.add(value)
+        return found
+
     def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
-        if branch is None:
-            return frozenset({said().signal})
-        if branch.situation is None:
-            return frozenset()
-        return frozenset({f"recognition:{branch.situation}"})
+        return signals_for_branch(branch, situations_of=_situations_of,
+                                  run_signal=said().signal)
 
     def adopted_folders() -> tuple[str, ...]:
         """The person's own folders, offered to the design as branches (`00`:100).
@@ -20863,6 +20900,45 @@ def placement_words(policy: str, *, disposition: str | None) -> str | None:
     except Exception:
         return ordinary
     return ordinary if moves else PLACEMENT_WORDS_NOT_MOVED
+
+
+def signals_for_branch(branch, *, situations_of, run_signal) -> frozenset[str]:
+    """Which detection signals a branch offers the template router.
+
+    `106` Phase 2. Three cases and they are three different facts:
+
+    * **No branch at all** -- a group accepted outside the partition. The run's
+      own typed situation, as it always was.
+    * **A settled branch** -- the person's word, and nothing else. `104` §17.9:
+      the model's answer is a REFINEMENT of the person's and never a replacement,
+      so a settled branch is not diluted by what the judge said about its files.
+    * **An unsettled branch** -- until now, `frozenset()`. An empty signal set
+      selects no applicability row, which is a C3 conflict, which is no recipe,
+      which is A FLAT ROOT (`104` §18.100). So a branch the judge had plenty to
+      say about got no levels for want of a word from the person.
+
+    THE THIRD CASE IS WHAT CHANGED, AND ONLY BECAUSE THE FACT NOW EXISTS. Until
+    16 September site G's answer lived in memory and died with the process
+    (`104` §18.95); it is now a fact on every file it named, and `00` amendment 11
+    rules that the sort reads it. An unsettled branch is no longer silent: its
+    FILES were judged even though its label was not settled.
+
+    IT DOES NOT SETTLE THE BRANCH. `candidate_situations` is still what the person
+    chooses from and their word still decides what the branch IS. What changes is
+    that the router stops being told nothing when the run knows something.
+
+    STILL SILENT WHERE THE RUN REALLY KNOWS NOTHING. No fall-back to the typed
+    situation: that is the leak `104` §18.100 records run 14 dying of -- every
+    branch wearing the word typed at the command line whatever its files are --
+    and `00` amendment 9 forbids it.
+    """
+    if branch is None:
+        return frozenset({run_signal})
+    if branch.situation is not None:
+        return frozenset({f"recognition:{branch.situation}"})
+    return frozenset(
+        f"recognition:{situation}"
+        for situation in situations_of(branch.file_ids))
 
 
 #: What to say when the file is ALREADY in a folder of the destination's name.
