@@ -105,6 +105,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="score only this situation; repeatable")
     parser.add_argument("--score-only", action="store_true",
                         help="re-score the databases already in --out")
+    parser.add_argument("--plan-version", default=None, metavar="ID",
+                        help="the plan version to measure, when a database holds "
+                             "several trees and more than one is frozen; the "
+                             "scorecard refuses to pick one (`104` §18.111)")
     parser.add_argument(
         "--reuse-answers-from", type=Path, default=None, metavar="DIR",
         help="seed each fresh run with the MODEL ANSWERS of the run of the same "
@@ -230,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
             database, args.corpus, situation=situation, label=label_for(situation),
             promised_levels=promised.get(situation, ()),
             seeded=seeded_rows, seeded_from=seeded_from,
+            plan_version_id=args.plan_version,
             report=report.read_text(encoding="utf-8") if report.exists() else ""))
     if missing:
         print(f"no database for: {', '.join(missing)}", file=sys.stderr)

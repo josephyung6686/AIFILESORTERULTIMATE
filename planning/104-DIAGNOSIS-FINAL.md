@@ -3142,6 +3142,59 @@ situations for 3 of their files; `academic` has 11 for 95. No amount of work in
 `cli.py` reaches this: it is an authoring gap, and it is the owner's to rule on
 because every row is their vocabulary.
 
+### 18.113 THREE CORRECTIONS, AND THE BUG I "CARELESSLY WROTE" WAS ALREADY IN THE PRODUCT (18 Sep, 18:10)
+
+**CORRECTION 1 — "the `Work` life covers 136 of the library's 208 situations" is
+not a fact about the library.** The lead told the owner that as shipped state. It
+is the ARITHMETIC OF `106` §A's PROPOSED, UNRATIFIED table (research 6 + creative 6
++ finance 3 + business_ops 8 + engineering 15 + hr 6 + government 3 + logistics 6 +
+manufacturing 15 + resource_ops 8 + retail 12 + construction 22 + law 26).
+`production.life_of` does not exist on `main` at all, and no shipped applicability
+row carries a `life` key. The count is arithmetically right and its STATUS was
+wrong: a proposal quoted as a measurement. §18.112's own counts -- 113 of 208 in
+professional and trade schemas, `medical` 0 -- were taken from the shipped library
+and stand.
+
+**CORRECTION 2 — `employer` is not a field with no producer.** It IS asked through
+the model seam: it sits in `active_field_allowlist`, gated on `career` activating,
+with a `possible` ceiling. On the owner's corpus it fired ZERO times, which is a
+different diagnosis with a different fix. The field genuinely without a producer
+anywhere in `src` is `record_period` (a level in 25 rows). And `creation_date` HAS
+a producer -- 47 of the owner's files -- but is destination-INELIGIBLE by ruling,
+so it cannot become a folder.
+
+**CORRECTION 3 — and this one is about the lead's own hands.** §18.111 records the
+lead fixing `measure.py` by sorting `plan_version_id` DESCENDING AS A STRING,
+breaking two tests, and reverting it as careless. The product does the same thing
+and always has:
+
+```
+tree_design/store.py:292   latest_version()
+    "SELECT plan_version_id FROM plan_versions "
+    "ORDER BY created_at DESC, plan_version_id DESC LIMIT 1"
+```
+
+`_8` beats `_18`. **The lead did not invent that defect; the lead reproduced one
+that ships.** `R-38` opens the next draft from `latest_version`, so a run with more
+than nine plan versions opens its next draft from the wrong tree. Recorded, not
+fixed -- it is the product's behaviour and changing which version a draft opens
+from is a decision, not a tidy-up.
+
+**AND THE PREMISE BEHIND THE WHOLE `measure.py` ARGUMENT WAS WRONG.** The lead
+assumed one run writes one tree, so a per-run filter would do. The run's own screen
+says otherwise: ONE run writes a CHAIN -- `_0` draft, `_8` draft, `_18` frozen --
+all sharing one `created_at`, with every decision recorded against the frozen one.
+So no `created_at` rule could ever have worked, for a deeper reason than the string
+sort.
+
+**WHAT `measure.py` NOW DOES** (`275 passed`): it takes the caller's
+`plan_version_id`; failing that, the sole tree if there is only one; failing that,
+the single `state='frozen'` plan -- **reading the product's own record of what it
+committed to, rather than choosing** -- and otherwise REFUSES with
+`AmbiguousPlanVersion` naming the candidates. The owner's six-version database has
+two frozen plans, so it refuses there, which is correct: a measurement that
+silently reads the wrong tree is worse than one that says it cannot tell.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.

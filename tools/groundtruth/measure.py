@@ -49,6 +49,21 @@ COMPLETENESS_ORDER = (
 )
 _RANK = {word: i for i, word in enumerate(COMPLETENESS_ORDER)}
 
+
+class AmbiguousPlanVersion(ValueError):
+    """The database holds several trees and the caller named none.
+
+    `104` §18.111: the version is not guessed inside the measurement. The one
+    guess that was tried -- latest `created_at`, tie broken on the id as a string
+    -- read `_4` over `_16` and was reverted. The caller that knows which plan it
+    is measuring passes `plan_version_id`; this refusal is what stands in for a
+    guess when it does not.
+    """
+
+
+class UnknownPlanVersion(ValueError):
+    """The caller named a plan version `tree_nodes` does not hold."""
+
 #: P8's spelling for the placement site, and the two verdict outcomes
 #: `placement.p8_seam.transcribe` turns into a placement. Spelled here rather than
 #: imported from `src/llm_harness/vocabulary.py` for the reason every other value
@@ -351,6 +366,10 @@ class RunObservation:
     #: -- the right attribution, because the loss is the tree's and not the
     #: placer's.
     node_paths: tuple[tuple[str, ...], ...] = ()
+    #: The one plan version every node-derived number above is taken from --
+    #: the caller's word, or the plan the product froze. `None` on a run that
+    #: built no tree. Recorded so a reading says which tree it read.
+    plan_version: str | None = None
 
 
 #: The tables the LLM path writes. A run that called nothing leaves them all at
@@ -595,8 +614,11 @@ def _cloud_releases(connection) -> dict[str, tuple[str, ...]]:
     return {file_id: tuple(sorted(named)) for file_id, named in reached.items()}
 
 
-def _placeable_chains(connection, nodes) -> tuple[tuple[str, ...], ...]:
+def _placeable_chains(connection, nodes, version) -> tuple[tuple[str, ...], ...]:
     """Every folder chain a file could legally have been filed into, root first.
+
+    Scoped to `version`, the one tree `_observe` measures; `nodes` is already that
+    version's, so the no-column fallback below is scoped the same way.
 
     `where accepts_placement` is an exact filter and not a truthiness guess:
     `tree_design.schema` declares the column `INTEGER NOT NULL CHECK
@@ -612,7 +634,8 @@ def _placeable_chains(connection, nodes) -> tuple[tuple[str, ...], ...]:
     """
     try:
         placeable = {row["node_id"] for row in _rows(
-            connection, "select node_id from tree_nodes where accepts_placement")}
+            connection, "select node_id from tree_nodes where accepts_placement "
+                        "and plan_version_id = ?", version)}
     except sqlite3.Error:
         placeable = set(nodes)
     return tuple(sorted(_destination_of(node_id, nodes)
@@ -678,14 +701,20 @@ def _destination_of(node_id, nodes) -> tuple[str, ...]:
 def observe_run(database: str | Path, corpus_root: str | Path, *,
                 situation: str, label: str, promised_levels=(), report: str = "",
                 seeded: Mapping[str, int] | None = None,
-                seeded_from: str = "") -> RunObservation:
-    """Read one plan database into observations, one per corpus-relative path."""
+                seeded_from: str = "",
+                plan_version_id: str | None = None) -> RunObservation:
+    """Read one plan database into observations, one per corpus-relative path.
+
+    `plan_version_id` names the tree measured. A database holding one tree needs
+    no word -- one is not a choice; one holding several and given no word raises
+    `AmbiguousPlanVersion` rather than picking (`104` §18.111).
+    """
     root = str(Path(corpus_root).resolve())
     connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
     try:
         return _observe(connection, root, situation, label,
                         tuple(promised_levels), report, dict(seeded or {}),
-                        seeded_from)
+                        seeded_from, plan_version_id)
     finally:
         connection.close()
 
@@ -697,11 +726,58 @@ def _relative(path: str, root: str) -> str | None:
     return path[len(prefix):] if path.startswith(prefix) else None
 
 
+def _the_version(named: str | None, present: tuple[str, ...],
+                 frozen: tuple[str, ...]) -> str | None:
+    """Which tree is measured: the caller's word, the product's own record, or
+    the only one there is. Never a guess.
+
+    One run writes a CHAIN of versions in one clock reading -- drafts, then the
+    plan it froze and placed into -- so "the latest" is not readable off
+    `created_at` and the id suffix is not a number to sort on (§18.111's failed
+    fix). `plan_versions.state = 'frozen'` is the product saying which of its
+    versions it committed to; exactly one frozen plan is that record, and reading
+    it is not choosing. Two frozen plans are two runs, and which of them the
+    caller means is the caller's to say. `None` only when the database holds no
+    tree at all, which is a run that stopped before the tree.
+    """
+    if named is not None:
+        if named not in present:
+            raise UnknownPlanVersion(
+                f"plan version {named!r} is not in this database's tree_nodes; "
+                f"it holds {list(present)}")
+        return named
+    if len(present) <= 1:
+        return present[0] if present else None
+    committed = [v for v in frozen if v in present]
+    if len(committed) == 1:
+        return committed[0]
+    raise AmbiguousPlanVersion(
+        f"this database holds {len(present)} plan versions {list(present)} of "
+        f"which {len(committed)} are frozen {committed}, and the measurement "
+        "will not pick one; pass plan_version_id from the caller that knows "
+        "which plan it is measuring (`104` §18.111)")
+
+
 def _observe(connection, root, situation, label, promised_levels, report,
-             seeded=None, seeded_from=""):
-    nodes = {r["node_id"]: (r["display_label"], r["parent_node_id"])
-             for r in _rows(connection, "select node_id, display_label, "
-                                        "parent_node_id from tree_nodes")}
+             seeded=None, seeded_from="", plan_version_id=None):
+    # `tree_nodes` is keyed `(plan_version_id, node_id)` and node ids are minted
+    # per version, so a map keyed on `node_id` alone would splice several trees
+    # into one. Every node-derived number below is ONE version's.
+    versioned = {(r["plan_version_id"], r["node_id"]):
+                 (r["display_label"], r["parent_node_id"])
+                 for r in _rows(connection, "select plan_version_id, node_id, "
+                                            "display_label, parent_node_id "
+                                            "from tree_nodes")}
+    try:
+        frozen = tuple(r["plan_version_id"] for r in _rows(
+            connection, "select plan_version_id from plan_versions "
+                        "where state = 'frozen'"))
+    except sqlite3.Error:            # an older build with no such table
+        frozen = ()
+    version = _the_version(plan_version_id,
+                           tuple(sorted({v for v, _ in versioned})), frozen)
+    nodes = {node_id: value for (v, node_id), value in versioned.items()
+             if v == version}
 
     excluded: dict[str, str] = {}
     for row in _rows(connection, "select path, rule from exclusion_verdicts"):
@@ -767,9 +843,16 @@ def _observe(connection, root, situation, label, promised_levels, report,
     cloud_releases = _cloud_releases(connection)
     memberships = _group_memberships(connection)
 
+    # A decision recorded in another version is not this tree's decision: its
+    # `node_id` names a node of that tree, and walking it here would splice the
+    # trees the map above was keyed to keep apart. With no tree at all there is
+    # nothing to splice, and the outcomes (abstentions) still count.
     decisions: dict[str, sqlite3.Row] = {}
-    for row in _rows(connection, "select subject_ref, outcome, node_id, payload from "
-                                 "placement_decisions where superseded_by is null"):
+    decided = ("select subject_ref, outcome, node_id, payload from "
+               "placement_decisions where superseded_by is null")
+    scoped = ((decided + " and plan_version = ?", version) if version is not None
+              else (decided,))
+    for row in _rows(connection, *scoped):
         parts = row["subject_ref"].split(":")
         if len(parts) >= 2 and parts[0] == "file":
             decisions[parts[1]] = row
@@ -883,6 +966,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
         never_built=_blocked[2],
         node_count=len(nodes),
         built_depth=max(0, depth - 1),   # below the top-level folder
-        node_paths=_placeable_chains(connection, nodes),
+        node_paths=_placeable_chains(connection, nodes, version),
+        plan_version=version,
         report=report,
     )
