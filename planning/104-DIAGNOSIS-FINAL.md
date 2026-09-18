@@ -3006,6 +3006,60 @@ customisation system -- is not a convenience beside Phase 6; for this class of
 file it is the ONLY mechanism the design permits. The second remedy the gate
 records, `request_excerpt`, is the other half and has no screen either.
 
+### 18.111 THE IDEAL TREE EXISTS, AND `measure.py` HAS BEEN CROSSING TREES (18 Sep, 15:40)
+
+**§18.106'S GAP IS CLOSED.** The key grades ONE question -- which situation a file
+is -- and nothing about depth, branch naming or which facts exist. There is now a
+specification of what a finished sort SHOULD look like, and a generator,
+`tools/groundtruth/ideal_tree.py`, that emits the ideal destination per file from
+the template library's own `folder_levels_for` and compares it to what the product
+built: exact path, prefix-from-root, prefix-below-root, and per-level reach. 15
+tests.
+
+**THE DEPTH RULE, settled from `00` rather than invented.** Candidate levels are
+the library's, in the definition's order; a level is BUILT only where its values
+divide the branch; then Phase 7's two per-parent bounds -- no folder-per-file
+beneath a built node, and a run of single children with nothing built beneath
+folds into its top. No authored maximum, because `106` refuses `max_useful_depth`.
+A file blank at a built level rests at the parent, which is `00`'s General.
+
+**A KEY CONVENTION THE OWNER NEEDS TO KNOW.** A BLANK level means "nobody has said
+yet" and is OWED. `""` means "no value applies here" and the file rests at the
+parent. They are different answers and the grader must not confuse them.
+
+**AND A TOOL DEFECT THAT TAINTS ANY TREE MEASURE TAKEN ON AN ACCUMULATING
+DATABASE.** `tools/groundtruth/measure.py` reads `select node_id from tree_nodes`
+and `parent_node_id from tree_nodes` with **no `plan_version_id` filter anywhere
+in the file** -- `grep -c plan_version_id tools/groundtruth/measure.py` is 0. Node
+ids are minted per version (`tree_nodes`' own comment), and the owner's database
+carries SIX plan versions, so the node map that tool builds spans several trees at
+once and its parent links cross between them.
+
+Which numbers this touches, stated precisely so it is not over-claimed:
+
+* **Tainted:** anything measure.py derives from `tree_nodes` -- destination depth,
+  placement chains, node-keyed reach.
+* **NOT tainted:** the grouping purity of §18.105 (89.2 % over 133 of 371), which
+  reads `memberships`, not nodes; and §18.108's 7 roots / 3 / 1, which the lead
+  took with its own SQL keyed on one `plan_version_id`.
+
+Recorded rather than fixed in this entry: choosing WHICH version is "the" tree is
+a decision (latest by `created_at` is the obvious one), and it changes numbers
+already reported. `ideal_tree.py` keys by `(plan_version_id, node_id)` and does not
+have the defect.
+
+**THE OWNER'S OWN REFERENCE TEXT IS NOT IN THE REPOSITORY.** Four second-hand
+fragments survive in `104` and `00`; the analyst refused to reconstruct a drawing
+from them and built from `00` instead, which is correct. **The text should be
+asked for again** -- it is the target this whole repair is aimed at and every
+citation of it so far is a quote of a quote.
+
+**AND THE REFERENCE'S `Work` COLUMN HAS NO TEMPLATE BEHIND IT.** `employer` is
+bound as a folder level by 1 of 208 situations and there is no `year` field among
+the 39 destination-eligible ones. The Work -> employer -> year -> project shape
+cannot be built by any library row today. That is a library question, and it is
+owed before any sort can aim at that column.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
