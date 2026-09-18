@@ -273,7 +273,14 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     roots = [re.sub(r"\s+\[[^\]]+\]$", "", line.strip())
              for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
-    assert roots == ["career", "Coursework"], roots
+    # **THE ROOT IS NAMED FOR A PERSON, 18 Sep 2026.** This read `["career",
+    # "Coursework"]` until the owner's ruling that "the names and folder and stuff
+    # all human readable and not machine readable": a branch site G opens is now
+    # called what the recognition rules call it, `career` -> `Career and
+    # recruiting`. The SCOPE is untouched and still `career` -- `--answer
+    # situation:career=` is unchanged -- because the label is the key and
+    # `display_name` is the folder. The order moves with the spelling.
+    assert roots == ["Career and recruiting", "Coursework"], roots
     assert "Coursework/cover letter" not in report
     # And the held group under that branch is told which answers reach it.
     # After the heading only: the gist above it names the file as an example.
@@ -318,7 +325,7 @@ def test_the_per_branch_answer_is_honoured_and_scoped_to_that_branch(
             assert not (offered & (RECRUITING_FIELDS - {"work_type"})), (name, offered)
     # The typed situation still governs the coursework branch: its folders are
     # the coursework levels, and the career branch's are recruiting's.
-    assert "Coursework" in report and "career" in report
+    assert "Coursework" in report and "Career and recruiting" in report
     del asked_of_career
 
 
@@ -448,7 +455,8 @@ def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_bra
     roots = [re.sub(r"\s+\[[^\]]+\]$", "", line.strip())
              for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
-    assert roots == ["Coursework", "career"] or roots == ["career", "Coursework"], roots
+    assert roots in (["Coursework", "Career and recruiting"],
+                     ["Career and recruiting", "Coursework"]), roots
     assert not any(chain.startswith("Coursework") and
                    ("cover letter" in chain or "resume" in chain)
                    for chain in chains), chains

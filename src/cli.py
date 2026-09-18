@@ -49,7 +49,7 @@ import unicodedata
 from collections import namedtuple
 from decimal import Decimal
 from itertools import count
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePath, PurePosixPath
 from functools import lru_cache, partial
 from types import MappingProxyType
 from typing import Callable, Mapping, Sequence
@@ -114,7 +114,8 @@ from facts.learning import (
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
     branch_votes,
-    BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, partition_by_branch,
+    BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, folder_name_for_schema,
+    partition_by_branch,
     single_owner_terms, the_one_situation,
 )
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
@@ -7094,6 +7095,109 @@ def site_destination(routing: TierRouting, call_site: str):
     return None
 
 
+def folders_that_separate_nothing(
+        folders: "Sequence[ExistingFolder]", *,
+        only_file_in: "Callable[[str], str | None]") -> frozenset[str]:
+    """Directories that add a level and divide nothing, so are not branches.
+
+    The owner, 18 Sep 2026: *"make sure no single file root and stuff happens."*
+    Their tree had seven top-level folders over 371 files and one was a single
+    file's own name, sitting beside `research` and `career`.
+
+    **MEASURED ON THEIR OWN RUN, rather than assumed.** Six of the seven roots are
+    `proposed` -- one drafted group per branch -- and exactly ONE is `existing`,
+    so `adopted_folders` is the producer. And that directory holds
+    `file_count=0, subdirectory_count=1`: it is not a wrapper around a file at
+    all, it is a PASS-THROUGH, the shape an unzipped download leaves when the
+    archive's name becomes a folder holding one folder.
+
+    **TWO EARLIER RULES WERE WRONG AND BOTH ARE RECORDED HERE.** "Two or more
+    files or a subdirectory" deleted `Screenshots/` and `Memes/` -- one file each,
+    folders a person made and named -- from their own proposal. "One file carrying
+    its own name" was honest but caught nothing on the owner's disk, because their
+    root holds no file at all. The concept under both is the one that works:
+
+        A directory is a branch when it SEPARATES something.
+
+    Three shapes separate nothing, and each is refused:
+
+    * **wrapper** -- exactly one file, no subdirectory, and the directory carries
+      THAT FILE'S OWN name. `report/report.pdf` says nothing the file does not.
+    * **empty** -- no files and no subdirectories. Nothing to separate.
+
+    **A PASS-THROUGH IS NOT REFUSED, and that is a correction.** A directory with
+    no files and ONE subdirectory looked like the obvious third case -- it adds a
+    level and divides nothing -- and it is the shape of the owner's own
+    `existing` root. It is also the shape of `Uni/` holding `PHYS1401`, which is a
+    person's category with one course in it so far, and
+    `test_an_adopted_folder_enters_as_the_persons_folder_not_as_a_proposal`
+    exists to stop exactly that nesting being flattened. The two are
+    structurally identical and only the person can tell them apart, so the
+    product keeps both. Folding a chain that divides nothing is `106` Phase 7's
+    depth rule, and it applies BENEATH a built node where a folded value still
+    has a chain to reach it -- not at the root (`104` Q-H).
+
+    **AND ONE SHAPE THAT LOOKS LIKE THEM AND IS KEPT.** A directory holding one
+    file of a DIFFERENT name -- `Screenshots/` holding a screenshot -- is a folder
+    the person made and named, and the name says something the file does not.
+    `00`:98 licenses exactly this: "a two-file packet may remain a single folder",
+    and one file is that argument one step further down.
+
+    **IT CANNOT LOSE A FILE** (`104` §17.2). Its whole vocabulary is directory
+    paths -- it never names a file, so it cannot drop one. A refused directory's
+    files stay in the roster, are grouped, and are placed on their own facts;
+    only the FOLDER stops being offered as somewhere to put things. Where this
+    run cannot name a directory's contents it keeps the folder, because a gap in
+    what the product knows must never become something the person loses.
+    """
+    children: dict[str, int] = {}
+    for folder in folders:
+        if folder.parent_directory:
+            children[folder.parent_directory] = (
+                children.get(folder.parent_directory, 0) + 1)
+
+    separates_nothing = set()
+    for folder in folders:
+        here = children.get(folder.directory_path, 0)
+        if folder.file_count == 0:
+            # Empty only. A single child is a PASS-THROUGH and is kept -- see the
+            # docstring: it is indistinguishable from a person's own category
+            # that holds one thing so far.
+            if here == 0:
+                separates_nothing.add(folder.directory_path)
+            continue
+        if folder.file_count != 1 or here:
+            continue
+        filename = only_file_in(folder.directory_path)
+        if not filename:
+            continue
+        if (PurePath(filename).stem.strip().casefold()
+                == PurePath(folder.directory_path).name.strip().casefold()):
+            separates_nothing.add(folder.directory_path)
+    return frozenset(separates_nothing)
+
+
+def _schema_display_name(rules, schema_id: str, *,
+                         fallback: str | None = "") -> str | None:
+    """The authored name of a schema, or the fallback when the rules name none.
+
+    `cli.py`'s composition root already hands these names to SITE G
+    (`schema_names={schema_id: schema.name ...}`) so the model reads a sentence
+    instead of an id. The person read the id. The owner's ruling of 18 Sep is that
+    the person gets the sentence too.
+
+    `fallback=""` asks for a name that is safe to use directly, and
+    `branch_situation.folder_name_for_schema` supplies the id when this answers
+    `None`. Read defensively: a schema the rules do not carry at all is a gap in
+    the vocabulary and §17.2 says a gap never becomes a folder that has no name.
+    """
+    schema = rules.schemas.get(schema_id)
+    authored = getattr(schema, "name", None) if schema is not None else None
+    if fallback == "":
+        return folder_name_for_schema(authored, schema_id)
+    return authored
+
+
 def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           scan_run_id: str, corpus_file_count: int,
                           policy_version: str, wire_handle_key: bytes,
@@ -10983,7 +11087,13 @@ def _grouped_by_branch(conn: sqlite3.Connection,
         buckets.setdefault(chosen.label, (chosen, []))[1].append(result)
     ordered = sorted(buckets.values(),
                      key=lambda pair: (not pair[0].is_default, pair[0].label))
-    return [(branch, branch.schema, branch.label, bucket)
+    # THE THIRD ITEM IS WHAT THE MERGED DRAFT IS CALLED, and `_draft_as_one`
+    # writes it straight through to `display_label` -- which is the string that
+    # becomes a FOLDER on the person's disk. The owner's ruling of 18 Sep:
+    # "the names and folder and stuff all human readable and not machine
+    # readable". `folder_name` is the authored name of the kind, or the person's
+    # own `--label`, and falls back to the scope key so it is never empty.
+    return [(branch, branch.schema, branch.folder_name, bucket)
             for branch, bucket in ordered]
 
 
@@ -16197,10 +16307,26 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             return _within(path, sealed)
 
         context_only = tuple(str(root) for root in candidate_roots)
+        # THE WRAPPER RULE, the owner's ruling of 18 Sep. Read from the whole
+        # inventory ONCE and before the filter below, because "holds a
+        # subdirectory" is a question about the list and not about one row.
+        inventory = tuple(existing_folders(conn, scan_run_id=scan_run_id[0]))
+        held_in: dict[str, list[str]] = {}
+        for row in conn.execute("SELECT current_path, filename FROM files"):
+            held_in.setdefault(
+                str(PurePath(row["current_path"]).parent), []).append(row["filename"])
+
+        def only_file_in(path: str) -> str | None:
+            names = held_in.get(path, ())
+            return names[0] if len(names) == 1 else None
+
+        separates_nothing = folders_that_separate_nothing(
+            inventory, only_file_in=only_file_in)
 
         return tuple(
             folder.directory_path
-            for folder in existing_folders(conn, scan_run_id=scan_run_id[0])
+            for folder in inventory
+            if folder.directory_path not in separates_nothing
             # A scan ROOT is not one of the person's folders inside the picture;
             # it is the ground the picture stands on. P3 marks it by recording no
             # parent directory ("NULL at a scan root: the top of the observed
@@ -17862,11 +17988,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             default_schema = said().schema
         else:
             default_schema = _the_corpus_names_a_schema(roster)
-            # THE SCHEMA ID IS THE NAME when the person named none, which is what
-            # `partition_by_branch` already calls every branch it opens. A typed
-            # `--label` is still theirs: the two flags became optional together
-            # and neither depends on the other, so a person who named the folder
-            # and not the life gets the folder they named.
+            # THE LIBRARY'S OWN NAME FOR THE KIND when the person named none --
+            # the owner's ruling of 18 Sep, *"the names and folder and stuff all
+            # human readable and not machine readable"*. This used to be the raw
+            # schema id, and it is why five of the seven folders over the owner's
+            # corpus read `nonprofit`, `photos`, `research`, `career`, `finance`.
+            # A typed `--label` is still theirs: the two flags became optional
+            # together and neither depends on the other, so a person who named the
+            # folder and not the life gets the folder they named.
             default_label = default_schema if label is None else label
             default_situation = None
         return partition_by_branch(
@@ -17882,6 +18011,18 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # EMPTY ON THE FIRST CALL and site G's whole answer on the second:
             # `_NOTHING_ASKED.named` is `{}`, which is what a run that has not
             # reached the pass -- or has no model at all -- partitions under.
+            # THE AUTHORED NAME FOR EVERY BRANCH SITE G OPENS, so an opened
+            # branch is spelled the way the library spells it rather than the way
+            # the code keys it. `folder_name_for_schema` falls back to the id, so
+            # a schema the rules name nothing for is unchanged.
+            name_of_schema=lambda schema_id: _schema_display_name(
+                rules, schema_id, fallback=None),
+            # THE DEFAULT BRANCH'S OWN NAME. A typed `--label` is the person's
+            # word and outranks the library's; with nothing typed, the kind is
+            # spelled the way the library spells it rather than as an id.
+            default_display_name=(
+                label if label is not None
+                else _schema_display_name(rules, default_schema)),
             named_by_the_model=situation_cell[0].named,
             # AND THE SECOND STAGE'S ANSWER BESIDE IT (`00` amendment 1 of 14
             # Sep). A branch the judge named one situation for over every one of

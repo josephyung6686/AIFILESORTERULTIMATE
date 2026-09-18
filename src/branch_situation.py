@@ -116,9 +116,19 @@ class Branch:
     #: The situations the person may choose from when `situation` is `None`.
     candidate_situations: tuple[str, ...] = ()
 
+    #: WHAT A PERSON SEES THIS BRANCH CALLED, where a folder is named from it.
+    #: Empty means "the label", which is what every caller that has not been
+    #: taught about names gets -- and is exactly today's behaviour.
+    display_name: str = ""
+
     @property
     def scope(self) -> str:
         return f"{SCOPE_BRANCH}:{self.label}"
+
+    @property
+    def folder_name(self) -> str:
+        """The name to put on a FOLDER. Never the scope key, never empty."""
+        return self.display_name or self.label
 
     @property
     def settled(self) -> bool:
@@ -246,6 +256,46 @@ def _named_by(verdict: object) -> frozenset[str]:
     return frozenset(named)
 
 
+#: A gloss on an authored schema name -- *"Business operations (the
+#: organisation's own running record)"* -- tells one schema from another on the
+#: MODEL'S menu. It is not part of the name, and a folder called that is worse
+#: than the id it replaces.
+_GLOSS_OPENS = "("
+
+
+def folder_name_for_schema(authored: str | None, schema_id: str) -> str:
+    """What a PERSON should see this branch called, given the library's own name.
+
+    The owner, 18 Sep 2026: *"the names and folder and stuff all human readable
+    and not machine readable."* The tree over their corpus had seven roots and
+    five were `nonprofit`, `photos`, `research`, `career`, `finance` -- internal
+    identifiers written onto a real disk, because `partition_by_branch` labels a
+    branch with its `schema_id` and the label becomes the folder.
+
+    **THE NAMES WERE ALREADY THERE.** Every schema in the recognition rules
+    carries an authored `name`, and `cli.py:18267` already hands them to site G so
+    the MODEL reads a sentence instead of an id. The person got the id and the
+    model got the sentence; this inverts that, which is the whole change.
+
+    **THE ID IS THE FALLBACK AND NEVER SILENCE** (`104` §17.2). A schema the rules
+    carry no name for, or name with nothing but a gloss, keeps its id: an unnamed
+    folder is a crash at best and a file with nowhere to go at worst.
+
+    This is NOT Phase 3. Phase 3 replaces the KIND with a LIFE as the partition
+    key and `research` becomes Education. This changes no file's branch -- only
+    what that branch is called -- and until the life lands, a kind should at least
+    be spelled the way the library spells it.
+    """
+    name = (authored or "").strip()
+    if _GLOSS_OPENS in name:
+        # Split on the bracket itself and not on " (": a name that is NOTHING but
+        # a gloss carries no leading space, and taking its head yields the empty
+        # string, which falls through to the id below rather than to a folder
+        # with no name.
+        name = name.split(_GLOSS_OPENS, 1)[0].strip()
+    return name or schema_id
+
+
 def partition_by_branch(
         *,
         roster: Sequence[tuple[str, str]],
@@ -260,6 +310,8 @@ def partition_by_branch(
         chosen_situation: Callable[[str], str | None],
         named_by_the_model: Mapping[str, str],
         situations_named_by_the_model: Mapping[str, str] = MappingProxyType({}),
+        name_of_schema: Callable[[str], str | None] = lambda _schema: None,
+        default_display_name: str | None = None,
 ) -> BranchPartition:
     """The run's branches, from the deterministic signals it already holds.
 
@@ -398,6 +450,7 @@ def partition_by_branch(
         situation, candidates = _default()
         return BranchPartition(branches=(Branch(
             label=default_label, schema=default_schema,
+            display_name=default_display_name or default_label,
             situation=situation, is_default=True,
             anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
             file_ids=tuple(file_id for file_id, _hash in roster),
@@ -438,6 +491,7 @@ def partition_by_branch(
             situation, candidates = _default()
             branches.append(Branch(
                 label=default_label, schema=schema_id,
+                display_name=default_display_name or default_label,
                 situation=situation, is_default=True,
                 anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
                 file_ids=tuple(under[schema_id]),
@@ -462,7 +516,19 @@ def partition_by_branch(
         # `finance`. So the branch is unsettled like any other, its question is
         # recorded, and the person answers it.
         branches.append(Branch(
-            label=schema_id, schema=schema_id, situation=situation,
+            # **THE LABEL IS THE SCOPE KEY AND IS NOT A DISPLAY STRING.**
+            # `Branch.scope` is `f"{SCOPE_BRANCH}:{self.label}"`, which is what
+            # records this branch's question, what `--answer situation:academic=`
+            # matches on, and what every stored answer in an existing database is
+            # keyed by. The lead changed it to the authored name on 18 Sep and
+            # broke the question-and-answer round trip across sixteen integration
+            # tests: a person's typed gesture stopped matching the scope it was
+            # recorded at. It stays the id. `display_name` beside it is what a
+            # FOLDER is called.
+            label=schema_id,
+            display_name=folder_name_for_schema(
+                name_of_schema(schema_id), schema_id),
+            schema=schema_id, situation=situation,
             is_default=False,
             anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
             file_ids=tuple(under[schema_id]),
