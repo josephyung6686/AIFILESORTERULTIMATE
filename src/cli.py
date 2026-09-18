@@ -7095,6 +7095,33 @@ def site_destination(routing: TierRouting, call_site: str):
     return None
 
 
+def the_situation_each_branch_carries(
+        branches: "Sequence[Branch]") -> dict[str, str]:
+    """What P11 is told each branch's settled situation is, BY THE NAME ITS ROOT
+    NODE WEARS.
+
+    P11 matches this map against the root node's `display_label`
+    (`placement/pipeline.py:1790`), and that label is what `_grouped_by_branch`
+    names the merged draft -- which is `Branch.folder_name`.
+
+    **IT WAS KEYED BY `Branch.label` UNTIL 18 Sep AND THE GUARD WENT INERT.** The
+    two strings are equal only for a branch with no authored display name, which
+    is the DEFAULT branch and nothing else. From `9b85210f`, every branch site G
+    opened wore the library's authored name on its root node and its id in this
+    map, so P11 recognised none of them and quietly stopped leaving their folders
+    alone. The whole suite stayed green: the tests that exercise the guard use the
+    typed-`--label` default branch, where the two spellings coincide.
+
+    Caught by an analyst reading the code rather than by a test, which is why
+    `tests/test_p11_guard_is_keyed_by_the_name_the_root_node_wears.py` now exists.
+
+    A branch whose situation is unsettled names nothing, and P11 then leaves its
+    folders alone -- silence, not an answer of `None`.
+    """
+    return {branch.folder_name: branch.situation for branch in branches
+            if branch.situation is not None}
+
+
 def folders_that_separate_nothing(
         folders: "Sequence[ExistingFolder]", *,
         only_file_in: "Callable[[str], str | None]") -> frozenset[str]:
@@ -17633,11 +17660,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # name `_grouped_by_branch` put on the accepted group P10 built the
             # branch from. A branch whose situation is unsettled names nothing,
             # and P11 then leaves its folders alone.
-            the_situation_each_branch_carries={
-                branch.label: branch.situation
-                for branch in (partition_cell[0].branches
-                               if partition_cell else ())
-                if branch.situation is not None})
+            the_situation_each_branch_carries=the_situation_each_branch_carries(
+                partition_cell[0].branches if partition_cell else ()))
 
     #: `104` R-175. ONE CEILING FOR THE WHOLE RUN, built here from the seconds the
     #: caller stated and handed to the authorities both per-file loops read. Built
