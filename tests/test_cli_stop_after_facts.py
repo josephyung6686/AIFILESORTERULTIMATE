@@ -67,7 +67,8 @@ def _stopped_run(tmp_path, *extra, stage: str = cli.STOP_AFTER_FACTS):
 
 def test_the_stages_are_the_gate_and_the_facts_in_the_runs_own_order():
     """One tuple names the stages the flag offers and the run compares against."""
-    assert cli.STOP_AFTER_STAGES == (cli.STOP_AFTER_GATE, cli.STOP_AFTER_FACTS)
+    assert cli.STOP_AFTER_STAGES == (cli.STOP_AFTER_GATE, cli.STOP_AFTER_FACTS,
+                                     cli.STOP_AFTER_TREE)
 
 
 def test_a_run_stopped_after_the_gate_says_so_and_designs_nothing(tmp_path):

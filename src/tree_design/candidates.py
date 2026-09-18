@@ -32,6 +32,7 @@ from tree_design.materialise import (
     child_counts,
     narrow_wide_date_levels,
 )
+from tree_design.node_key import protected_key
 from tree_design.provenance import branch_basis_key, suppressed_branch_basis_keys
 from tree_design.routing import CompositionCandidate, RoutingReport
 from tree_design.records import Node
@@ -250,7 +251,9 @@ def protected_area_nodes(
             node_role=ORDINARY,
             accepts_placement=False,
             handling_class=handling_class_for(area),
-            origin_node_id=node_id,
+            # `106` Phase 5.1: keyed by what it is, so a re-run reads the
+            # same protected area as the same node.
+            origin_node_id=protected_key(area.path),
             existing_path=None,
         ))
     return tuple(nodes)

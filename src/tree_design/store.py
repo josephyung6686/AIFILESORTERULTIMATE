@@ -5,10 +5,12 @@
 predecessor by a node-level diff, the user may restore an earlier version or
 adopt the new one, and adoption "never silently reclassifies or moves old files".
 
-Node identity is minted per version, with `origin_node_id` carrying the lineage,
-because SPEC open question 5 is open. That choice is deliberately the reversible
-one: if node ids turn out to be stable across versions, `origin_node_id` becomes
-`node_id` and nothing else changes; the other choice cannot be undone.
+Node identity is minted per version, with `origin_node_id` carrying the lineage.
+SPEC open question 5 is CLOSED (`106` Phase 5.1): `node_id` stays minted per
+version and `origin_node_id` is the node's KEY, spelled from what the node is
+(`tree_design.node_key`), so two runs that build the same folder write the same
+origin and every reader that compares versions by origin works across runs.
+One key names one node per version (`DuplicateNodeKey`).
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ import sqlite3
 from collections.abc import Callable, Iterator, Sequence
 
 from evidence_shape.canonical import canonical_json
+from tree_design.node_key import general_key, shared_material_key
 from tree_design.records import (
     ExpectedValue,
     derive_accepts_placement,
@@ -66,6 +69,12 @@ _NODE_COLUMNS = (
     "dimension_role", "dimension", "existing_path", "disposition",
     "refinement_disposition", "refinement_reason",
 )
+
+
+class DuplicateNodeKey(ValueError):
+    """Two nodes in one version claim one origin (`106` Phase 5.1). C4's
+    shape: one question with two answers has none, and `reproject` would
+    otherwise match a pending move to whichever row sorts first."""
 
 
 class FrozenVersionImmutable(RuntimeError):
@@ -175,6 +184,21 @@ def write_node(conn: sqlite3.Connection, node: Node) -> None:
             "edit to open a DRAFT version and show a diff; amending a frozen "
             "version in place would change what the user already approved."
         )
+    # `106` Phase 5.1: ONE KEY, ONE NODE, PER VERSION. A check in the writer
+    # rather than a UNIQUE index, so no index is created over databases
+    # written before the key existed; the same `node_id` again is a rewrite
+    # (`apply_review_action` writes an edited node back under its own id)
+    # and is admitted.
+    clash = conn.execute(
+        "SELECT node_id FROM tree_nodes WHERE plan_version_id = ? "
+        "AND origin_node_id = ? AND node_id <> ?",
+        (node.plan_version_id, node.origin_node_id, node.node_id)).fetchone()
+    if clash is not None:
+        raise DuplicateNodeKey(
+            f"{node.origin_node_id!r} already names node {clash['node_id']!r} "
+            f"in version {node.plan_version_id!r}; a second node under one key "
+            "would make every cross-version reader guess which one an edit "
+            "meant")
     values = (
         node.node_id, node.plan_version_id, node.origin_node_id, node.node_type,
         node.display_label, node.parent_node_id, node.root_anchor, node.ordinal,
@@ -456,7 +480,12 @@ def _write_overlap_answer(conn: sqlite3.Connection, action, *, draft: PlanVersio
         explanation=explanation, node_role=role,
         accepts_placement=derive_accepts_placement(
             USER_CREATED, protected_movement_permitted=False),
-        handling_class=parent.handling_class, origin_node_id=node_id,
+        # `106` Phase 5.1: keyed under its parent, BY ROLE -- the General and
+        # §6.9's shared branch can both sit under one parent and are two nodes.
+        handling_class=parent.handling_class,
+        origin_node_id=(general_key(parent.origin_node_id)
+                        if role == SCOPED_GENERAL
+                        else shared_material_key(parent.origin_node_id)),
         refinement_disposition=parent.refinement_disposition,
         refinement_reason=parent.refinement_reason,
     )

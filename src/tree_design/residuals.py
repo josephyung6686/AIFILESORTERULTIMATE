@@ -18,6 +18,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from tree_design.config import ConfigurationRequired
+from tree_design.node_key import residual_key
 from tree_design.records import Node, derive_accepts_placement
 from tree_design.vocabulary import (
     DISABLE,
@@ -327,7 +328,10 @@ def project_residual_nodes(
                 accepts_placement=derive_accepts_placement(
                     USER_CREATED, protected_movement_permitted=False),
                 handling_class=handling_class,
-                origin_node_id=node_id,
+                # `106` Phase 5.1: keyed by the template it was enabled
+                # from; the arm above that rewrites an EXISTING node keeps
+                # that node's own origin and is untouched.
+                origin_node_id=residual_key(choice.template_name),
                 disposition=choice.disposition,
             )
             ordinal += 1

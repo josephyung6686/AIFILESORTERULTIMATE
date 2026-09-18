@@ -52,6 +52,7 @@ from tree_design.materialise import (
     BranchEvidence, MaterialisationRefused, materialise_branch,
     project_branch_preview,
 )
+from tree_design.node_key import branch_key
 from tree_design.profiles import build_profiles
 from tree_design.records import (
     ExpectedValue, Node, PlanVersion, derive_accepts_placement,
@@ -691,7 +692,13 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
         # default for it. A branch with no members yet hands over an empty set
         # and the authority answers for that too.
         handling_class=authorities.collapse_handling_classes(member_classes),
-        origin_node_id=node_id)
+        # `106` Phase 5.1 (SPEC OQ5 closed): the origin is the card's KEY --
+        # the observed path for an adopted folder, the label for a proposal
+        # -- so two runs that build the same branch agree about which node
+        # it is. `node_id` is still minted per version.
+        origin_node_id=branch_key(
+            display_label=candidate.display_label,
+            existing_path=candidate.subject_id if adopted else None))
 
 
 def _adopt_parents_first(chosen: tuple[BranchCandidate, ...],

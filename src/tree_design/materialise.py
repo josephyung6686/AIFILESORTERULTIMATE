@@ -34,6 +34,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from tree_design.config import ConfigurationRequired
+from tree_design.node_key import level_key
 from tree_design.records import ExpectedValue, Node, derive_accepts_placement
 from tree_design.routing import CompositionCandidate
 from tree_design.upstream import (
@@ -714,7 +715,13 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
                 PROPOSED,
                 protected_movement_permitted=protected_movement_permitted),
             handling_class=handling_class_for(level.handling_classes_by_value[value]),
-            origin_node_id=node_id,
+            # `106` Phase 5.1 (SPEC OQ5 closed): the origin is the node's KEY --
+            # the parent's key and what this folder is named by -- so a re-run
+            # that builds the same folder writes the same origin, and every
+            # cross-version reader that already compares origins works across
+            # runs. `node_id` above is still minted per version.
+            origin_node_id=level_key(parent.origin_node_id, field=level.field_ref,
+                                     value=value, role=level.dimension_role),
             template_context=template_context_for(level.field_ref, level.order_index),
             dimension_role=level.dimension_role,
             dimension=level.field_ref,

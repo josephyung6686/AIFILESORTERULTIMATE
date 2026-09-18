@@ -483,21 +483,31 @@ def test_the_class_p7_actually_produces_today_reaches_the_node(seeded):
     assert {n.handling_class for n in nodes} == {"unreadable_unclassified"}
 
 
-def test_a_projected_node_is_its_own_lineage_origin(seeded):
-    """OQ5 is open: ids are minted per version and lineage is recorded. A freshly
-    minted node is its own origin, and `Node.__post_init__` rejects an empty
-    `origin_node_id`, so it is bound at construction rather than patched after."""
+def test_a_projected_node_carries_its_key_as_origin_and_a_fresh_id(seeded):
+    """OQ5 is CLOSED (`106` Phase 5.1): ids are minted per version and the origin
+    is the node's key, so a re-run reads as the same tree. `Node.__post_init__`
+    still rejects an empty `origin_node_id`, so it is bound at construction.
+
+    Two levels and three members, because a single one-valued level divides
+    nothing and builds no child (`LevelEvidence.divides`): the earlier shape of
+    this pin got back only the fixture parent, whose origin IS its id, and
+    passed on that alone."""
     conn = seeded.conn
     _, evidence = materialise_branch(
-        conn, _candidate(("subject", "subject")), branch_node_id="n_academics",
-        members=seeded.members("syllabus"), ancestor_field_refs=(), ancestor_depth=0,
+        conn, _candidate(("subject", "subject"), ("work_type", "work_type")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
         handling_class_for_member=ONE_CLASS,
         protected_handling_classes=PROTECTED_CLASSES)
     nodes = project_branch_nodes(
         evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
         mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
         template_context_for=NO_CONTEXT)
-    assert all(n.origin_node_id == n.node_id for n in nodes)
+    children = [n for n in nodes if n.node_id != "n_academics"]
+    assert children, "no child was built, so nothing below is about a key"
+    assert all(n.origin_node_id != n.node_id for n in children)
+    assert all(n.origin_node_id.startswith("n_academics/") for n in children)
     assert all(n.node_type == PROPOSED and n.node_role == ORDINARY for n in nodes)
     assert all(n.root_anchor == "root_documents" for n in nodes)
 

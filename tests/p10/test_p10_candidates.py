@@ -748,7 +748,11 @@ def test_every_protected_area_gets_its_own_node_and_none_is_dropped():
                        _area("/c/Z.app", "Z.app"))
     assert [n.display_label for n in nodes] == ["X.app", "Y.app", "Z.app"]
     assert len({n.node_id for n in nodes}) == 3
-    assert all(n.origin_node_id == n.node_id for n in nodes)
+    # `106` Phase 5.1: the origin is the area's KEY -- its observed PATH, so a
+    # re-run reads the same area as the same node and two areas sharing a
+    # basename in two places stay two nodes.
+    assert [n.origin_node_id for n in nodes] == [
+        "protected:/a/X.app", "protected:/b/Y.app", "protected:/c/Z.app"]
 
 
 def test_total_child_branches_counts_the_branches_the_option_would_create(conn):

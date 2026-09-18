@@ -46,9 +46,14 @@ from tree_design.vocabulary import USER_CREATED
 from p10 import test_p10_pipeline as chain
 from p10.seam_corpus import seed_seam_corpus
 
-#: The branch whose leaves are `Homework` and `Syllabus`. Its ORIGIN id, because
-#: that is the identity a review action names and the identity a draft preserves.
-COURSE = "n_8"
+#: The branch whose leaves are `Homework` and `Syllabus`. Its ORIGIN, because
+#: that is the identity a review action names and the identity a draft
+#: preserves -- and since `106` Phase 5.1 the origin is the node's KEY, spelled
+#: from the branch and what each folder is named by (`tree_design.node_key`),
+#: so it reads the same in every version of the chain and on every run.
+COURSE = "branch:Columbia coursework/subject=BUSIB 4300"
+HOMEWORK = COURSE + "/work_type=Homework"
+OTHER_COURSE = "branch:Columbia coursework/subject=PHYS1401"
 
 
 @pytest.fixture()
@@ -143,7 +148,7 @@ def test_a_file_filed_as_deep_as_its_evidence_goes_demands_nothing(designed):
     putting a folder in somebody's tree on the strength of nothing.
     """
     _corpus, _auth, _dec, tree = designed
-    homework = _node_of(tree.tree, "n_9")
+    homework = _node_of(tree.tree, HOMEWORK)
 
     assert scoped_general_demand(
         (_placed_on(homework.node_id, file_id="f-hw3", levels=()),),
@@ -165,7 +170,7 @@ def test_two_files_under_one_parent_are_one_parents_demand(designed):
          _placed_on(course.node_id, file_id="f-notes", levels=("work_type",))),
         tree=tree.tree)
 
-    assert demand == {COURSE: ("f-quiz", "f-notes")}
+    assert demand == {course.origin_node_id: ("f-quiz", "f-notes")}
 
 
 def test_a_parent_that_already_has_a_general_is_not_asked_for_a_second(corpus):
@@ -216,13 +221,13 @@ def test_the_parents_are_named_in_an_order_two_runs_agree_on(designed):
     """
     _corpus, _auth, _dec, tree = designed
     course = _node_of(tree.tree, COURSE)
-    other = _node_of(tree.tree, "n_11")
+    other = _node_of(tree.tree, OTHER_COURSE)
     forwards = (_placed_on(course.node_id, file_id="f-a", levels=("work_type",)),
                 _placed_on(other.node_id, file_id="f-b", levels=("work_type",)))
 
     assert (list(scoped_general_demand(forwards, tree=tree.tree))
             == list(scoped_general_demand(forwards[::-1], tree=tree.tree))
-            == sorted([COURSE, "n_11"]))
+            == sorted([course.origin_node_id, other.origin_node_id]))
 
 
 # --- what minting does -------------------------------------------------------------

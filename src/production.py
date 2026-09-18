@@ -924,7 +924,11 @@ class ProductionRun:
     grouping: tuple[GroupingResult, ...]
     tree: TreeDesignResult
     destinations: tuple[Any, ...]
-    placement: CorpusResult
+    #: `None` only under `--stop-after tree` (`106` Phase 5.3): the tree was
+    #: designed and nothing was placed, by the person's own instruction. Every
+    #: other run carries P11's result, and a reader that meets `None` is reading
+    #: a run that stopped at the proposal.
+    placement: CorpusResult | None
     #: §8.5's replay of this run's own bundle, or `None` when the deployment
     #: declared no evaluation. Never a silently absent field: `None` here means
     #: nobody asked for a measurement, not that one was taken and lost.
@@ -1007,7 +1011,8 @@ def _group_corpus(conn: sqlite3.Connection, roster, *,
 def run_production_p8_p11(
         conn: sqlite3.Connection, p1_p7: P1P7Run, *,
         authorities: CorpusAuthorities,
-        decisions: CorpusDecisions) -> ProductionRun:
+        decisions: CorpusDecisions,
+        stop_after_design: bool = False) -> ProductionRun:
     """P9, P10 and P11 over one finished P1--P7 run. This function owns the order.
 
     The order is contractual at four points, and each one is a raise somewhere
@@ -1066,6 +1071,15 @@ def run_production_p8_p11(
     plan_version = tree.tree.plan_version_id
     decisions.approve_plan(conn, accepted, plan_version)
     decisions.set_privacy_policy(conn, plan_version)
+    if stop_after_design:
+        # `106` Phase 5.3: the tree is the proposal, and it is shown before a
+        # placement call is spent on it. The version is complete -- the
+        # acceptance and the policy are about the version, not about placement
+        # -- so `--structure` on the next run reads it exactly as it reads any
+        # other. Nothing below this line is spent: no index, no placement, no
+        # model call per file.
+        return ProductionRun(p1_p7=p1_p7, grouping=grouping, tree=tree,
+                             destinations=(), placement=None, evaluation=None)
     # `104` §18.2 gap 16. The index is canonicalised by THE SAME callable the
     # retrieval that reads it will canonicalise the subject's facts with, and the
     # way to be sure of that is to take it off the inputs rather than to be handed

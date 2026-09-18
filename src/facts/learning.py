@@ -521,3 +521,69 @@ def rename_claim(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             value_id=survivor,
             evidence_refs=json.loads(standing[0]["evidence_refs"]),
             user_id=user_id, observed_at=observed_at)
+
+
+def assert_situation(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+                     situation: str, user_id: str, observed_at: str) -> str:
+    """The person's own word about which situation ONE file is part of.
+
+    `00` amendment 5 of 15 Sep: where the judge names the plainest member of a
+    kind, "the person corrects it in one structure edit". This is that edit's
+    writer. It is NOT `confirm_claim`: a confirmation needs a standing proposal
+    at that value, and the case this exists for is the file whose right answer
+    the judge never listed -- or listed as an alternative, which sits on
+    `situation_alternative` and is not the slot the partition reads -- or, since
+    `104` §18.110, the PROTECTED file no model has been shown and none ever will
+    be. For that file this is the only writer the design permits.
+
+    `USER_CONFIRMED` at origin `USER_CORRECTION`. Idempotent on the same value:
+    saying it again is the same word and hands back the same row. `record_the_
+    situation` then leaves this row alone ("THE PERSON'S OWN ANSWER IS NOT
+    OVERRULED BY A RE-RUN"), which is what makes it outlive a re-run.
+
+    THE ONE ROW THIS MAY RETIRE IS THE PERSON'S OWN EARLIER WORD. Model rows are
+    left standing: `preferred_of_slot` keeps only the confirmed rows the moment
+    one exists, so they are already outranked, and retiring them here would be a
+    second rule for the pointer. What MUST be retired is a prior `user_confirmed`
+    row naming another value: two live confirmed rows with two values leave the
+    slot with no pointer and `preferred_fact` answering `None`, which is the
+    person's own correction making their file unreadable.
+
+    No evidence ref: the person's word is not a reading of the file
+    (`confirm_claim`'s rule), and `cache_key` names the gesture rather than a
+    call. The learning record is appended for `00` amendment 6 of 13 Sep -- "a
+    person's answers are the product's memory of them" -- with the gesture's
+    own name as P13's action.
+    """
+    # Spelled here rather than imported from `facts.llm_seam`: that module is a
+    # producer's seam and this is the person's, and the field's name is the one
+    # thing the two share.
+    field_key = "situation"
+    value_id = ensure_value(conn, field_key=field_key, canonical_value=situation,
+                            first_evidence_ref=None, origin=VALUE_ORIGINS[1])
+    theirs = [row for row in conn.execute(
+        "SELECT fact_id, value_id FROM file_facts "
+        "WHERE file_id = ? AND content_hash = ? AND field_key = ? "
+        "AND reliability_state = ? AND superseded_by IS NULL",
+        (file_id, content_hash, field_key, USER_CONFIRMED))]
+    for row in theirs:
+        if row["value_id"] == value_id:
+            return row["fact_id"]
+    with transaction(conn):
+        written = write_fact(
+            conn, file_id=file_id, content_hash=content_hash,
+            field_key=field_key, value_id=value_id,
+            reliability_state=USER_CONFIRMED, origin=USER_CORRECTION,
+            evidence_refs=(), cache_key=f"situation-of:{file_id}:{situation}",
+            active=True)
+        for row in theirs:
+            supersede_fact(
+                conn, old_fact_id=row["fact_id"], new_fact_id=written,
+                reason=f"{user_id} said this file is {situation!r} "
+                       f"(--situation-of), replacing their earlier word")
+        record_correction(
+            conn, action="situation_of", scope=FILE_SCOPE, subject=file_id,
+            polarity=ACCEPT, file_id=file_id, field_key=field_key,
+            value_id=value_id, evidence_refs=(), user_id=user_id,
+            observed_at=observed_at)
+    return written

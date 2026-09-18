@@ -52,7 +52,7 @@ from itertools import count
 from pathlib import Path, PurePath, PurePosixPath
 from functools import lru_cache, partial
 from types import MappingProxyType
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Collection, Mapping, Sequence
 
 from database_agent.budget import set_ceiling
 from database_agent.cloud_consent import (
@@ -108,8 +108,8 @@ from facts.discount import screen_metadata as _discount_screen_metadata
 # call_identity_dimensions` reads it at site A.
 from facts.evidence import observations_for_version
 from facts.learning import (
-    MalformedCorrection, NoSuchClaim, confirm_claim, reject_claim,
-    rename_claim,
+    MalformedCorrection, NoSuchClaim, assert_situation, confirm_claim,
+    reject_claim, rename_claim,
 )
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
@@ -131,8 +131,8 @@ from facts.unresolved import BUDGET_DEFERRED, NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
 from facts.read_surface import (
-    DanglingCitation, confirmed_spellings, evidence_chain, proposal_eligible,
-    versions_in_fields,
+    DanglingCitation, confirmed_spellings, evidence_chain, preferred_in_field,
+    proposal_eligible, versions_in_fields,
 )
 from facts.file_facts import facts_for_file
 from facts.states import (
@@ -527,7 +527,8 @@ from tree_design.user_edits import (
 )
 from tree_design.vocabulary import (
     ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
-    PHYSICAL_DESTINATION, PROTECTED_RECORDS, REFINE_LATER, REFINED, RELOCATE,
+    PHYSICAL_DESTINATION, PROTECTED as PROTECTED_NODE_TYPE, PROTECTED_RECORDS,
+    REFINE_LATER, REFINED, RELOCATE,
     RENAME_RESIDUAL, REPLACE_WITH_EXISTING, RESIDUAL_LIBRARY_ACTIONS,
     RESIDUAL_TEMPLATE_NAMES, RESIDUAL_TREATMENTS, SHALLOW_BY_CHOICE,
     SURFACE_UNATTENDED,
@@ -13983,6 +13984,27 @@ def _print_stopped_after_gate(*, out) -> None:
         f"than asking again.", indent=""), file=out)
 
 
+def _print_stopped_after_tree(result: ProductionRun, *, out) -> None:
+    """The last thing a `--stop-after tree` run says (`106` Phase 5.3).
+
+    Said, not inferred: a screen that ends after an outline is otherwise
+    indistinguishable from one that crashed before placement
+    (`_print_stopped_after_facts`'s rule). A protected area is marked and
+    counted, never a folder proposed, so it is not in the count.
+    """
+    folders = sum(1 for node in result.tree.tree.nodes
+                  if node.node_type != PROTECTED_NODE_TYPE)
+    print("", file=out)
+    print(_wrapped(
+        f"Stopped at the proposed structure, as --stop-after {STOP_AFTER_TREE} "
+        f"asked: {folders} {'folder is' if folders == 1 else 'folders are'} "
+        f"proposed above and written to the file beside the database, and no "
+        f"file was placed into any of them -- no model was asked where a file "
+        f"goes, no plan was frozen, and nothing moved. Edit the file and hand it "
+        f"back with --structure, or run again without --stop-after to see where "
+        f"each file would go.", indent=""), file=out)
+
+
 def _print_stopped_after_facts(conn: sqlite3.Connection, *, run_id: str,
                                out) -> None:
     """The last thing a `--stop-after facts` run says, and the only thing that run
@@ -15991,6 +16013,86 @@ def _what_the_held_files_are(held: Sequence[tuple[str, str, str]], *,
     return "\n".join(lines)
 
 
+def _the_files_to_file(conn: sqlite3.Connection, scan_run_id: str, *,
+                       store: ClassificationStore, names: Mapping[str, str],
+                       still_a_question: Collection[str],
+                       their_situations: Mapping[str, str]
+                       ) -> tuple[tuple[str, str], ...]:
+    """`(name, file_id)` for every protected file of THIS run's roster whose one
+    remaining question is WHAT IT IS.
+
+    `104` §18.110: a protected record is shown to no model, ever, and is filed by
+    the person one at a time -- the gate's own first remedy, `decide_locally`.
+    `_the_files_being_held` is the question BEFORE this one (keep it, or is it
+    ordinary?); a file still in it is asked that first and not this, so the two
+    blocks never put two questions about one file on one screen. What is left is
+    every file the store marks protected -- kept by the person, confirmed by a
+    model, or held on a basis the first question does not offer -- that the
+    person has not yet named a situation for. A file they HAVE named drops out
+    for free, the way a released file drops out of the block above: the answer
+    is on the file's own slot and this reads it there.
+
+    THE STORE IS ASKED AND NOT A TALLY, for the block above's reason: a hold IS
+    the live row. THE NAME AND NOTHING OUT OF THE FILE, for its reason too.
+    """
+    to_file: list[tuple[str, str]] = []
+    for file_id, content_hash in corpus_roster(conn, scan_run_id):
+        if file_id in still_a_question or file_id in their_situations:
+            continue
+        current = store.current(file_id, content_hash)
+        if current is None or not current.protected:
+            continue
+        to_file.append((names.get(file_id, file_id), file_id))
+    return tuple(to_file)
+
+
+def _what_the_kept_files_are(to_file: Sequence[tuple[str, str]], *,
+                             show_protected: bool = False) -> str:
+    """THE SECOND QUESTION about a protected file, and the screen `decide_locally`
+    never had (`104` §18.110).
+
+    The owner's ruling of 13 Sep names `--file-held` as "keep it here, FILE IT
+    BY HAND", and until this block the second half had no gesture: a kept file
+    dropped out of the question above and nothing asked what it was, so it had
+    no situation of its own, fell through to the run's, and the gate's remedy
+    named a thing nobody could type. This asks it. `--situation-of FILE=
+    SITUATION` is the person's own word about THAT file, written where a re-run
+    already refuses to overrule it, and the folder the file goes to follows from
+    it on this run -- with no model asked, because none may be.
+
+    `_what_the_held_files_are`'S REGISTER, LINE FOR LINE, and behind the same
+    flag: the count and the gesture's shape on every run, each file's own name
+    with the command filled in behind `--show-protected` (`planning/93`). The
+    gesture names the FILE BY ITS NAME rather than by id, because `--situation-
+    of` is `--confirm`'s cousin and shares its lookup (`_named_file`), and the
+    situation is left for the person to fill from `--list-situations`, because
+    naming one for them is exactly the guess this block exists to stop making.
+    DOING NOTHING IS STILL AN ANSWER: the file stays held, on this device,
+    under the run's own situation, exactly as before.
+    """
+    one = len(to_file) == 1
+    lines = [_wrapped(
+        f"{len(to_file)} protected {'file is' if one else 'files are'} kept here "
+        f"and {'is' if one else 'are'} yours to file: no model is shown "
+        f"{'it' if one else 'them'}, so nothing can say what {'it is' if one else 'they are'} "
+        f"but you. Say which situation {'it is' if one else 'each is'} part of and "
+        f"run the same command again: --situation-of FILE=SITUATION, with the "
+        f"situation named as --list-situations prints it. Your word is kept "
+        f"against the file, outranks any model's, and is what the next "
+        f"proposal files it under.", indent="")]
+    if not show_protected:
+        lines.append(_wrapped(
+            f"{'Its name and its' if one else 'Their names and their'} command, "
+            f"with the file filled in, {'is' if one else 'are'} printed by:",
+            indent=""))
+        lines.append("      --show-protected")
+        return "\n".join(lines)
+    for name, _file_id in to_file:
+        lines.append(f"\n  {name}")
+        lines.append(f"    --situation-of '{name}=SITUATION'")
+    return "\n".join(lines)
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class _RunSituation:
     """Everything one situation decides about a run, derived once from the library.
@@ -16092,7 +16194,14 @@ def _the_situation_of_a_run(catalogue: TemplateCatalogue, situation: str,
 #: where the run ends and cannot say it twice.
 STOP_AFTER_GATE: str = "gate"
 STOP_AFTER_FACTS: str = "facts"
-STOP_AFTER_STAGES: tuple[str, ...] = (STOP_AFTER_GATE, STOP_AFTER_FACTS)
+#: `106` Phase 5.3. The run ends with the proposed tree written and the outline
+#: on the screen, before a single placement call is spent. `00` amendment 2 of
+#: 14 Sep: the structure is edited "before any file is placed under it". The
+#: groups gate (a run without `--accept-groups`) and the placement gate
+#: (`--freeze`) already existed; this is the one between them.
+STOP_AFTER_TREE: str = "tree"
+STOP_AFTER_STAGES: tuple[str, ...] = (STOP_AFTER_GATE, STOP_AFTER_FACTS,
+                                      STOP_AFTER_TREE)
 
 
 def run(conn: sqlite3.Connection, directory: Path, *,
@@ -16392,6 +16501,51 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             for row in values_in_field(conn, SITUATION_FIELD):
                 _situation_value_cache[row["value_id"]] = row["canonical_value"]
         return _situation_value_cache
+
+    _their_situation_cache: list[dict[str, str]] = []
+
+    def _their_situations() -> dict[str, str]:
+        """file_id -> the situation THE PERSON said that file is part of, read ONCE.
+
+        `--situation-of FILE=SITUATION` (`106` Phase 5.4) writes one
+        `user_confirmed` row on the file's `situation` slot, and `preferred_fact`
+        lets that row win outright -- so `preferred_in_field` asked of the corpus
+        finds it for every file that has one and nothing for every file that has
+        not. Filtered to the person's own state, because a slot a model resolved
+        is the judge's answer and is read where the judge's answers are read.
+
+        ONE READ FOR THE RUN, for `_situation_values`' reason, and because the
+        person's word does not change inside a run: it was applied in `main`
+        before this run began. Read at first use rather than at the top of
+        `run`, because `_bootstrap` has to have made the tables first.
+
+        THIS IS THE ONE READER A PROTECTED FILE HAS (`104` §18.110). Site G is
+        never asked about a held file, so `situation_cell` cannot carry its
+        situation; the person's word is on the file's own slot and is read off
+        it here, whether or not any model pass ran.
+        """
+        if not _their_situation_cache:
+            values = _situation_values()
+            theirs = {
+                file_id: values[row["value_id"]]
+                for file_id, row in preferred_in_field(
+                    conn, field_key=SITUATION_FIELD).items()
+                if row["reliability_state"] == USER_CONFIRMED
+                and row["value_id"] in values}
+            # ONLY A WORD THIS RELEASE CAN STILL READ AS A KIND. The gesture
+            # refused anything else at write time; a library update since can
+            # drop or split a situation, and a word the release cannot place
+            # would raise out of the first arm of every resolver below. Left
+            # out of the map rather than crashing the run -- the row stays on
+            # the file, readable by `--trail`, and reads again the day the
+            # release carries the situation once more.
+            for file_id, situation in tuple(theirs.items()):
+                try:
+                    schema_for_situation(catalogue, situation)
+                except ConfigurationRequired:
+                    del theirs[file_id]
+            _their_situation_cache.append(theirs)
+        return _their_situation_cache[0]
 
     def _situations_of(file_ids) -> set[str]:
         """What the judge named for these files, off the FACTS it wrote.
@@ -17951,6 +18105,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         as it opens no branch (`partition_by_branch`): it has no readings and no
         levels, so there would be nothing for a call under it to be asked from.
         """
+        # THE PERSON'S OWN WORD ABOUT THIS FILE FIRST (`--situation-of`, `106`
+        # Phase 5.4): a situation names its schema, and their word outranks the
+        # judge's on §3.13's ladder exactly as it does on the file's own slot.
+        theirs = _their_situations().get(file_id)
+        if theirs is not None:
+            return schema_for_situation(catalogue, theirs)
         answered = situation_cell[0].named.get(file_id)
         if answered and (not of_the_run or answered != said().schema):
             if _situations_of(answered):
@@ -18040,6 +18200,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         do with it: site A asks the file nothing (`resolver_for`), and the §7.3
         template arm stays inert (`template_resolver`).
         """
+        # THE PERSON'S OWN WORD ABOUT THIS FILE, BEFORE EVERY OTHER ARM
+        # (`--situation-of`, `106` Phase 5.4; `104` §18.110). It is keyed on
+        # the file and the value, not on a branch or a node, so it is the same
+        # answer on every re-run -- and for a PROTECTED file it is the only
+        # answer there can be: no model is shown such a file, so nothing below
+        # this line ever names one. Their per-file word outranks the branch's
+        # answer, which is the person's too but about a folder of files.
+        theirs = _their_situations().get(file_id)
+        if theirs is not None:
+            return theirs
         named = _the_schema_named_for_this_file(file_id)
         if named is not None:
             raised = situation_cell[0].raised.get(file_id, ())
@@ -18184,12 +18354,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             default_display_name=(
                 label if label is not None
                 else _schema_display_name(rules, default_schema)),
-            named_by_the_model=situation_cell[0].named,
+            # THE PERSON'S PER-FILE WORD RIDES BESIDE THE JUDGE'S (`106` Phase
+            # 5.4), and where both exist theirs is the one the partition reads:
+            # a file the person has named is filed under that situation's
+            # branch, which for a PROTECTED file -- one site G is never asked
+            # about -- is the only way it reaches any branch at all.
+            named_by_the_model={
+                **situation_cell[0].named,
+                **{file_id: schema_for_situation(catalogue, situation)
+                   for file_id, situation in _their_situations().items()}},
             # AND THE SECOND STAGE'S ANSWER BESIDE IT (`00` amendment 1 of 14
             # Sep). A branch the judge named one situation for over every one of
             # its files needs no question: that is the question it was asked in
             # the person's place, and it answered.
-            situations_named_by_the_model=situation_cell[0].situations)
+            situations_named_by_the_model={
+                **situation_cell[0].situations, **_their_situations()})
 
     def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
         """The per-branch situation question, recorded for every unsettled branch.
@@ -19553,6 +19732,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         if _held_now:
             print(f"\n{_what_the_held_files_are(_held_now, show_protected=show_protected)}",
                   file=out)
+        # THE SECOND QUESTION, UNDER THE FIRST (`104` §18.110): a protected file
+        # the person has kept -- or that nothing offers keep-or-release for --
+        # is asked WHAT IT IS, once, with the gesture that files it. Read off
+        # the store and the file's own slot, so a file they have answered for
+        # drops out the way a released one drops out of the block above.
+        _to_file = _the_files_to_file(
+            conn, p1_p7.scan_run_id, store=ClassificationStore(conn),
+            names=_the_names,
+            still_a_question={file_id for _name, _why, file_id in _held_now},
+            their_situations=_their_situations())
+        if _to_file:
+            print(f"\n{_what_the_kept_files_are(_to_file, show_protected=show_protected)}",
+                  file=out)
         if not of_the_run:
             # THE QUESTION, PRINTED, AND THE RUN ENDS HERE. `_partition_branches`
             # recorded it before the model pass and this is the end of the run,
@@ -19692,7 +19884,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         decisions=CorpusDecisions(
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
-            set_privacy_policy=set_privacy_policy))
+            set_privacy_policy=set_privacy_policy),
+        stop_after_design=(stop_after == STOP_AFTER_TREE))
+    if stop_after == STOP_AFTER_TREE:
+        # `106` Phase 5.3. Everything below this line reads `result.placement`
+        # -- the on-demand Generals, the two-home questions, the residual sets
+        # and the set gestures -- and a stopped run has none: it was told to
+        # stop before a placement call was spent. The `situations` mailbox is
+        # already full: `downstream` filled it for every roster file before the
+        # composition was called, so the outline can say which situation each
+        # top folder is built from without a file having been placed.
+        return result
     # `104` §18.2 gap 11c, and FIRST among the things that happen after the run:
     # everything below reads `result.tree` and `result.placement`, and the plan
     # this step may add a folder to is the plan the person is about to be shown,
@@ -20661,6 +20863,53 @@ def apply_confirmations(conn: sqlite3.Connection, confirmations: Sequence[str], 
             raise ConfirmationRefused(
                 str(refusal).replace(repr(row["file_id"]), repr(filename))
             ) from refusal
+
+
+class SituationOfRefused(NotConfigured):
+    """`--situation-of` named a file this plan has not recorded, or a situation
+    the library does not carry, or was not of the form `FILE=SITUATION`."""
+
+
+def apply_situations_of(conn: sqlite3.Connection, catalogue: TemplateCatalogue,
+                        situations_of: Sequence[str], *, user_id: str,
+                        observed_at: str) -> None:
+    """`--situation-of FILE=SITUATION`: the person's word about ONE file.
+
+    `00` amendment 5 of 15 Sep promised "the person corrects it in one structure
+    edit" and the only writer was branch-scoped (`--answer situation:<branch>=`).
+    `104` §18.110 made it urgent: a protected record is shown to no model and is
+    filed by the person, and `--file-held` ("keep it here, file it by hand") had
+    the first half of that and no second. This is the second half.
+
+    The file is found by `_named_file`'s rule (every row P1 has not retired, and
+    two of one name are refused with both paths); the situation by
+    `_validate_situation`, the one place a typed situation is checked and that
+    offers "Did you mean". The write is P6's (`facts.learning.assert_situation`);
+    this turns one string into three words. `_named_file`'s refusal is re-said
+    under this gesture's own name, so the person reads the flag they typed.
+    """
+    for raw in situations_of:
+        filename, sep, situation = raw.partition("=")
+        if not sep or not filename or not situation:
+            raise SituationOfRefused(
+                f"{raw!r} is not a situation. The form is "
+                "`--situation-of <file>=<situation>`, for example "
+                "`--situation-of 'week 3.pdf=academic.teaching'`; "
+                "--list-situations prints the situations there are.")
+        _validate_situation(catalogue, situation)
+        # AND THE KIND IT BELONGS TO, refused here rather than mid-run: the
+        # run reads the person's word as a schema too (`_the_schema_named_for_
+        # this_file`), and `schema_for_situation` refuses a situation the
+        # release carries under two kinds. `ConfigurationRequired` lands in
+        # `main`'s handler like every other refusal.
+        schema_for_situation(catalogue, situation)
+        try:
+            row = _named_file(conn, filename, "--situation-of")
+        except ConfirmationRefused as refusal:
+            raise SituationOfRefused(str(refusal)) from refusal
+        assert_situation(conn, file_id=row["file_id"],
+                         content_hash=row["content_hash"], situation=situation,
+                         user_id=user_id, observed_at=observed_at)
 
 
 def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
@@ -22718,8 +22967,38 @@ def situation_schema_id(situation_id: str) -> str | None:
     return None if found is None else found[0]
 
 
+def _files_held_by_node(conn: sqlite3.Connection,
+                        result: ProductionRun) -> dict[str, list[str]]:
+    """node_id -> the files under it, for the outline's counts.
+
+    From the placement where one exists. Under `--stop-after tree` (`106` Phase
+    5.3) nothing is placed yet, so a TOP folder is described by the files of the
+    groups it was built from -- the same reader `accept_drafted_groups` counts
+    with -- and a level beneath it says nothing about counts, because saying
+    which files a LEVEL holds is placement's answer and this run was told not
+    to give it. Read here and passed IN to `structure_rows`, which composes an
+    outline and holds no connection.
+    """
+    holds: dict[str, list[str]] = {}
+    if result.placement is not None:
+        for decision in result.placement.decisions:
+            if decision.destination is not None:
+                holds.setdefault(decision.destination.node_id, []).extend(
+                    _files_of(decision))
+        return holds
+    for node in result.tree.tree.nodes:
+        if node.parent_node_id is None:
+            holds[node.node_id] = [
+                membership.file_id
+                for group_id in node.associated_group_ids
+                for membership in memberships_for_group(conn, group_id)
+                if membership.decision == INCLUDED]
+    return holds
+
+
 def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
-                   words_of) -> tuple[StructureRow, ...]:
+                   words_of, holds: Mapping[str, Sequence[str]] | None = None,
+                   ) -> tuple[StructureRow, ...]:
     """The proposed tree as the outline the person edits.
 
     `00` amendment 2 of 14 Sep: the tree the design stage proposes IS the
@@ -22735,13 +23014,18 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
 
     `situations` is the run's own answer -- file id to the situation that file is
     under -- and `words_of` the library's sentence for one. Both passed in, on
-    `report`'s rule: this composes an outline and holds no vocabulary.
+    `report`'s rule: this composes an outline and holds no vocabulary. `holds`
+    (node id -> the files under it) is passed in for the same reason since
+    `106` Phase 5.3 -- `_files_held_by_node` reads it off the placement, or off
+    the groups when the run stopped at the tree; absent, it is read off the
+    placement here, which is what every caller before that phase did.
     """
-    holds: dict[str, list[str]] = {}
-    for decision in result.placement.decisions:
-        if decision.destination is not None:
-            holds.setdefault(decision.destination.node_id, []).extend(
-                _files_of(decision))
+    if holds is None:
+        holds = {}
+        for decision in result.placement.decisions:
+            if decision.destination is not None:
+                holds.setdefault(decision.destination.node_id, []).extend(
+                    _files_of(decision))
     by_parent = _children_of(result.tree.tree.nodes)
 
     def under(node_id: str) -> list[str]:
@@ -24474,6 +24758,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "again. Nothing moves -- --freeze and --apply are what move files. "
              "Can be given more than once.")
     parser.add_argument(
+        # BESIDE `--confirm`: the same lookup, the same strength, one field. It
+        # exists because `--confirm` needs a standing proposal at that value,
+        # and the file this is for -- a protected record no model is shown --
+        # never has one (`104` §18.110).
+        "--situation-of", action="append", default=[], metavar="FILE=SITUATION",
+        help="say which situation one file is part of, e.g. --situation-of "
+             "'week 3.pdf=academic.teaching'. This is your word about THAT "
+             "file: it outranks what any model said and it is what the next "
+             "proposal files that file under. It is "
+             "the one way to file a protected file, which no model is ever "
+             "shown. Name the situation as --list-situations prints it. Can be "
+             "given more than once.")
+    parser.add_argument(
         "--rename", action="append", default=[], metavar="FILE:FIELD=OLD>NEW",
         help="say yes to a value and give it your own wording, e.g. --rename "
              "'week 3.pdf:work_type=Reading Response Draft>reading response'. "
@@ -24622,7 +24919,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "records what it found, and says what it found; nothing is "
              "grouped, no folder is proposed and no file is placed. What the "
              "pass wrote is kept, so a later run without this flag starts from "
-             "it rather than reading your files again.")
+             "it rather than reading your files again. `tree` proposes the "
+             "folders, writes the outline you edit, and stops before any file "
+             "is placed; it needs --accept-groups, because the folders are "
+             "built from the groups.")
     parser.add_argument(
         "--freeze", action="store_true",
         help="turn this run's proposal into a plan you can move files with. "
@@ -24746,7 +25046,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             ("--freeze", args.freeze),
             ("--apply", bool(args.apply)),
             ("--apply-everything", args.apply_everything),
-            ("--accept-groups", args.accept_groups),
+            # `106` Phase 5.3: the tree stage NEEDS the acceptance -- the
+            # folders are built from the groups -- so it is refused beside
+            # every stage but that one.
+            ("--accept-groups", args.accept_groups
+                                and args.stop_after != STOP_AFTER_TREE),
             # A recording names a plan; a run that stops before the plan exists
             # would take the name and announce nothing under it.
             ("--record", bool(getattr(args, "record", None)))) if typed]
@@ -25038,6 +25342,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_renames(conn, args.rename, user_id=args.user,
                           observed_at=now())
+        # BESIDE `--confirm` and `--rename`, before the run and for their
+        # reason: a person who has just said what their protected file IS
+        # should see it under that situation on this run (`104` §18.110). The
+        # run's own resolver reads the row this writes before any other arm.
+        if args.situation_of:
+            _bootstrap(conn)
+            apply_situations_of(conn, catalogue, args.situation_of,
+                                user_id=args.user, observed_at=now())
         # BESIDE them and before the run, for their reason. `--rename` is about a
         # VALUE the model read out of a file; this is about the NAME OF A LEVEL
         # the library proposed, which is a different question asked on the same
@@ -25247,7 +25559,23 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     structure_path = (args.structure_out if args.structure_out is not None
                       else database.parent / STRUCTURE_FILENAME)
     outline = structure_rows(result, situations=situations,
-                             words_of=situation_words)
+                             words_of=situation_words,
+                             holds=_files_held_by_node(conn, result))
+    if result.placement is None:
+        # `--stop-after tree` (`106` Phase 5.3): the proposal is the outline
+        # and nothing was placed, so the report -- which is a report ON A
+        # PLACEMENT, every one of its blocks below reading
+        # `result.placement` -- is not printed. The structure is, the sentence
+        # that says the run stopped here is, and the file is written where
+        # `--structure` reads it back, exactly as an ordinary run writes it.
+        _print_structure(outline, path=structure_path, out=out)
+        _print_stopped_after_tree(result, out=out)
+        structure_path.parent.mkdir(parents=True, exist_ok=True)
+        structure_path.write_text(
+            structure_render(outline, path=str(structure_path),
+                             plan=result.tree.tree.plan_version_id),
+            encoding="utf-8")
+        return 0
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
