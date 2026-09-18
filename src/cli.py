@@ -18512,6 +18512,46 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             situation_fact_of=_situation_fact_of,
             alternatives_of=_alternatives_of)
 
+    def _each_kinds_question_under(branch: Branch) -> list:
+        """A LIFE BRANCH OF TWO KINDS ASKS EACH KIND'S QUESTION OF THAT KIND'S
+        OPEN FILES (`00` amendment 16: Education holds both `academic` and
+        `research`).
+
+        Before amendment 16 a research file in an academic folder had a life of
+        its own, and its kind's question was asked there. Folded into Education
+        beside the academic files it fell under `_asked_of_a_life`'s rule that a
+        branch of two kinds is not one piece of work and asks nothing -- true of
+        the BRANCH, whose situation nobody will be asked for, and false of the
+        file, which was left with no situation, no question and no way out.
+
+        ONE QUESTION PER KIND, NOT ONE FOR THE BRANCH. The person's answer is
+        read at the KIND's scope (`_persons_answer_for` in `partition_by_branch`,
+        `_the_situation_the_person_chose` here) and applied to files of that
+        kind: a research paper is never offered `academic.coursework`, and an
+        answer for `research` never lands on a coursework file. Nothing reads an
+        answer at the life's scope, so a single merged question would reach no
+        file at all. The files are the ones site G named that kind AND whose
+        situation nothing has answered -- the default branch's own per-kind
+        loop, the same rule; the options are the kind's situations that ARE
+        this life, as the one-kind branch offers (`_asked_of_a_life`). Fewer
+        than two options, or no open file, is no question.
+        """
+        questions = []
+        if branch.is_default or len(branch.schemas) < 2:
+            return questions
+        for kind in branch.schemas:
+            files = tuple(file_id for file_id in branch.file_ids
+                          if situation_cell[0].named.get(file_id) == kind
+                          and _the_situation_this_file_is_under(file_id) is None)
+            options = tuple(situation for situation in _situations_of(kind)
+                            if life_of(catalogue, situation) == branch.life)
+            if not files or len(options) < 2:
+                continue
+            questions.append((question_for_situation(
+                branch_label=kind, situations=options, file_count=len(files)),
+                files))
+        return questions
+
     def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
         """The per-branch situation question, recorded for every unsettled branch.
 
@@ -18538,11 +18578,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # file anchored into a sibling or was held between two, and its
             # situation is still what the whole run is waiting on -- so a run that
             # skipped the question would refuse and offer nothing to type.
-            # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES AND IS ASKED
-            # NOTHING (`00` amendment 12): "which situation is Education?" is
-            # not a question when Education holds coursework and a thesis.
-            if (branch.settled or not branch.candidate_situations
-                    or (not branch.file_ids and not branch.is_default)):
+            if branch.settled or (not branch.file_ids and not branch.is_default):
+                continue
+            # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES (`00` amendment
+            # 12): "which situation is Education?" is not a question when
+            # Education holds coursework and a thesis. It is asked EACH KIND'S
+            # question instead, below (amendment 16).
+            if not branch.candidate_situations:
+                for question, files in _each_kinds_question_under(branch):
+                    record_question(conn, question, asked_at=clock)
+                    branch_reaches[question.question_id] = files
+                    asked.append(question)
                 continue
             # A LIFE BRANCH OF ONE KIND ASKS THE KIND'S QUESTION AT THE KIND'S
             # SCOPE. The scope is the key every reader of the person's answer
