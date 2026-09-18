@@ -236,6 +236,8 @@ from model_situation import (
     build_situation_level_request, build_situation_request, question_for,
 )
 from placement import vocabulary as pv
+# `106` Phase 1.3: `placement_words` asks it whether a destination moves.
+from placement import privacy as placement_privacy
 from placement.config import CEILINGS, SupportPolicy, placement_limits
 #: The decisions ONE plan version recorded, read back on a LATER run: which
 #: files the plan put under which folder, which is how an edited outline knows
@@ -20815,6 +20817,54 @@ PLACEMENT_WORDS: dict[str, str] = {
     pv.BLOCKED_PENDING_USER: "Would go into {where}, once you say what these are",
 }
 
+#: `106` Phase 1.3. What a REVIEW_REQUIRED placement says when its destination
+#: does not move files: approving gathers them under that name, and nothing is
+#: moved. `{where}` is still present, because `00`'s rule is that the person is
+#: told where the file WOULD go even when nothing is ready to happen.
+PLACEMENT_WORDS_NOT_MOVED: str = (
+    "Ready for you to approve, then gathered under {where} without being moved")
+
+
+def placement_words(policy: str, *, disposition: str | None) -> str | None:
+    """The headline for one placement, told the truth about its destination.
+
+    `PLACEMENT_WORDS[REVIEW_REQUIRED]` reads "Ready for you to approve, then file
+    into {where}". A send into a residual area whose treatment is `reviewed`
+    records REVIEW_REQUIRED and a disposition that does NOT move files
+    (`placement/privacy.py:336`), and `mutation/plan.py:189` refuses that write at
+    apply -- and MOST SHIPPED AREAS TAKE THAT PATH. So the screen routinely
+    promised a filing that could not happen and a person approved it expecting a
+    move.
+
+    THE PRECEDENT IS `104` R-92, four lines below the call site: "'Once you say
+    what these are' is a promise, and it is kept only where the screen carries a
+    gesture that reaches these files." Same shape, one more input.
+
+    ONLY REVIEW_REQUIRED IS TOUCHED. `AUTO_ELIGIBLE` is about to move the file and
+    `BLOCKED_PENDING_USER` already says nothing will happen yet; changing either
+    would make the screen understate what it does, which is the mirror of the
+    defect and no more honest.
+
+    READ DEFENSIVELY. `moves_files` RAISES on a value outside its closed set, and
+    a disposition this build does not recognise must not take down a report --
+    `104` §17.2's rule that a gap in the vocabulary never becomes a file that
+    vanished, applied to a sentence. Unknown or absent, the words are the ones
+    that were always printed.
+    """
+    # `.get` AND NOT `[...]`, because the call site's own rule is that "an unknown
+    # policy falls back to the outcome's word rather than to silence": a gap in
+    # this deployment's vocabulary must never become a file that vanished, and
+    # subscripting here would turn that fallback into a traceback.
+    ordinary = PLACEMENT_WORDS.get(policy)
+    if policy != pv.REVIEW_REQUIRED or disposition is None:
+        return ordinary
+    try:
+        moves = placement_privacy.moves_files(disposition)
+    except Exception:
+        return ordinary
+    return ordinary if moves else PLACEMENT_WORDS_NOT_MOVED
+
+
 #: What to say when the file is ALREADY in a folder of the destination's name.
 #:
 #: `00`:100: "Existing folders must not be automatically flattened, renamed, or
@@ -22891,7 +22941,14 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
                settled, same_folder, protected_here, locked_here, crossing_here,
-               reaching_here)
+               reaching_here,
+               # `106` Phase 1.3: whether this destination MOVES files. In the
+               # key because it changes the headline, so two placements that
+               # differ only in it must not share a line. `getattr` for
+               # `checked_together`'s stated reason: this function reads a
+               # finished run, and a fixture with fewer fields must not turn a
+               # report into a traceback.
+               getattr(decision, "destination_disposition", None))
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
@@ -22988,7 +23045,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder, _, \
-            locked_here, crossing_here, reaching_here = key
+            locked_here, crossing_here, reaching_here, disposition_here = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
@@ -22997,7 +23054,14 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # this deployment's vocabulary must never become a file that vanished.
         words = (SAME_FOLDER if same_folder
                  else ALREADY_THERE if settled else PLACEMENT_WORDS)
-        sentence = words.get(policy) if outcome == pv.PLACE else None
+        # `106` Phase 1.3: only the ordinary placement words can promise a
+        # filing, so only they are asked whether this destination keeps it. A
+        # file already in the folder, or already settled there, is not being
+        # promised a move by either of the other two tables.
+        if outcome == pv.PLACE and words is PLACEMENT_WORDS:
+            sentence = placement_words(policy, disposition=disposition_here)
+        else:
+            sentence = words.get(policy) if outcome == pv.PLACE else None
         # `104` R-92, on the heading rather than under it. "Once you say what
         # these are" is a promise, and it is kept only where the screen carries
         # a gesture that reaches these files. Where it does not, the sentence
