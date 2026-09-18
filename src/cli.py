@@ -383,7 +383,7 @@ from readers.model_routing import (
     FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting,
     cloud_and_local_routing, deepseek_routing, ollama_routing,
 )
-from facts.domains import SCHEMA_IDS
+from facts.domains import SCHEMA_IDS, schema_fields
 from recognition.detector import (
     FIRST_PAGE, NAMING_ZONES, RELIABILITY as DETECTOR_RELIABILITY,
     SAFETY_DOMAIN_HANDLING, Detector, Handling, Recognition,
@@ -7535,6 +7535,10 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # schema unconditionally active and adds every other one this file's own
         # facts reach, so a file with two lives is asked about both.
         activation_signals=evidence_activation(schema),
+        # The schema's own fields, for the no-situation arm's settled half
+        # (`model_facts.settled_half_of_the_question`). Re-set per schema at
+        # every `dataclasses.replace` in `_model_fact_pass`, beside the signals.
+        schema_fields=schema_fields(schema),
         folder_levels=folder_levels,
         group_level_fields=group_level_fields,
         # §3.6 check 3's per-field alias tables are a Deferred row and this
@@ -18475,6 +18479,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     authorities=dataclasses.replace(
                         authorities,
                         activation_signals=evidence_activation(branch.schema),
+                        schema_fields=schema_fields(branch.schema),
                         folder_levels=tuple(
                             level for level in levels
                             if level.field not in group_levels),
@@ -18689,6 +18694,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     authorities=dataclasses.replace(
                         authorities,
                         activation_signals=evidence_activation(schema_id),
+                        schema_fields=schema_fields(schema_id),
                         folder_levels=tuple(
                             level for level in levels
                             if level.field not in group_levels),
@@ -18710,6 +18716,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 authorities=dataclasses.replace(
                     authorities,
                     activation_signals=evidence_activation(schema_id),
+                    schema_fields=schema_fields(schema_id),
                     folder_levels=None, anchor_only=None,
                     deferred_readings=rules.schemas[
                         schema_id].deferred_readings))
@@ -18749,6 +18756,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 authorities=dataclasses.replace(
                     authorities,
                     activation_signals=evidence_activation(schema_id),
+                    schema_fields=schema_fields(schema_id),
                     folder_levels=tuple(level for level in levels
                                         if level.field not in group_levels),
                     deferred_readings=rules.schemas[

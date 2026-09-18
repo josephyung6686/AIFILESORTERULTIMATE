@@ -405,6 +405,43 @@ def open_question(pending: Sequence[str],
     return order_vocabulary_by_levels(offered, visible), visible
 
 
+def settled_half_of_the_question(
+        settled: Sequence[str],
+        folder_levels: Sequence[FolderLevel] | None,
+        schema_fields: Sequence[str] = ()) -> tuple[str, ...]:
+    """The settled fields `open_question` is handed: which of them are re-opened.
+
+    WITH A SITUATION, only the settled fields that are LEVELS of it (`104` §18.2
+    gap 1): `anchor_only_levels` adds `school` to an anchor's levels under `105`
+    §14.4, and a settled `school` re-opened through this half would put back the
+    per-file school question `104` §11.2 step 2 withdrew -- the one twenty files
+    answered with whatever institution each mentioned (`104` §11.1). R-131
+    restored that question to the files that can answer it and left it withdrawn
+    everywhere else; gap 1 is about the rules deciding a level behind the model's
+    back, and it has no business widening a different ruling.
+
+    WITH NO SITUATION (`None`), the settled fields the SCHEMA DECLARES. There are
+    no levels to intersect with, and the intersection with nothing was NOTHING:
+    every field the rules settled vanished from the flat question, which is the
+    silent narrowing gap 1 exists to end. It went unnoticed while no `research`
+    field had a deterministic producer; `106` Phase 6.2 gave it one, `cover letter`
+    is a shipped `research` term, and a silent file of that name was asked seven of
+    its schema's eight fields (18 Sep 2026). The schema's fields and not the whole
+    settled set, because the flat arm asks THE SCHEMA'S OWN QUESTION: the same
+    filename settles `work_type` corpus-wide, and a research file re-opened on
+    `work_type` would be asked a coursework field it has no folder for -- which is
+    the per-situation rule ("a settled field that is not a LEVEL is still not
+    asked") read with the only level set this arm can know. `open_question`'s
+    `None` arm still strips the group-level fields, so `school` stays withdrawn on
+    this path too (`00` amendment 15).
+    """
+    if folder_levels is None:
+        declared = frozenset(schema_fields)
+        return tuple(field for field in settled if field in declared)
+    level_fields = {level.field for level in folder_levels}
+    return tuple(field for field in settled if field in level_fields)
+
+
 @dataclass(frozen=True)
 class AnchorOnlyLevels:
     """The levels asked of an ANCHOR and of no other file (`105` §14.4, `104` R-131).
@@ -825,6 +862,14 @@ class FactCallAuthorities:
     #: must not start withholding by omission, because a field withheld here is a
     #: field no model is ever asked and a fact that is never written.
     group_level_fields: tuple[str, ...] = ()
+    #: THE SCHEMA'S OWN FIELDS (`facts.domains.schema_fields`), read by the
+    #: no-situation arm alone: with no levels to name the settled half of the
+    #: question, the settled fields the schema DECLARES are the ones re-opened
+    #: with a flag (`settled_half_of_the_question`). Handed down by the composition
+    #: root like `group_level_fields`, and defaulted to empty for the same reason
+    #: read the other way: a bundle that was not told the schema re-opens nothing
+    #: in that arm, which is what the arm did before 18 Sep 2026.
+    schema_fields: tuple[str, ...] = ()
     #: WHICH MODEL ANSWERS ABOUT THIS FILE, or `None` for a file that may reach
     #: none (`104` §17.13 ruling 3). `cli.target_for` builds it: it asks
     #: `model_route_permitted` for the cloud first and the local second and hands
@@ -2977,27 +3022,17 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # question is one flag. That narrowness is stated rather than hidden: a file
         # whose every ordinary level is settled and whose only re-openable field is
         # the anchor's `school` is still declined here, exactly as before gap 1.
-        # `or ()` IS THE NO-SITUATION STATE AND NOT A DEFENCE. `folder_levels`
-        # is `None` when a SCHEMA is known and no situation has been chosen
-        # under it, and such a call is built and sent: the fields are the
-        # schema's and only the LEVELS belong to the situation. `()` is still
+        # THE SETTLED HALF OF THE QUESTION, COMPUTED ONCE, by
+        # `settled_half_of_the_question`, which carries the whole argument: with a
+        # situation, only the settled fields it builds folders from (R-131's
+        # `school` stays withdrawn); with NONE -- a schema known and no situation
+        # chosen under it -- every settled field, because the intersection with no
+        # levels was nothing and a rule-settled schema field was silently unasked
+        # (18 Sep 2026). `None` is the state that says so out loud; `()` is still
         # refused at `__post_init__`, so the silent flat-vocabulary dossier
-        # `require_folder_levels` exists against is still impossible -- what
-        # is permitted here is the state that says so out loud.
-        run_level_fields = {level.field
-                            for level in (authorities.folder_levels or ())}
-        # THE SETTLED HALF OF THE QUESTION, COMPUTED ONCE. It is the settled fields
-        # the RUN's own situation builds folders from, and it is deliberately not
-        # every settled field the file carries: `anchor_only_levels` adds `school` to
-        # an anchor's levels under `105` §14.4, and a settled `school` re-opened here
-        # would put back the per-file school question `104` §11.2 step 2 withdrew --
-        # the one twenty files answered with whatever institution each of them
-        # mentioned, filing five university essays under a high school (`104` §11.1).
-        # R-131 restored that question to the files that can answer it and left it
-        # withdrawn everywhere else; gap 1 is about the rules deciding a level behind
-        # the model's back, and it has no business widening a different ruling.
-        settled_levels = tuple(
-            field for field in settled if field in run_level_fields)
+        # `require_folder_levels` exists against is still impossible.
+        settled_levels = settled_half_of_the_question(
+            settled, authorities.folder_levels, authorities.schema_fields)
         if not pending and not settled_levels:
             # THE ONE DECLINE THAT IS NOT A GAP IN COVERAGE. Every field the schema
             # allows is settled AND none of the settled ones is a folder level this
