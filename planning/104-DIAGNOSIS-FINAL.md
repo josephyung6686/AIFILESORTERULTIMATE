@@ -2848,6 +2848,78 @@ map a judge's `academic.records` back through `academic` to a key that says
 not be re-claimed until the grader prefers the fact's own value where it is
 already a situation id.
 
+### 18.109 THE FACTS ARE NOT UNASKED. THEY ARE ASKED AND REFUSED, IN TWO DIFFERENT WAYS (18 Sep, 00:30)
+
+§18.108 stopped one question short. It counted the facts that EXIST and concluded
+the folders have nothing to write in them, which is true. It did not ask what
+happened to the ones that do not exist, and the run has recorded that all along in
+`unresolved`. A Fable analyst drafting Phase 6 refused the brief's premise and
+named the two queries; both were owed under §18.100's own rule.
+
+**WHO WROTE WHAT EXISTS** (`file_facts`, active, per field, origin and state):
+
+```
+file_type    llm_interpretation llm_supported 249      situation  llm_interpretation llm_supported 222
+duplicate_family deterministic_extractor direct 70     creation_date llm_interpretation llm_supported 47
+media_type   rule               validated      39      work_type  rule               validated      37
+authored_by  llm_interpretation llm_supported  34      subject    llm_interpretation possible       18
+institution  llm_interpretation llm_supported  17      subject    rule               validated      17
+```
+
+**AND WHAT WAS REFUSED, WHICH IS THE ANSWER** (`unresolved`, per field and reason):
+
+```
+term       no_candidate_evidence  368 of 371        work_type  no_candidate_evidence  332
+subject    model_returned_unknown 128               institution model_returned_unknown 119
+work_type  model_returned_unknown 163               term       model_returned_unknown 144
+authored_by discounted_tool_metadata 105
+```
+
+**TWO CAUSES, AND THEY WANT OPPOSITE FIXES.**
+
+* **`no_candidate_evidence` -- THE PACKAGING FAILED.** `term` on 368 of 371 files
+  and `work_type` on 332. The field was asked and the released evidence held no
+  candidate to answer from: no model declined anything, because no model was ever
+  given the chance. This is the constitution's own sentence failing -- *"we
+  package the data so it is easy and fast for the model"* -- and `work_type` is
+  one of the TWO fields the library marks `required` for coursework folders
+  (`folder_levels_for('academic.coursework')`: `school` optional and group-level,
+  `term` optional, `subject` REQUIRED, `work_type` REQUIRED).
+* **`model_returned_unknown` -- THE MODEL DECLINED.** `subject` on 128 files and
+  `institution` on 119. The evidence reached a judge and the judge would not name
+  a value. That is a prompt and evidence-QUALITY question, and it is the one site
+  A_fact's text is for.
+
+**A PHASE THAT TREATS THESE AS ONE PROBLEM WILL FIX NEITHER.** Extraction work
+does nothing for a field the model saw and declined; prompt work does nothing for
+a field with no candidate in the dossier.
+
+**AND THE REGEX IS STILL DECIDING THE FOLDER.** `subject` is 18 rows
+`llm_interpretation/possible` against 17 rows `rule/validated`. A pattern produces
+more VALIDATED subjects than the judge produces SUPPORTED ones, and `validated`
+outranks `possible` on §3.13's ladder -- so on a file where both fired, the regex
+wins the folder. §18.2 gap 1 recorded this shape on r15 ("the field that decides
+where the file goes was decided by a pattern, silently"); it is still true, and it
+is now measurable against the coursework sheet.
+
+**THE COURSEWORK SLICE, which is what the owner is filling.** 79 files the judge
+put under `academic`. Blank per level: `school` 78 (optional, answered once per
+group), `term` 77 (optional), `work_type` 60 (REQUIRED), `subject` 52 (REQUIRED).
+The product knows the Course for 27 of 79 coursework files and the Kind of work
+for 19. Written to the lead's review folder as `18_coursework_key/`.
+
+**A CORRECTION §18.108 EARNED AND DID NOT GET.** The lead told the owner the 49
+groups would become 49 root siblings and that `00`:67's fold has "no producer at
+all". Both are wrong. `_grouped_by_branch` (`cli.py:10946`) buckets P9's groups by
+BRANCH and `_draft_as_one` (`cli.py:10990`) merges each bucket into one draft, so
+the seven roots ARE the seven branches and the fold already exists one level
+upstream of `horizontal_candidates`. Phase 4 is still owed, for a sharper reason:
+a merged draft carries exactly ONE `group_category` and `eligible_rows`
+(`routing.py:193`) admits a template row only when its schema is in the context's
+domains -- so a LIFE that spans schemas (Education holds `academic` beside
+`college_applications`) renders TWICE without a fold of same-label cards into one
+candidate with plural `accepted_group_ids`.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
