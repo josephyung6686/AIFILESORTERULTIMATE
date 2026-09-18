@@ -223,8 +223,20 @@ def _normaliser():
 
 
 def _screen(printed: str, corpus: Path, database: Path) -> list[str]:
-    text = printed.replace(str(corpus), "<corpus>").replace(
-        str(database), "<database>")
+    # THE HOLDER DIRECTORY IS ON THE SCREEN TOO, and until 18 Sep it was not
+    # normalised. `00`'s editable-structure block prints the path of
+    # `proposed-structure.txt`, which lives beside the database and is neither the
+    # corpus nor the database -- so a recapture baked one pytest tmp directory
+    # into the fixture and the next run, under a different one, failed. Longest
+    # paths first, and the RESOLVED spelling before the raw one: macOS puts a
+    # temporary directory under `/var/folders`, a symlink to `/private/var/
+    # folders`, and the run records whichever spelling it was handed -- the same
+    # reason `say()` already does this for the table rows.
+    text = printed
+    for path, name in ((database, "<database>"), (corpus, "<corpus>"),
+                       (database.parent, "<holder>")):
+        for spelling in (path.resolve(), path):
+            text = text.replace(str(spelling), name)
     text = PLAN_VERSION.sub(lambda found: f"<plan:{found.group(1)}>", text)
     text = NODE_ID.sub(lambda found: f"<node:{found.group(1)}>", text)
     text = UUID.sub("<uuid>", text)
