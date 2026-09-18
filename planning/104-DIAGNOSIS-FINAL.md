@@ -2890,6 +2890,38 @@ authored_by discounted_tool_metadata 105
   a value. That is a prompt and evidence-QUALITY question, and it is the one site
   A_fact's text is for.
 
+**CORRECTED 18 Sep, 06:40 — THE PARAGRAPH ABOVE IS WRONG AND THE ROWS SAY SO.**
+A Fable analyst building Phase 6 refused this reading, and the column settles it:
+
+```
+select field_key, attempted_producers, count(distinct file_id)
+from unresolved where reason='no_candidate_evidence' and superseded_by is null
+
+term        ["rule"]   368        work_type   ["rule"]   332        media_type ["rule"] 9
+```
+
+**Every one of those rows is the RULE route.** Not one came from the model seam.
+`no_candidate_evidence` does NOT mean "the field was asked and the released
+evidence held no candidate, so no model was ever given the chance". It means the
+DETERMINISTIC producer -- a season-year pattern for `term`, a naming-zone term for
+`work_type` -- found nothing on that file, which is that producer abstaining and is
+its ordinary behaviour. `facts/facets.py:179` writes it with
+`attempted_producers=(RULE_ROUTE,)`; `model_facts.py:190` maps two model-seam
+outcomes onto the same reason, so the code alone cannot tell them apart -- **the
+`attempted_producers` column can, and it was there the whole time.**
+
+So there are not two buckets wanting opposite fixes. The model-side signal for
+these fields is `model_returned_unknown`: `term` 144, `work_type` 163, `subject`
+128, `institution` 119. **Whether the model's packaging is adequate is a real
+question and these rows do not answer it** -- and the lead must not now swing to
+the opposite overclaim. It needs its own measurement.
+
+The lead built a story on a column NAME, having just written §18.100's rule about
+building stories on numbers. Seventh instance in [[read-the-runs-own-screen-first]].
+What the lead got right is the consequence: these fields are thin, and Phase 6's
+producers are the answer. What the lead got wrong is WHY, and therefore WHICH
+producers.
+
 **A PHASE THAT TREATS THESE AS ONE PROBLEM WILL FIX NEITHER.** Extraction work
 does nothing for a field the model saw and declined; prompt work does nothing for
 a field with no candidate in the dossier.
