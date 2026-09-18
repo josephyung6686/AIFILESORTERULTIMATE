@@ -6020,6 +6020,85 @@ def _cited_line(conn: sqlite3.Connection, fact_id: str, value: str) -> str | Non
     return first
 
 
+def _print_schools_one_document_names(conn: sqlite3.Connection, out, *,
+                                      show_protected: bool = False) -> None:
+    """`106` Phase 6.4: a school ONE anchor names, put to the person.
+
+    `105` §14.4 builds a school level from two independent anchors in one scope, and
+    `tree_design.upstream._group_level_agreed` says what a course with one syllabus
+    gets: "a school on that syllabus and no school level". The person's own answer
+    is admitted alone by that same function, and `--confirm` already writes it. This
+    is the sentence between the two: what the one document said, and what to type.
+
+    ANCHORS ONLY, by the file's own settled kind (`SCHOOL_ANCHOR_KINDS`), which is
+    the same admission `anchor_only_levels` makes before site A is asked -- a
+    `school` the model wrote off an essay's header is not offered, because §14.4's
+    reason is that only an anchor's own text establishes the relationship.
+
+    ONE STATE, `llm_supported`: it is the state P8 gives a checked citation and the
+    one the two-anchor rule counts. A `possible` school is below the ladder and its
+    review path is the owner's open question at `REVIEW_NORMALISED_FIELDS`; a
+    stronger one is settled and asks nothing. A file carrying a `user_confirmed`
+    school is skipped whatever else it carries (`00`:298, once).
+
+    NOTHING HERE ASKS A MODEL FOR A SCHOOL. `104` R-95 is what happens when one file
+    is asked: a guess off a filename that poisons a group dossier. This reads only
+    what the fact pass has already written and cited.
+    """
+    rows_by_field = versions_in_fields(conn, field_keys=(WORK_TYPE_FIELD, "school"))
+    kinds: dict[str, str] = {}
+    schools: dict[str, list[sqlite3.Row]] = {}
+    confirmed: set[str] = set()
+    for rows in rows_by_field.values():
+        for row in rows:
+            if not row["active"] or row["superseded_by"] is not None:
+                continue
+            # `strength` raises for `rejected`, and a rejected row can be active:
+            # the sibling `_print_values_to_confirm` tests membership before the
+            # ladder for the same reason. A rejected kind is an exclusion, not a
+            # weaker answer.
+            if row["reliability_state"] == REJECTED_STATE:
+                continue
+            if row["field_key"] == WORK_TYPE_FIELD:
+                if strength(row["reliability_state"]) > strength(LLM_SUPPORTED_STATE):
+                    kinds[row["file_id"]] = row["canonical_value"]
+                continue
+            if row["reliability_state"] == USER_CONFIRMED:
+                confirmed.add(row["file_id"])
+            elif row["reliability_state"] == LLM_SUPPORTED_STATE:
+                schools.setdefault(row["file_id"], []).append(row)
+    # The table is asked for rather than assumed, for `_print_values_to_confirm`'s
+    # reason: a database with no `classifications` table has classified nothing,
+    # so the empty set is the true answer and not a default.
+    withheld: set[str] = set()
+    if not show_protected and conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'classifications'").fetchone() is not None:
+        withheld = _protected_file_ids(conn)
+    offered = [(file_id, rows) for file_id, rows in sorted(schools.items())
+               if kinds.get(file_id) in SCHOOL_ANCHOR_KINDS
+               and file_id not in confirmed and file_id not in withheld]
+    if not offered:
+        return
+    print("\nA school one document names, waiting on you:", file=out)
+    print(_wrapped(
+        "A school becomes a folder when two independent documents of a course agree "
+        "on it, or when you say so. Each line below is one document naming one "
+        "school and no second document to agree with it. Nothing is filed under a "
+        "school until it is confirmed.", indent="  "), file=out)
+    for file_id, rows in offered:
+        filename = get_file(conn, file_id)["filename"]
+        for row in rows:
+            cited = evidence_chain(conn, fact_id=row["fact_id"])
+            print(f"\n  {filename} ({kinds[file_id]}) names "
+                  f"{row['canonical_value']!r}", file=out)
+            if cited:
+                print(_wrapped(f"the line it read: {cited[0].raw_value}",
+                               indent="    "), file=out)
+            print(f"    --confirm '{filename}:school={row['canonical_value']}'",
+                  file=out)
+
+
 def _print_values_to_confirm(conn: sqlite3.Connection, out, *,
                              show_protected: bool = False) -> None:
     """`104` §18.2 gap 3's last clause: *a proposal the person SEES*.
@@ -19376,6 +19455,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # person must judge exists is the row the pass just wrote.
         _print_values_to_confirm(conn, out,
                                  show_protected=show_protected)
+        # `106` Phase 6.4. A school ONE anchor names, which the two-anchor rule
+        # drops and the person's own `--confirm` would carry alone.
+        _print_schools_one_document_names(conn, out,
+                                          show_protected=show_protected)
         # `104` §18.2 gap 10. WHAT THE PASS SAW, HANDED OUT WHOLE. The
         # reconciliation runs whether or not this function reached this line, so
         # it cannot be written here; what it can be given is every verdict this
