@@ -543,3 +543,32 @@ and every split can be changed before freeze", unbuilt.
 person" is not only about coverage -- `medical` 0 rows, `academic` 11 for 95 files.
 It is also about AUTHORITY: a split order authored once in a shipped row is the
 library deciding something that belongs to the person.
+
+**25. AN UNJUDGED FILE STAYS VISIBLY UNJUDGED. THE DEFAULT BRANCH IS NOT SETTLED BY
+THE MAJORITY KIND'S ANSWER.** The owner, 18 Sep, shown the three options.
+
+`104` §18.114: run 25 put 113 of the owner's 371 files in one root labelled
+`career.recruiting`. Those files are the residue site G never answered for. They
+wear that situation because on an untyped run `default_schema` is the corpus's
+MAJORITY KIND, so the person's `--answer` for that kind settled the default branch
+as well.
+
+**This is the product asserting a situation neither the person nor the model gave.**
+§17.9 orders the person above the model and the model above silence; it nowhere
+licenses a third voice. A person reading that screen would reasonably believe 113
+of their files are job-search material, and most are not.
+
+So: on an untyped run the default branch carries NO situation unless the person
+answers at the default's own scope. No situation means no template, which means no
+folder levels are built beneath it -- and that is correct, not a loss. The screen
+says plainly that nobody has said what these are, and names the two ways to answer.
+
+**WHAT THIS COSTS, ACCEPTED.** More unanswered branches on a first run, and a
+default root with no depth until the person or a model speaks. The owner chose
+that over a label nothing established.
+
+**TWO PINNED TESTS MUST BE RE-ARGUED, NOT DELETED**
+(`tests/test_branch_situation_lives.py:158` and `:232`). Their rationale was
+ratified and this ruling supersedes it; the new reasoning is recorded in the test
+that replaces each, in the repository's own style. A test deleted to make a suite
+green is how a ruling gets lost.
