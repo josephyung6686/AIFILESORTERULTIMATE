@@ -616,3 +616,40 @@ siblings was never reached by the rule and is not reached by this amendment eith
 **WHAT THIS COSTS, ACCEPTED.** Deeper trees on sparse corpora, and folders holding
 one file each where a person might have preferred four loose files. The owner chose
 that over a course folder whose kinds are invisible.
+
+## Amendments of 2026-09-19, second sitting (the owner, four questions with the trade-offs drawn)
+
+**28. THE SITUATION QUESTION IS KEYED BY LIFE AND KIND TOGETHER, NOT BY THE KIND
+ALONE.** Two branches of one kind both minted `situation:academic`,
+`questions.store.record_question` is `ON CONFLICT DO NOTHING`, so the second was
+dropped: both printed, one existed, and the options under the dropped one belonged
+to the other branch. The owner chose the composite key -- `situation:Education/
+academic` -- over an opaque branch id, because the line they type has to say which
+branch it answers.
+
+**WHAT THIS COSTS, AND IT IS THE WHOLE RISK.** The key is what every reader of the
+person's answer joins on, and answers already in their database are filed under the
+bare kind. **A reader that looks only for the new key silently loses every answer
+they have already given** -- and no test would catch it, because the fixtures write
+both halves. The old key is therefore read as a FALLBACK, not migrated away,
+until the owner says their standing answers may be rewritten.
+
+**29. THE GATE GRADER BELONGS IN THE REPOSITORY.** `grade_gate1.py` produced a
+number quoted in `106` and `108` from inside `.groundtruth/`, which is ignored to
+protect the corpus and the answer key -- so the logic behind a headline figure
+could not be reviewed or diffed, and a fix to it died with the session. The SCRIPT
+is tracked; the answer key and the corpus stay ignored, and it keeps printing
+aggregates only.
+
+**30. SITE G NAMES A KIND, NOT A SITUATION.** The shortlist is 23 schema ids and
+the field is called `situation`, which w2c measured and raised as a mismatch. The
+owner ruled the unit: **the judge names the KIND**, and which situation within it
+remains the person's answer. So the code is right and the NAME is wrong, and the
+open question is closed rather than left to be rediscovered.
+
+**AND `grade_gate1.py`'S BRIDGE IS CORRECT AS WRITTEN.** It maps a key situation to
+a set of KINDS and tests exact membership. `108` §5 said the 97.7 % could not be
+re-claimed because the grader would score a disagreement as a match through a
+prefix fallback. There is no prefix fallback in that file, and under this amendment
+its bridge holds the right unit. The number is unquotable only because nobody has
+re-run it.
