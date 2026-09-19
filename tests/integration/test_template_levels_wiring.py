@@ -351,12 +351,25 @@ def test_the_stage_asks_open_question_about_pending_and_not_the_whole_allowlist(
              if isinstance(node, ast.Call)
              and isinstance(node.func, ast.Name)
              and node.func.id == "open_question"]
-    assert len(calls) == 1, "one question per call, built in one place"
-    first = calls[0].args[0]
-    assert isinstance(first, ast.Name) and first.id == "pending", (
-        "the vocabulary offered is the PENDING set. `request.allowlist` here is the "
-        "whole active schema, which spends claims on questions a stronger fact has "
-        "already closed and gives the answer more ways to malform")
+    # RE-ARGUED FOR `d8dd85b1`, WHICH MADE THIS TWO CALLS ON PURPOSE. The stage
+    # now asks `open_question` twice: once to ORDER the released observations, and
+    # once to decide the VOCABULARY. They are deliberately not the same question --
+    # the ordering call leaves the anchor's own levels out, because those need a
+    # request this stage has not built yet -- so "exactly one call" stopped being
+    # true of a design that is correct.
+    #
+    # WHAT THE GUARD IS ACTUALLY FOR is unchanged, and asserting it over EVERY
+    # call is stronger than asserting it over one: the first argument must be the
+    # PENDING set. `request.allowlist` there is the whole active schema, which
+    # spends claims on questions a stronger fact has already closed and gives the
+    # answer more ways to malform. Sabotaging exactly that produced no red test,
+    # which is why this exists.
+    assert calls, "the stage asks no question at all"
+    for call in calls:
+        first = call.args[0]
+        assert isinstance(first, ast.Name) and first.id == "pending", (
+            f"open_question at line {call.lineno} is handed "
+            f"{ast.dump(first)[:60]} rather than `pending`")
 
 
 def test_the_model_is_shown_the_filename_and_not_only_the_body():
