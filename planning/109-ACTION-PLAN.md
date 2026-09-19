@@ -165,10 +165,28 @@ the one that actually refused:
    in the folder"*. Nothing was typed, and each branch now carries its own
    situation. That screen was unreachable on an untyped run before A1 and is
    reachable now, so the fix made a lie visible rather than writing one.
-2. **Two branches can print the same question.** The screen asks *"Which of these
-   is academic?"* twice — once for the unsettled default and once for a non-default
-   academic branch — and offers `--answer situation:academic=...` for both. The
-   person cannot address one of them.
+2. **TWO BRANCHES MINT ONE QUESTION ID, AND ONE OF THEM IS SILENTLY DROPPED.**
+   Traced in code, not inferred. `cli.py:18921` keys the question
+   `branch_label=(branch.label if branch.is_default else branch.schemas[0])`;
+   `questions/triggers.py:366` builds `question_id=f"{SITUATION_KIND.kind_id}:{branch_label}"`;
+   `questions/store.record_question` is `ON CONFLICT (question_id) DO NOTHING`. On
+   an UNTYPED run the default's label is its majority kind, so a default whose
+   majority kind is `academic` and a sibling life branch whose `schemas[0]` is
+   `academic` both mint `situation:academic`.
+
+   **Both are printed** — they are appended to `asked` in the same loop — **and
+   only the first is stored.** The person is shown two questions, one of which does
+   not exist in the store; the options printed under it are the OTHER branch's; and
+   answering settles whichever branch was recorded first. The second branch's files
+   can never be answered for at all. Reproduced on the A1 fixture: the screen asks
+   "Which of these is academic?" twice, for a 1-file default and a 4-file branch.
+
+   **NOT FIXED HERE, deliberately.** That key is what every reader of the person's
+   answer joins on — `_the_situation_the_person_chose`, the partition's arm 0, the
+   resolver loop — and `18921`'s own comment says it is "the key every answer
+   already in the person's database was filed under while a kind was a branch".
+   Changing it migrates answers the owner has already given. The owner picks: a
+   composite key (life + kind), or a branch id no display string can collide with.
 
 ---
 
