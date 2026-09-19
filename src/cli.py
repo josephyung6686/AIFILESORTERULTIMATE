@@ -16974,6 +16974,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return found
 
     def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
+        # `run_signal` is read for ONE of `signals_for_branch`'s three cases --
+        # a group no branch reaches -- and a run whose default nobody has named
+        # has no word of the person's to offer there. `00` amendment 9 forbids
+        # borrowing one, so that case is the empty set rather than a `said()`
+        # that refuses. Decided BEFORE the call because Python evaluates the
+        # argument either way, and `said()` is what refuses.
+        if not of_the_run:
+            return (frozenset() if branch is None
+                    else signals_for_branch(
+                        branch, situations_of=_situations_of_these_files,
+                        run_signal=""))
         return signals_for_branch(branch,
                                   situations_of=_situations_of_these_files,
                                   run_signal=said().signal)
@@ -17189,8 +17200,22 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 if branch is not None:
                     branch_of_group[merged_id] = branch
 
-            drafted = draft_for_review(db, results, group_category=said().schema,
-                                       label=said().label, created_at=clock,
+            # `group_category` AND `label` ARE NOT READ ON THIS PATH. With
+            # `branch_for` passed, `draft_for_review`'s buckets come whole from
+            # `_grouped_by_branch`, which names each draft after the BRANCH a
+            # strict majority of its members are under; these two are the
+            # one-branch path's arguments and this call passes them only because
+            # they are positional in the signature. They are the default
+            # branch's own kind and name here, so an unsettled run has an honest
+            # value to pass rather than a `said()` that refuses for a value
+            # nothing goes on to read.
+            drafted = draft_for_review(db, results,
+                                       group_category=(
+                                           said().schema if of_the_run
+                                           else partition.default.schemas[0]),
+                                       label=(said().label if of_the_run
+                                              else partition.default.label),
+                                       created_at=clock,
                                        branch_for=partition.branch_of,
                                        default_branch=partition.default,
                                        on_accepted=remember,
@@ -17199,7 +17224,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             drafts.extend(drafted)
         if accept_drafts:
             accept_drafted_groups(
-                db, drafted, label=said().label, session_id=PLAN_VERSION,
+                # THE NAME THE PERSON SEES, and with no run-situation typed that
+                # is the default branch's own label -- the word already printed
+                # beside these files. `label` reaches one human sentence here
+                # ("you accepted every group this run proposed under ..."), so a
+                # name invented for it would be a folder nobody chose.
+                db, drafted,
+                label=(said().label if of_the_run else partition.default.label),
+                session_id=PLAN_VERSION,
                 user_id=user_id, acted_at=clock,
                 mint_action_id=mint_accept_action_id,
                 component_version=COMPONENT_VERSION)
@@ -20303,12 +20335,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # read every file, judged what it could and then printed one narrow
             # question is `66` §14 exactly.
             #
-            # Nothing below this line can be done without a situation: the tree's
-            # levels, the group category and the group-level fields are all a
-            # situation's, and `said()` refuses for that reason. `run` returns
-            # `None`, which is the seam `--stop-after` already uses.
+            # AND THE RUN ENDS HERE ONLY WHERE THERE IS NOTHING ELSE TO BUILD.
+            # `00` amendment 25 rules that the unjudged default has no folders
+            # beneath IT. It does not say that the branches the person DID answer
+            # for lose theirs -- and that is what ending here did: a corpus whose
+            # owner had answered for one branch and not for the default got the
+            # question and NO TREE AT ALL, the answered branch included.
+            #
+            # A branch other than the default with a situation of its own is a
+            # branch whose levels, category and group-level fields are all known
+            # without `said()`: they are the BRANCH's, read through
+            # `_signals_for_branch` and `_grouped_by_branch`, which is why the
+            # readers below are reachable with `of_the_run` empty. Where no such
+            # branch exists there is genuinely nothing to build, and `run`
+            # returns `None`, the seam `--stop-after` already uses.
             print(f"\n{_what_these_folders_are(asked_of_the_person)}", file=out)
-            return None
+            if not any(branch.situation is not None
+                       for branch in partition_cell[0].branches[1:]):
+                return None
         return CorpusAuthorities(
 
 
@@ -20357,7 +20401,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # the group. THE SAME SET at both ends, computed once from the
                 # person's own situation, so "not asked per file" and "carried by
                 # the group" cannot come to mean two different field sets.
-                group_level_fields=said().group_level_fields),
+                # A SITUATION'S, so a run with none withholds nothing here.
+                # Empty is not "ask everything of the group": it is P9 being told
+                # the run has no situation-wide answer about which levels the
+                # group carries, which is true. Each settled BRANCH still carries
+                # its own, through `_signals_for_branch` and the design.
+                group_level_fields=(said().group_level_fields if of_the_run
+                                    else frozenset())),
             user_seed_for=lambda file_id, content_hash: None,
             # `104` §7 Phase 1 step 6: site B runs and applies nothing. Both are
             # `None` when no model was configured, when B's tier is not on this

@@ -123,6 +123,55 @@ re-gating it per branch is the first follow-up after A1 lands.
   Co-Authored-By and Claude-Session lines. Never `git add -A`; `.claude/` is
   untracked and holds eleven stale `cli.py` copies — never stage it.
 
+### A1 — MEASURED AND BUILT, 19 Sep. What the run actually did.
+
+Reproduced without a model, on `test_r37_per_branch_situation`'s two-life corpus,
+answering ONE branch and leaving the default unsettled
+(`--answer situation:career=career.recruiting --accept-groups`):
+
+```
+before   tree_nodes 0   group_acceptance 0   placement_decisions  0
+after    tree_nodes 4   group_acceptance 4   placement_decisions 20
+control  (--situation academic.coursework --accept-groups, same corpus and flags)
+         tree_nodes 4 per version, WITH LEVELS: Coursework/{lecture,notes,syllabus}
+```
+
+Pinned by `tests/integration/test_an_unsettled_default_still_builds_the_rest.py`
+(3 tests: the settled branch is built; the question is still printed; no file is
+dropped). The first was red for the right reason before the fix and is green after.
+
+**The seam was FOUR live sites, not five and not `108`'s six.** Two of the five the
+plan named turned out to be unreachable or dead, and one the plan did not name was
+the one that actually refused:
+
+| site | what it needed |
+| --- | --- |
+| `_signals_for_branch` | `run_signal` is read only for a group NO branch reaches; an unsettled run has no word to offer there, so that case is `frozenset()` — decided before the call, because Python evaluates the argument either way |
+| `draft_for_review`, multi-branch | `group_category`/`label` are **NOT READ** on this path (`_grouped_by_branch` names each draft after its own branch) but are evaluated eagerly — this is the site that refused after the early return was lifted, and the plan had marked it dead rather than dangerous |
+| `accept_drafted_groups` | `label` reaches ONE human sentence; the default branch's own name is the honest value |
+| `GroupingKnowledge.group_level_fields` | a situation's, so a run with none withholds nothing |
+| `partition.single` path | unreachable: a lone unsettled branch still returns `None` |
+| `active_domains` | dead while a partition exists — `or` short-circuits on a non-empty dict |
+
+**A lesson worth the line:** the first edit dropped the paren that closed
+`GroupingKnowledge(` and `python -m py_compile src/cli.py` caught it in one second.
+`108` §7's "parse-check every file you edit" earned its place again.
+
+**TWO THINGS THIS EXPOSED, both real, neither fixed here:**
+
+1. **The disclosure line at `cli.py:22339` is false on an untyped run.** *"What to
+   call the top-level folder, and what kind of material this is — taken from
+   `--label` and `--situation` exactly as you typed them, and applied to EVERY file
+   in the folder"*. Nothing was typed, and each branch now carries its own
+   situation. That screen was unreachable on an untyped run before A1 and is
+   reachable now, so the fix made a lie visible rather than writing one.
+2. **Two branches can print the same question.** The screen asks *"Which of these
+   is academic?"* twice — once for the unsettled default and once for a non-default
+   academic branch — and offers `--answer situation:academic=...` for both. The
+   person cannot address one of them.
+
+---
+
 ### A2. The amendment-16 residual regression (`108` §4)
 
 A file under a two-kind life branch, whose kind came from a deterministic ANCHOR
