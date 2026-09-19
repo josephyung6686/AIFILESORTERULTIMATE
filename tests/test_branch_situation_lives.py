@@ -512,3 +512,52 @@ def test_the_partition_refuses_two_branches_wearing_one_label():
                   anchor_file_ids=(), file_ids=("a",))
     with pytest.raises(ValueError, match="Education"):
         BranchPartition(branches=(default, life), held=())
+
+
+def test_a_life_branch_says_which_kind_its_reach_put_each_file_under():
+    """`108` §4's residual regression, closed at its source.
+
+    `cli._each_kinds_question_under` selects a kind's files by the JUDGE's map, so
+    a file whose kind came from a deterministic ANCHOR and which site G left silent
+    is in no kind's question at all -- and before `00` amendment 16 folded the kinds
+    into one life it sat in its own one-kind branch and WAS asked. The branch has
+    always known the answer: `partition_by_branch`'s own `kind_of` is the reach's
+    map, anchors included, and the record simply did not carry it out.
+
+    `s` here is that file: an anchor makes it academic, the judge names only the
+    packet, and Education holds two kinds -- the exact shape that loses the
+    question.
+
+    SABOTAGE: read the kind off `named_by_the_model` instead of off the reach.
+    `s` reports nothing and the per-kind arm has no file to ask about.
+    """
+    partition = _partition(
+        ["s", "packet"], default_situation=None,
+        named={"packet": "college_applications"},
+        facts={"packet": "applications.undergraduate-packet"},
+        anchors={"s": (("work_type", "syllabus"),)})
+
+    education = partition.by_label("Education")
+    assert education is not None
+    assert set(education.file_ids) == {"s", "packet"}
+    assert education.schemas == ("academic", "college_applications"), (
+        "the fixture must be a TWO-KIND life branch or it tests nothing")
+    assert education.kind_of("s") == "academic", (
+        "the anchor put `s` under academic and the branch must say so")
+    assert education.kind_of("packet") == "college_applications"
+
+
+def test_a_branch_says_nothing_about_a_file_it_does_not_hold():
+    """`kind_of` is the branch's own reach and not a lookup over the run.
+
+    SABOTAGE: answer from a run-wide map. A branch would then claim a kind for a
+    file under a sibling, and the per-kind question would reach across branches --
+    which `104` §17.9 forbids in the same words for the person's answer.
+    """
+    partition = _partition(
+        ["s", "cv"], default_situation=None,
+        anchors={"s": (("work_type", "syllabus"),),
+                 "cv": (("work_type", "resume"),)})
+
+    assert partition.by_label("Education").kind_of("cv") is None
+    assert partition.by_label("Career").kind_of("cv") == "career"

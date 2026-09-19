@@ -291,12 +291,42 @@ rather than mysterious — which is the state `108` §4 should have described.
 
 ---
 
-### A2. The amendment-16 residual regression (`108` §4)
+### A2. The amendment-16 residual regression — HALF BUILT, and the half is the mechanism
 
-A file under a two-kind life branch, whose kind came from a deterministic ANCHOR
-and which site G left silent, gets no question; before the Education ruling it had
-its own one-kind branch and was asked. Declared in `e9b7c550`. Needs `kind_of` on
-`Branch`. Do it after A1 — A1 changes the same paths.
+`e9b7c550` declared it: `cli._each_kinds_question_under` selects a kind's files by
+**the judge's map** — `situation_cell[0].named.get(file_id) == kind` — so a file
+whose kind came from a deterministic ANCHOR and which site G left silent is in no
+kind's question at all. Before amendment 16 folded the kinds into one life it sat
+in a one-kind branch and was asked.
+
+**BUILT: `Branch.kind_of`** (`src/branch_situation.py`). `partition_by_branch` has
+always computed the reach's per-file kind map — `kind_of` in its own body, off
+`under` — and dropped it on the floor. It is now carried on the record as
+`kinds_by_file` (pairs, not a mapping, so the frozen record stays hashable) and
+read through `Branch.kind_of(file_id)`, which answers `None` for a file the branch
+does not hold. Two tests, red before and green after
+(`test_a_life_branch_says_which_kind_its_reach_put_each_file_under`,
+`test_a_branch_says_nothing_about_a_file_it_does_not_hold`).
+
+**NOT BUILT: the one-line reader change**, and the reason is a fixture, not a
+doubt. Switching `_each_kinds_question_under` to the branch's own map needs a test
+that can SEE the difference, and that needs a corpus where the deterministic pass
+alone produces a **two-kind life branch**. Three attempts did not get one:
+`academic`, `college_applications` and `research` all live in Education, but the
+shipped rows carry `file_kind_never_alone: true` for each, so a sole-owned
+`work_type` term does not anchor a file by itself — a corpus of syllabus +
+admission-form files reads as academic throughout, and `_each_kinds_question_under`
+returns early on `len(branch.schemas) < 2`.
+
+**The route that will work, for whoever takes it:** `test_r37_per_branch_situation`
+already carries a loopback model stub. Site G naming one file of a two-kind life
+branch and staying silent about another, whose kind an anchor settled, is the
+residual's exact shape and the stub can produce it. That file has 2 unrelated
+failures from Phase 7's fold today (see A1.5), so settle the fold question first.
+
+Making the reader change without that test would be production code with no failing
+test behind it — which is how `106` Phase 7 shipped a fold whose consequence nobody
+could see until four test files went red.
 
 ### A3. The grader, so 97.7 % can be re-claimed (`108` §5)
 

@@ -158,6 +158,16 @@ class Branch:
     #: taught about names gets -- and is exactly today's behaviour.
     display_name: str = ""
 
+    #: file -> the KIND THIS BRANCH'S REACH put it under, for the files it holds.
+    #: `partition_by_branch` has always computed this (`kind_of` in its body, off
+    #: `under`) and dropped it on the floor; `108` §4's residual regression is one
+    #: reader having to guess at it from site G's map instead.
+    #:
+    #: PAIRS AND NOT A MAPPING because `Branch` is a frozen record that callers
+    #: put in dicts and compare, and a `dict` field would make it unhashable and
+    #: mutable through the back door. Lookups go through `kind_of`.
+    kinds_by_file: tuple[tuple[str, str], ...] = ()
+
     @property
     def scope(self) -> str:
         return f"{SCOPE_BRANCH}:{self.label}"
@@ -170,6 +180,24 @@ class Branch:
     @property
     def settled(self) -> bool:
         return self.situation is not None
+
+    def kind_of(self, file_id: str) -> str | None:
+        """The kind THIS BRANCH puts one of its files under, or `None`.
+
+        `None` for a file this branch does not hold, and for one the reach put
+        under no kind at all. It is deliberately not a run-wide lookup: a branch
+        answering for a sibling's file would let a per-kind question reach across
+        branches, which `104` §17.9 forbids for the person's answer in the same
+        words.
+
+        Not derived from `named_by_the_model`: the judge's map is a SUBSET of the
+        reach -- it is silent about every file settled by a deterministic anchor --
+        and that gap is the regression this field exists to close.
+        """
+        for held, kind in self.kinds_by_file:
+            if held == file_id:
+                return kind
+        return None
 
 
 @dataclass(frozen=True)
@@ -733,6 +761,16 @@ def partition_by_branch(
         return tuple(dict.fromkeys(
             kind for kind in (kind_of[f] for f in file_ids) if kind is not None))
 
+    def _kinds_by_file(file_ids: Sequence[str]) -> tuple[tuple[str, str], ...]:
+        """The same map `_schemas_carried` reduces, kept per file.
+
+        A file the reach put under no kind is left out rather than carried as
+        `None`: `Branch.kind_of` returns `None` for it either way, and a pair
+        saying "this file is nothing" would be a claim the reach never made.
+        """
+        return tuple((file_id, kind_of[file_id]) for file_id in file_ids
+                     if kind_of[file_id] is not None)
+
     branches: list[Branch] = [Branch(
         label=default_label, life=default_life,
         display_name=default_display_name or default_label,
@@ -741,6 +779,7 @@ def partition_by_branch(
         situation=default_situation_settled, is_default=True,
         anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
         file_ids=tuple(default_files),
+        kinds_by_file=_kinds_by_file(default_files),
         candidate_situations=default_candidates)]
     for life in sorted(lives):
         files = lives[life]
@@ -761,6 +800,7 @@ def partition_by_branch(
             situation=situation, is_default=False,
             anchor_file_ids=tuple(f for f in files if f in anchored_to),
             file_ids=tuple(files),
+            kinds_by_file=_kinds_by_file(files),
             candidate_situations=(() if situation is not None
                                   else _asked_of_a_life(life, kinds, carried))))
     return BranchPartition(branches=tuple(branches), held=tuple(held))
