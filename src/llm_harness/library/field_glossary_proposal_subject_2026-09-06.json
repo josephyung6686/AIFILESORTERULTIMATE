@@ -3,7 +3,8 @@
  "owed": {
   "capture_date": "No authored role sentence exists. `00` §3.2 gives the worked derivation (“an EXIF field called DateTimeOriginal is raw metadata”) and `60` mints no note for the key. Owed to the owner.",
   "situation": "`104` §18.95, 16 Sep 2026. No authored role sentence exists, and none is invented here: this glossary is transcribed rather than written, and it is text that reaches a model. The key is written FROM site G's own answer and is never asked OF a model -- site G's dossier carries `field_glossary` empty -- so there is no meaning a call needs from this file today. Owed to the owner.",
-  "situation_alternative": "`104` §18.95, 16 Sep 2026. As `situation` above: written from the alternatives the judge itself named (`00` amendment 7), never asked of a model. Owed to the owner."
+  "situation_alternative": "`104` §18.95, 16 Sep 2026. As `situation` above: written from the alternatives the judge itself named (`00` amendment 7), never asked of a model. Owed to the owner.",
+  "year": "`00` amendment 20, 18 Sep 2026. Derived by rule from `creation_date` (`cli.year_facts`); never asked of a model by design. No authored role sentence exists, and none is invented here. Owed to the owner."
  },
  "fields": {
   "file_type": {
