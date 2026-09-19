@@ -508,3 +508,38 @@ ABOUT. A 2024 return saved in January 2025 carries `creation_date` 2025 -- bound
 **KNOWN AND ACCEPTED: `tax_year` HAS NO PRODUCER.** It is a level in two rows and
 nothing writes it, so the level is correct and blank until one exists. That is the
 honest state and is preferred to a level that is filled with the wrong year.
+
+**24. MOST OF WHAT THE LEAD ASKED TODAY IS A PREFERENCE, NOT A TRUTH, AND THE
+PRODUCT MUST TREAT IT THAT WAY.** The owner, 18 Sep: *"the questions you ask me --
+these are arbitrary right, it depends on the user and it also depends on who wants
+to and how the files are."*
+
+They are right, and `107`'s own customization table says so: *Change split order --
+"Coursework by course -> term instead of term -> course"*; *Merge branches --
+"Combine Career and Work"*; *Rename branch -- "Education -> School"*. These are
+controls the product is supposed to expose to ANY person before freeze. The lead
+spent the day collecting them as one-time library rulings from this owner instead.
+
+**THE LINE, so this is not over-corrected either.** Two different kinds of question
+were asked today and only one of them is arbitrary:
+
+* **A PREFERENCE, and the person's**: whether Education holds `research`; whether a
+  club is Education or Career; which level comes first; what a life is called;
+  whether `year` is bound on Current work.
+* **NOT a preference, and the library's to get RIGHT**: that `year` (when a file was
+  made) and `tax_year` (what a record is about) are different ideas; that
+  `work_type`'s glossary entry describes no thing; that medical records reach no
+  model; that a derivation cannot outrank its source.
+
+**WHAT FOLLOWS.** Amendments 12a, 16, 19, 22 and 23 are recorded as THIS OWNER'S
+DEFAULTS, not as the library's truth. The split orders they fix must be reachable
+from the customization controls rather than frozen into applicability rows, or the
+product fits whoever authored the library instead of the person running it. The
+library should ship a defensible DEFAULT and the person should be able to change
+it without a library edit -- which is `107`'s "every proposed label can be renamed
+and every split can be changed before freeze", unbuilt.
+
+**AND IT RE-READS `104` §18.112.** "The template library is built for a different
+person" is not only about coverage -- `medical` 0 rows, `academic` 11 for 95 files.
+It is also about AUTHORITY: a split order authored once in a shipped row is the
+library deciding something that belongs to the person.
