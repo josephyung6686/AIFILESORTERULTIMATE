@@ -306,6 +306,26 @@ rather than mysterious — which is the state `108` §4 should have described.
 
 ---
 
+### The whole suite, measured once, with both changes in
+
+```
+tests/  (everything)   19 failed, 11068 passed, 20 skipped, 34 xfailed, 19 errors
+```
+
+**Every one of the 19 failures and 19 errors is pre-existing**, accounted for
+without remainder:
+
+* 15 failures + 19 errors — the integration directory, byte-identical to a pristine
+  worktree at `03afe9c6` (34-line `diff`, empty);
+* 4 failures elsewhere — `test_cli_review_sets_by_reason` (2),
+  `test_d2_glossary_proposal`, `test_d2_draft_templates` — the same four names fail
+  at `03afe9c6`.
+
+So A1 and A2 together regress nothing across 11,068 passing tests. That is the
+claim, and the two baseline runs are what backs it.
+
+---
+
 ### A2. The amendment-16 residual regression — HALF BUILT, and the half is the mechanism
 
 `e9b7c550` declared it: `cli._each_kinds_question_under` selects a kind's files by
