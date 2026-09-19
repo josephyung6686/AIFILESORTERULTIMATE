@@ -3244,6 +3244,64 @@ all. Green needs a dimension in `definitions.json`, and one default order cannot
 serve both `employer -> year` and `year -> organization`. Amendment 22 is therefore
 ratified and NOT YET BUILDABLE, exactly as amendment 19 is.
 
+### 18.115 THE NEAREST COMPETITOR TRIED THIS AND PUBLICLY GAVE UP (19 Sep, 02:15)
+
+The owner asked whether people need this product at all, or whether
+`thedrive.ai`'s is enough. Researched against their own published material rather
+than their marketing. **They attempted the problem this repository exists for and
+retreated from it in writing.**
+
+```
+Oct 2025 launch    auto-organisation "doesn't reorganize what's already there --
+                   just organizes new files coming in"; "works best when it has
+                   existing structure"
+Sept 2026 changelog "Auto-organization replaced by Workflows"
+Sept 15 2026 blog  "A workflow files into folders that already exist rather than
+                   inventing a tree... Decide the destination structure before you
+                   sort into it... NO TOOL CAN DECIDE THAT FOR YOU."
+```
+
+So the person authors the tree, the model routes new files into it, and semantic
+search covers what filing misses. **Their accuracy rests on three things this
+product cannot borrow:** the destinations were authored by the person; incoming
+business documents (invoices, contracts, receipts) are self-describing; and
+retrieval forgives being approximately right. Their students page still claims it
+"works out which course it belongs to" from content, with no evidence -- sitting
+exactly on §18.109's measured finding that 35 of 43 files never name their course.
+
+**SCALE, so the comparison is calibrated:** two employees, ~$30K raised, 104 Chrome
+extension users, 6 iOS ratings. "17,000 users" is a founder quote to local press.
+Their own docs contradict themselves on storage, quota and pricing in four places.
+
+**THE SAME CONSTITUTION, ARRIVED AT INDEPENDENTLY.** Their public `/decide`
+endpoint is: instructions + a JSON schema + context blocks describing folder
+structures + ONE file -> one reasoning pass with per-field confidence and one
+reasoning string. That is "the model is the judge; we package the data so it is
+easy and fast for the model", built by someone else. It is corroboration, not
+coincidence.
+
+**THREE THINGS WORTH TAKING:**
+
+1. **A metadata pre-screen before any model reads content** -- branch on type, age,
+   location, name and size "without opening anything". A natural gate for protected
+   material by extension and location, decided before a byte is read.
+2. **Confidence-gated approval with an explicit "could not decide" bucket rather
+   than a guess.** This is `00` amendment 25 arrived at independently, which is the
+   strongest evidence yet that the amendment is right.
+3. **Two questions, reviewed separately: "is this tree right?" and "is this file in
+   the right leaf?"** They make the person answer the first; this product has the
+   model propose it. The separation is the transferable part.
+
+**AND THEIR ADMITTED FAILURE IS A WARNING AIMED AT THIS PRODUCT'S APPROVE STEP:**
+*"Approvals cleared in under three seconds each... a control that has never said no
+is not a control."* The sort's whole safety story is that the person approves the
+tree before anything moves. If that approval becomes a reflex, the story is false.
+Nothing in this repository currently measures whether an approval was considered.
+
+**DO NOT COPY:** unreviewed auto-mode (they abandoned it), auto-rename on a real
+disk, cloud-only third-party reading of everything, accuracy claims with no
+measurement, and "learns from your corrections" promised with no mechanism.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
