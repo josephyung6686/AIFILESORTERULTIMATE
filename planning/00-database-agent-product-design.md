@@ -483,3 +483,28 @@ situations for the owner's 95 academic files, while `creative` carries 28 for th
 3. The library's coverage is weighted away from the person it is run for. Recorded
 here because it is the same class of decision as 21 and is owed a sitting of its
 own.
+
+## Amendments of 2026-09-18, third sitting
+
+**22. `year` IS BOUND AS A FOLDER LEVEL WHERE `107` ALREADY SAYS IT GOES** -- Current
+work (`employer -> year -> project -> stage`) and Career applications (`year ->
+organization and role -> application stage`), and nowhere else for now. The Health
+and Travel drafts stay unwired: their names are unratified and one of them enters a
+cloud-bound menu.
+
+**AND BINDING IT IS NOT A COST, IT REMOVES ONE.** `model_template.py:254`: a
+proposal-eligible fact on a destination-eligible field with NO level in the file's
+situation makes that file UNFIT at site E. `year` is universal, so every file that
+gained one was buying a site-E template call for a fact with nowhere to live.
+Binding it is what stops that.
+
+**23. THE TAXES LEVEL IS `tax_year`, NOT `year`.** `107` says `tax year -> record
+class` in those words, and the two fields mean different things: `year` is the year
+a file was MADE (derived from `creation_date`), `tax_year` is the year the record is
+ABOUT. A 2024 return saved in January 2025 carries `creation_date` 2025 -- bound to
+`year` it would file under 2025, beside the wrong year's paperwork. The owner ruled
+`tax_year`.
+
+**KNOWN AND ACCEPTED: `tax_year` HAS NO PRODUCER.** It is a level in two rows and
+nothing writes it, so the level is correct and blank until one exists. That is the
+honest state and is preferred to a level that is filled with the wrong year.
