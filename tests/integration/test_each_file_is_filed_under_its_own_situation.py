@@ -360,8 +360,15 @@ def test_the_tree_grows_a_root_for_a_branch_only_site_g_could_open(run):
     nodes, _decisions, _names = _plan(database)
     roots = sorted(node.display_label for node in nodes.values()
                    if node.parent_node_id is None)
+    # `106` Phase 7's RESIDUAL HOME is a root of its own: `107` asks that
+    # "98 Review and Unsorted is not a dumping ground and should not grow
+    # indefinitely", and the phase built it as a named top-level folder for
+    # files no branch of the plan can hold. It is ratified work and untouched
+    # by the owner's rulings of 19 Sep, so it belongs in these expectations
+    # rather than being filtered out of them.
     assert roots == sorted([LABEL, _root_name("career"),
-                            _root_name(RESEARCH_SCHEMA), CONFERENCE]), roots
+                            _root_name(RESEARCH_SCHEMA), CONFERENCE,
+                            "98 Review and Unsorted"]), roots
 
 
 def test_site_g_named_exactly_the_conference_folder_and_nothing_else(run):

@@ -280,7 +280,13 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     # called by the owner's own word. The question's SCOPE is untouched and
     # still `career` -- `--answer situation:career=` is unchanged -- because a
     # single-kind life branch asks its kind's question at the kind's scope.
-    assert roots == ["Career", "Coursework"], roots
+    # `106` Phase 7's RESIDUAL HOME is a root of its own: `107` asks that
+    # "98 Review and Unsorted is not a dumping ground and should not grow
+    # indefinitely", and the phase built it as a named top-level folder for
+    # files no branch of the plan can hold. It is ratified work and untouched
+    # by the owner's rulings of 19 Sep, so it belongs in these expectations
+    # rather than being filtered out of them.
+    assert roots == ["Career", "Coursework", '98 Review and Unsorted'], roots
     assert "Coursework/cover letter" not in report
     # And the held group under that branch is told which answers reach it.
     # After the heading only: the gist above it names the file as an example.
@@ -458,7 +464,14 @@ def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_bra
              if line.startswith("  ") and not line.startswith("    ")]
     # `00` amendment 12: the second root is the LIFE the résumé and cover
     # letters belong to, in the owner's word, not the kind's authored name.
-    assert roots in (["Coursework", "Career"], ["Career", "Coursework"]), roots
+    # `106` Phase 7's RESIDUAL HOME is a root of its own: `107` asks that
+    # "98 Review and Unsorted is not a dumping ground and should not grow
+    # indefinitely", and the phase built it as a named top-level folder for
+    # files no branch of the plan can hold. It is ratified work and untouched
+    # by the owner's rulings of 19 Sep, so it belongs in these expectations
+    # rather than being filtered out of them.
+    assert sorted(roots) == sorted(
+        ["Coursework", "Career", '98 Review and Unsorted']), roots
     assert not any(chain.startswith("Coursework") and
                    ("cover letter" in chain or "resume" in chain)
                    for chain in chains), chains
