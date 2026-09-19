@@ -371,6 +371,60 @@ alone.
 
 ---
 
+### The suite, driven down — 13 failures root-caused, 10 fixed, 3 named
+
+Every one was pre-existing at `03afe9c6`. **Nine of the thirteen bisect to
+`229c7526`, `106` Phase 7** — the same commit behind A1.5 — which is worth stating
+plainly: one phase moved the tree, the screens and a privacy record together, and
+the suite has been describing the world before it ever since.
+
+| what | cause | done |
+| --- | --- | --- |
+| 2 × `llm_harness` d2 | amendment 20 added a glossary row and left the packet's digests and two proposal copies behind | fixed, `b542646b` |
+| 3 × roots list | Phase 7's RESIDUAL HOME is a root; the tests predate it | fixed, `c108668d` |
+| `template_levels_wiring` | `d8dd85b1` made `fact_call_stage` ask twice on purpose; the AST guard counted calls | re-argued to check EVERY call, `b6e9bb07` |
+| `cli_agreeing_corpus` | **product defect**: Phase 7 keyed the option sentence by `dimension_role`, so a person read "would create 3 artifact_kind" | fixed, `54a26533` |
+| `r37_single_branch` | screen legitimately moved: residual home, amendment 26's fold, the role→field fix | recaptured after diffing, `ea37e64d` |
+| `cli_correction_loop` | amendment 26: `PHYS1401` holds ONE file, so `notes` folds into the course | re-argued |
+
+**THREE ARE NAMED AND NOT FIXED, each for a stated reason.**
+
+**1. `cli_orphaned_send` — a real crash, and it is at the privacy boundary.**
+A second run with `--send-set` dies:
+`PolicyRequired: no P7 policy in force for 'version_2c21deda_0'`. Bisected to
+Phase 7. The policy is put in force for `tree.tree.plan_version_id` once
+(`production.py:1137`), but a run writes **a plan version per refinement pass** and
+the failing id carries the `_0` suffix — an earlier pass than the one the policy
+was set on. Phase 7 added passes, which is why it surfaced there.
+
+**NOT FIXED DELIBERATELY.** `placement/privacy.py`'s `privacy_state_for` is the
+gate that decides what may leave the device, and its refusal is written as a rule:
+"the operation mode decides whether anything may leave the device and P11 assumes
+none". Teaching it to fall back to another version's policy, or minting a policy
+per pass, is a decision about which answer governs a file's egress. That is the
+owner's, not a lead's, and the standing order is to escalate rather than
+reformulate until it passes.
+
+**2 and 3. `test_cli_review_sets_by_reason` — a contradiction, measured, not
+resolved.** The corpus should produce four review sets and produces three: "A model
+was not allowed to look" is missing and its file sits under "Waiting on a question
+you have been asked" beside an unopenable vault.
+
+Measured from the decision record: that file is classified
+(`handling_class='personal_non_sensitive'`, `protected=False`) and abstains with
+`abstention_reason='privacy_blocked'`. `_why` (`cli.py` ~17949) tests
+`PRIVACY_BLOCKED` **before** `ASK_USER` and returns `NO_MODEL_ALLOWED` for exactly
+that shape. **So the code and the screen disagree**, which means the label the
+screen renders (`held[0].label`) is not the one `_why` computes, or a second
+grouping exists. Two names for one state on one screen is the defect this file's
+own docstring was written against.
+
+Whoever takes it: find where a `PlacementReviewItem` gets its `.label` and whether
+`_why` is what sets it. The evidence above is enough to start, and the fixture is
+`_three_reason_corpus`.
+
+---
+
 ### A2. The amendment-16 residual regression — HALF BUILT, and the half is the mechanism
 
 `e9b7c550` declared it: `cli._each_kinds_question_under` selects a kind's files by

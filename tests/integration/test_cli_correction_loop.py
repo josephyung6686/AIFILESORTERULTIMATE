@@ -221,14 +221,17 @@ def test_the_other_file_that_carries_the_same_value_is_left_exactly_where_it_was
 
     after = _run(corpus, "--reject", GESTURE)
 
-    # Same change as the test above, and the same reason: the destination is
-    # `PHYS1401/notes` now that `work_type` builds a level, and the heading
-    # carries only the leaf. `notes` under `PHYS1401` is the assertion this test
-    # has always made -- "it must still be filed under PHYS1401 afterwards" --
-    # and the second line is what still holds it to the course.
+    # `00` AMENDMENT 26 (the owner, 19 Sep) MOVES THE HEADING BACK TO THE COURSE,
+    # and the assertion this test has always made is untouched by it: "it must
+    # still be filed under PHYS1401 afterwards".
+    #
+    # `PHYS1401` holds exactly ONE file here, so the `notes` level beneath it is a
+    # chain whose top holds one file -- `107`'s one-file leaf, which the owner's
+    # floor still folds. The destination is the course itself rather than
+    # `PHYS1401/notes`, and the file is filed under PHYS1401 either way, which is
+    # the whole of what a rejection elsewhere must not disturb.
     assert _section_holding(after, "notes.txt").startswith(
-        "Ready to file into notes"), after
-    assert _folder_parent(after, "notes") == "PHYS1401", after
+        "Ready to file into PHYS1401"), after
 
 
 def test_the_correction_is_stored_even_though_the_run_does_not_yet_honour_it(
