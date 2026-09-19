@@ -321,12 +321,21 @@ def test_the_projection_nests_by_shared_files_and_never_multiplies(seeded):
     # a one-child level -- so this shape was unreachable in a real run and only a
     # unit test ever saw it. What this test pins is unchanged: nesting is by
     # SHARED FILES and never a product.
-    # `106` Phase 7 §B.1: `Syllabus` and `Homework` under `BUSIB 4300` were one
-    # folder per file beneath a built node -- `00`:98's two-file packet -- so
-    # they are measured and not built, and BUSIB 4300 holds both files. The
-    # fold is SAID on the node. (Before Phase 7 both were nodes here.)
-    assert set(by_label) == {"BUSIB 4300", "PHYS1401"}
-    assert "each of its 2 files would have had a folder of its own" in (
+    # `00` AMENDMENT 27 PUT THEM BACK. Phase 7 §B.1 measured `Syllabus` and
+    # `Homework` under `BUSIB 4300` rather than building them, reading them as
+    # `00`:98's two-file packet; the owner ruled on 19 Sep that a level every
+    # value splits IS built even where every folder holds one file. The comment
+    # here used to end "(Before Phase 7 both were nodes here.)" -- they are again.
+    #
+    # ASSERTED AS THE PROPERTY AND NOT AS A LABEL SET, because the label set is
+    # what moved twice now: what this test is named for is that nesting follows
+    # SHARED FILES, so BUSIB 4300's two kinds hang under BUSIB 4300 and nowhere
+    # else.
+    assert {"BUSIB 4300", "PHYS1401"} <= set(by_label)
+    under_busib = {n.display_label for n in nodes
+                   if n.parent_node_id == by_label["BUSIB 4300"].node_id}
+    assert under_busib == {"Syllabus", "Homework"}, under_busib
+    assert "would have had a folder of its own" not in (
         by_label["BUSIB 4300"].explanation)
     # PHYS1401's only file has no work_type, so PHYS1401 gets no children and
     # no fold is said against it: the intersection, not the product -- a

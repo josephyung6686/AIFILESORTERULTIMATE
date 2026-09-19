@@ -155,13 +155,14 @@ def test_a_corpus_that_spans_three_lives_produces_a_branch_for_each(corpus):
     labels = {node.display_label for node in result.tree.nodes}
     assert {ACADEMIC_LABEL, LAW_LABEL, MEDICAL_LABEL} <= labels
     # Each coverable life split by the recipe authored for it, and by no other.
-    # `106` Phase 7 §B: a course with one syllabus and one homework, and a
-    # client with one pleading and one retainer, are `00`:98's two-file
-    # packets; the kind-of-work folders fold into the course and the client
-    # and are SAID there. (Before Phase 7 all four kinds were labels here.)
+    # `00` AMENDMENT 27 PUT THE KINDS BACK. Phase 7 §B.1 had folded them away --
+    # a course with one syllabus and one homework read as `00`:98's two-file
+    # packet -- and the owner ruled on 19 Sep that a level every value splits is
+    # built even where every folder holds one file. This comment used to end
+    # "(Before Phase 7 all four kinds were labels here.)"; they are again.
     assert {"BUSIB 4300", "PHYS1401"} <= labels
     assert {"Acme Industries", "Borden Trust"} <= labels
-    assert not {"Syllabus", "Homework", "Pleading", "Retainer"} & labels
+    assert {"Syllabus", "Homework", "Pleading", "Retainer"} <= labels
 
 
 def test_every_accepted_group_reaches_a_branch(corpus):
@@ -191,12 +192,20 @@ def test_each_life_is_split_by_its_own_recipe_and_by_no_other(corpus):
         if node.dimension:
             dimensions.setdefault(area_of(node), set()).add(node.dimension)
 
-    # `106` Phase 7 §B folds `work_type` on this corpus (one file per kind
-    # beneath every built course and client), so each life is split by the
-    # first level of its own recipe -- and by nothing of the other's, which
-    # is the property this test is named for.
-    assert dimensions[ACADEMIC_LABEL] == {"subject"}
-    assert dimensions[LAW_LABEL] == {"client"}
+    # RE-ARGUED under `00` AMENDMENT 27, and the assertion now states the
+    # PROPERTY THIS TEST IS NAMED FOR instead of the shape a fold happened to
+    # leave. Phase 7 §B.1 folded `work_type` away on this corpus, so the exact
+    # sets `{"subject"}` and `{"client"}` passed for a reason that had nothing
+    # to do with recipes; with the kinds built, an exact set would have to be
+    # rewritten again the next time a level moves.
+    #
+    # What must be true, always: academic is split by academic's own levels and
+    # never by law's, and the reverse. `work_type` belongs to BOTH recipes, so
+    # it may appear under either without breaking the property.
+    assert "subject" in dimensions[ACADEMIC_LABEL]
+    assert "client" not in dimensions[ACADEMIC_LABEL], dimensions[ACADEMIC_LABEL]
+    assert "client" in dimensions[LAW_LABEL]
+    assert "subject" not in dimensions[LAW_LABEL], dimensions[LAW_LABEL]
     # The uncoverable life is split by nothing at all, which is not the same as
     # being split by somebody else's recipe.
     assert MEDICAL_LABEL not in dimensions

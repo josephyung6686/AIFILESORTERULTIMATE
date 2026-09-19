@@ -201,12 +201,18 @@ def test_a_real_corpus_produces_a_frozen_tree_built_from_its_own_facts(corpus):
 
     labels = {node.display_label for node in result.tree.nodes}
     assert {"BUSIB 4300", "PHYS1401"} <= labels
-    # `106` Phase 7 §B.1: a syllabus and a homework under a two-file course
-    # are one folder per file beneath a built node, so they are not folders
-    # and the course says why. (Before Phase 7 both were labels here.)
-    assert not {"Syllabus", "Homework"} & labels
+    # `00` AMENDMENT 27 PUT THEM BACK. Phase 7 §B.1 read a syllabus and a
+    # homework under a two-file course as one folder per file and measured them
+    # instead of building them; the owner ruled on 19 Sep that a level every
+    # value splits is built even where every folder holds one file. The comment
+    # here used to end "(Before Phase 7 both were labels here.)" -- they are.
+    #
+    # AND THE TEST'S OWN POINT IS UNTOUCHED: neither name was invented. Both
+    # came out of P6's `values` table by way of the accepted group, which is
+    # §5.4's sentence and the reason this test exists.
+    assert {"Syllabus", "Homework"} <= labels
     busib = next(n for n in result.tree.nodes if n.display_label == "BUSIB 4300")
-    assert "each of its 2 files would have had a folder of its own" in busib.explanation
+    assert "would have had a folder of its own" not in busib.explanation
     # And the two the user asked for by gesture rather than by evidence.
     assert {"Shared Course Material", "General", REVIEW_LATER} <= labels
     # The protected area P3 marked, present and counted.
@@ -969,11 +975,11 @@ def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     # group it was built from, and each level beneath it only the files carrying
     # that value. A chain that passed one number down would show the same count
     # on all five, which is the old defect wearing a comparison in front of it.
-    # `106` Phase 7 §B.1: `Homework` and `Syllabus` are no longer nodes on this
-    # corpus (one folder per file beneath `BUSIB 4300` folds), so three nodes
-    # are offered their own counts instead of five.
+    # `00` AMENDMENT 27: `Homework` and `Syllabus` are nodes again, so FIVE
+    # nodes are offered their own counts rather than three -- and the one file
+    # each of them holds is exactly the share this test says must be its own.
     assert dict(seen) == {"Columbia coursework": 3, "BUSIB 4300": 2,
-                          "PHYS1401": 1}, seen
+                          "PHYS1401": 1, "Homework": 1, "Syllabus": 1}, seen
     # And no node is judged on nothing: a count of zero would make "few enough
     # files" true of every branch there is.
     assert all(count > 0 for _, count in seen), seen
@@ -1007,10 +1013,11 @@ def test_a_branch_that_gained_children_is_told_it_was_split(corpus):
     # second answer is the one that survives, so BOTH values appear for it and
     # `True` must be among them. A leaf is asked once and nothing hangs off it.
     assert True in seen["Columbia coursework"], seen
-    # `106` Phase 7 §B.1: `BUSIB 4300` no longer gains `Homework` and
-    # `Syllabus` (one folder per file beneath a built node folds), so it is
-    # a leaf here and is told so; `Columbia coursework` still splits.
-    assert seen["BUSIB 4300"] == {False}, seen
+    # `00` AMENDMENT 27: `BUSIB 4300` gains `Homework` and `Syllabus` again, so
+    # it is a branch that was split and must be TOLD so -- which is the half of
+    # §5.8's evidence this test says nothing else pinned. `PHYS1401` holds one
+    # file, gains nothing, and is still told it was not split.
+    assert True in seen["BUSIB 4300"], seen
     assert seen["PHYS1401"] == {False}, seen
 
 

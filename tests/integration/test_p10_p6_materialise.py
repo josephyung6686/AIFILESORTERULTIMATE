@@ -127,10 +127,11 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
     # level divides nothing and is measured rather than built. It used to be
     # built and V2 then refused the whole candidate for the one-child folder it
     # made, so this shape never reached a real run.
-    # `106` Phase 7 §B.1: `Syllabus` and `Homework` are one folder per file
-    # beneath `BUSIB 4300` and fold into it, said on the node.
+    # `00` AMENDMENT 27: `Syllabus` and `Homework` are folders beneath
+    # `BUSIB 4300` again. Phase 7 §B.1 measured them instead of building them;
+    # the owner ruled on 19 Sep that a level every value splits IS built.
     assert {"BUSIB 4300", "PHYS1401"} <= set(by_label)
-    assert not {"Syllabus", "Homework"} & set(by_label)
+    assert {"Syllabus", "Homework"} <= set(by_label)
 
     # Every stored node's parent exists in the SAME version. This is the assertion
     # that fails if the projection is handed a pre-draft parent.
@@ -138,7 +139,7 @@ def test_accepting_a_branch_drives_the_real_projection_into_the_store(conn, tmp_
     dangling = [node.display_label for node in stored
                 if node.parent_node_id is not None and node.parent_node_id not in ids]
     assert dangling == []
-    assert "each of its 2 files would have had a folder of its own" in (
+    assert "would have had a folder of its own" not in (
         by_label["BUSIB 4300"].explanation)
 
     # §5.11: `lab` carries no work_type and is left unresolved rather than given
