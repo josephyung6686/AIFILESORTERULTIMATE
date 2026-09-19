@@ -294,6 +294,27 @@ def run(tmp_path_factory):
     return corpus, database, out.getvalue()
 
 
+def _latest_plan_version(database: Path) -> str:
+    """The version the person is shown, named rather than guessed at.
+
+    A run writes a plan version per refinement pass, so a reader given no word has
+    a choice to make -- and `measure.observe_run` refuses to make it
+    (`AmbiguousPlanVersion`, `104` §18.111) rather than picking. The last version
+    placements were written against is the tree on screen, which is what `_plan`
+    has always read and what a scoreboard about THIS RUN means.
+
+    Ordered by `rowid` and not by the id: `7b103234` fixed a tie broken on the id
+    AS A STRING, where `_8` sorted above `_18`.
+    """
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        return conn.execute(
+            "SELECT plan_version FROM placement_decisions "
+            "ORDER BY rowid DESC LIMIT 1").fetchone()[0]
+    finally:
+        conn.close()
+
+
 def _plan(database: Path):
     """The last plan version's nodes and decisions, plus the file names."""
     conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
@@ -574,8 +595,12 @@ def test_the_scoreboard_reads_this_one_run_against_every_label_and_finds_no_spil
     """
     corpus, database, report = run
     labels = _labels(tmp_path)
+    # NAMED, because this database holds a plan version per refinement pass and
+    # `observe_run` refuses to choose between them. The scoreboard is about the
+    # tree this run put on the screen, which is the one `_plan` reads.
     observed = observe_run(database, corpus, situation=SITUATION, label=LABEL,
-                           report=report)
+                           report=report,
+                           plan_version_id=_latest_plan_version(database))
     # Every file the run saw has a label, or the count below is measuring a
     # smaller corpus than the person's.
     assert set(labels) == set(observed.files), (
