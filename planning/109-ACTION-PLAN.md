@@ -190,6 +190,51 @@ the one that actually refused:
 
 ---
 
+### A1 — VERIFIED CLEAN, and the suite is NOT green on this branch
+
+Baseline-vs-fix, the whole integration directory, one pytest session at a time,
+pristine worktree at `03afe9c6` versus the working tree:
+
+```
+baseline   15 failed, 1484 passed, 20 skipped, 6 xfailed, 19 errors
+A1         15 failed, 1487 passed, 20 skipped, 6 xfailed, 19 errors
+```
+
+**The two FAILED/ERROR lists are byte-identical** (34 lines, `diff` empty) and A1
+adds exactly the +3 passes of its own tests. **A1 introduces no regression.**
+
+**CORRECTION TO `108`.** Its §1 says main is "green apart from what §4 lists", and
+§4 lists the `r37` tree-shape failures. That is not the state. Nine files fail or
+error at `03afe9c6`, before any change of today's:
+
+```
+19 ERROR   test_the_sort_is_frozen_and_applied_on_a_copy.py   <- the WHOLE file, at setup
+ 4 FAILED  test_each_file_is_filed_under_its_own_situation.py
+ 3 FAILED  test_two_courses_keep_two_terms.py
+ 2 FAILED  test_r37_per_branch_situation.py
+ 2 FAILED  test_cli_correction_loop.py
+ 1 FAILED  test_template_levels_wiring.py
+ 1 FAILED  test_r37_single_branch_is_byte_identical.py
+ 1 FAILED  test_cli_orphaned_send.py
+ 1 FAILED  test_cli_agreeing_corpus.py
+```
+
+**The 19 errors are one module-scoped fixture, and they matter more than their
+count.** `the_morning` chains four pipeline runs and four typed gestures on one
+database, and it dies on `KeyError: 'Coursework/Spring2026/PHYS1401/lecture'` —
+a tree path the run no longer builds, because `106` Phases 3+4 made the top level
+a LIFE. So **every test of freeze, apply, move, collision, journal and undo has
+been dark** since the tree shape changed. That is the half of the product that
+touches real files, and the walkthrough of 7 Sep called it "the trustworthy half".
+
+A green suite was never the evidence here — `108` §7 says every real defect this
+month was found by an agent READING code — but 19 dark tests on the moving half
+is a bigger hole than any single item in Tier A. **Reviving them is now A1.5, and
+it goes before A2.** `108` §4's rule holds while doing it: diff before recapturing,
+because a recapture that is not diffed proves only that the code equals itself.
+
+---
+
 ### A2. The amendment-16 residual regression (`108` §4)
 
 A file under a two-kind life branch, whose kind came from a deterministic ANCHOR
