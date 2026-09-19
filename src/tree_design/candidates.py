@@ -671,11 +671,23 @@ def vertical_options(
         # level order, and then says each level it measured and folded. `counts`
         # still holds every level's distinct values for `resulting_child_counts`,
         # whose keys are a recorded answer's identity (`cli._nesting_key`).
+        # KEYED BY THE FIELD AND NOT BY THE ROLE. `106` Phase 7 (`229c7526`)
+        # changed this to `dimension_role`, and the sentence a person reads before
+        # choosing a shape began naming the ROLE key: "would create 3
+        # artifact_kind" where it had said "3 work_type". Both are internal, and
+        # this repository already holds that line in the other direction --
+        # `test_the_authored_level_name_reaches_p11_on_the_node_and_nowhere_else`
+        # asserts "the internal role key reached the user-visible sentence" is a
+        # defect. The role is the further from anything the person has seen.
+        #
+        # `field_ref` is `None` for a template-local level, whose children came
+        # from the person's own accepted groups rather than from a P6 field; there
+        # the role is the only key there is, so it stands.
         built_counts: dict[str, int] = {
-            level.dimension_role: 0
+            (level.field_ref or level.dimension_role): 0
             for level in (() if evidence is None else evidence.levels)}
         for node in (() if built is None else built.nodes):
-            role = node.dimension_role or ""
+            role = node.dimension or node.dimension_role or ""
             built_counts[role] = built_counts.get(role, 0) + 1
         summary = f"This option would create {_summarise(built_counts)}."
         for fold in (() if built is None else built.folded):
