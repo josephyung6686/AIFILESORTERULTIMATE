@@ -3195,6 +3195,55 @@ committed to, rather than choosing** -- and otherwise REFUSES with
 two frozen plans, so it refuses there, which is correct: a measurement that
 silently reads the wrong tree is worse than one that says it cannot tell.
 
+### 18.114 THE 113-FILE BUCKET IS UNJUDGED RESIDUE WEARING A SITUATION NOBODY ESTABLISHED (18 Sep, 22:30)
+
+Run 25 -- the product used as a person uses it, on the owner's own corpus -- built
+a tree whose largest root is `Downloads`, 113 of 371 files, all stamped
+`career.recruiting`. `Education` held 23 where the life mapping says ~137.
+
+**WHAT THEY ARE.** Not misrouted. On an untyped run the default branch holds ONLY
+files with no life (`branch_situation.py:703-717`, `_stays_home`): unreached by any
+anchor or G-named branch, no judge `situation` fact, no single-life alternative. A
+file whose own fact disagrees LEAVES -- `_first_arm_life` sends it to its fact's
+life. **So the 113 are the residue: the files site G never answered for.**
+Consistent with the 114 academic files missing from Education.
+
+**WHY THEY WEAR A SITUATION.** `_situation_for` (`:485-487`) reads the person's
+answer at `branch:<label>`, then at `branch:<default_schema>`. On an untyped run
+`default_schema` is `_the_corpus_names_a_schema` (`cli.py:18744`) -- the corpus's
+MAJORITY KIND, here `career`. So `--answer situation:career=career.recruiting`
+settled the career files AND the default branch. That is pinned and deliberate
+(`tests/test_branch_situation_lives.py:158`, `:232`). And `cli.py:11447-11455`
+carries it onward: a group whose members carry no kind takes `default.schemas[0]`
+as its category, so residue is drafted under that situation's levels.
+
+**THE RULING THIS NEEDS, and it is a correctness question and not a preference**
+(`00` amendment 24's line). 113 files that nothing judged are being labelled with a
+situation nothing established. §17.9 orders the person above the model and the
+model above silence; **nowhere does it license the product to assert a situation
+that neither gave**. An unjudged file wearing `career.recruiting` is the product
+claiming knowledge it does not have, and a person reading that screen would
+reasonably believe 113 of their files are job-search material.
+
+The analyst declined to fix it, correctly: every option -- leave the default
+unsettled on an untyped run, route residue per file, hold it aside -- breaks a
+pinned test whose rationale is ratified, and each DECIDES WHAT RESIDUE IS.
+
+**AND A CORRECTION TO THE LEAD'S OWN ADVICE, given to the owner an hour before.**
+The lead told them binding `year` would REMOVE the site-E unfit cost. It does not:
+`year` is universal and destination-eligible, so roughly 200 other situations still
+trip `model_template.py:254`. **The real question is whether `year` should be
+destination-eligible at all** -- and `107` wants a year as a folder level, so it
+must be, which makes the cost inherent until levels exist rather than a defect.
+
+**`year` ALSO CANNOT BE BOUND BY EDITING ROWS**, proved by script:
+`folder_levels_for` (`production.py:610-616`) builds levels only from the
+template's default-order dimensions and DROPS any other binding. Adding `year` to
+both career rows' `allowed_fields` and `role_bindings` changed the output not at
+all. Green needs a dimension in `definitions.json`, and one default order cannot
+serve both `employer -> year` and `year -> organization`. Amendment 22 is therefore
+ratified and NOT YET BUILDABLE, exactly as amendment 19 is.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
