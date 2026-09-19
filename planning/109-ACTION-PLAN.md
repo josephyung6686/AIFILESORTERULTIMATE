@@ -59,7 +59,10 @@ default rest visibly at the default node, and the question still prints.
   inventing a value. Record which of the five sites that leaves.
 
 - [ ] **Step 2: write the failing acceptance test.** A partition with one settled
-  branch and an unsettled default. Assert three things, all three in one test so a
+  branch and an unsettled default. **The fixture already exists** — copy
+  `_partition(..., default_situation=None)` from
+  `tests/test_branch_situation_lives.py:39`; its line 94 says in words that this
+  builds an unsettled default. Do not invent a partition builder. Assert three things, all three in one test so a
   later change cannot satisfy one by breaking another:
 
 ```python
@@ -93,11 +96,28 @@ def test_a_settled_branch_still_gets_its_tree_while_the_default_is_unsettled():
   new test, then the P11 and branch-situation suites. **One pytest session at a
   time.**
 
-- [ ] **Step 7: P11 with an unsettled default.** P11 reaches the tree through
-  `placement_inputs` (`src/cli.py:18203`) and is reached only once `downstream`
-  returns authorities — so it has never once run in this state. Give it the same
-  acceptance test shape: the settled branch places, the unsettled default's files
-  are visible and unplaced, nothing is invented.
+- [ ] **Step 7: P11 — decide what the unsettled default's root node wears.** P11 is
+  reached only once `downstream` returns authorities, so it has never run in this
+  state. **It is not a sixth `said()` reader** — `the_situation_each_branch_carries`
+  (`src/cli.py:7388`) keys off `Branch.folder_name` and P11 matches that against the
+  root node's `display_label` (`placement/pipeline.py:1790`), with the situation read
+  per file through `situation_of`. Two questions follow, and Step 7 is not done until
+  both are answered in a test: what name the unsettled default's root node carries
+  when nobody has authored one, and what its entry in that map is — because that map
+  is what tells P11 which branches to LEAVE ALONE, and amendment 25 says no folders
+  may appear beneath the unjudged default. An absent or empty entry that makes the
+  default look placeable is the failure mode to write red first.
+  `tests/test_p11_guard_is_keyed_by_the_name_the_root_node_wears.py` exists because
+  this guard already went silently inert once (`9b85210f`); a green suite is not
+  evidence here.
+
+**A1 leaves one thing worse, and it is named here so it is not discovered later.**
+`going_on = stop_after is None and bool(of_the_run)` (`src/cli.py:20165`) gates
+sites E and B. Under the minimal fix `of_the_run` stays empty for an untyped
+corpus, so **E and B do not run for the SETTLED branches either** — a loss that did
+not exist before amendment 25, when site G could settle the default. A1 leaves it
+gated deliberately (the deterministic path is a complete path, `20320`), and
+re-gating it per branch is the first follow-up after A1 lands.
 
 - [ ] **Step 8: commit per deliverable,** `feat(109-A1): ...`, ending with the
   Co-Authored-By and Claude-Session lines. Never `git add -A`; `.claude/` is
@@ -157,8 +177,12 @@ is gated by the privacy classifier: escalate to the owner, never reformulate to 
 
 ## The competitor question, answered (`104` §18.115 extended)
 
-**There is no sub-second organisation time at `thedrive.ai`, and the figure that
-looks like one is about people, not machines.** Their own published numbers:
+**Sub-second is true per file and false per corpus, and the figure that looks like
+a benchmark is about people, not machines.** They publish no latency benchmark at
+all. What they publish is whole-corpus: "5 to 30 minutes for thousands of files",
+which amortises to roughly **0.06–1.8 s per file** — so a per-file sub-second claim
+is defensible, and a "organises your drive in under a second" claim is not. Their
+own published numbers:
 
 ```
 auto-organisation      "5 to 30 minutes for thousands of files"
@@ -175,6 +199,14 @@ cleared in under three seconds each"* — how fast a person clicked approve, whi
 their argument that **an approval nobody considered is not a control.** It is a
 warning aimed at this product's approve step, not a latency to match.
 
+**Where the speed actually comes from, and it is not infrastructure.** One
+`/decide` call per file against folders the PERSON already authored, run
+concurrently (`/analyze/batch` 10, `/extract/batch` 20, async jobs with webhook
+callbacks), over frontier models they do not own. No tree is invented, so no pass
+has to reason about the corpus as a whole — the expensive part of this product is
+the part they deleted. Nothing in their stack is faster than what is already wired
+here; their pipeline is shorter.
+
 **Their infrastructure, from their own material:** a public HTTP API
 (`/extract`, `/analyze`, `/analyze/batch`, `/cross-analyze`, `/decide`,
 `/markdown`, `/thumbnails`) with async jobs, polling and webhooks; Python and
@@ -185,12 +217,8 @@ with SOC 2 Type II / ISO 27001, TLS 1.2+, AES-256 at rest, Stripe for payments;
 the provider is not named and no region list is published. Two employees, ~$30K
 raised (`104` §18.115). **There is no fast infrastructure secret here to copy.**
 
-What actually makes their sort look quick is that they removed the expensive part:
-the person authors the destination tree, so every file is one `/decide` call
-against folders that already exist, and semantic search covers what filing misses.
-This product's cost is the part they deleted. **The comparison to make is not
-speed — it is that a tool which cannot invent the tree has to ask the person to,
-and they wrote that no tool can do it.**
+**The comparison to make is not speed — it is that a tool which cannot invent the
+tree has to ask the person to, and they wrote in public that no tool can do it.**
 
 ### The one thing worth building from them
 
