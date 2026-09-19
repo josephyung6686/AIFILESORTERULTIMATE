@@ -153,6 +153,26 @@ nothing else did.
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
+
+**RECAPTURED ON 19 Sep 2026, AND THE DIFF WAS READ BEFORE IT WAS TAKEN** -- which
+is this file's own rule and `108` §4's: a recapture that is not diffed proves only
+that the code equals itself. Three things moved and each is ratified:
+
+  * `98 Review and Unsorted` / `Review Later` -- `106` Phase 7's RESIDUAL HOME,
+    a root for files no branch of the plan can hold (`107`: "not a dumping
+    ground");
+  * the `problem set` and `syllabus` folders are gone and their values are carried
+    on the terms that keep the files -- `00` AMENDMENT 26, the owner's floor: each
+    of those terms holds exactly ONE file, and `107` asks that a single file rest
+    at its parent rather than make a one-file leaf;
+  * `artifact_kind` reads `work_type` again -- the option sentence names the FIELD
+    and not the internal role key, which Phase 7 had changed.
+
+**AND THE CAPTURE MUST BE TAKEN IN THE ENVIRONMENT THE TEST RUNS IN.** Running the
+`capture` entry point from a shell reads the repository's `.env`, so it records the
+cloud banner where a pytest run without a key records "No model was consulted" --
+the same code writing two screens. Neutralise `cli.ENV_FILE` and the model
+variables before capturing, or the fixture pins the developer's machine.
 """
 from __future__ import annotations
 
