@@ -765,21 +765,32 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
     # `00`:68 forbids silently reorganising what the person made. A rule
     # about which facts earn a folder does not reach a folder the person
     # asked for by accepting a group.
-    if under_built and level.field_ref is not None and len(children) > 1 and all(
-            len(members) == 1 for _value, members in children):
-        folded_out.append(FoldedLevel(
-            parent_node_id=parent.node_id, parent_label=parent.display_label,
-            dimension_role=level.dimension_role, label=_label_of(level),
-            values=tuple(value for value, _members in children),
-            file_count=len(children), reason=FOLDED_ONE_PER_FILE))
-        _project(evidence, level_index=level_index + 1, parent=parent,
-                 eligible=eligible, chain=chain, plan_version_id=plan_version_id,
-                 mint_node_id=mint_node_id, handling_class_for=handling_class_for,
-                 template_context_for=template_context_for,
-                 protected_movement_permitted=protected_movement_permitted,
-                 out=out, members_out=members_out,
-                 under_built=under_built, folded_out=folded_out)
-        return
+    # RETIRED BY `00` AMENDMENT 27 (the owner, 19 Sep, asked with both trees
+    # drawn): a level every value splits IS built, even where every folder holds
+    # one file. The refusal stood here and read:
+    #
+    #     if under_built and level.field_ref is not None and len(children) > 1
+    #             and all(len(members) == 1 for _value, members in children):
+    #
+    # -- so a course holding an exam, a homework, notes and a syllabus, one of
+    # each, showed four loose files and no kinds at all.
+    #
+    # WHAT IT READ TOO WIDELY. It cited `107`'s "a single unusual file may remain
+    # at the closest meaningful parent rather than creating a one-file leaf", but
+    # that sentence is about ONE unusual file resting at its parent -- not about
+    # refusing a complete split where every kind happens to hold a single file.
+    # `00`:98's "a two-file application packet MAY remain a single folder" is
+    # permissive and licenses leaving a packet whole; it does not require refusing
+    # a level the person's own kinds divide cleanly.
+    #
+    # THE NARROWNESS IS WHY LIFTING IT IS SAFE: the rule fired only where EVERY
+    # child held exactly one file, so this reaches that case and no other. An
+    # outlier beside crowded siblings was never in its scope.
+    #
+    # `FOLDED_ONE_PER_FILE` and `folded_sentence`'s arm for it are now unreachable
+    # from here. They are LEFT IN PLACE, not deleted: plan databases written
+    # before today hold rows carrying that reason, and a reader that cannot spell
+    # them could not read an existing plan.
 
     ordinal = 0
     for value, members in children:
