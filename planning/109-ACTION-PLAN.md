@@ -430,13 +430,45 @@ Making the reader change without that test would be production code with no fail
 test behind it — which is how `106` Phase 7 shipped a fold whose consequence nobody
 could see until four test files went red.
 
-### A3. The grader, so 97.7 % can be re-claimed (`108` §5)
+### A3. The grader — `108` §5's description does not match the file, and the file is untracked
 
-`106` Phase 2(b) changed the situation fact from holding the KIND to holding the
-SITUATION. The grader's prefix fallback would score a real disagreement as a match,
-so the number may not be quoted until the grader prefers the fact's own value where
-it is already a situation id. Until then **97.7 % is not a current measurement** —
-do not print it in any report.
+**READ, NOT CHANGED.** Two things have to be said before anyone edits it.
+
+**1. It is outside version control.** The grader is `.groundtruth/grade_gate1.py`,
+62 lines, and `.gitignore:32` excludes the whole directory — `git ls-files
+.groundtruth/` is empty. The script that produces a headline number quoted in
+`106` §0 and `108` §5 **cannot be reviewed, diffed, or handed to the next agent**,
+and a fix made to it is invisible the moment the session ends. That is a bigger
+problem than the number.
+
+**2. There is no prefix fallback in it.** `108` §5 says the 97.7 % may not be
+re-claimed "until the grader prefers the fact's own value where it is already a
+situation id", because "the grader's prefix fallback would score a real
+disagreement as a match". The file does no prefix matching anywhere. Its bridge is
+a literal dict — key-situation → a SET OF KINDS — and the comparison is exact set
+membership (`elif ans in MAP[k["situation"]]`). If the answer were a situation id
+where the set holds kinds, the effect would be a false MISS, not a false match:
+the number would read too LOW. `108` has the direction backwards.
+
+**3. And the premise may not apply at all.** The script grades site G's RAW
+RESPONSE payload — it joins `llm_response` and reads `payload["situation"]`. `106`
+Phase 2(b) changed what the FACT holds, not what the response carries, so this
+script is untouched by that change. What G's payload actually carries is the open
+question already on the record: the shortlist is built from SCHEMA ids
+(`model_situation.py:602` iterates `question.allowed_situations` as `schema_id`),
+which is w2c's measured "shortlist unit mismatch, schemas (23) vs situations (208)"
+— an owner question, still unanswered.
+
+**So A3 is not a code task today.** In order: (a) decide whether the grader belongs
+in the repo — it prints aggregates only and reads the key by path, so tracking the
+SCRIPT while leaving the key and corpus ignored looks possible and is the owner's
+call, since it is their harness; (b) answer the shortlist-unit question, because
+whether G returns a kind or a situation decides what the bridge must contain; (c)
+only then touch the comparison. Changing it now would be editing an untracked file
+against a description its own source contradicts.
+
+**Meanwhile 97.7 % stays unquotable** — not for `108`'s reason, but because nobody
+has re-run the grader since the vocabulary questions opened.
 
 ### A4. `test_r37_*` — diff, do not recapture
 
