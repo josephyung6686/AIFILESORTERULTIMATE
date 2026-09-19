@@ -188,6 +188,21 @@ the one that actually refused:
    Changing it migrates answers the owner has already given. The owner picks: a
    composite key (life + kind), or a branch id no display string can collide with.
 
+3. **THE PLAN RECORD SAYS THE OPPOSITE OF THE SCREEN, about the same folder.** In
+   A1's own tree dump, a branch with NO child node beneath it is stored with
+   `refinement_disposition: 'refined'` and
+   `refinement_reason: 'The rules built the levels beneath this branch from facts
+   that were already settled in your files.'` No levels were built beneath it —
+   that is amendment 25 working — so the record claims work the run did not do, for
+   a folder whose question is still on the screen unanswered.
+
+   This is `cli.py:22339`'s defect one layer down: 22339 lies to the person on the
+   screen, this lies to whoever reads the plan database afterwards, and a `refined`
+   folder that nobody judged is exactly the state amendment 25 exists to make
+   visible. Both are one-line-ish and both are user-facing wording, so they belong
+   in one commit once the owner has ruled on the fold (A1.5) — recapturing the
+   freeze fixture will touch the same screens.
+
 ---
 
 ### A1 — VERIFIED CLEAN, and the suite is NOT green on this branch
@@ -312,11 +327,17 @@ does not hold. Two tests, red before and green after
 doubt. Switching `_each_kinds_question_under` to the branch's own map needs a test
 that can SEE the difference, and that needs a corpus where the deterministic pass
 alone produces a **two-kind life branch**. Three attempts did not get one:
-`academic`, `college_applications` and `research` all live in Education, but the
-shipped rows carry `file_kind_never_alone: true` for each, so a sole-owned
-`work_type` term does not anchor a file by itself — a corpus of syllabus +
-admission-form files reads as academic throughout, and `_each_kinds_question_under`
-returns early on `len(branch.schemas) < 2`.
+`academic`, `college_applications` and `research` all live in Education, and a
+corpus of syllabus + admission-form files read as **academic throughout**, so
+`_each_kinds_question_under` returned early on `len(branch.schemas) < 2`.
+
+**WHY those files did not anchor to `college_applications` is NOT DETERMINED.** An
+earlier draft of this section blamed `file_kind_never_alone: true` on the row. That
+is not a finding — `academic` carries the same flag and its syllabus anchors fine,
+which is the whole basis of `test_r37_per_branch_situation`. The flag is far more
+likely to be about a file's FORMAT not classifying it alone. Whoever takes this
+should read `file_facts` for those two files and see whether a `work_type` fact was
+written at all, and in what state, before theorising.
 
 **The route that will work, for whoever takes it:** `test_r37_per_branch_situation`
 already carries a loopback model stub. Site G naming one file of a two-kind life
