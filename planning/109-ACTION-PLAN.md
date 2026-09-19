@@ -379,8 +379,24 @@ does not hold. Two tests, red before and green after
 (`test_a_life_branch_says_which_kind_its_reach_put_each_file_under`,
 `test_a_branch_says_nothing_about_a_file_it_does_not_hold`).
 
-**NOT BUILT: the one-line reader change**, and the reason is a fixture, not a
-doubt. Switching `_each_kinds_question_under` to the branch's own map needs a test
+**NOW BUILT TOO: the reader change**, by extraction rather than by fixture.
+`files_of_kind_still_open(branch, kind, *, judged_kind_of, situation_under)` is a
+module-level function in `cli.py` beside `signals_for_branch`, which is the
+codebase's own pattern for exactly this — a rule about one branch and a few
+callables, with a two-line binder in the closure. Four tests, red first (the
+import did not resolve): the anchor-settled file the judge left silent is asked as
+its kind; a judged file is asked exactly as before; **the judge's word outranks
+the reach where it spoke** (`104` §17.9 — preferring the reach would discard site
+G's reading for every file the reach had placed); and a file already answered for
+is not asked twice. 1,052 pass across `tests/p6`, both branch-situation suites, the
+optional-situation integration file, A1's own and the P11 guard.
+
+**What the integration fixture would have added**, for the record: proof that a
+real corpus produces the shape. The unit tests prove the RULE; a corpus that yields
+a two-kind life branch from the deterministic pass alone is still unbuilt, and
+r37's loopback stub is still the route.
+
+**The earlier note read:** the reason is a fixture, not a doubt. Switching `_each_kinds_question_under` to the branch's own map needs a test
 that can SEE the difference, and that needs a corpus where the deterministic pass
 alone produces a **two-kind life branch**. Three attempts did not get one:
 `academic`, `college_applications` and `research` all live in Education, and a

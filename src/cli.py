@@ -18851,19 +18851,26 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         kind: a research paper is never offered `academic.coursework`, and an
         answer for `research` never lands on a coursework file. Nothing reads an
         answer at the life's scope, so a single merged question would reach no
-        file at all. The files are the ones site G named that kind AND whose
-        situation nothing has answered -- the default branch's own per-kind
-        loop, the same rule; the options are the kind's situations that ARE
-        this life, as the one-kind branch offers (`_asked_of_a_life`). Fewer
-        than two options, or no open file, is no question.
+        file at all. The options are the kind's situations that ARE this life, as
+        the one-kind branch offers (`_asked_of_a_life`). Fewer than two options,
+        or no open file, is no question.
+
+        WHICH FILES is `files_of_kind_still_open`'s, a module-level function for
+        `signals_for_branch`'s reason: the rule is about one branch and three
+        inputs, and a corpus that yields a two-kind life branch from the
+        deterministic pass alone is a fixture nobody has built. It reads site G's
+        map first and the BRANCH's own reach where G was silent -- `108` §4's
+        residual regression, which this loop declared and did not close: reading
+        G alone left a file an anchor had settled in no kind's question at all.
         """
         questions = []
         if branch.is_default or len(branch.schemas) < 2:
             return questions
         for kind in branch.schemas:
-            files = tuple(file_id for file_id in branch.file_ids
-                          if situation_cell[0].named.get(file_id) == kind
-                          and _the_situation_this_file_is_under(file_id) is None)
+            files = files_of_kind_still_open(
+                branch, kind,
+                judged_kind_of=situation_cell[0].named.get,
+                situation_under=_the_situation_this_file_is_under)
             options = tuple(situation for situation in _situations_of(kind)
                             if life_of(catalogue, situation) == branch.life)
             if not files or len(options) < 2:
@@ -22097,6 +22104,38 @@ def placement_words(policy: str, *, disposition: str | None) -> str | None:
     except Exception:
         return ordinary
     return ordinary if moves else PLACEMENT_WORDS_NOT_MOVED
+
+
+def files_of_kind_still_open(branch, kind: str, *, judged_kind_of,
+                             situation_under) -> tuple[str, ...]:
+    """Which of a life branch's files one KIND's question is about (`00` a.16).
+
+    A branch of two kinds is not one piece of work, so it is asked one question
+    per kind at the kind's own scope, and this says which files each of those
+    questions covers.
+
+    **TWO MAPS, IN THIS ORDER, AND THE ORDER IS `104` §17.9's.** Site G's reading
+    where it has one, and the reach's own kind where it does not. The judge runs
+    after the deterministic pass and has read the file, so a later answer refines
+    an earlier one and preferring the reach would silently discard the judge's
+    reading for every file the reach had placed.
+
+    **THE FALLBACK IS THE WHOLE POINT** (`108` §4's residual, declared in
+    `e9b7c550`). Reading site G alone leaves a file whose kind a deterministic
+    ANCHOR settled, and which the judge never spoke about, matching no kind at
+    all: in no question, with no situation and no way to acquire one. Before
+    amendment 16 folded the kinds into one life it sat in a one-kind branch and
+    was asked there. `Branch.kind_of` is the reach's own map, anchors included,
+    and answers `None` for a file this branch does not hold -- so the fallback
+    cannot reach across branches, which §17.9 forbids for the person's answer in
+    the same words.
+
+    A file whose situation something has already answered is not asked again,
+    which is the predicate this replaces, unchanged.
+    """
+    return tuple(file_id for file_id in branch.file_ids
+                 if (judged_kind_of(file_id) or branch.kind_of(file_id)) == kind
+                 and situation_under(file_id) is None)
 
 
 def signals_for_branch(branch, *, situations_of, run_signal) -> frozenset[str]:
