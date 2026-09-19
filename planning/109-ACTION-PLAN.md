@@ -330,6 +330,15 @@ without remainder:
 So A1 and A2 together regress nothing across 11,068 passing tests. That is the
 claim, and the two baseline runs are what backs it.
 
+**Run again after A2's reader change** (`515a57b4`):
+
+```
+tests/  (everything)   19 failed, 11072 passed, 20 skipped, 34 xfailed, 19 errors
+```
+
+Failure set byte-identical to the run above, +4 passes — the four new tests.
+**Everything committed today is verified against a pristine baseline.**
+
 ---
 
 ### The moving half RUNS, and an untyped run can reach a moveable plan
