@@ -79,6 +79,31 @@ def test_two_situations_firing_on_one_branch_raise_one_question():
     assert "Teaching" in question.evidence_context
 
 
+def test_the_unjudged_defaults_question_says_nobody_has_said_what_these_are():
+    """`00` amendment 25. The untyped run's default branch holds the files
+    nothing judged, and its question may not claim their facts fit the menu:
+    the menu is the majority kind's, offered because that kind is the folder's
+    most common and for no reason that is true of these files. The screen says
+    so, names both doors -- an answer at this scope, or a model -- and says
+    what happens until then. The opening count is the same words as every
+    branch question, because the person is told how many files are waiting.
+    SABOTAGE: drop the keyword. The residue is told its "own facts fit 2 of the
+    situations this library carries equally"."""
+    question = a_situation_question(branch_label="Downloads", file_count=113,
+                                    unjudged_menu_of="career")
+
+    assert question.scope == "branch:Downloads"
+    assert question.evidence_context.startswith("113 files sit under Downloads")
+    assert "nobody has said what they are" in question.evidence_context
+    assert "career" in question.evidence_context
+    assert "fit" not in question.evidence_context
+    assert "command line" not in question.unlocks
+    assert "model" in question.unlocks
+    assert "no folders beneath" in question.unlocks
+    chosen = {option.selects_situation for option in question.options}
+    assert chosen == set(PRIYAS_TWO_LIVES)
+
+
 def test_one_situation_is_not_an_ambiguity_and_asks_nothing():
     """The negative twin, and the shape `question_for_nesting` already uses.
 

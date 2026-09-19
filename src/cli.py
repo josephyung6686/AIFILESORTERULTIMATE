@@ -18890,7 +18890,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 branch_label=(branch.label if branch.is_default
                               else branch.schemas[0]),
                 situations=branch.candidate_situations,
-                file_count=len(branch.file_ids))
+                file_count=len(branch.file_ids),
+                # `00` AMENDMENT 25: an unsettled default is an UNTYPED run's
+                # (a typed one is settled by the word typed) and its files are
+                # the ones nothing judged. Its menu is the majority kind's --
+                # `schemas[0]` -- and the question says so instead of claiming
+                # the files' facts fit it.
+                unjudged_menu_of=(branch.schemas[0] if branch.is_default
+                                  else None))
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = branch.file_ids
             asked.append(question)
@@ -18907,7 +18914,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # situation for sits in the default branch by the typed rule (its life
         # is the typed one) and has nothing left to ask.
         default = partition.default
-        for kind in default.schemas[1:]:
+        # THE DEFAULT'S OWN KIND TOO, on a run with no situation (`00` amendment
+        # 25). The default's question used to stand in for the majority kind's
+        # -- its answer settled the branch and, through it, that kind's files --
+        # and it no longer does: the branch is settled only at its own scope,
+        # and the kind's files read the kind's. With `--situation` typed the
+        # word typed covers the run's own kind and `schemas[0]` asks nothing.
+        # Where no `--label` was typed the default's label IS the kind and the
+        # two questions are one id, already recorded above; `asked` carries it
+        # once.
+        already = {question.question_id for question in asked}
+        for kind in (default.schemas[1:] if of_the_run else default.schemas):
             files = tuple(file_id for file_id in default.file_ids
                           if situation_cell[0].named.get(file_id) == kind
                           and _the_situation_this_file_is_under(file_id) is None)
@@ -18916,6 +18933,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 continue
             question = question_for_situation(
                 branch_label=kind, situations=options, file_count=len(files))
+            if question.question_id in already:
+                continue
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = files
             asked.append(question)
@@ -18941,8 +18960,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         **AND WITH NO `--situation` TYPED, THIS IS WHERE THE RUN LEARNS WHAT THE
         FOLDER IS** (`00` Amendments of 2026-09-11 item 2). The default branch's
         schema comes from the corpus's own evidence rather than from the command
-        line, and its situation is then settled by the same rule every other
-        branch's is. Here and not earlier because the evidence does not exist
+        line, and its situation is settled by the person's answer at the branch's
+        own scope and by nothing else (`00` amendment 25; `branch_situation.
+        _situation_for`). Here and not earlier because the evidence does not exist
         earlier: the anchors are facts the deterministic pass has just written and
         the readings are the recogniser's over files that have just been read.
         """

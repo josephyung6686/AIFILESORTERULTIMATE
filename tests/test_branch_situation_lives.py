@@ -39,7 +39,7 @@ LIVES_OF_KIND = {"academic": "Education", "career": "Career",
 def _partition(files, *, named=None, facts=None, alternatives=None, anchors=None,
                chosen=None, default_situation="academic.coursework",
                default_label="Coursework", lives=LIVES,
-               lives_of_kind=LIVES_OF_KIND):
+               lives_of_kind=LIVES_OF_KIND, situations=SITUATIONS):
     named = named or {}
     facts = facts or {}
     alternatives = alternatives or {}
@@ -53,7 +53,7 @@ def _partition(files, *, named=None, facts=None, alternatives=None, anchors=None
         owner_of_term=OWNERS,
         fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
         verdict_of=lambda file_id, _hash: _Verdict(),
-        situations_of=lambda schema_id: SITUATIONS.get(schema_id, ()),
+        situations_of=lambda schema_id: situations.get(schema_id, ()),
         chosen_situation=lambda scope: chosen.get(scope),
         named_by_the_model=named,
         life_of=lambda situation: lives.get(situation),
@@ -155,23 +155,54 @@ def test_a_typed_label_that_is_the_life_itself_keeps_that_lifes_files_home():
     assert partition.default.schemas == ("academic", "college_applications")
 
 
-def test_an_untyped_run_keeps_only_the_residue_in_the_default_branch():
-    """With nothing typed the top level is lives, and the folder's own branch
-    holds what has none. Here the person even answered the default's question
-    (coursework) -- that settles the DEFAULT's situation for P11's root map and
-    pulls no file back: `Downloads` is not a life. SABOTAGE: apply the typed
-    rule untyped. The coursework files sit under `Downloads` and the root that
-    reads as a life is empty."""
-    partition = _partition(["a", "z"], default_situation=None,
-                           default_label="Downloads",
-                           named={"a": "academic"},
-                           facts={"a": "academic.coursework"},
-                           chosen={"branch:Downloads": "academic.coursework"})
+def test_an_untyped_default_is_settled_only_by_the_persons_answer_at_its_own_scope():
+    """`00` amendment 25, first half: WHAT STILL SETTLES THE DEFAULT, and what no
+    longer does.
 
-    assert partition.default.situation == "academic.coursework"
-    assert partition.default.life == "Education"
-    assert partition.default.file_ids == ("z",)
-    assert partition.by_label("Education").file_ids == ("a",)
+    THE RULE THIS REPLACES was `test_an_untyped_run_keeps_only_the_residue_in_
+    the_default_branch`: with nothing typed the default's situation was settled
+    "by exactly the rule every other branch already has" (the 11 Sep ruling) --
+    the person's answer at the branch's scope, else the library's ONE situation
+    for the default's schema. It was ratified because, with nothing typed, there
+    was no reason to treat the branch the corpus named differently from the
+    branches its anchors opened.
+
+    WHY AMENDMENT 25 OVERRIDES IT. On an untyped run the default's schema is the
+    corpus's MAJORITY KIND, and the files under the default are the ones no
+    life could be read for -- the residue nothing judged. The library's one
+    situation for a kind those files were never shown to have is a situation
+    neither the person nor the model gave (`104` §18.114); §17.9 licenses no
+    third voice. So the default is settled by the person's answer at ITS OWN
+    scope and by nothing else: that answer is the person saying what THIS
+    folder's leftover files are, which is their word and stands (first half of
+    this test, unchanged from the old one). With a one-situation kind and no
+    answer the default is unsettled, offers no menu -- one situation is not a
+    question -- and carries no life; `Downloads` is not a life either way.
+
+    SABOTAGE: restore `the_one_situation` for the default. The second partition
+    wears `academic.coursework` and `z`, which nothing read, is filed as
+    coursework."""
+    answered = _partition(["a", "z"], default_situation=None,
+                          default_label="Downloads",
+                          named={"a": "academic"},
+                          facts={"a": "academic.coursework"},
+                          chosen={"branch:Downloads": "academic.coursework"})
+
+    assert answered.default.situation == "academic.coursework"
+    assert answered.default.life == "Education"
+    assert answered.default.file_ids == ("z",)
+    assert answered.by_label("Education").file_ids == ("a",)
+
+    one_situation = _partition(
+        ["a", "z"], default_situation=None, default_label="Downloads",
+        named={"a": "academic"}, facts={"a": "academic.coursework"},
+        situations={**SITUATIONS, "academic": ("academic.coursework",)})
+
+    assert one_situation.default.situation is None
+    assert one_situation.default.life is None
+    assert one_situation.default.candidate_situations == ()
+    assert one_situation.default.file_ids == ("z",)
+    assert one_situation.by_label("Education").file_ids == ("a",)
 
 
 def test_a_file_of_another_life_leaves_the_default_branch():
@@ -229,18 +260,42 @@ def test_the_persons_stored_answer_for_a_kind_still_decides_that_kinds_files():
     assert partition.by_label("Education") is None
 
 
-def test_the_persons_stored_answer_for_the_folders_kind_still_settles_the_default():
-    """The same condition on the DEFAULT branch. An untyped run used to label
-    its default with the kind, so the person's answer to "Which of these is
-    academic?" is stored at `branch:academic`; the default is now called by the
-    folder, and the old answer must still settle it. SABOTAGE: read only
-    `branch:<default_label>`. The person is asked again what they answered."""
-    partition = _partition(["z"], default_situation=None,
+def test_the_persons_answer_for_the_folders_kind_no_longer_settles_the_default():
+    """`00` amendment 25, second half: THE KIND'S ANSWER IS NOT THE DEFAULT'S.
+
+    THE RULE THIS REPLACES was `test_the_persons_stored_answer_for_the_folders_
+    kind_still_settles_the_default`: an untyped run used to label its default
+    with the kind, so the person's answer to "Which of these is academic?" was
+    stored at `branch:academic`; when the default came to be called by the
+    folder (amendment 12) the old answer was read at the kind's scope as well,
+    so that the person would not be asked again what they had answered. It was
+    ratified on `104` §17.9 -- the person's answer is never dropped for a
+    rename.
+
+    WHY AMENDMENT 25 OVERRIDES IT. That answer was about the KIND's files, and
+    it still reaches every one of them (`_persons_answer_for`, asserted below:
+    `a` goes to Education on the strength of it). The default branch on an
+    untyped run holds the files that have NO kind or no life -- the residue --
+    and reading the kind's answer onto them was the product asserting, for 113
+    of the owner's 371 files, a situation the person gave for OTHER files
+    (`104` §18.114). §17.9 orders the person above the model and the model
+    above silence; nowhere does it let a rename carry an answer onto files it
+    was never about. So the kind's answer settles the kind's files and NOT the
+    default; the default stays visibly unjudged, its question standing with its
+    menu, until the person answers at ITS scope or a model names the residue.
+
+    SABOTAGE: read `branch:<default_schema>` for the default. `z`, which nothing
+    read, is filed as coursework and the question disappears from the screen."""
+    partition = _partition(["a", "z"], default_situation=None,
                            default_label="Downloads",
+                           named={"a": "academic"},
                            chosen={"branch:academic": "academic.coursework"})
 
-    assert partition.default.situation == "academic.coursework"
-    assert partition.default.candidate_situations == ()
+    assert partition.by_label("Education").file_ids == ("a",)
+    assert partition.default.situation is None
+    assert partition.default.life is None
+    assert partition.default.file_ids == ("z",)
+    assert partition.default.candidate_situations == SITUATIONS["academic"]
 
 
 def test_the_alternatives_decide_only_when_they_agree_on_one_life():

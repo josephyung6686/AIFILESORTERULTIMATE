@@ -456,41 +456,46 @@ def partition_by_branch(
 
     **`default_situation` IS `None` WHEN THE PERSON TYPED NO `--situation`**, on
     the owner's ruling of 11 Sep 2026 (`00` Amendments of 2026-09-11 item 2). The
-    default branch is then settled by exactly the rule every other branch already
-    has -- the person's own answer at this branch's scope, or the library's single
-    situation for the schema, or UNSETTLED with its candidates carried for the
-    question -- because with nothing typed there is no reason for the branch the
-    corpus named to be treated differently from the branches its anchors opened.
+    default branch is then settled by the person's answer at ITS OWN scope and
+    by nothing else (`00` amendment 25) -- see `_situation_for`.
     """
     def _situation_for(schema_id: str,
                        branch_label: str) -> tuple[str | None, tuple[str, ...]]:
-        """This branch's situation, and the candidates when it has none.
+        """The UNTYPED default's situation, and the menu when it has none.
 
-        The one place the rule is spelled, read by the default branch and by every
-        other. `104` §11.2 step 4's ruling stands in the third arm: the person, or
-        a model from valid options, decides -- never a rule picking the first of
-        twenty-six.
+        **`00` AMENDMENT 25: AN UNJUDGED FILE STAYS VISIBLY UNJUDGED.** On an
+        untyped run `schema_id` is the corpus's MAJORITY KIND
+        (`cli._the_corpus_names_a_schema`) and the files under the default are
+        the ones no life could be read for -- unreached by any anchor or
+        G-named branch, no judge fact, no agreeing alternative. Nothing has
+        said what they are. Until `104` §18.114 this read the person's answer
+        at the kind's own scope too (`branch:<schema_id>`, on §17.9's "never
+        dropped for a rename"), and then the library's one situation for the
+        kind -- and 113 of the owner's 371 files were filed `career.recruiting`
+        on an answer given for OTHER files. Both arms were a third voice: §17.9
+        orders the person above the model and the model above silence and
+        licenses no other. So:
 
-        THE SCOPE IS THE BRANCH'S LABEL and not its schema, because the label is
-        what `questions.triggers.question_for_situation` puts the question under
-        (`branch:<branch_label>`) and an answer looked for anywhere else is an
-        answer the person gave and the run never found. AND THEN THE KIND'S OWN
-        SCOPE: an untyped run's default branch was labelled with its kind until
-        amendment 12, so the answer to "Which of these is academic?" is stored
-        at `branch:academic`, and a branch now called by its folder still reads
-        it -- `104` §17.9, the person's answer is never dropped for a rename.
+        THE PERSON'S ANSWER AT THIS BRANCH'S OWN SCOPE, `branch:<branch_label>`,
+        which is where `questions.triggers.question_for_situation` records the
+        default's question -- their word about THIS folder's leftover files,
+        and it stands. The kind's answer still reaches the kind's files through
+        `_persons_answer_for`; it no longer reaches these. `None` otherwise,
+        with the menu the question offers: the kind's situations, when there
+        are two or more (one is not a question, `question_for_situation`
+        refuses it). The menu is the majority kind's because the question needs
+        a menu the answer can match (`questions.store.selected_situation`), and
+        the screen says so rather than claiming the files' facts fit it.
+
+        Checked against the kind's list as before: an answer naming a situation
+        the library has since retired settles nothing rather than crashing the
+        run where the promoted situation is read (`cli._the_situation_of_a_run`).
         """
         candidates = tuple(dict.fromkeys(situations_of(schema_id)))
-        for scope in dict.fromkeys((branch_label, schema_id)):
-            chosen = chosen_situation(f"{SCOPE_BRANCH}:{scope}")
-            if chosen is not None and chosen in candidates:
-                return chosen, ()
-        # `the_one_situation`'s first arm, and it is the same rule spelled once:
-        # a branch is not a file, so there is no per-file raised set to hand it.
-        one = the_one_situation(schema_id, situations_of=situations_of)
-        if one is not None:
-            return one, ()
-        return None, candidates
+        chosen = chosen_situation(f"{SCOPE_BRANCH}:{branch_label}")
+        if chosen is not None and chosen in candidates:
+            return chosen, ()
+        return None, (candidates if len(candidates) >= 2 else ())
 
     def _default() -> tuple[str | None, tuple[str, ...]]:
         if default_situation is not None:
@@ -570,14 +575,16 @@ def partition_by_branch(
 
         The typed word for the run's own kind, exactly as `cli._the_situation_
         already_settled` reads it; else their answer at the kind's own scope,
-        which for the default kind is also the default branch's (its question
-        is the kind's question). Checked against the library's list for
-        `_situation_for`'s reason.
+        for the default's kind as for every other. NOT the default branch's
+        settled situation (`00` amendment 25): on an untyped run that is the
+        person's word about the folder's leftover files, and this is their
+        word about files of a KIND -- two answers, and each reaches only what
+        it was given for. Where no `--label` was typed the default's label IS
+        the kind, so the two scopes are one key and one answer serves both.
+        Checked against the library's list for `_situation_for`'s reason.
         """
-        if kind == default_schema:
-            if typed:
-                return default_situation
-            return default_situation_settled
+        if kind == default_schema and typed:
+            return default_situation
         chosen = chosen_situation(f"{SCOPE_BRANCH}:{kind}")
         return chosen if chosen in situations_of(kind) else None
 

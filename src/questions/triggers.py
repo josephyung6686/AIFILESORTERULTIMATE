@@ -296,7 +296,8 @@ def _nesting_label(choice: NestingChoice) -> str:
 
 
 def question_for_situation(*, branch_label: str, situations: Iterable[str],
-                           file_count: int) -> StructuralQuestion:
+                           file_count: int,
+                           unjudged_menu_of: str | None = None) -> StructuralQuestion:
     """§13's third consequence: the person says which of their lives a branch is.
 
     `--situation` takes ONE string for a whole disk and derives the schema from it.
@@ -314,6 +315,19 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
     of them: `_schema_words` already records why this module does not invent
     vocabulary the template library owns, and `--list-situations` prints these exact
     strings, so they are what the person has already been shown.
+
+    **`unjudged_menu_of` IS THE UNTYPED RUN'S DEFAULT BRANCH** (`00` amendment
+    25). Its files are the ones nothing judged -- no answer of the person's
+    covers them and no model named them -- and the sentence above would be false
+    of them: their facts fit nothing, they were never read. The menu is still
+    offered, because an answer can only be one of the options a recorded
+    question carries (`questions.store.selected_situation`), and it is the
+    corpus's majority kind's -- `unjudged_menu_of` names that kind -- because
+    that is the only list the run has. So the screen says exactly that: nobody
+    has said what these are, here is where the menu comes from, and here are the
+    two doors -- answer at this scope, or run with a model. It does not say the
+    situation typed on the command line stands in, because on such a run none
+    was.
     """
     offered = tuple(dict.fromkeys(situations))
     if len(offered) < 2:
@@ -321,19 +335,39 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
             "a question is asked where TWO situations both fire on one branch; "
             "one situation is an answer and not a question, and asking anyway "
             "would be the generic questionnaire §12 rejects, one branch at a time")
-    files = "file" if file_count == 1 else "files"
+    one = file_count == 1
+    files = "file" if one else "files"
+    sit = "sits" if one else "sit"
+    if unjudged_menu_of is None:
+        evidence = (
+            f"{file_count} {files} {sit} under {branch_label}, and "
+            f"{'its' if one else 'their'} own facts fit {len(offered)} of the "
+            "situations this library carries equally.")
+        unlocks = (
+            f"This decides which templates {branch_label} is offered, and so which "
+            "folders it can have. Until it is answered the situation you gave on "
+            "the command line is used for this branch as well as the rest.")
+    else:
+        kind = unjudged_menu_of
+        they, them, are = (("it", "it", "is") if one else ("they", "them", "are"))
+        evidence = (
+            f"{file_count} {files} {sit} under {branch_label}, and nobody has said "
+            f"what {they} {are}: no answer of yours covers {them}, and no model has "
+            f"judged {them}. The situations offered are {kind}'s, because {kind} is "
+            "the kind this folder's own evidence names most often -- not because "
+            f"anything read {'this file' if one else 'these files'} as {kind}.")
+        unlocks = (
+            f"Answer here only if {'this file is' if one else 'these files are all'} "
+            f"one of the situations offered: it decides which folders {branch_label} "
+            f"can have. Otherwise run with a model and it may name {them} one by "
+            f"one. Until one of those happens {they} {'stays' if one else 'stay'} "
+            f"under {branch_label} with no folders beneath {them}.")
     return StructuralQuestion(
         question_id=f"{SITUATION_KIND.kind_id}:{branch_label}",
         answer_class=STRUCTURAL,
         prompt=f"Which of these is {branch_label}?",
-        evidence_context=(
-            f"{file_count} {files} {'sits' if file_count == 1 else 'sit'} under "
-            f"{branch_label}, and {'its' if file_count == 1 else 'their'} own facts "
-            f"fit {len(offered)} of the situations this library carries equally."),
-        unlocks=(
-            f"This decides which templates {branch_label} is offered, and so which "
-            "folders it can have. Until it is answered the situation you gave on "
-            "the command line is used for this branch as well as the rest."),
+        evidence_context=evidence,
+        unlocks=unlocks,
         will_not_do=WILL_NOT_DO,
         scope=f"{SCOPE_BRANCH}:{branch_label}",
         handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
