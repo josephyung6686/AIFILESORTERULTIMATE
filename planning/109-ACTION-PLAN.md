@@ -235,6 +235,62 @@ because a recapture that is not diffed proves only that the code equals itself.
 
 ---
 
+### A1.5 — the 15 failures are `106` Phase 7's flatten rule, and it is NOT a bug
+
+Bisected in a detached worktree, one fast file (`test_two_courses_keep_two_terms`)
+at seven commits of 18 Sep:
+
+```
+721b75fe Phase 6      7 passed
+672b5778 Phase 5      7 passed
+c954023d measure.py   7 passed
+5dbc9257 Phases 3+4   7 passed
+e9b7c550 Phase 3 fix  7 passed
+229c7526 Phase 7      3 failed, 4 passed   <- HERE
+03afe9c6 (HEAD)       3 failed, 4 passed
+```
+
+**The symptom looked like a serious regression** — `assert {} == {'CHEM2100': ...,
+'PHYS1401': 'Fall2024'}`, no course nodes at all — and on the freeze fixture it
+reads as `KeyError: 'Coursework/Spring2026/PHYS1401/lecture'`. Four test files and
+19 setup errors all say the same thing: the course level stopped being built.
+
+**It is `106` §B.2 working as written.** Measured on that fixture's own corpus
+(two courses, two terms, TWO files each, so rule B.1 cannot apply):
+
+```
+tree            Coursework/{Fall2024, 2023-2024Semester1}      <- the term level IS built
+node_expected_values
+                node ...10 (Fall2024)            term=Fall2024            subject=PHYS1401
+                node ...8  (2023-2024Semester1)  term=2023-2024Semester1  subject=CHEM2100
+```
+
+`Fall2024` holds exactly one course and nothing beneath it divides, so the chain
+fold removes the course node **and appends its value to the parent**, which is
+what §B.2 says it does. **No information is lost**: the invariant those tests
+exist for — the term is read PER COURSE and not off the group — is still true and
+still observable, at `node_expected_values` instead of at node parentage.
+
+**So the tests are stale against a ratified rule, not evidence of a defect, and I
+have NOT rewritten them.** Rewriting an assertion to match new behaviour is how a
+bug gets enshrined, and there is a preference underneath this that only the owner
+settles (`00` amendment 24):
+
+> **OWNER QUESTION.** When a term holds exactly one course, §B.2 gives you
+> `Coursework/Fall2024/` with `PHYS1401` carried as a value, and no `PHYS1401`
+> folder. `107` asks for "shallow where files are isolated" and "a single unusual
+> file may remain at the closest meaningful parent" — which justifies the fold —
+> but two files of one course in one term may not be what you meant by isolated.
+> **Is the folded course folder what you want?** If yes, the three assertions are
+> rewritten to read the fold and the freeze fixture's paths are recaptured against
+> it. If no, §B.2's chain fold needs a floor (fold only a chain whose members are
+> below some count), and that floor is yours to set.
+
+Until that is answered the 15 failures and 19 errors stay, and they are understood
+rather than mysterious — which is the state `108` §4 should have described.
+
+---
+
 ### A2. The amendment-16 residual regression (`108` §4)
 
 A file under a two-kind life branch, whose kind came from a deterministic ANCHOR
