@@ -175,11 +175,17 @@ the one that actually refused:
    `academic` both mint `situation:academic`.
 
    **Both are printed** — they are appended to `asked` in the same loop — **and
-   only the first is stored.** The person is shown two questions, one of which does
-   not exist in the store; the options printed under it are the OTHER branch's; and
-   answering settles whichever branch was recorded first. The second branch's files
-   can never be answered for at all. Reproduced on the A1 fixture: the screen asks
+   only the first is stored.** Reproduced on the A1 fixture: the screen asks
    "Which of these is academic?" twice, for a 1-file default and a 4-file branch.
+
+   **CORRECTION to this row's first draft, measured.** I wrote that the second
+   branch's files "can never be answered for at all". They can: one
+   `--answer situation:academic=academic.coursework` clears BOTH questions, because
+   the answer is read at the KIND's scope and both branches are that kind. The real
+   harm is narrower and still real — **two branches of one kind cannot be given
+   DIFFERENT answers.** A default that is coursework beside a sibling branch that is
+   teaching is inexpressible: one key, one stored question, one answer for both. The
+   options printed under the dropped question are the other branch's, too.
 
    **NOT FIXED HERE, deliberately.** That key is what every reader of the person's
    answer joins on — `_the_situation_the_person_chose`, the partition's arm 0, the
@@ -323,6 +329,36 @@ without remainder:
 
 So A1 and A2 together regress nothing across 11,068 passing tests. That is the
 claim, and the two baseline runs are what backs it.
+
+---
+
+### The moving half RUNS, and an untyped run can reach a moveable plan
+
+A smoke on a copy (not a test, nothing committed from it), because 19 tests of
+freeze/apply/move/journal/undo have been dark since Phase 7 and nobody had checked
+whether the chain still executes at all. The A1 corpus, `ask → answer → accept →
+freeze`, three arrangements:
+
+```
+typed --situation, --accept-groups, --freeze     3 of 10 frozen   apply line: YES
+untyped, ONE branch answered (career)            0 of 10 frozen   apply line: NO
+untyped, BOTH branches answered                  3 of 10 frozen   apply line: YES
+```
+
+**No crash anywhere.** The 19 errors are the fixture's stale paths, not a broken
+chain — the moving half executes.
+
+**And the middle row is the honest limit of A1.** `108` §2 said the product could
+not be demonstrated end to end until the unsettled default was taught to build the
+rest of the tree. A1 does that — the tree, the groups and 20 placement decisions
+all appear — but with the default still unanswered its files are correctly declined
+("Nothing here could say where these belong"), which is amendment 25 working, and
+on that corpus they are the only files with anywhere to go. So **A1 was necessary
+and is not sufficient**: an untyped run reaches a moveable plan only once EVERY
+branch has been answered, and the bottom row is the proof that it then does.
+
+That is worth knowing before the next agent reads §2 and expects a demo from A1
+alone.
 
 ---
 
