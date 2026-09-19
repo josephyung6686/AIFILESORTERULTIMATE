@@ -572,3 +572,47 @@ that over a label nothing established.
 ratified and this ruling supersedes it; the new reasoning is recorded in the test
 that replaces each, in the repository's own style. A test deleted to make a suite
 green is how a ruling gets lost.
+
+---
+
+## Amendments of 2026-09-19 (the owner, asked with two trees side by side)
+
+**26. A FOLDER THAT HOLDS REAL FILES IS KEPT, EVEN AS AN ONLY CHILD.** Asked as
+*"keep a course folder when a term holds one course?"* and answered **yes**. `106`
+§B.2's chain fold removed a single-child node whose members were all its parent's,
+so a term holding one course lost the course folder and carried its value as an
+expected value instead.
+
+**THE FLOOR IS `107`'S OWN SENTENCE and not a number the lead chose:** *"a single
+unusual file may remain at the closest meaningful parent rather than creating a
+one-file leaf."* ONE file. A chain whose top holds two or more is a folder with
+contents in it and stays; the one-file leaf `107` names still folds.
+
+**IT DOES NOT REOPEN "a folder you open to find one folder" GENERALLY**, which is
+what §B.2 was written to prevent. A level whose values do not divide the corpus is
+never BUILT, so a single-child run can only arise where the level divides somewhere
+else and not under this parent -- a term holding one of several courses, which is
+the case ruled on.
+
+**27. A LEVEL EVERY VALUE SPLITS IS BUILT, EVEN WHERE EVERY FOLDER HOLDS ONE FILE.**
+Asked with both trees drawn: a course holding an exam, a homework, notes and a
+syllabus, one of each. The owner chose **four folders**. `106` §B.1 refused to build
+such a level at all -- `len(children) > 1 and all(len(members) == 1)` -- so the four
+files rested in the course folder.
+
+**WHAT §B.1 READ TOO WIDELY.** It cites `107`'s one-file-leaf sentence, but that
+sentence is about **one unusual file** resting at its parent, not about refusing a
+complete and useful split where every kind happens to have a single file. The two
+are different shapes and only the first is `107`'s.
+
+**AND `00`:98 IS NOT CONTRADICTED.** *"A two-file application packet MAY remain a
+single folder"* is permissive. It licenses leaving a packet whole; it does not
+require refusing a level the person's own kinds divide cleanly.
+
+**THE NARROWNESS IS THE POINT.** §B.1 fired only where EVERY child held exactly one
+file, so lifting it changes that case and no other. A single outlier beside crowded
+siblings was never reached by the rule and is not reached by this amendment either.
+
+**WHAT THIS COSTS, ACCEPTED.** Deeper trees on sparse corpora, and folders holding
+one file each where a person might have preferred four loose files. The owner chose
+that over a course folder whose kinds are invisible.
