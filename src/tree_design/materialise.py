@@ -917,6 +917,23 @@ def _fold_single_child_runs(nodes: list[Node], members: dict[str, frozenset[str]
             current = below[0]
         if not run or below:
             continue
+        # THE OWNER'S RULING OF 19 SEP: a folder that holds real files is kept
+        # even where it is its parent's only child. Asked as "keep a course
+        # folder when a term holds one course?", answered yes.
+        #
+        # THE FLOOR IS `107`'S OWN SENTENCE, not a number picked here: "a single
+        # unusual file may remain at the closest meaningful parent rather than
+        # creating a one-file leaf". ONE file. A chain whose top holds two or
+        # more is a folder with contents and it stays; the one-file leaf `107`
+        # names still folds.
+        #
+        # THIS DOES NOT REOPEN "a folder you open to find one folder" GENERALLY.
+        # A level whose values do not divide the corpus is never BUILT (§B.1 and
+        # the `ordinal == 0` skip), so a single-child run can only arise where
+        # the level divides somewhere else and not under this parent -- a term
+        # holding one of several courses, which is the case just ruled on.
+        if len(members[top.node_id]) > 1:
+            continue
         extra = run[-1].expected_values[len(top.expected_values):]
         folded.extend(FoldedLevel(
             parent_node_id=top.node_id, parent_label=top.display_label,
