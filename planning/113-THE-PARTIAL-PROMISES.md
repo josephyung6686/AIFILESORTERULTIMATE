@@ -84,11 +84,23 @@ The two situation rows state the real discriminator in prose
 So the discriminator is **the holder's role** — author vs recipient — and its
 proxy is **other people's names and grades on the page**.
 
-That evidence is already enumerated. `schemas.academic.work_type_terms` holds 124
-terms, and at least 17 of them occur on only one side of the line — `answer key`,
-`class roster`, `gradebook`, `rubric`, `lesson plan`, `course proposal`,
-`evaluation form` — against at least 12 that occur only on the other —
-`assignment`, `problem set`, `worksheet`, `quiz`, `reading log`, `essay`.
+Some of that evidence is already enumerated. `schemas.academic.work_type_terms`
+holds 124 terms. Read one at a time rather than keyword-matched, a small number
+of them sit on one side only:
+
+- instructor's side: `answer key`, `class roster`, `gradebook`, `lesson plan`,
+  `teaching notes`, `course proposal`.
+- student's side: `homework`, `worksheet`, `essay`, `reading log`,
+  `study schedule` — each backed by the coursework row's own sentence
+  (*"handouts, worksheets and textbook pages you were given … the assignments,
+  essays and practice work you handed in"*).
+
+**No count is given for the rest, and that is the point.** Most of the 124 are
+two-sided, and two of them are two-sided by the library's OWN sentences: the
+teaching row lists *"the assignment briefs and rubrics"* as teaching and then
+says *"A brief or rubric the holder received as a student is coursework, not
+this."* A term list cannot settle `rubric`. Only the holder's role can. That is
+why §1.5 puts the question first and the terms second.
 
 **`work_type_terms` is a property of the SCHEMA, not of a situation.** Both
 situations draw from the same pool. A situation row carries exactly three keys —
@@ -126,8 +138,8 @@ needs the existing question asked at the group's grain instead of the file's.
 **It is question text, so it is the owner's alone. DRAFT.**
 
 **(b) Carry the teaching-side `work_type` values as candidate evidence into that
-question.** The 17 one-sided terms are already in the library; what is missing is
-a key from term to situation. The smallest form is a `situation_terms` key on the
+question.** The one-sided terms listed in §1.3 are already in the library; what is
+missing is a key from term to situation. The smallest form is a `situation_terms` key on the
 two situation rows — an ADDED key on an existing row, not an edit to a member of
 a closed vocabulary. `108` §7 permits adding a versioned row in
 `src/recognition/library/**` and forbids editing one; adding a key to an existing
@@ -156,7 +168,7 @@ choice and raises it as an open question —
 > right for a full-time instructor and wrong for an adjunct teaching at two
 > institutions."*
 
-`00` amendment 24's line exactly: which level comes first, and whether a
+`108` §7's reading of `00` amendment 24, exactly: which level comes first, and whether a
 one-child level is worth its folder, depends on the user. **Preference. The
 library's own author already flagged it and it belongs in §4's list, not in a
 patch.**
@@ -218,14 +230,25 @@ It opens no file, asks no model, mints nothing on disk and adds no table. It
 reads rows every run already wrote. Read as rows rather than through P9, which is
 `_placed`'s own choice one table over.
 
-**Both directions of the promise now exist.** Relationship → files was already
-there: `--accept-groups`' own help text says *"the report names them"*. File →
-relationships is what this adds. Naming the file prints every accepted
-relationship it keeps, from whatever folder it ended up in.
+**Both directions of the promise now exist** — verified, not inferred from
+`--accept-groups`' help text. Relationship → files was already there:
+`review_surface/items.py:239, 274-277` gives `GroupPlanReviewItem` a
+`member_items` tuple, one ordinary `PlacementReviewItem` per member read off
+`plan.member_decisions`, and its docstring is explicit that this is *"a framing,
+never a wrapper that hides its members."* File → relationships is what this adds.
+Naming the file prints every accepted relationship it keeps, from whatever folder
+it ended up in.
 
-**Cost:** ~70 lines in `src/review_surface/trail.py`, 2 tests
-(`tests/test_cli_trail.py`: 12 passed; `tests/integration/test_site_g_records_a_file_with_no_route.py`:
-4 passed).
+One boundary: that projection is of P11's GROUP PLAN, so its member list is the
+plan's. The `RELATED` stage reads P9's `memberships` directly, which is the wider
+set — a membership exists whether or not a plan was built from it.
+
+**Cost:** ~70 lines in `src/review_surface/trail.py`, 2 tests.
+`tests/test_cli_trail.py`: 12 passed.
+`tests/integration/test_site_g_records_a_file_with_no_route.py`: 4 passed.
+`tests/p13/test_p13_no_invention.py`: 8 passed — the guard `trail.py`'s own
+docstring names over this package, run because ~70 new lines in it are exactly
+what it inspects.
 
 **What it does NOT deliver, stated plainly.** 133 of 371 files were in a group on
 the measured run (`108` §5). For the other 238 the stage correctly prints that the
@@ -408,7 +431,7 @@ ruling and a library edit.
 
 - **Promise 1 is not a `subject` problem.** The promise's own wording rules out
   course code and institution as discriminators. The discriminator is holder role,
-  the evidence for it is already in the library, and it is stored on the schema
+  some of the evidence for it is already in the library, and it is stored on the schema
   where it cannot separate two situations of that schema.
 - **Promise 2's mechanism was not missing.** Every row, index and reader existed;
   only the surface did not. That is why it cost 70 lines.
