@@ -653,3 +653,66 @@ re-claimed because the grader would score a disagreement as a match through a
 prefix fallback. There is no prefix fallback in that file, and under this amendment
 its bridge holds the right unit. The number is unquotable only because nobody has
 re-run it.
+
+## Amendments of 2026-09-20 (the owner, four questions with their costs drawn)
+
+**31. A SHIPPED APPLICABILITY ROW MAY BE REPLACED UNDER THREE CONDITIONS, AND NOT
+OTHERWISE.** Wiring a library change is a REPLACEMENT and not an addition: two rows
+for one situation make `folder_levels_for`, `life_of` and `template_id_for_situation`
+refuse, while `shipped_situations` — the cloud-bound menu — silently keeps the old
+labels and still reports 208. The person would be shown one answer while the product
+held another, with nothing raising. So "add a versioned row, never edit one" is
+incoherent here, and the owner granted standing permission in its place.
+
+**THE THREE CONDITIONS, and a replacement missing any one of them is refused:**
+1. **MEASURED** — the change is shown against a run, not argued from the row.
+2. **THE OLD LABELS ARE PRESERVED** — a label the person has already been shown is
+   what they will look for; a replacement that renames what they saw is a migration
+   and comes back to the owner.
+3. **A GATE TEST PINS IT** — the new row's shape is asserted, so a later edit that
+   quietly undoes it goes red.
+
+**FIRST USE, AUTHORISED:** `academic.teaching` v2, binding the institution level —
+`school → term → subject → work_type`, which is `107`'s *institution → term → course
+→ teaching function*. The template already declares the dimension and the shipped row
+simply leaves it unbound.
+
+**32. THE SITUATION QUESTION IS ASKED ONCE PER ACCEPTED GROUP, NOT ONCE PER FILE.**
+Coursework and teaching cannot be told apart by a course code — the promise in `107`
+is about files that "mention the same institution and course vocabulary", so the code
+is present on both sides. The discriminator is the HOLDER'S ROLE, author or recipient,
+and a role is constant across a course-term. One answer settles a packet.
+
+**WHAT THIS COSTS, ACCEPTED.** A group holding both roles gets one answer applied to
+all of it. The owner chose that over the state the per-file question actually
+produces: 218 of 257 situation facts still carry only a kind, because a question
+asked once per file is a question nobody finishes answering.
+
+**33. `year` IS BOUND AND ITS PRODUCER IS REPAIRED IN ONE CHANGE.** Amendment 22
+ratified where `year` goes and it is wired in NO shipped row. Separately `year_of`
+refuses 43 of 47 active `creation_date` facts — PDF `D:` timestamps whose year sits
+inside a longer digit run — so binding alone would build a level that is correct and
+blank on roughly nine files in ten.
+
+**THE LEAD ADVISED FIXING THE PRODUCER FIRST AND THE OWNER CHOSE BOTH TOGETHER; THE
+RISK IS RECORDED RATHER THAN RE-ARGUED.** If the producer repair is wrong the level
+is wrong with it and there is no measurement in between to say which half failed. The
+build must therefore measure the producer ALONE before the level is bound — same
+commit, two measurements — so the middle state exists in the record even though it
+never ships.
+
+**34. A QUESTION NAMES WHAT IT REPLACED.** A file a model was not allowed to look at
+now gets overlaid with a folder question about its residual home and LOSES its own
+reason, so a photo that was read and an unopenable vault share one review set and one
+sentence — and that sentence claims nothing could be read, which is false of the
+photo. `66` §4 forbids two facts sharing a message.
+
+The owner ruled that both are told: the question is what the person must act on, and
+the reason is why the file stopped.
+
+**THIS IS THE MOST INVASIVE OF THE FOUR AND IT CHANGES WHAT A PLACEMENT RECORD MEANS.**
+`placement/records.py:525` today refuses any record whose outcome and reason disagree
+— "an abstention names why; a reason on any other outcome contradicts the decision".
+Widening it touches every reader of `abstention_reason`. The widening must be NAMED,
+not general: an `ask_user` record may carry the reason it REPLACED, and no other
+outcome gains a reason. `66` §4 is satisfied by the second clause, not by the first.
