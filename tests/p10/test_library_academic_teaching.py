@@ -167,20 +167,24 @@ def test_the_shipped_release_still_reports_208_situations_and_only_teaching_move
     shipped before this wave: a replacement must not silently widen or narrow
     the menu, or touch any row but the one it was authorised to replace.
 
-    Compared against `git show HEAD:...applicabilities.json` rather than a
-    hand-written "the other 207 look like this" fixture, because 208 rows is
-    too many to retype and a retyped copy could drift from the release without
-    this test noticing. `shipped_situations` lists a name once per DOMAIN that
-    carries it (its own docstring: "a situation carried by rows in two domains
-    is listed under each"), so the comparison is over its full output, by
-    `(schema, name)`, not by name alone.
+    Compared against `git show b47940db:...applicabilities.json` -- the
+    amendment's own commit, the last one before this row was wired -- rather
+    than a hand-written "the other 207 look like this" fixture, because 208
+    rows is too many to retype and a retyped copy could drift from the release
+    without this test noticing. A FIXED SHA and not `HEAD`: this test is
+    committed alongside the wiring it measures, so `HEAD` at the time anyone
+    runs it is already the AFTER state, and diffing a commit against itself
+    would report zero change and pass for the wrong reason. `shipped_situations`
+    lists a name once per DOMAIN that carries it (its own docstring: "a
+    situation carried by rows in two domains is listed under each"), so the
+    comparison is over its full output, by `(schema, name)`, not by name alone.
     """
     import subprocess
 
     import production
 
     before_json = subprocess.run(
-        ["git", "show", "HEAD:src/tree_design/library/applicabilities.json"],
+        ["git", "show", "b47940db:src/tree_design/library/applicabilities.json"],
         capture_output=True, text=True, check=True).stdout
 
     def read_before(name):
