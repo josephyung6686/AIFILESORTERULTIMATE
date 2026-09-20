@@ -1452,3 +1452,83 @@ barred from.
 **Verified by the lead:** `tests/p12/`, `tests/apply/`, `tests/test_cli_platform_
 table.py` and `test_cli_moves_nothing_without_apply.py` — the mtime-stability test
 the agent predicted might go red — **358 passed, 1 xfailed.**
+
+### `--ignore-branch` AND `--omit-level` — `107`'s "every split can be changed before freeze", half built
+
+Measured on screen, not asserted into existence:
+
+```
+--ignore-branch 'PHYS1401'
+  Coursework   [proposed]
+    COMS4995   [proposed]
+    PHYS1401   [ignored]   [marked, not a destination]
+      notes    [ignored]   [marked, not a destination]
+
+--omit-level 'academic:subject_anchor:subject'
+  FIRST :  Coursework / {COMS4995, PHYS1401/{notes, syllabus}}   5 folders
+  SECOND:  Coursework / {notes, problem set, syllabus}           4 folders
+  both  :  "Files: 3 decided, 3 ready to file"
+```
+
+The second is `107`'s sentence happening: the course level gone, the work kept in
+the folder above.
+
+### `110` §2.1 IS WRONG IN THREE PLACES, AND ONE OF THEM WOULD HAVE TURNED THE SUITE RED
+
+**1. THE PERSISTENCE SEAM IT NAMES DOES NOT EXIST AND THE SUITE PINS THAT IT MUST
+NOT.** §2.1 says an ignored branch persists because "the next run reads it through
+`learned_preferences_still_applicable`, which is origin-keyed and survives
+re-runs". That function takes PLACEMENT SUPPRESSIONS, not review actions, **and
+has no callers by design**: `tests/p11/test_p11_connections.py` asserts
+`_callers_of("learned_preferences_still_applicable") == set()`, and
+`test_p11_versions.py` carries a strict xfail that XPASSES — turning the suite red
+— the moment a caller appears. **The lead's brief repeated §2.1 verbatim.** Had
+the agent followed it, the wiring would have broken two pins in files outside its
+permitted run set, so the lead's serial suite would have found it, not the agent.
+Routed instead through the origin key from `node_key`, read back beside
+`actions_for` in `review_surface/store.py`.
+
+**2. Its `--apply` line number is from another base** — `branches_named` is not at
+`cli.py:25062`. Cosmetic, and it means §2's line numbers are not this tree's.
+
+**3. "Collect a `review_action` FIRST, then `pipeline._apply(IGNORE)`" cannot be
+one moment.** `_apply` needs a tree with the branch in it, and a run opens its own
+root draft with `predecessor_id=None`, so editing the previous run's version edits
+a plan nothing downstream reads. The ORDER is kept and split across two moments:
+the row is the durable fact, and `design_tree` applies it to the tree THIS run
+designs, before its final freeze, so `approved_branch_ids` excludes it and P11's
+index never sees it.
+
+### NO VOCABULARY WAS MINTED, AND THE OWNER SHOULD CONFIRM THE SUBSTITUTE
+
+`ignore` and `omit` are **not** members of `review_surface.vocabulary.ACTIONS`, and
+`81` §14.1 reserves that vocabulary — "they are not minted by whoever notices the
+gap". Both gestures therefore collect **`ACTION_REJECT`**, P13's own word for "no
+to this proposal", at `branch` scope for the branch and `domain` scope for the
+level. P10 keeps its own words (`IGNORE`, `omitted`) — the two-vocabulary shape
+`collect_level_relabel` already has.
+
+This is also the right side of amendment 24's line: what is rejected is the NODE or
+the LEVEL — a preference about a proposal — never a fact about anybody's files.
+**One constant changes if the owner prefers a minted `ignore` member.**
+
+### THE GAP BOTH CONTROLS SHARE, AND IT IS A NEW DECISION
+
+**Neither can be unset, and the screen does not say so.** `--ignore-branch` has no
+revocation — re-typing it is a silent no-op that still writes a row. `--omit-level`
+can only be undone by renaming over the same triple, which nothing tells anybody.
+Their sibling `--rename-level` DOES have a way back, so the asymmetry will be felt.
+Nothing on screen is false today, because the help text promises no revoke. **What
+takes a v1 control back is a decision the owner has not been asked, and it belongs
+beside `110` Decision 3.**
+
+### THE AGENT CORRECTED ITS OWN COMMIT, AND THE CORRECTION IS THE INTERESTING PART
+
+It first wrote that the coverage arithmetic proves the files of an ignored branch
+are still accounted for. **It is not that strong.** The coverage block sums ROSTER
+buckets — indexed, not asked, protected, unreadable, deferred — and a file's
+DESTINATION is not one of them, so no placement change can make it stop closing.
+`= N` is a crash guard. The real destination evidence is the "Held for review"
+block naming the files and the "Ready to file into X" lines, and those are what the
+tests read. Both the commit message and one SABOTAGE docstring overstate it, and
+the overstatement is recorded here rather than quietly fixed.
