@@ -292,16 +292,30 @@ graded against labels2.json   (key protected 52)   over-protected 25   missed 38
 graded against answerkey2.json (key protected 20)  over-protected 20   missed  1   unmatched 6
 ```
 
-**`108` §9's "25" is graded against the pre-ruling key.** `104` §18 records the
-owner's ruling of 14:20 — résumés, club rosters, application essays and forms and
-report cards are ORDINARY — and 36 key entries were flipped. `answerkey2.json`
-carries 20 protected, which is that corrected shape; `labels2.json` still carries
-52. Against the corrected key the over-protection is **20**, and the **missed count
-collapses from 38 to 1**.
+**`108` §9's "25" is graded against a key that predates the owner's own ruling.**
+`104` §18 records the ruling of 13 Sep at 14:20 — résumés, club rosters,
+application essays and forms and report cards are ORDINARY — after which 36 key
+entries were flipped. By file date, `labels2.json` was written **11 Sep** (two days
+before the ruling) and `answerkey2.json` **14 Sep** (the day after it). Against the
+later key the over-protection is **20**, and the **missed count collapses from 38
+to 1**.
 
-**Which key is of record is itself an owner question**, and it is the first one to
-answer, because the two keys disagree about 32 files and every number below
-depends on it.
+**But FOUR protection counts are on record and no two agree, so this is not
+reconciled and I am not picking a key.**
+
+```
+104 §18, before the ruling   key protected 65
+104 §18, after the ruling    key protected 29   (health 15, travel 9, immigration 2,
+                                                 household 1, accounts 1, ticket 1)
+labels2.json    (11 Sep)     key protected 52
+answerkey2.json (14 Sep)     key protected 20
+```
+
+Neither file on disk matches either figure `104` states. The dates and the standing
+record both point at `answerkey2.json` as the key of record, and the tables below
+are given against **both** so the conclusion can be checked either way — it does
+not move. **Which key is of record is itself an owner question**, it is the first
+one to answer, and it is not one this brief knew it was asking.
 
 ### The shape, in aggregate — and it inverts the brief's premise
 
@@ -318,7 +332,7 @@ user  (the person)               0        14
 All 25 over-protected rows carry `handling_class = sensitive_personal`. All 17
 `safety_domain` rows carry `privacy_class = ordinary`.
 
-**Two-sided cost of each narrowing, against the corrected key (`answerkey2`):**
+**Two-sided cost of each narrowing, against the later key (`answerkey2`, 14 Sep):**
 
 | narrow this | frees (over-protected) | ALSO frees files the key calls PROTECTED |
 | --- | ---: | ---: |
@@ -501,12 +515,15 @@ wants the product to behave differently when approvals are instant, that is a
 
 Reported because the brief asked for the diagnosis even where it contradicts.
 
-1. **The "25" is graded against the wrong key.** `108` §9's figure comes from
-   `labels2.json` (52 protected), not from the key `104` §18 records the owner
-   correcting (`answerkey2.json`, 20 protected). Against the corrected key it is
-   **20 over-protected and 1 missed**, not 25 and 38. Which key is of record is an
-   owner question this brief did not know it was asking, and it must be answered
-   first.
+1. **The "25" is graded against a key that predates the owner's own ruling, and
+   four key counts are on record that do not reconcile.** `108` §9's figure comes
+   from `labels2.json` (52 protected, written 11 Sep); the owner's flip-36 ruling
+   is 13 Sep; `answerkey2.json` (20 protected) was written 14 Sep. `104` §18 states
+   65 before the ruling and 29 after it, and **neither file on disk matches either
+   number**. Against the later key the same run reads **20 over-protected and 1
+   missed**, not 25 and 38. Which key is of record is an owner question this brief
+   did not know it was asking, and it must be answered first. The over-protection
+   conclusion is stated against both keys and does not depend on the answer.
 
 2. **Item 3 is not a gate-narrowing problem.** `108` §9, `109` and this brief all
    frame it as narrowing a gate. Measured, the deterministic `safety_domain` rule
