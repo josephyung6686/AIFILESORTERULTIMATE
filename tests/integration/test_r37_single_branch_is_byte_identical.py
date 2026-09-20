@@ -194,6 +194,31 @@ The fact worth recording is what the predecessor already showed: every other
 node in it read a composed key -- `branch:Coursework/term=Fall2024`,
 `residual:Review Later` -- and this root read a minted id. The fixture had been
 printing the odd one out since Phase 5.1 and nothing was reading it.
+
+**Recaptured on 20 Sep 2026 because `origin_node_id` is now COMPARED, and the
+diff was read before it was taken.** The entry above ends "nothing was reading
+it"; `test_two_runs_of_one_folder_agree` now does, and the shared normaliser it
+owns no longer drops the column -- so every row of this fixture's `tree_nodes`
+gains one key and the capture had to follow.
+
+The recapture differs from its predecessor in EXACTLY ONE FIELD, `origin_node_id`,
+added to all twelve `tree_nodes` rows and to no other table's. **The screen is
+identical line for line and thirteen of the fourteen captured tables are identical
+row for row**, and no `tree_nodes` row changed a value, was added or was removed.
+Every origin it now prints is a composed key -- `branch:Coursework`,
+`branch:Coursework/term=Fall2024`, `branch:98 Review and Unsorted`,
+`residual:Review Later` -- which is the measurement that says no mint site in this
+run is still keeping its own id.
+
+Two things about the capture itself, because both cost time. It was taken through
+this module's own `capture` entry point under `GRAPH_AGENT_NO_DOTENV=1` with
+`GRAPH_AGENT_LOCAL_MODEL` and `OLLAMA_BASE_URL` unset, and the written fixture was
+then compared BYTE FOR BYTE against the reading taken before it: two independent
+runs of this corpus, identical. And a reading script that calls
+`run_and_normalise` must be guarded by `if __name__ == "__main__"`, as this module
+is -- `cli` reads its files in a spawned pool, an unguarded script has every
+worker die re-importing it, and what comes back is a silently degraded extraction
+(6 text units for 18, 24 evidence rows for 43) that reads like a real diff.
 """
 from __future__ import annotations
 

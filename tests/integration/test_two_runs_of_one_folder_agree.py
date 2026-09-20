@@ -31,6 +31,20 @@ chain of labels from the root — and what is left is what the run concluded. Th
 is the same normalisation `w4-scale` used to compare plan rows across a code
 change, spelled out here so the guard says what it is checking.
 
+**AND AN ORIGIN IS NOT ONE OF THEM, since `106` Phase 5.1.** `origin_node_id` was
+a fresh mint's own id when this file was written, so it was dropped with the other
+addresses on the stated rationale that "the whole of their value is a per-run
+address with no content behind it". Phase 5.1 (`672b5778`) made it a COMPOSED KEY
+at every mint site -- `branch:`, `existing:`, `residual:`, `protected:`, a level's
+`field=value` chain -- and the rationale has been false ever since. It stayed in
+the dropped set, and so this file, which exists to prove two runs of one folder
+agree, was structurally blind to a node minting an origin it had not composed:
+amendment 13's `98 Review and Unsorted` carried its own per-version id, two
+identical runs reported that folder removed and added and every area beneath it
+moved, and the first thing that read the record was a person's screen (`9bf8ffe3`).
+The column is compared here now, and by a normaliser of its own -- see `_as_key`,
+because `say` would have hidden the defect a second way.
+
 **The pool is real.** The corpus is deliberately larger than
 `cli.EXTRACTION_WORKERS`, so the files are read in seven worker processes that
 finish in whatever order the operating system schedules and at least two of them
@@ -54,6 +68,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
+from tree_design.vocabulary import REVIEW_LATER  # noqa: E402
 
 UUID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -88,10 +103,29 @@ DERIVED = (
 #: normalised in place: `value_id` and `cache_key` are content-addressed
 #: (`facts.values._value_identity`, `facts.cache.fact_cache_key`) and dropping
 #: them would stop this guard noticing that P6 settled a different value.
+#:
+#: EACH REMAINING MEMBER IS AN ADDRESS AND NOT A KEY, checked one at a time when
+#: `origin_node_id` left this set: `plan_version_id` is `version_<run uuid4>_<n>`
+#: (`cli`:17153), and the only content in it is the counter, which the P11 tables
+#: spell in a column this set does not drop and `PLAN_VERSION` normalises there;
+#: `membership_id` and `dossier_id` are `uuid4` mints; `llm_response_ref` and
+#: `validation_verdict_ref` address a per-run audit row or are NULL; `supersedes`
+#: and `superseded_by` are the `record_id`s of per-run rows
+#: (`database_agent.supersede`). None of them is composed from anything the run
+#: observed, so two runs could not agree on one and it would mean nothing if they
+#: did.
 MINTED = frozenset({
-    "plan_version_id", "origin_node_id", "membership_id", "dossier_id",
+    "plan_version_id", "membership_id", "dossier_id",
     "llm_response_ref", "validation_verdict_ref", "supersedes", "superseded_by",
 })
+
+#: The composed keys (`tree_design.node_key`), which are neither dropped nor put
+#: through `say`. A key is spelled from what the node CLAIMS -- its label, its
+#: observed path, its `field=value` pair -- so two runs over one folder must write
+#: the same string, and comparing it is the whole of §8.8's identity across runs.
+#: `origin_node_id` is the only one today; anything later keyed the same way
+#: belongs here, beside `node_key`'s own list of what a key is made of.
+KEYED = frozenset({"origin_node_id"})
 
 #: Two courses, each stated by more files than `GROUPING_LIMITS.max_graph_nodes`,
 #: so the graph's node cap actually binds and has to choose. A corpus under the
@@ -185,6 +219,16 @@ def _run(corpus: Path, database: Path) -> None:
                      # derived tables this file exists to compare. It passes either
                      # way; only one way is a test.
                      "--accept-groups",
+                     # `00` amendment 13's review root, and it is here for the
+                     # same reason `--accept-groups` is: without a residual area
+                     # the run mints no `98 Review and Unsorted`, so the ONE mint
+                     # site that had no lineage was not in any tree this file
+                     # compared and the widened `origin_node_id` would have gone
+                     # green against the defect it was widened for. `Review Later`
+                     # is a shipped member of `RESIDUAL_TEMPLATE_NAMES`, not a
+                     # name from anybody's corpus, and enabling it mints the root
+                     # whether or not a file ends up under it.
+                     "--residual", REVIEW_LATER,
                      "--database", str(database)], out=io.StringIO())
     assert code == 0, f"the run over {corpus} exited {code}"
 
@@ -271,13 +315,34 @@ def _normalised(database: Path) -> dict[str, list[str]]:
             value = STAMP.sub("<stamp>", value)
             return value.replace(str(root), "<root>") if root else value
 
+        def _as_key(value):
+            """A composed key, compared as the text it is.
+
+            `say` IS THE WRONG NORMALISER FOR THIS COLUMN, and that is the second
+            half of why the guard was blind. `say` replaces every minted id with
+            what it NAMES, and a node whose origin is its own per-version mint --
+            a node with no lineage, which is exactly the defect -- has an id that
+            `names` holds, so `say` would rewrite it to that node's own chain of
+            labels and the two runs would agree on the one cell that proves they
+            do not. A key holds no minted id: one that does IS the finding, and
+            here it stays a raw `node_<run>_<n>` and the two runs differ.
+
+            What a key legitimately contains that a second run could spell
+            differently is the observed path an `existing:` or `protected:` key is
+            made of, and that is replaced by `<root>` exactly as `say` replaces it
+            in every other cell.
+            """
+            if not isinstance(value, str):
+                return value
+            return value.replace(str(root), "<root>") if root else value
+
         tables: dict[str, list[str]] = {}
         for table in DERIVED:
             rows = []
             for row in conn.execute(f"SELECT * FROM {table}"):
                 rows.append(json.dumps(
-                    {key: say(row[key]) for key in row.keys()
-                     if key not in MINTED},
+                    {key: (_as_key(row[key]) if key in KEYED else say(row[key]))
+                     for key in row.keys() if key not in MINTED},
                     sort_keys=True, default=str))
             tables[table] = sorted(rows)
         return tables

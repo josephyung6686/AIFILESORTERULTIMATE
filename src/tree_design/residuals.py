@@ -303,14 +303,15 @@ def project_residual_nodes(
             )
         else:
             parent_labels = template.default_parent_location or ()
-            # A freshly minted node is its OWN lineage origin (open question 5),
-            # so the id is bound once and used twice. Constructing with
-            # `origin_node_id=""` and patching afterwards cannot work:
-            # `Node.__post_init__` runs `_require` over `origin_node_id` and
-            # raises `MalformedTreeRecord` before any later `replace` is reached.
-            node_id = mint_node_id()
+            # `106` Phase 5.1 ANSWERED open question 5 the other way: a freshly
+            # minted node is NOT its own lineage origin, it composes a key (see
+            # `origin_node_id` below), so the id that used to be bound here and
+            # used twice is now used once and is minted in place. The comment
+            # that said otherwise outlived the change by a phase, which is the
+            # same way `test_two_runs_of_one_folder_agree` came to be dropping
+            # this column on a rationale that had stopped being true.
             node = Node(
-                node_id=node_id,
+                node_id=mint_node_id(),
                 plan_version_id=plan_version_id,
                 node_type=USER_CREATED,
                 display_label=label,

@@ -458,10 +458,13 @@ def learned_preferences_still_applicable(conn: sqlite3.Connection, *,
 
     **The earlier node's id is RESOLVED, not compared.** Testing
     `item.node_id in surviving_origins` reads correctly and is only true when the
-    earlier node's id happens to equal its own origin -- which holds for the FIRST
-    plan version and for no other, because every later version mints. So a
-    preference recorded against plan-2 and filtered against plan-3 was matched
-    against neither identity and was dropped in silence. `_origins_by_node_id`
+    earlier node's id happens to equal its own origin -- which held for the FIRST
+    plan version and for no other, because every later version mints, and since
+    `106` Phase 5.1 holds for NO version at all: an origin is a composed key
+    (`tree_design.node_key`) and a `node_id` is a per-run mint, so the two can no
+    longer coincide even there. So a preference recorded against plan-2 and
+    filtered against plan-3 was matched against neither identity and was dropped
+    in silence. `_origins_by_node_id`
     does the resolution the sentence describes: earlier `node_id` -> that
     version's `origin_node_id` -> does the new version still carry it.
 
