@@ -1149,3 +1149,22 @@ needs a dimension in `def.career-search-and-tenure` — and `_check_orders`
 (`templates.py`) requires every candidate order of a definition to cover the SAME
 role set, so each of that definition's orders gains the role or the record
 refuses. That is the real shape of the work, and it is contained.
+
+---
+
+## 20 Sep — THE FULL SUITE IS GREEN, with all five changes in
+
+```
+11162 passed, 20 skipped, 34 xfailed in 1228.58s (0:20:28)
+0 failed, 0 errors
+```
+
+Run serially, with every agent finished, on the merge of all five. The two
+failures this session opened with are both closed: `cli_orphaned_send`'s stale
+Case A was re-aimed (`aea5ebc4`) and `test_cli_review_sets_by_reason` fell to
+amendment 34.
+
+**READ THE COUNT LINE, NOT THE EXIT CODE.** The first attempt at this run passed
+`--timeout=600` with no `pytest-timeout` installed. pytest printed `ERROR:
+unrecognized arguments` and **exited 0**, and nothing ran. A green exit code from
+pytest is not evidence a test executed; only a count line is.
