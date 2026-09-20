@@ -50,7 +50,7 @@ from tree_design.validation import (
     ValidationReport,
 )
 from tree_design.vocabulary import (
-    FOLDED_ONE_FOR_ALL, FOLDED_ONE_PER_FILE, ORDINARY, PROPOSED,
+    ACTION_OMITTED, FOLDED_ONE_FOR_ALL, FOLDED_ONE_PER_FILE, ORDINARY, PROPOSED,
     SCOPE_TEMPLATE_LOCAL,
 )
 
@@ -89,6 +89,14 @@ class LevelEvidence:
     #: label, because `RoleBinding.label` is required; a level built directly,
     #: as the suite's own fixtures do, has none.
     dimension_label: str | None = None
+    #: `110` §2.2: the person said to leave this level out. A THIRD thing, kept
+    #: apart from the two beside it for the reason `divides` gives about those
+    #: two -- `metadata_only` is the TEMPLATE saying a dimension is measured and
+    #: never built, `divides` is a fact about the corpus in front of us, and this
+    #: is the person overruling both. A reader has to be able to tell "the design
+    #: says this is metadata" from "your files only had one of these" from "you
+    #: left it out", and one flag standing for all three could say none of them.
+    omitted: bool = False
 
     @property
     def values(self) -> tuple[str, ...]:
@@ -354,6 +362,11 @@ def materialise_branch(
             field_ref=dimension.field_ref,
             order_index=dimension.order_index,
             metadata_only=dimension.role_ref in metadata_only_roles,
+            # `110` §2.2. `apply_user_level_edits` marked the dimension rather
+            # than deleting it, so the level is still measured here and its
+            # values are still counted; what this flag decides is whether a
+            # folder is built from them.
+            omitted=dimension.action == ACTION_OMITTED,
             dimension_label=dimension.display_label,
             display_labels=dict(labels),
             members_by_value={value: frozenset(files)
@@ -474,7 +487,8 @@ def child_counts(evidence: BranchEvidence) -> Mapping[str, int]:
     two levels.
     """
     return {level.field_ref or level.dimension_role: len(level.members_by_value)
-            for level in evidence.levels if not level.metadata_only}
+            for level in evidence.levels
+            if not level.metadata_only and not level.omitted}
 
 
 def branch_expectations(evidence: BranchEvidence) -> tuple[ExpectedValue, ...]:
@@ -710,8 +724,13 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
     if level_index >= len(evidence.levels):
         return
     level = evidence.levels[level_index]
-    if level.metadata_only or not level.divides:
+    if level.metadata_only or level.omitted or not level.divides:
         # §5.4: a metadata-only dimension is measured and never becomes a folder.
+        # `110` §2.2 adds the person's own reason to the same branch, and adds it
+        # HERE rather than anywhere new: the walk already knows how to carry a
+        # measured-and-unbuilt level's members down to the next level under the
+        # same parent, which is exactly what "keep them all directly under this
+        # folder instead of splitting by purpose" asks for.
         _project(evidence, level_index=level_index + 1, parent=parent,
                  eligible=eligible, chain=chain, plan_version_id=plan_version_id,
                  mint_node_id=mint_node_id, handling_class_for=handling_class_for,

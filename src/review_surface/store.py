@@ -103,6 +103,28 @@ def actions_for(conn: sqlite3.Connection, *, subject_ref: str,
     return tuple(_from_row(row) for row in rows)
 
 
+def subjects_acted_on(conn: sqlite3.Connection, *, surface: str, action: str,
+                      correction_scope: str) -> tuple[str, ...]:
+    """Every subject one gesture has been made about, oldest first, deduplicated.
+
+    The third finder, and it exists for the same reason as the second: a gesture
+    has to be findable from the side the reader has. `actions_for` answers "what
+    was done to THIS subject" and `actions_naming_member` "which bulk named THIS
+    file"; a reader coming back on a later run knows only which gesture it is
+    honouring and asks which subjects carry it.
+
+    Deduplicated because one standing decision per subject is what a caller acts
+    on -- a person who typed the same gesture twice made one decision -- while
+    the rows themselves stay as they are, append-only, so "you did this on
+    Tuesday and again on Thursday" remains a thing the record can say.
+    """
+    rows = conn.execute(
+        "SELECT subject_ref FROM review_actions WHERE surface = ? AND "
+        "action = ? AND correction_scope = ? ORDER BY acted_at, action_id",
+        (surface, action, correction_scope)).fetchall()
+    return tuple(dict.fromkeys(row["subject_ref"] for row in rows))
+
+
 def actions_naming_member(conn: sqlite3.Connection, *, member_ref: str,
                           ) -> tuple[ReviewAction, ...]:
     """Every action whose `bulk_member_refs` enumerates this member.
