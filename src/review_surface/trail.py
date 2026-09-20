@@ -53,15 +53,23 @@ import sqlite3
 import textwrap
 from dataclasses import dataclass
 
-#: Every stage prints a heading even when it has nothing under it, so the five
+#: Every stage prints a heading even when it has nothing under it, so the six
 #: are named once here rather than spelled at each printer.
 EXTRACTED: str = "EXTRACTED"
 CLASSIFIED: str = "CLASSIFIED"
 ASKED: str = "ASKED"
 JUDGED: str = "JUDGED"
 PLACED: str = "PLACED"
+#: `107`'s "a file with several meanings remains discoverable through every
+#: accepted relationship, even though it has one physical path". It comes AFTER
+#: `PLACED` on purpose: the person reads the one home first, and then reads what
+#: the one home did not end. P9 wrote these rows on every run; until now nothing
+#: in the product read them back to anybody, so a file's second meaning existed
+#: only in SQLite. See `_related`.
+RELATED: str = "RELATED"
 
-STAGES: tuple[str, ...] = (EXTRACTED, CLASSIFIED, ASKED, JUDGED, PLACED)
+STAGES: tuple[str, ...] = (EXTRACTED, CLASSIFIED, ASKED, JUDGED, PLACED,
+                           RELATED)
 
 #: The prefix `placement.store.subject_ref_of` composes a file's address under:
 #: `file:{file_id}:{content_hash}`. Spelled here rather than imported so that
@@ -524,9 +532,87 @@ def _placed(conn: sqlite3.Connection, row: sqlite3.Row, *,
     return lines
 
 
+def _related(conn: sqlite3.Connection, row: sqlite3.Row, *,
+             width: int) -> list[str]:
+    """Every group this file version still belongs to, and on what evidence.
+
+    `107`'s design principle 3 and its ninth statement of "perfect": "One
+    physical home does not erase multiple meanings ... A file with several
+    meanings remains discoverable through every accepted relationship, even
+    though it has one physical path." P9 has written `memberships` since it
+    shipped and indexed them by file (`memberships_file`), and no reader
+    anywhere put one on a person's screen: `PLACED` prints the single
+    destination, so a person reading a trail was shown the one meaning that won
+    and none of the ones that did not. That is the whole gap this closes. It
+    builds no index, mints no alias on disk and asks no model -- the second
+    meaning was already recorded, and being unreadable is not the same as being
+    absent.
+
+    **The membership is read for THIS file version**, which is
+    `grouping.store.live_memberships_of_file`'s own rule: a membership belongs
+    to a file version, so a file edited between runs must not inherit the
+    memberships of its old bytes.
+
+    **Read as rows, not through P9.** `_placed` reads `placement_decisions`
+    rather than importing P11's store, for the reason at the top of this module
+    -- a trail is a reader of what a run recorded, and importing a pipeline to
+    read its table would make printing a trail depend on that pipeline being
+    constructible. The same choice here, one table over.
+
+    **The decision prints verbatim rather than being filtered to the accepted
+    ones.** `104` R-16 is that `draft_for_review` writes `included` for
+    everything today; a reader that silently dropped every other decision would
+    print an identical screen on the day that stops being true, and `00`:259
+    requires the difference between settled and unsettled work to be visible.
+    """
+    content_hash = row["content_hash"]
+    rows = _rows(conn,
+                 "SELECT m.*, g.display_label AS group_label, "
+                 "       g.group_category AS group_category, "
+                 "       g.state AS group_state, "
+                 "       g.coherence_verdict AS coherence_verdict "
+                 "  FROM memberships AS m "
+                 "  LEFT JOIN groups AS g "
+                 "    ON g.group_id = m.group_id AND g.superseded_by IS NULL "
+                 " WHERE m.file_id = ? AND m.content_hash = ? "
+                 "   AND m.superseded_by IS NULL "
+                 " ORDER BY m.created_at, m.membership_id",
+                 row["file_id"], content_hash)
+    if not rows:
+        return [_wrapped(
+            "This file belongs to no group, so the one destination above is the "
+            "whole of what the product knows about where it fits. Nothing was "
+            "lost by filing it there: no run found another file it shares an "
+            "anchor fact with.", indent="  ", width=width)]
+    lines: list[str] = []
+    for member in rows:
+        label = member["group_label"] or member["group_id"]
+        verdict = member["coherence_verdict"] or "not yet judged coherent"
+        lines.append(_wrapped(
+            f"{member['decision']} in {label} "
+            f"({member['group_category'] or 'no category'}, group "
+            f"{member['group_state'] or 'no state'}, {verdict}), on "
+            f"{member['basis']} said by {member['decision_source']}, "
+            f"{member['created_at']}.", indent="  ", width=width))
+        lines.append(_wrapped(
+            "It keeps this meaning wherever it physically sits: name this file "
+            "to --trail from any folder and the relationship prints.",
+            indent="    ", width=width))
+        if member["insufficient_evidence"]:
+            lines.append(_wrapped(
+                "The evidence for this membership was called insufficient: "
+                f"{member['insufficiency_statement'] or 'no statement recorded'}.",
+                indent="    ", width=width))
+        if member["outlier_flag"]:
+            lines.append(_wrapped(
+                f"It was flagged an outlier in that group: "
+                f"{member['outlier_flag']}.", indent="    ", width=width))
+    return lines
+
+
 def file_trail(conn: sqlite3.Connection, wanted: str, *,
                width: int) -> Trail:
-    """The five stages of one file, as lines, from this database alone.
+    """The six stages of one file, as lines, from this database alone.
 
     The one entry point. `--trail` prints what this returns and any other surface
     can print the same walk without re-deriving it -- which is the second half of
@@ -572,7 +658,8 @@ def file_trail(conn: sqlite3.Connection, wanted: str, *,
                  "wrote.", indent="  ", width=width),
     ]
     for stage, walk in ((EXTRACTED, _extracted), (CLASSIFIED, _classified),
-                        (ASKED, _asked), (JUDGED, _judged), (PLACED, _placed)):
+                        (ASKED, _asked), (JUDGED, _judged), (PLACED, _placed),
+                        (RELATED, _related)):
         lines.append("")
         lines.append(stage)
         lines.extend(walk(conn, row, width=width))

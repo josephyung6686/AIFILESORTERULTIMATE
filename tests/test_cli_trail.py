@@ -49,6 +49,14 @@ from llm_harness.vocabulary import (  # noqa: E402
 from privacy.classification import ClassificationRecord  # noqa: E402
 from privacy.classification_store import ClassificationStore  # noqa: E402
 from p1_contract import p3_basic_record  # noqa: E402
+from grouping.records import Group, Membership, Support  # noqa: E402
+from grouping.store import record_group, record_membership  # noqa: E402
+from grouping.vocabulary import (  # noqa: E402
+    COHERENT, CONTEXT_SUPPORTED, ENGINE, INCLUDED, MUTUAL_SEMANTIC_RETRIEVAL,
+    NO_SENSITIVITY, NOT_FLAGGED, RULES_AND_GRAPH, SUPPORTED,
+    USER_CREATED_STARTING_POINT,
+)
+from grouping.vocabulary import RULES as GROUP_RULES  # noqa: E402
 from review_surface.trail import STAGES, file_trail  # noqa: E402
 
 class FileTookTooLong(RuntimeError):
@@ -443,3 +451,91 @@ def test_a_trail_with_no_plan_database_refuses_rather_than_making_one(tmp_path):
     assert code == 2, printed
     assert "no plan database" in printed
     assert not missing.exists(), "a refusal created the database it refused over"
+
+
+def _a_group_the_file_is_also_in(conn, file_id: str, content_hash: str) -> str:
+    """One coherent group with this file in it, through P9's own writers.
+
+    Through `record_group` and `record_membership` rather than a raw INSERT,
+    for the reason `a_run` states about P4's classification handle: a fixture
+    that writes a row no producer would write tests a shape instead of a
+    behaviour. `context-supported` rather than `direct-anchor` so the support
+    is a plain retrieval channel -- `Membership.__post_init__` requires a
+    `shared-validated-fact` support for the anchoring basis, and inventing a
+    validated fact here would be this fixture asserting something about P6.
+    """
+    group_id = "group-also-a-lab-packet"
+    record_group(conn, Group(
+        group_id=group_id, seed_ref=f"file:{file_id}",
+        seed_kind=USER_CREATED_STARTING_POINT,
+        proposed_basis="two files share a reading list",
+        anchor_facts=(), pre_model_signals={}, anchor_count=0,
+        coherence_verdict=COHERENT, coherence_citations=(),
+        group_category="academic", display_label="Lab packet",
+        label_source=ENGINE, conflicts=(), stop_rule_hits=(),
+        state=SUPPORTED, sensitivity_state=NO_SENSITIVITY,
+        dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,
+        created_by=RULES_AND_GRAPH, created_at=WHEN))
+    record_membership(conn, Membership(
+        membership_id="membership-1", group_id=group_id, file_id=file_id,
+        content_hash=content_hash, basis=CONTEXT_SUPPORTED, decision=INCLUDED,
+        decision_source=GROUP_RULES,
+        support=(Support(support_kind=MUTUAL_SEMANTIC_RETRIEVAL,
+                         observation_key=None, quote_or_field=None,
+                         location=None, edge_ref="edge-1"),),
+        insufficient_evidence=False, insufficiency_statement=None,
+        conflicts=(), outlier_flag=NOT_FLAGGED, validation_verdict_ref=None,
+        created_at=LATER))
+    return group_id
+
+
+def test_a_files_other_accepted_relationships_print_beside_its_one_home(a_run):
+    """`107`: several meanings, one physical path, and all of them findable.
+
+    The file is PLACED at one node and is also a member of a group that node
+    does not express. Before `RELATED` the trail printed the destination and
+    stopped, so the second meaning was a row in `memberships` that no surface
+    in the product ever read back -- the person could not learn it existed
+    without opening SQLite. The assertion is that naming the file prints BOTH:
+    the home it got, and the relationship the home did not end.
+    """
+    conn = open_database(a_run["database"])
+    try:
+        _a_group_the_file_is_also_in(conn, a_run["asked"],
+                                     a_run["content_hash"])
+        conn.commit()
+    finally:
+        conn.close()
+
+    code, printed = _run(["--trail", a_run["asked"],
+                          "--database", str(a_run["database"])])
+
+    assert code == 0, printed
+    bodies = _stage_bodies(printed)
+    # The one physical path, unchanged.
+    assert "node-phys1401" in bodies["PLACED"], bodies["PLACED"]
+    # And the meaning that path does not carry.
+    assert "Lab packet" in bodies["RELATED"], bodies["RELATED"]
+    assert "included" in bodies["RELATED"], bodies["RELATED"]
+    assert "context-supported" in bodies["RELATED"], bodies["RELATED"]
+    # RELATED comes last, because a person reads the home it got before they
+    # read what the home did not end.
+    assert printed.index("RELATED") > printed.index("PLACED"), printed
+
+
+def test_a_file_in_no_group_is_told_that_rather_than_shown_nothing(a_run):
+    """`00`:259 at this stage: an empty heading reads as a product that forgot.
+
+    Every other stage in this module prints a sentence when it has no rows and
+    says what the absence MEANS. A file that belongs to nothing is the ordinary
+    case -- 133 of 371 files were in a group on the owner's corpus -- so the
+    sentence this prints is the one most people will read.
+    """
+    code, printed = _run(["--trail", a_run["asked"],
+                          "--database", str(a_run["database"])])
+
+    assert code == 0, printed
+    body = _stage_bodies(printed)["RELATED"]
+    # Phrases short enough to survive `_wrapped`, which breaks at `width`.
+    assert "belongs to no group" in body, body
+    assert "no run found another file" in body, body
