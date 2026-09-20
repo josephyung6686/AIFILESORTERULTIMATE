@@ -1,0 +1,59 @@
+{
+  "_": "DRAFT for the owner's ratification, planning/111-LIBRARY-COVERAGE.md (2026-09-19). NOT in production.LIBRARY_FILES, and it CANNOT BE WIRED BY ADDITION. `production.folder_levels_for` and `production.schema_for_situation` look a situation up by its `recognition:` signal and REFUSE when two rows carry it, so this v2 row beside the shipped v1 does not supersede it -- it makes `academic.teaching` unresolvable. The gate test beside this file proves exactly that. Wiring it therefore requires the owner to rule that v1 is REPLACED, which is an edit to a shipped row and is the owner's alone under the standing orders. ONE label is drafted vocabulary ('School I taught at'); the situation name is already in the shipped release and no new name is minted here.",
+  "fragments": [],
+  "definitions": [],
+  "applicabilities": [
+    {
+      "applicability_id": "ap.academic.teaching",
+      "applicability_version": 2,
+      "template_id": "def.subject-work-record.third-party",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "term",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.teaching"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "School I taught at"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "Semester I taught"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course I taught"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of teaching material"
+        }
+      ],
+      "exclusions": [
+        "a student's name as a folder level: 107 line 120, 'client, patient, employee, and candidate names should not be generated as folder levels by default', and 107's Teaching branch marks Student Administration 'protected; no student-name folders'",
+        "the teaching function's own children (Lessons/Week 01, Week 02) as a level: 107 draws them beneath the function and they are the person's to add, not a dimension this row binds"
+      ],
+      "provenance": [
+        "111-LIBRARY-COVERAGE.md: 107's Teaching branch template is 'Institution -> term -> course -> teaching function' and the shipped v1 row binds no institution, leaving `holder_institution` -- an OPTIONAL dimension the template already declares at order_index 0 -- unfilled",
+        "107 branch-template table: Teaching -- Institution -> term -> course -> teaching function, typical depth 3-5",
+        "107's own tree: Teaching/City Learning Center/2026 Fall/Introduction to Python/{Course Planning, Lessons, Assignments, Solutions, Rubrics, ...} -- the institution level is drawn explicitly",
+        "the shipped v1 row, ap.academic.teaching@1, whose three bindings are carried here unchanged",
+        "104 section 18.112: only ONE of eleven academic situations carries four levels, against 95 academic files in the owner's corpus"
+      ],
+      "privacy_floor": null,
+      "life": "Teaching"
+    }
+  ]
+}
