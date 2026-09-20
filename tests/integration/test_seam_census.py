@@ -539,11 +539,33 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
                            # no schema, no store, no call, and it writes nothing;
                            # it reads the fields a `ResidualSet` already carries
                            # and raises or renders them.
+                           # `subjects_acted_on` since `110` §2.1's
+                           # `--ignore-branch` (20 Sep): a branch the person left
+                           # out has to STAY left out on the next run, and the
+                           # durable fact is a P13 `review_action` row. So the
+                           # design pass asks P13 which subjects already carry
+                           # one. It is a READ -- a finder over rows this surface
+                           # already holds, beside `actions_for` -- where
+                           # `record_presentation` was the first WRITE; nothing
+                           # is composed, judged or decided by it, and a run over
+                           # a folder nobody has ignored anything in gets an
+                           # empty set and behaves exactly as before.
+                           #
+                           # It is NOT `learned_preferences_still_applicable`,
+                           # which `110` §2.1 named and which this suite pins as
+                           # callerless: that function takes placement
+                           # suppressions, not review actions, and
+                           # `test_p11_connections.py` asserts its caller set is
+                           # empty while `test_p11_versions.py` carries a strict
+                           # xfail that XPASSES the moment one appears. The
+                           # persistence §2.1 describes is the origin key from
+                           # `node_key`, which is what this reads.
                            (("P13"), {"create_review_schema", "bucket_for",
                                       "assert_every_file_accounted",
                                       "record_presentation",
                                       "collect_bulk", "record_action",
-                                      "expand", "residual_card"})):
+                                      "expand", "residual_card",
+                                      "subjects_acted_on"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (
             f"{part} now does something on a live run beyond creating its "

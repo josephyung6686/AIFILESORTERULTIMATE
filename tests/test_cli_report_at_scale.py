@@ -256,7 +256,21 @@ def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
     # are never shortened. 120 was the budget before the card had a caller; 180
     # is the same budget with the card's two lines counted in for the 22 sets this
     # screen actually shows.
-    assert len(lines) <= 180, (
+    #
+    # 185 SINCE 20 SEP, and the five lines are one control, not slack. `110`
+    # §2.1's `--ignore-branch` prints an invitation below the folder list --
+    # four lines and the blank that separates it -- on every run, because the
+    # gesture is typed at the NEXT invocation and a control nobody is told about
+    # is a control nobody uses. Measured here: 176 before, 181 after, and this
+    # corpus shows only ONE of the two new invitations. `--omit-level`'s sits in
+    # the level-names block, which this single-kind corpus does not print and
+    # another will, so the ceiling carries its four as well.
+    #
+    # THE NUMBER IS STILL A PROMISE AND NOT A DRAWER. `107`'s report has to fit
+    # in a handful of screens, and at 40 lines a screen this is five. The next
+    # thing that wants a line here argues for it the way these did, with what it
+    # bought and what it cost measured on this same corpus.
+    assert len(lines) <= 185, (
         f"{len(lines)} lines ({len(lines) / 40:.0f} screens) for 3,456 files:\n"
         + printed[:4000])
     # And the part that IS free to shorten: the ordinary hold, 420 batches and
