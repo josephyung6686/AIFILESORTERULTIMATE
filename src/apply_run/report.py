@@ -228,17 +228,60 @@ def freeze_lines(proposal: FrozenProposal, *,
                        plan.requested_destination_node), []).append(plan)
 
     lines: list[str] = [""]
-    if proposal.replaces is not None:
+    total = len(proposal.plans)
+    # `AND total`, AND THE ORDER OF THESE TWO BLOCKS, AND IT IS A DATA-LOSS BUG.
+    #
+    # `proposal.replaces` is the approved set as it stood when this freeze
+    # BEGAN -- `apply_run.freeze._previous` reads it before the loop, which
+    # cannot yet know whether this freeze will write a plan. Rendered
+    # unconditionally, and printed above the count, it said this on a re-freeze
+    # that approved nothing:
+    #
+    #     This replaces the 4 file(s) you froze on 2026-09-02T00:00:00Z. [...]
+    #
+    #     Nothing was frozen: no placement in this run is ready to move.
+    #
+    # Both at once, and the first is FALSE. `latest_freeze` is `MAX(created_at)`
+    # over `move_plans` and NOTHING IN `src/` EVER WRITES `superseded_by` ON A
+    # MOVE PLAN, so a freeze that writes no row does not move `MAX(created_at)`:
+    # the earlier batch is still what `frozen_plans` returns and still what the
+    # apply gesture moves. A person who read those two sentences and reasonably
+    # concluded there was nothing on the table then had four files moved under a
+    # plan the screen had called replaced.
+    #
+    # WHICH PLAN GOVERNS IS NOT DECIDED HERE. That is `110` §5 Decision 5 and
+    # the owner's, unruled. Nothing below supersedes, hides or deletes the
+    # earlier batch, and no gesture for choosing between the two is invented.
+    # `84` §6 is the whole of what is fixed: the screen says what is the case.
+    if proposal.replaces is not None and total:
         lines.append(_wrap(
             f"This replaces the {proposal.replaces.count} file(s) you froze on "
             f"{proposal.replaces.frozen_at}. Anything from that plan you had "
             "already filed stays filed and can still be taken back."))
         lines.append("")
 
-    total = len(proposal.plans)
     if not total:
         lines.append("Nothing was frozen: no placement in this run is ready to "
                      "move.")
+        if proposal.replaces is not None:
+            # Named, counted and given the line that acts on it. The half of
+            # `84` §1 that binds here is the other one: a plan still in force
+            # and not on the screen is a plan that vanished, and the gesture is
+            # armed whether or not this block mentions it. The command is the
+            # composition root's own string, so no flag is spelled here and the
+            # line is one a person can paste. What it claims is which PLAN the
+            # line acts on -- not how many files will move, which this package
+            # cannot know: it has no connection and cannot see what an earlier
+            # run already filed.
+            lines.append("")
+            lines.append(_wrap(
+                f"So this run replaced nothing, and the "
+                f"{proposal.replaces.count} file(s) you froze on "
+                f"{proposal.replaces.frozen_at} are still the approved plan. "
+                "Anything from it you had already filed stays filed and can "
+                "still be taken back, and this line still acts on that plan "
+                "rather than on anything listed below:"))
+            lines.append(f"    {apply_everything_command}")
     else:
         lines.append(f"Frozen: {total} file(s) are ready to move, in "
                      f"{len(by_branch)} branch(es).")
