@@ -456,7 +456,9 @@ from tree_design.schema import create_tree_schema
 from tree_design.provenance import actor_phrase
 from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
-from mutation.constraints import FilesystemConstraints
+from mutation.constraints import (
+    FilesystemConstraints, VolumeUnmeasurable, measure_case_sensitivity,
+)
 from mutation.resolution import source_high_level_folder
 from tree_design.store import latest_plan_version, nodes_for_version, open_draft
 #: `00` amendment 2 of 14 Sep. The proposal's text form -- what it looks like
@@ -4247,6 +4249,106 @@ def _filesystem_constraints() -> FilesystemConstraints:
 
 
 _FILESYSTEM_CONSTRAINTS: FilesystemConstraints = _filesystem_constraints()
+
+
+def _constraints_for(
+        destination_root: Path, *,
+        measure: Callable[[Path], bool] = measure_case_sensitivity,
+) -> tuple[FilesystemConstraints, str | None]:
+    """`_FILESYSTEM_CONSTRAINTS` with `case_sensitive` READ OFF `destination_root`.
+
+    **The table above is DECLARED per platform. This is the one place it becomes
+    a statement about a disk.** `sys.platform` is a fact about the process: a
+    Linux process reads `"linux"`, declares `case_sensitive=True`, and files onto
+    an exFAT stick, an NTFS partition, an SMB share from a NAS or a
+    `casefold`-enabled ext4 directory -- every one of which FOLDS. That is not an
+    exotic setup; it is what "help me organise my files" looks like when the
+    files are on an external drive. So the volume is asked, and its answer wins
+    over the platform's for the one field a directory can actually answer.
+
+    **ONE FIELD, and the other six are untouched on purpose.** A path budget, a
+    prohibited character and a reserved name are not things a `mkdir` can ask a
+    directory about; inventing a measurement for them would be the same defect in
+    a new place. `case_sensitive` is measurable because folding is observable:
+    make a name, look for its twin.
+
+    **WHERE IT IS CALLED FROM IS THE DESIGN.** Not here -- the table above is
+    built at import, and a probe at import would touch somebody's disk on
+    `import cli`. Not per file either: a per-file probe on a two-hundred-file
+    move is two hundred directories made and removed in the person's folder. It
+    is called once per gesture, by the two functions that hand a table to a
+    mutation, with the destination root the gesture already resolved; the local
+    they bind it to IS the cache and the frame IS its lifetime, which is the run.
+
+    **WHAT `destination_root` MUST BE, and why it is the corpus root.** The
+    volume the file lands on, which is the root the run was pointed at. Its
+    PARENT is the wrong volume exactly when the root is a mount point --
+    `/Volumes/STICK`, `/media/usb` -- which is the case this whole function
+    exists for, so the probe runs inside the root the person named. It leaves
+    nothing: `measure_case_sensitivity` removes its directory with `rmdir` in a
+    `finally`, and `test_p12_volume_measurement.py` asserts the folder is as it
+    was found. The measurement is of ONE DIRECTORY -- `casefold` on ext4 is a
+    per-directory attribute, so a subdirectory created later under a different
+    setting is not covered. That limit is why `mutation.movement` is still the
+    load-bearing guarantee: measuring makes the SENTENCE right, the syscall makes
+    the FILE safe.
+
+    **AN UNASKABLE VOLUME TAKES THE SAFE ERROR, AND SAYS SO.** A read-only
+    destination, a refused `mkdir`, a full disk -- each is a real case and none
+    of them may end the run, so `VolumeUnmeasurable` is caught rather than
+    propagated. What it is caught INTO is `case_sensitive=False`, and that is a
+    choice worth naming because it is not simply the declared value: on darwin
+    they are the same, and on linux they are not. `_filesystem_constraints`'s own
+    ruling decides it -- *"the safe error is to see a collision that is not there
+    -- that stops and asks -- not to miss one. Every unknown below takes its
+    error the same way."* A volume that would not answer is an unknown about that
+    volume. Declaring it case-sensitive is the error that misses a collision;
+    declaring it folding is the error that reports one that is not there, which
+    stops and asks. The cost of the safe error here is a run that pauses over two
+    names differing only in capitals on a genuinely case-sensitive disk. The cost
+    of the other is the false sentence below.
+
+    Returns the table and, when it DIFFERS from what the platform declared, one
+    unwrapped sentence saying so -- unwrapped because where a sentence is printed
+    decides how it is indented, and this function is not a screen. The sentences
+    name no platform: `"darwin"` is true and is not a word anybody calls their
+    laptop, and the fact a person needs is what THIS folder does, not what their
+    operating system usually does. Nothing at all
+    when the volume agrees with the platform, because a screen
+    that announced the filesystem on every ordinary run is a screen nobody reads
+    by the third time. Two different sentences for two different facts: one
+    volume was asked and disagreed, the other could not be asked. `84` §6 -- what
+    the screen says has to be true, and "this drive folds case" is not true of a
+    drive nobody managed to ask.
+    """
+    declared = _FILESYSTEM_CONSTRAINTS
+    try:
+        answer = measure(destination_root)
+    except VolumeUnmeasurable:
+        if declared.case_sensitive is False:
+            return declared, None
+        return dataclasses.replace(declared, case_sensitive=False), (
+            f"This run could not ask {destination_root} whether it treats "
+            "`Report.pdf` and `report.pdf` as one name or as two -- it could "
+            "not make a test folder there. So this plan treats them as "
+            "ONE name and stops to ask you about any such pair, which is the "
+            "error that keeps a file rather than the one that loses it.")
+    if answer == declared.case_sensitive:
+        return declared, None
+    folding = (
+        "This folder is on a drive that treats `Report.pdf` and `report.pdf` as "
+        "ONE name -- an external drive, a USB stick or a shared network folder "
+        "often does. Two files whose names differ only in capitals cannot both "
+        "be filed here, so this plan stops and asks about them instead of "
+        "filing one over the other.")
+    separate = (
+        "This folder is on a drive that keeps `Report.pdf` and `report.pdf` as "
+        "TWO separate names. Two files whose names differ only in capitals can "
+        "both be filed here, so this plan files them side by side instead of "
+        "stopping to ask about them.")
+    return (dataclasses.replace(declared, case_sensitive=answer),
+            folding if answer is False else separate)
+
 
 #: **`74` §8 Q6, the half of it this build needs: the halt rule.** The batch
 #: BOUND is not needed -- `apply_run` applies one plan at a time, which is
@@ -25519,6 +25621,22 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
         def mint_id() -> str:
             return f"{uuid.uuid4().hex}:{next(counter)}"
 
+        # THE TABLE THE VOLUME ANSWERED FOR, not the one `sys.platform`
+        # declared. Measured HERE and not at import (a probe at import touches
+        # the disk on `import cli`) and not per plan (a two-hundred-file move
+        # would make two hundred probe directories in the person's own folder).
+        # This local IS the cache and this frame IS its lifetime, which is the
+        # run: both branches below hand this one object to every plan they act
+        # on, and `--apply` and `--undo` each get exactly one probe.
+        #
+        # The disagreement SENTENCE is deliberately dropped here. `84` §6 asks
+        # that what a screen says be true, not that every screen say everything,
+        # and the place a person is told what this run intends is the freeze
+        # report -- where it IS printed. These two gestures act on a plan that
+        # was already presented, and a paragraph about the drive above a list of
+        # moves that already happened is a paragraph nobody asked for.
+        constraints, _volume_note = _constraints_for(directory)
+
         if moving:
             chosen = plans_under(plans, selected)
             filed = already_applied(conn, chosen)
@@ -25542,9 +25660,9 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                 # plan nobody approved still gets `None`, which is the refusal
                 # and not a gap in the wiring.
                 approval_for=approval_reader(conn),
-                constraints=_FILESYSTEM_CONSTRAINTS,
+                constraints=constraints,
                 normalize_filename=lambda name: unicodedata.normalize(
-                    _FILESYSTEM_CONSTRAINTS.unicode_form, name),
+                    constraints.unicode_form, name),
                 unruled_cross_volume_sentence=_CROSS_VOLUME_UNRULED_SENTENCE,
                 halt_on=_HALT_ON, scan_state="included", materialized=True,
                 component_version=COMPONENT_VERSION, user_id=args.user,
@@ -25581,9 +25699,9 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                    if everything or node_id in selected]
         by_entry = {entry.entry_id: entry.file_id for entry in entries}
         outcome = take_back(
-            conn, entries, constraints=_FILESYSTEM_CONSTRAINTS,
+            conn, entries, constraints=constraints,
             normalize_filename=lambda name: unicodedata.normalize(
-                _FILESYSTEM_CONSTRAINTS.unicode_form, name),
+                constraints.unicode_form, name),
             scan_state="included", materialized=True,
             component_version=COMPONENT_VERSION, user_id=args.user,
             now=now, mint_id=mint_id)
@@ -26885,6 +27003,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # holding `00`:156-170's complete expected precondition -- which is what
     # `--apply` reads, on a later invocation, instead of re-running a pipeline
     # that would mint a whole new proposal under names nothing has ever seen.
+    # Measured HERE and not above the report, so a run the person only wanted to
+    # LOOK at never makes a directory in their folder. One probe for the freeze,
+    # bound to a local whose lifetime is this frame -- which is this run.
+    constraints, volume_note = _constraints_for(directory)
+
     plan_counter = count()
     approval_counter = count()
 
@@ -26909,7 +27032,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # already rules that no policy at all is no permission, and a movement
         # permission is the last thing to infer from silence.
         cross_folder_moves=args.may_cross_folders,
-        constraints=_FILESYSTEM_CONSTRAINTS,
+        constraints=constraints,
         # §1.1's folder landscape, which is what P12 means by this argument.
         # With one entry, a file from a second source was under NO high-level
         # folder, `_source_folder` returned None, and P12's refusal named
@@ -26951,6 +27074,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             mint_id=mint_approval_id),
         component_version=COMPONENT_VERSION, now=now, mint_id=mint_plan_id)
     conn.commit()
+    # THE VOLUME DISAGREED WITH THE PLATFORM, and that changed what the plan
+    # above does -- so it is said, once, here, where the person is already being
+    # told what this run intends. `None` when the two agreed, which is every
+    # ordinary run: `84` §6 asks that the screen be true, and a paragraph about
+    # the filesystem printed whether or not it mattered is a paragraph that stops
+    # being read. Above `freeze_lines` because that block ends in the command to
+    # type, and a caveat printed under a command is a caveat nobody sees.
+    if volume_note is not None:
+        print("", file=out)
+        print(_wrapped(volume_note, indent=""), file=out)
     for line in freeze_lines(
             proposal, names=file_names(conn, directory, *also_read),
             nodes=result.tree.tree.nodes,
