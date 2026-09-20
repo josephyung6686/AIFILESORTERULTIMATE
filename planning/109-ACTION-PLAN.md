@@ -325,7 +325,9 @@ without remainder:
   worktree at `03afe9c6` (34-line `diff`, empty);
 * 4 failures elsewhere — `test_cli_review_sets_by_reason` (2),
   `test_d2_glossary_proposal`, `test_d2_draft_templates` — the same four names fail
-  at `03afe9c6`.
+  at `03afe9c6`. **19 Sep: one of the two is fixed and one is escalated** — see "2
+  and 3" below; both bisect to `229c7526`, so "the same four fail at `03afe9c6`"
+  reads as it did and the tally is now 3.
 
 So A1 and A2 together regress nothing across 11,068 passing tests. That is the
 claim, and the two baseline runs are what backs it.
@@ -426,23 +428,77 @@ per pass, is a decision about which answer governs a file's egress. That is the
 owner's, not a lead's, and the standing order is to escalate rather than
 reformulate until it passes.
 
-**2 and 3. `test_cli_review_sets_by_reason` — a contradiction, measured, not
-resolved.** The corpus should produce four review sets and produces three: "A model
-was not allowed to look" is missing and its file sits under "Waiting on a question
-you have been asked" beside an unopenable vault.
+**2 and 3. `test_cli_review_sets_by_reason` — RESOLVED 19 Sep. One is fixed, the
+other is the owner's.**
 
-Measured from the decision record: that file is classified
-(`handling_class='personal_non_sensitive'`, `protected=False`) and abstains with
-`abstention_reason='privacy_blocked'`. `_why` (`cli.py` ~17949) tests
-`PRIVACY_BLOCKED` **before** `ASK_USER` and returns `NO_MODEL_ALLOWED` for exactly
-that shape. **So the code and the screen disagree**, which means the label the
-screen renders (`held[0].label`) is not the one `_why` computes, or a second
-grouping exists. Two names for one state on one screen is the defect this file's
-own docstring was written against.
+**3. `test_a_blocking_reason_is_still_a_set_of_its_own` — FIXED, and it had been
+saying nothing.** `229c7526` (`106` Phase 7 §D.3) re-keyed
+`REFINED_BY_CHARACTERISTIC` from a `frozenset` of the REASONS a characteristic may
+divide into `characteristic -> frozenset(reason)` (`cli.py:15721`) and did not
+touch this file — Phase 7 updated 17 test files and not this one. So four of the
+five assertions were asking a mapping of characteristic keys whether it held a
+reason word, which is false of every reason there is: they passed because they
+could not fail. The test now reads the union of the mapping's values, and pins
+`NOT_YET_CLASSIFIED`'s one divider by name: `00` amendment 13's "Unsupported or
+encrypted", which may divide a blocking reason because amendment 13 gave it its
+OWN sentence (`cli.py:15740`) rather than borrowing `no_supported_destination`'s.
+A second characteristic reaching for a blocking reason now fails there.
 
-Whoever takes it: find where a `PlacementReviewItem` gets its `.label` and whether
-`_why` is what sets it. The evidence above is enough to start, and the fixture is
-`_three_reason_corpus`.
+**2. `test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart` — NOT
+FIXED. A question erases the reason it replaced, and the record contract says it
+must. THE OWNER'S, amendment 24.**
+
+**The evidence this document carried was the PRE-Phase-7 record and is withdrawn.**
+Measured at `HEAD` on `_three_reason_corpus`, `holiday.jpg` is
+`outcome=ask_user, abstention_reason=None, review_policy=review_required`,
+classified `personal_non_sensitive`. It does NOT abstain with `privacy_blocked`;
+that is `misc.txt`'s shape. So `_why` is faithful, `held[0].label` IS what `_why`
+computes, and there is no second grouping: the screen is not lying. Both tests pass
+at `229c7526^` and fail at `229c7526`, so both bisect to `106` Phase 7.
+
+**The mechanism, in one sentence.** `placement/pipeline.py:2816-2821`: `_abstention`
+asks `inputs.ask_about_file` before it writes, and when a question comes back it
+hands the file to `_asking` (`pipeline.py:2856`), which writes `ASK_USER` with
+`abstention_reason=None` — so `privacy_blocked` is erased from the record and the
+screen can only call the file "Waiting on a question you have been asked". Phase 7
+did not change `placement/` at all. It changed the INPUT: the proposed residual
+home `98 Review and Unsorted` gave the corpus root a home question to ask, so a
+hook that answered `None` for this file before now answers a question.
+
+**AND THE ERASURE IS A RULE, not an oversight.** `placement/records.py:525` refuses
+any record where the two disagree: "an abstention names why (§6.10); an unexplained
+one is silence, and a reason on any other outcome contradicts the decision". So an
+`ask_user` decision may never carry `abstention_reason`, and `_reason_of`'s
+`PRIVACY_BLOCKED`-before-`ASK_USER` ordering (`cli.py:17951`) is unreachable for a
+question — it can only ever be read by an abstention. Carrying the reason through
+`_asking` is not a one-line fix; it is a change to what a placement record means.
+
+**The `66` §4 defect this leaves on the screen, which is NOT a preference.**
+`holiday.jpg` was read — Phase 7's own predecessor printed "Available OCR or text
+evidence: partial" for it — and it is classified. It now shares one review set AND
+one sentence with `credentials.kdbx`, an unopenable vault: "No destination in this
+plan was supported well enough to decide, and **nothing this run could read says
+what this file is**" (`pipeline.py:2914`). That clause is false of the photo.
+"Unreadable" and "no strong match" sharing one message is the pair `66` §4 names.
+It is not repaired here because what is true of every file reaching that writer
+cannot be known until the question below is answered.
+
+**THE QUESTION FOR THE OWNER.** Now that a residual home exists for every set, a
+file that stopped because a model was not allowed to look at it is overlaid with a
+folder question and loses its reason. Which does the person read?
+
+* **(a) The question wins, as today.** Then this corpus has three reasons, not
+  four, the fourth set is unreachable while any residual home exists, and the test's
+  four-set pin is stale — but `pipeline.py:2914`'s sentence must stop claiming
+  nothing could be read, because it is now given to files that were.
+* **(b) The reason wins.** A `privacy_blocked` abstention is not overlaid with a
+  question at all, which is the `229c7526^` behaviour and restores the fourth set.
+* **(c) Both.** A question may name what it replaced, which means widening
+  `records.py:525` so an `ask_user` record may carry the reason — and every reader
+  of `abstention_reason` in the product is a reader of that change.
+
+The test is left failing and unmodified. Rewriting its pin to three would enshrine
+(a) without it being chosen.
 
 ---
 

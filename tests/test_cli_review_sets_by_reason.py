@@ -645,12 +645,32 @@ def test_a_blocking_reason_is_still_a_set_of_its_own():
     against anything; calling it "a spreadsheet with unclear purpose" would
     tell somebody the product looked and could not tell, when what happened is
     that it was not allowed to look. `66` §4 forbids the two sharing a message.
+
+    **READ OFF THE MAPPING'S VALUES, because `229c7526` (`106` Phase 7 §D.3)
+    re-keyed it.** `REFINED_BY_CHARACTERISTIC` was a `frozenset` of the REASONS
+    a characteristic may divide and is now `characteristic -> frozenset(reason)`
+    (`cli.py:15721`). The four `not in` lines below were asking a mapping of
+    characteristics whether it held a reason, which is false of every reason
+    there is: they passed because they could not fail, and this test said
+    nothing for six days. The reasons are the union of the values, so that is
+    what is asked.
+
+    **AND `NOT_YET_CLASSIFIED` IS THE ONE EXCEPTION, ruled and built.** `00`
+    amendment 13 names "Unsupported or encrypted" a set of its own, and a locked
+    archive is unread and therefore unclassified -- it would never reach that set
+    through `no_supported_destination`. It divides the reason WITHOUT the thing
+    `66` §4 forbids, because amendment 13 gave both its sets their own sentence
+    (`cli.py:15740`) rather than borrowing `no_supported_destination`'s the way
+    the first three do. It is pinned by name below so a SECOND characteristic
+    reaching for a blocking reason fails here.
     """
-    assert cli.NO_MODEL_ALLOWED not in cli.REFINED_BY_CHARACTERISTIC
-    assert cli.NOT_YET_CLASSIFIED not in cli.REFINED_BY_CHARACTERISTIC
-    assert cli.WAITING_ON_AN_ANSWER not in cli.REFINED_BY_CHARACTERISTIC
-    assert cli.NOT_ALLOWED_TO_CROSS not in cli.REFINED_BY_CHARACTERISTIC
-    assert pv.NO_SUPPORTED_DESTINATION in cli.REFINED_BY_CHARACTERISTIC
+    divided = frozenset().union(*cli.REFINED_BY_CHARACTERISTIC.values())
+    assert cli.NO_MODEL_ALLOWED not in divided
+    assert cli.WAITING_ON_AN_ANSWER not in divided
+    assert cli.NOT_ALLOWED_TO_CROSS not in divided
+    assert pv.NO_SUPPORTED_DESTINATION in divided
+    assert {key for key, reasons in cli.REFINED_BY_CHARACTERISTIC.items()
+            if cli.NOT_YET_CLASSIFIED in reasons} == {cli.UNSUPPORTED_REVIEW_SET}
 
 
 def test_no_two_review_sets_share_a_name():
