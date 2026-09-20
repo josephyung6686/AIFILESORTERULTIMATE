@@ -286,6 +286,18 @@ def test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward(tmp_path):
 #: so the three tests below cannot drift into asserting three near-misses of it.
 AREA_ADVICE = "`--residual` enables an area for the run it is typed in"
 
+#: AN AREA THIS CORPUS NEITHER ENABLES NOR MINTS, which since `00` amendment 13
+#: is a smaller set of areas than it used to be and is why Case A below had to
+#: move. `Archive` is `REVIEW_HOME_FOR_SET`'s home for possible duplicates
+#: (`cli.py`), and this corpus has no duplicates set -- twenty-six photographs
+#: that no folder matched and two coursework files that are filed. So nothing
+#: mints it, `--residual` is the only thing that could, and the advice is true.
+#:
+#: MEASURED, not reasoned: sending this set to `Archive` prints the refusal, the
+#: advice and the plan, which is the three-part promise Case A exists to hold.
+UNMINTED_AREA = "Archive"
+SEND_TO_UNMINTED = f"{FIRST_LABEL}={UNMINTED_AREA}"
+
 
 def _first_run(corpus: Path) -> None:
     """One run with the area enabled, so review sets exist to be named."""
@@ -314,9 +326,64 @@ def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
     true and is the one thing that explains the refusal: an area is enabled for
     the run it is named in.
 
-    Both halves are asserted together on purpose. Keeping the plan and losing
-    the sentence would be trading one real improvement for one real regression,
+    All three are asserted together on purpose. Keeping the plan and losing the
+    sentence would be trading one real improvement for one real regression,
     which is exactly what the lead caught in the first version of this hunk.
+
+    **RE-AIMED, 20 SEP, AND THE PREVIOUS AIM HAD GONE FALSE.** This case used to
+    send `FIRST_SET` -- a `No folder matched` set bound for `Review Later` -- and
+    `00` amendment 13 ended the world it was written for. `No folder matched`
+    maps to `Review Later` in `REVIEW_HOME_FOR_SET`, the home is now minted on
+    demand for a person who did not type `--residual`, and with the policy in
+    force the send is HONOURED: the screen prints the plan and there is no
+    refusal to advise about. The assertion did not fail because the product
+    regressed. It failed because the product got better and the test still
+    described the old world.
+
+    **RE-AIMED RATHER THAN RETIRED, and that was the lead's call.** The promise
+    underneath -- a refusal still hands the person a command they can paste and
+    does not cost them their plan -- is `84` §6 and is still live for every area
+    amendment 13 does NOT mint. `mint_review_homes_on_demand` excludes two kinds
+    (`cli.py`: `not item.protected and item.set_key in REVIEW_HOME_FOR_SET`), so
+    such areas exist and nothing else in this file reaches one. Retiring the case
+    would have deleted the only coverage of a promise that still holds; moving it
+    keeps the coverage and points it at the world as it is now.
+
+    SABOTAGE: send `FIRST_SET` again. The send is honoured, no refusal is
+    printed, and the advice assertion goes red -- which is the failure this
+    re-aim is the answer to, and it is worth seeing once.
+    """
+    corpus = _corpus(tmp_path)
+    _first_run(corpus)
+
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(corpus.parent / "plan.sqlite"),
+                     "--accept-groups",
+                     "--send-set", SEND_TO_UNMINTED], out=out)
+    printed = "\n".join(line for line in out.getvalue().splitlines()
+                        if not line.startswith("Plan database:"))
+
+    assert code == 0, printed
+    assert "Folders in this plan" in printed, printed
+    assert AREA_ADVICE in printed, printed
+    assert f"--residual {UNMINTED_AREA}" in printed, printed
+
+
+def test_the_area_amendment_13_does_mint_needs_no_flag_and_is_honoured(
+        tmp_path):
+    """The other half of the re-aim above, and the reason it was needed.
+
+    `No folder matched` IS in `REVIEW_HOME_FOR_SET`, so amendment 13 mints
+    `Review Later` on demand and the send succeeds with no `--residual` in the
+    command. Without this test the re-aim above would look like coverage moving
+    sideways; with it, the behaviour that displaced the old assertion is pinned
+    by an assertion of its own, so a regression that un-mints the home fails
+    HERE rather than silently restoring the old screen.
+
+    SABOTAGE: make `mint_review_homes_on_demand` skip its mint. The refusal and
+    the advice come back and both assertions below go red.
     """
     corpus = _corpus(tmp_path)
     _first_run(corpus)
@@ -331,9 +398,8 @@ def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
                         if not line.startswith("Plan database:"))
 
     assert code == 0, printed
-    assert "Folders in this plan" in printed, printed
-    assert AREA_ADVICE in printed, printed
-    assert "--residual 'Review Later'" in printed, printed
+    assert "That answer was refused" not in printed, printed
+    assert AREA_ADVICE not in printed, printed
 
 
 #: The columns of `privacy_policies` that decide whether anything about a file
