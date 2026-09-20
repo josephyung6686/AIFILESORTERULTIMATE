@@ -815,3 +815,25 @@ assert a record "carries no `/Users/<name>` prefix ever again", and the fixture
 proving it should not be the one name the product is trying to keep out. Replaced
 with a neutral holder. No behaviour changes; this is about what travels in a
 diff, a log or a transcript.
+
+**35a. THE LABEL-IS-NOT-THE-KEY INVARIANT IS EXCEPTED FOR THIS ONE ROW, BY THE
+OWNER.** `test_no_label_is_the_field_key_it_replaces` asserts across the whole
+library that no `RoleBinding.label` equals its own `field_ref`, exactly or with
+underscores opened out and case folded (`59` §5c measured that those two spellings
+account for 37 of 37 `display_name` values). **`Year` folds to `year` and trips
+it.**
+
+The invariant exists to catch a level where **nobody wrote a label** — where the
+machine key was shipped as if it were words for a person. `Year` is the opposite:
+it is the word the owner chose, over "The year I applied", knowing the row's other
+four labels are first person. The rule and the ruling disagree because the rule
+cannot tell a deliberate plain word from an un-authored key.
+
+**THE EXCEPTION IS ONE EXACT TUPLE** — `("ap.career.recruiting", "year", "Year")`
+— and not a relaxation of the test. Every other binding in the library is still
+guarded, and a second row wanting the same licence has to come back here.
+
+**RECORDED BECAUSE IT WAS NOT KNOWN WHEN THE CHOICE WAS OFFERED.** The lead put
+`Year` to the owner without knowing it collided; the collision was found by the
+build. The owner was told and kept `Year`. The cost is one documented hole in a
+library-wide invariant, and it is the owner's to spend.
