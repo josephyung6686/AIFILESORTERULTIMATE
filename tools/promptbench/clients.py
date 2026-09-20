@@ -45,9 +45,35 @@ from readers.model_ollama import (  # noqa: E402
     DEFAULT_BASE_URL as LOCAL_BASE_URL, assemble, ollama_invoke,
 )
 
+def _main_checkout(start: Path) -> Path:
+    """The checkout a worktree was cut FROM, or `start` when it is not one.
+
+    A worktree's `.git` is a FILE reading `gitdir: <main>/.git/worktrees/<name>`,
+    where a real checkout's is a directory. So the main tree is found by reading
+    that pointer and walking up to the `.git` it names. No subprocess: this runs
+    at import, and a tool that cannot be imported without shelling out to `git`
+    is a tool that breaks in every environment that has no `git` on the path.
+    """
+    marker = start / ".git"
+    if marker.is_file():
+        pointer = marker.read_text().partition(":")[2].strip()
+        gitdir = Path(pointer)
+        if not gitdir.is_absolute():
+            gitdir = (start / gitdir).resolve()
+        for parent in gitdir.parents:
+            if parent.name == ".git":
+                return parent.parent
+    return start
+
+
 #: Where the deployment keeps its key. NOT `cli.ENV_FILE`: that resolves beside
 #: whichever checkout imports `cli`, and a worktree has no `.env`.
-MAIN_CHECKOUT_ENV: Path = Path("/Users/jy/GRAPH AGENT/.env")
+#:
+#: FOUND, NOT SPELLED. This was the author's own absolute path, which made the
+#: tool silently keyless on every other machine -- and "no key" here reads as
+#: "the cloud model is unavailable", which is a wrong answer rather than an
+#: error. The deployment is whatever checkout this worktree came from.
+MAIN_CHECKOUT_ENV: Path = _main_checkout(_ROOT) / ".env"
 
 #: The cloud model the task names. Deliberately not read from the tier names in
 #: `.env`: the LOGIC tier there may resolve to a reasoning model, and `104` R-18

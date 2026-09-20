@@ -11,7 +11,11 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path("/Users/jy/GRAPH AGENT")
+#: THIS checkout, derived from the file's own location rather than spelled.
+#: A path naming one machine's home directory makes the test unrunnable on
+#: every other machine, and under a worktree it silently imports the WRONG
+#: tree -- the one the author happened to have, not the one under test.
+ROOT = Path(__file__).resolve().parents[2]
 for p in (str(ROOT), str(ROOT / "src")):
     if p not in sys.path:
         sys.path.insert(0, p)
