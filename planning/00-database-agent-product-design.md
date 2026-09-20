@@ -716,3 +716,64 @@ the reason is why the file stopped.
 Widening it touches every reader of `abstention_reason`. The widening must be NAMED,
 not general: an `ask_user` record may carry the reason it REPLACED, and no other
 outcome gains a reason. `66` §4 is satisfied by the second clause, not by the first.
+
+## Amendments of 2026-09-20, second sitting (the owner, four rulings with their costs drawn)
+
+**35. THE `year` LEVEL'S LABEL IS `Year`.** The build minted "The year I applied"
+to match the row's own first person — `ap.career.recruiting` says "Company I
+applied to", "Job I went for", "My search". The owner chose the plain word.
+
+**THE COST, STATED AND ACCEPTED:** that row's five labels no longer share one
+voice, and voice is the only thing they had in common. `Year` reads as a folder
+level, which is what it is, and the four around it read as a person talking.
+The owner preferred the folder to the sentence. **This is also the ratification
+that lets the label cross to a model** — `FolderLevel.label` is written into
+`dossier._body`'s model-visible bytes, so before this ruling no cloud run could
+carry it.
+
+**36. AMENDMENT 32 STANDS AS BUILT, AND A GROUP IS A LIFE.** The owner ratified
+"once per accepted group" believing a group was a course-term packet; it is
+`(life × kind)`, because `_grouped_by_branch` makes "one draft per (branch,
+schema)" and "a branch is a LIFE". Told that, the owner kept it.
+
+**WHAT THIS GIVES UP, AND IT IS NOT SMALL.** One answer now settles every academic
+file in Education — every course, every term, **and coursework together with
+teaching**. So amendment 32 does NOT deliver `107`'s promise that "coursework and
+teaching are visibly different even when they mention the same institution and
+course vocabulary": those two are one group and get one answer. The amendment buys
+a question people will finish over a distinction they will not. **The distinction
+is not abandoned, it is unbuilt** — it needs P9 to accept course-term packets,
+and that is a phase of its own that this ruling does not order.
+
+**37. A FOURTH CLAUSE: `budget_deferred` IS NEVER A QUESTION.** Amendment 34's
+three clauses are joined by a fourth, so the record class reads:
+
+```
+abstention_reason  REQUIRED  iff outcome == abstain
+                   PERMITTED iff outcome == ask_user
+                   FORBIDDEN otherwise
+and                NEVER     budget_deferred on ask_user
+```
+
+§8.6 already says a budget deferral is not a question. The OLD biconditional
+enforced that as a side effect of forbidding the reason-and-question pair, and
+34 dropped the side effect along with the rule. Nothing builds such a record
+today. It is closed because a rule defended only by the pipeline is the
+arrangement that produced 34's defect in the first place.
+
+**38. THE LATEST FREEZE GOVERNS, AND IT SAYS SO IN THE DATABASE.** `110`'s
+Decision 5, ruled: freezing again supersedes the plan before it. `plan_versions`
+already admits `'superseded'` and nothing has ever written it; a freeze now does.
+
+**THIS MAKES A RULE OUT OF AN ACCIDENT.** `--apply` already behaved this way, but
+only because `latest_freeze` takes `MAX(created_at)` and two invocations cannot
+share a timestamp. Nothing stated it, so two defects grew in the gap: a re-freeze
+that wrote NO plans left the earlier batch governing while the screen said it was
+replaced, and one file could hold two destinations inside one version because
+`freeze()` alone never took `placement.versions._current`.
+
+**AND IT UNBLOCKS THE ROOT CAUSE THE GUARDS ONLY COVERED.** `freeze()` may now
+take `_current` — dropping a withdrawn row is exactly "the later decision wins",
+read inside one pass instead of across two freezes. The refusals built on 20 Sep
+stay: a rule about which plan governs is not a licence to move files on a
+contradiction, and a conflict `_current` cannot resolve still stops the run.
