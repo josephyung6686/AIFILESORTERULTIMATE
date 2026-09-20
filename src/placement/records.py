@@ -522,10 +522,42 @@ class PlacementDecision:
             )
         if (self.ask is None) is (self.outcome == ASK_USER):
             raise MalformedPlacementRecord("`ask` is present exactly on `ask_user`")
-        if (self.abstention_reason is None) is (self.outcome == ABSTAIN):
+        # `abstention_reason` is REQUIRED on `abstain`, PERMITTED on `ask_user`,
+        # and FORBIDDEN on every other outcome. `00` amendment 34.
+        #
+        # **THE MIDDLE CLAUSE IS THE AMENDMENT AND IT CHANGES WHAT THIS RECORD
+        # MEANS.** This was one biconditional -- a reason iff an abstention -- and
+        # under it a file that stopped for a reason and was THEN overlaid with a
+        # question had to give the reason up, because `_asking` could not write
+        # both. What came out was a photo nothing had classified a home for and a
+        # vault nothing could open, indistinguishable in the record and therefore
+        # in one review set under one sentence that was false of the photo. `66`
+        # §4 forbids two facts sharing a message, and the record was the reason
+        # they had to.
+        #
+        # PERMITTED rather than required, because a question is raised from two
+        # places and only one of them replaces anything: §6.9's is asked at step 9
+        # where no reason was ever reached, and requiring one there would make the
+        # record invent the reason it exists to carry.
+        #
+        # **AND `66` §4 IS SATISFIED BY THE THIRD CLAUSE, NOT THE SECOND.** What
+        # keeps a carried reason readable is that it can still only mean one
+        # thing: a `place` chose a destination, a `mark_state` chose a state, and
+        # a reason for not deciding on either of them would be a second account
+        # of a decision already made. A general "any record may carry a reason"
+        # is what was NOT ratified -- it would put this field's meaning back to
+        # whatever each reader guessed.
+        if self.outcome == ABSTAIN and self.abstention_reason is None:
             raise MalformedPlacementRecord(
-                "an abstention names why (§6.10); an unexplained one is silence, "
-                "and a reason on any other outcome contradicts the decision"
+                "an abstention names why (§6.10); an unexplained one is silence"
+            )
+        if (self.abstention_reason is not None
+                and self.outcome not in (ABSTAIN, ASK_USER)):
+            raise MalformedPlacementRecord(
+                "a reason belongs to a decision that did not place the file: an "
+                "abstention, which names why, or a question, which may name the "
+                "reason it replaced. On any other outcome it contradicts the "
+                "decision the record already carries"
             )
 
         # Path exclusivity (SPEC:437-445). This is the only place the two paths differ.

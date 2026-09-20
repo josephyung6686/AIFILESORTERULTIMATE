@@ -35,7 +35,7 @@ from types import MappingProxyType
 from eval_harness.stage_output import DimensionValue, record_stage_output
 
 from placement.vocabulary import (
-    CANDIDATE_NODE_RETRIEVAL, DIMENSION_PLACEMENT, DIMENSION_RESIDUAL,
+    ABSTAIN, CANDIDATE_NODE_RETRIEVAL, DIMENSION_PLACEMENT, DIMENSION_RESIDUAL,
     DIMENSION_RETRIEVAL, P2_ABSTAINED, P2_CEILING_REACHED, P2_DEFERRED,
     P2_PRODUCED, P2_WITHIN_CEILING, PLACEMENT_SCORING, RESIDUAL,
 )
@@ -87,10 +87,25 @@ def result_of(decision) -> str:
     `deferred_stage` is the discriminator rather than `abstention_reason`, because
     it is the field SPEC:734 gives that job -- and because the record makes the
     two equivalent, so reading the one that names the concept costs nothing.
+
+    **THE ABSTENTION IS READ OFF `outcome`, AND IT USED TO BE READ OFF THE REASON**
+    (`00` amendment 34). "No destination and a reason" WAS the same question as
+    "is this an abstention", because the record refused a reason on anything else.
+    A question may now carry the reason it replaced, and it satisfies both halves:
+    it places nothing, and it names why the file stopped. Left as it was, this
+    function sent every such question through the abstention envelope, and P2
+    would grade a question the product put to a person `abstained_correctly` or
+    `abstained_incorrectly` -- a judgement about evidence over a file where the
+    product deliberately made none. That is this module's own first paragraph
+    about a deferral, true again of a question.
+
+    So the discriminator is the field that says what the decision IS. This is a
+    restatement and not a new rule: under the old contract the two conditions
+    picked out exactly the same records.
     """
     if decision.deferred_stage is not None:
         return BUDGET_DEFERRAL
-    if decision.destination is None and decision.abstention_reason is not None:
+    if decision.outcome == ABSTAIN:
         return EVIDENTIAL_ABSTENTION
     return DECISION_WRITTEN
 

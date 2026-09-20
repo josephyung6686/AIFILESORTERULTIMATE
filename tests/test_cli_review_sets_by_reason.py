@@ -44,11 +44,17 @@ ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy
         "--accept-groups"]
 
 #: One set `_three_reason_corpus` always surfaces, unprotected, named exactly as
-#: the report names it. Measured rather than assumed: the corpus's four sets are
-#: this one, "A model was not allowed to look", "Waiting on a question you have
-#: been asked" and the protected one, and
-#: `test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart`
+#: the report names it. Measured rather than assumed: the corpus's three sets are
+#: this one, "A model was not allowed to look" and the protected one, and
+#: `test_files_held_for_different_reasons_are_sets_a_person_can_tell_apart`
 #: is what fails first if that stops being true.
+#:
+#: It was four until `00` amendment 34. "Waiting on a question you have been
+#: asked" held the vault because the record could not carry a reason and a
+#: question at once, so the question stood where the reason had been -- not a
+#: fourth reason, the erasure of one. The set still exists and is still reachable
+#: by the §6.9 question, which replaces no reason; this corpus no longer produces
+#: one.
 HELD_SET = "Not yet said what kind of material"
 
 
@@ -148,6 +154,29 @@ def _surfaced(database):
         conn.close()
 
 
+def _ids(database, filename: str) -> tuple[str, ...]:
+    """The file ids recorded under `filename`. The corpus names are unique."""
+    import sqlite3
+
+    conn = sqlite3.connect(database)
+    try:
+        return tuple(row[0] for row in conn.execute(
+            "SELECT file_id FROM files WHERE filename = ?",
+            (filename.rsplit("/", 1)[-1],)))
+    finally:
+        conn.close()
+
+
+def _flat(text: str) -> str:
+    """The screen's words with its wrapping taken out.
+
+    The report wraps to a column, so a sentence this file asserts the presence of
+    is split across lines at a place no rule fixes. Asserting the wrapped form
+    would pin the column width, which is not what any test here is about.
+    """
+    return " ".join(text.split())
+
+
 def _plan_version(database) -> str:
     import sqlite3
 
@@ -174,7 +203,7 @@ def _decisions(database):
 # The division
 # ======================================================================================
 
-def test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart(
+def test_files_held_for_different_reasons_are_sets_a_person_can_tell_apart(
         tmp_path):
     """The defect, stated as the property that fixes it.
 
@@ -190,25 +219,113 @@ def test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart(
     none -- so it is no longer sharing `misc.txt`'s "nothing has classified
     this" reason. It is classified and still cannot be placed without a model
     to say what kind of photo it is, and this run's privacy settings allow no
-    model to look, so it earns its own true fourth reason: "A model was not
-    allowed to look". Four sentences for four different facts is the same
-    point this test was written for, one reason wider.
+    model to look, so it earns its own reason: "A model was not allowed to
+    look".
+
+    **THIS PINNED FOUR SETS AND IT NOW PINS THREE, AND THE ONE THAT WENT WAS
+    NEVER A REASON** (`00` amendment 34, 20 Sep 2026). "Waiting on a question
+    you have been asked" was this corpus's fourth set, and the vault was in it
+    because `_asking` wrote its record with `abstention_reason=None`: the file
+    stopped for `privacy_blocked`, a folder question was overlaid on it, and the
+    record contract of the day refused to hold both, so the reason was dropped
+    and the question stood where it had been. That is not a fourth reason; it is
+    the erasure of one wearing a reason's name. `106` Phase 7 then gave the
+    corpus root a residual home too, so the PHOTO was overlaid as well and lost
+    its reason the same way -- and the two landed in one set under one sentence
+    that said nothing could be read, which was false of a photo the run had
+    classified. `66` §4 forbids exactly that.
+
+    The owner ruled that both are told. The record carries the reason a question
+    replaced, `_reason_of` reads the reason it was always written to read, and
+    what is left is the three reasons this corpus actually has. The question is
+    not lost with the set: it is printed in its own block above, it is the
+    group's own heading, and it is the second sentence of each file's own
+    "Same reason for each".
+
+    The property below is the amendment rather than the count: the photo and the
+    vault carry the same question and stopped for different reasons, so they are
+    in different sets -- which is what `--send-set` addressing one of them and
+    not the other means.
     """
     corpus = _three_reason_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     printed = _report(corpus, database)
 
     labels = _labels(printed)
-    assert len(set(labels)) == 4, (
-        f"four reasons produced {sorted(set(labels))}:\n{printed}")
+    assert len(set(labels)) == 3, (
+        f"this corpus's reasons produced {sorted(set(labels))}:\n{printed}")
     assert "Not yet placed" not in labels, (
         "the one pile is back, under its own name:\n" + printed)
     # And the names are the reasons rather than a count, which is the whole of
     # `00` §residual's "reliable characteristics".
     assert "Not yet said what kind of material" in labels, labels
     assert "A model was not allowed to look" in labels, labels
-    assert "Waiting on a question you have been asked" in labels, labels
     assert "Protected, and not filed in bulk" in labels, labels
+    # A question no longer erases what it replaced, so the two files it covers
+    # are not one set: the vault stopped unclassified and the photo stopped
+    # because no model could be asked about it.
+    sets: dict[str, set[str]] = {}
+    for label, members in _surfaced(database):
+        sets.setdefault(label, set()).update(members)
+    of_photo = {label for label, members in sets.items()
+                if members & set(_ids(database, "holiday.jpg"))}
+    of_vault = {label for label, members in sets.items()
+                if members & set(_ids(database, "credentials.kdbx"))}
+    assert of_photo == {"A model was not allowed to look"}, sorted(of_photo)
+    assert of_vault == {"Not yet said what kind of material"}, sorted(of_vault)
+    assert of_photo.isdisjoint(of_vault)
+
+
+def test_a_question_names_the_reason_it_replaced_and_both_reach_the_person(
+        tmp_path):
+    """`00` amendment 34, on the record and on the screen.
+
+    Two facts and two sentences, about ONE file: the reason is why it stopped and
+    the question is what to act on, and the mirror of `66` §4 is what the last
+    assertion guards -- a reason and a question printed as if they were about
+    different files would be one fact split in two.
+
+    `misc.txt` is the control. Nothing was asked about it, so it carries the
+    reason alone: the question sentence is added where a question exists and
+    nowhere else.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    by_file = {decision.subject.file_id: decision
+               for decision in _decisions(database)}
+    photo = by_file[_ids(database, "holiday.jpg")[0]]
+    vault = by_file[_ids(database, "credentials.kdbx")[0]]
+    note = by_file[_ids(database, "misc.txt")[0]]
+
+    # THE RECORD. A question, and the reason it was put in place of.
+    for asked in (photo, vault):
+        assert asked.outcome == pv.ASK_USER, asked.outcome
+        assert asked.ask is not None
+        assert asked.abstention_reason == pv.PRIVACY_BLOCKED, asked.explanation
+
+    # THE SCREEN. Each carries its own reason and the question, and the two
+    # reasons are not the same sentence -- which is the whole defect.
+    question = "A question this run put to you covers this file"
+    for asked in (photo, vault):
+        assert question in asked.explanation, asked.explanation
+        assert asked.explanation.split(question)[0].strip(), asked.explanation
+    assert photo.explanation != vault.explanation
+    assert "nothing this run could read says what this file is" \
+        not in photo.explanation, photo.explanation
+
+    # And the pair is printed under one filename, not as two loose sentences:
+    # between the file's own name and its set heading, which is where a person
+    # reading about THAT file is looking.
+    for name in ("holiday.jpg", "Private/credentials.kdbx"):
+        block = _flat(printed.split(name, 1)[1].split("Held for review as")[0])
+        assert "Same reason for each:" in block, name
+        assert question in block, (name, block)
+
+    # The control: no question was asked about the note, so none is claimed.
+    assert note.outcome == pv.ABSTAIN
+    assert question not in note.explanation, note.explanation
 
 
 def test_every_unplaced_file_is_in_exactly_one_set_and_no_other_file_is(tmp_path):

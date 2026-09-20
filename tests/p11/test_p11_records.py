@@ -100,6 +100,97 @@ def test_an_abstention_names_a_reason_and_a_reason_needs_an_abstention():
         _decision(abstention_reason=v.LOW_MARGIN)
 
 
+#: `00` amendment 34, "a question names what it replaced". The rule these three
+#: tests state, and it is the whole of it:
+#:
+#:     abstention_reason is REQUIRED  iff outcome == abstain
+#:     abstention_reason is PERMITTED iff outcome == ask_user
+#:     abstention_reason is FORBIDDEN otherwise
+#:
+#: The middle line is the amendment. A file a model was not allowed to look at
+#: abstains with `privacy_blocked` and is then overlaid with a question about
+#: where its folder should go; before this, the record refused to carry both, so
+#: the reason was dropped and an unopenable vault and a classified photo came out
+#: of the pipeline indistinguishable. The question is what the person acts on and
+#: the reason is why the file stopped, and `66` §4 is satisfied by the THIRD line
+#: rather than the second: what keeps a reason from meaning two things is that no
+#: outcome but these two may carry one.
+def _asked(**overrides):
+    values = dict(
+        outcome=v.ASK_USER, destination=None,
+        ask=Ask(question="Where should the files in Private go?",
+                options=("n-private", "n-review")),
+        confidence_class=v.ABSTAIN_NO_SUPPORTED_DESTINATION,
+    )
+    values.update(overrides)
+    return _decision(**values)
+
+
+def test_an_abstention_is_still_required_to_name_why_it_abstained():
+    """Clause one, and amendment 34 does not touch it: an unexplained abstention
+    is silence, and silence is what `00` says this product may not answer with."""
+    ok = _decision(outcome=v.ABSTAIN, destination=None,
+                   abstention_reason=v.PRIVACY_BLOCKED)
+    assert ok.abstention_reason == v.PRIVACY_BLOCKED
+    with pytest.raises(MalformedPlacementRecord):
+        _decision(outcome=v.ABSTAIN, destination=None, abstention_reason=None)
+
+
+def test_a_question_may_name_the_reason_it_replaced_and_may_also_name_none():
+    """Clause two, which is the amendment. PERMITTED and not required, because two
+    of the three writers of an `ask_user` reach it with no abstention behind them:
+    §6.9's two-homes question (`_multi_home_decision`), where the selector chooses
+    between asking and abstaining and only one of them happens, and step 9's ask
+    over a file nothing was read out of that the graph nevertheless supported.
+    Neither replaced a reason, and requiring one there would make the record
+    invent the fact it exists to carry."""
+    carried = _asked(abstention_reason=v.PRIVACY_BLOCKED)
+    assert carried.abstention_reason == v.PRIVACY_BLOCKED
+    assert carried.outcome == v.ASK_USER
+    replaced_nothing = _asked(abstention_reason=None)
+    assert replaced_nothing.abstention_reason is None
+
+
+def test_no_outcome_but_an_abstention_or_a_question_may_carry_a_reason():
+    """Clause three, and it is the one that satisfies `66` §4. A `place` names a
+    destination, a `mark_state` names a state and a `leave_in_place` names
+    neither; a reason on any of them would be a second, contradicting account of
+    a decision that was already made, which is two facts in one record."""
+    for outcome, extra in (
+            (v.PLACE, {}),
+            (v.LEAVE_IN_PLACE, {"destination": None}),
+            (v.MARK_STATE, {"destination": None,
+                            "marked_state": v.UNSUPPORTED}),
+    ):
+        with pytest.raises(MalformedPlacementRecord):
+            _decision(outcome=outcome, abstention_reason=v.PRIVACY_BLOCKED,
+                      **extra)
+
+
+def test_where_the_widening_stops_and_the_pipeline_takes_over():
+    """THE ONE HOLE THE WIDENING OPENS, PINNED RATHER THAN QUIETLY CLOSED.
+
+    §8.6: a run cut short at a ceiling did not look, and a question is the
+    strongest possible claim that it did, so a budget deferral is never a
+    question. Before the amendment the record enforced that as a side effect --
+    an `ask_user` could carry no reason at all, so it could not carry that one.
+    It no longer does: the deferral biconditional below still refuses the
+    stage-less form, and the form WITH a stage is now a record this class
+    accepts. It is built by nothing: `pipeline._abstention` consults the ask hook
+    only `if reason != BUDGET_DEFERRED`, and `_asking` is reached from there and
+    from step 9, which has no reason at all.
+
+    Closing it here would be a rule the owner did not ratify -- amendment 34
+    names three clauses and this is a fourth -- so it is recorded as the boundary
+    of what was ratified rather than legislated past.
+    """
+    with pytest.raises(MalformedPlacementRecord):
+        _asked(abstention_reason=v.BUDGET_DEFERRED, deferred_stage=None)
+    admitted = _asked(abstention_reason=v.BUDGET_DEFERRED,
+                      deferred_stage=v.PLACEMENT_SCORING)
+    assert admitted.deferred_stage == v.PLACEMENT_SCORING
+
+
 def test_return_to_placement_is_residual_only_and_ask_user_is_placement_only():
     # SPEC:437-445. The two paths differ by exactly these two outcomes.
     with pytest.raises(MalformedPlacementRecord):

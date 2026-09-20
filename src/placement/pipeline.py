@@ -2817,7 +2817,13 @@ def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
         asked = inputs.ask_about_file(context.subject)
         if asked is not None:
             question, options = asked
-            return _asking(conn, context,
+            # **AND THE QUESTION NAMES WHAT IT REPLACED** (`00` amendment 34).
+            # `reason` is why this file stopped and it is handed on rather than
+            # dropped: the question is an OVERLAY on this abstention, not a
+            # different decision about it, and a reader that saw only the
+            # question could not tell a file no model was allowed to look at
+            # from one nothing could open.
+            return _asking(conn, context, replaced=reason,
                            ask=Ask(question=question, options=tuple(options)))
     decision_id, supersedes = _identity(
         conn, plan_version=inputs.plan_version, subject_ref=context.subject_ref,
@@ -2853,8 +2859,55 @@ def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
                   observed_at=context.observed_at)
 
 
+#: The second of the two sentences `_asking` writes, and the only new words
+#: amendment 34 adds to a screen. It says what the person must ACT on, and it is
+#: deliberately not the question's own text: this sentence is read as a set's
+#: "Same reason for each" as well as a single file's, and a folder question
+#: quoted under a heading that has just counted twelve files would be about one
+#: of them. It says instead that a question covers THIS file, which is true
+#: read either way -- and `66` §4's mirror is what that guards against, a reason
+#: and a question printed as though they were about different files.
+#:
+#: It says ONE thing and stops. Every arm of `_abstention_explanation` already
+#: ends by saying that nothing moved and the evidence is kept, so repeating it
+#: here put the same reassurance on the screen twice in one paragraph -- and a
+#: sentence carrying a fact that is already made is how two facts come to share
+#: a message in the first place.
+_AND_A_QUESTION: str = (
+    " A question this run put to you covers this file, and your answer to it is "
+    "what files it."
+)
+
+
+def _asking_explanation(context: _Context, *, replaced: str | None) -> str:
+    """What a question is told as, which is now two things rather than one.
+
+    **THE REASON IS `_abstention_explanation`'S, WORD FOR WORD.** It is not
+    paraphrased here and no second switch is written over the same evidence: a
+    file that was asked about stopped for exactly the reason it would have
+    stopped for had nobody asked, and two functions writing that sentence would
+    be two answers waiting to disagree -- with the person reading whichever one
+    the screen happened to call.
+
+    **`None` KEEPS THE SENTENCE THIS FUNCTION ALWAYS HAD**, and that is the whole
+    of the narrowness. Step 9's ask -- `ask_about_file` over a file nothing was
+    read out of, which the typed graph gave support to, so no abstention was ever
+    reached -- replaced no reason. There is no second fact to tell and nothing to
+    add; the amendment is about a question that covered something, and a question
+    that covered nothing is untouched by it.
+    """
+    if replaced is None:
+        return (
+            "No destination in this plan was supported well enough to decide, and "
+            "nothing this run could read says what this file is. That is a "
+            "question for you rather than a judgement to make on thin evidence; "
+            "nothing has moved and the evidence is retained."
+        )
+    return _abstention_explanation(context, reason=replaced) + _AND_A_QUESTION
+
+
 def _asking(conn: sqlite3.Connection, context: _Context, *,
-            ask: Ask) -> PlacementDecision:
+            ask: Ask, replaced: str | None = None) -> PlacementDecision:
     """The abstention this run turned into a question. §6.10's third answer.
 
     **What this changes and what it does not.** Nothing about the file moves, and
@@ -2869,9 +2922,22 @@ def _asking(conn: sqlite3.Connection, context: _Context, *,
     the question" to a person, and `00`'s standing complaint about this product was
     that it had the first and not the second.
 
-    `abstention_reason` is deliberately absent, and the record enforces that: an
-    `ask_user` carrying one would be two outcomes in one row, and the reason a file
-    was not placed would read as the reason it was asked about.
+    **`replaced` IS THE REASON THIS QUESTION WAS PUT IN PLACE OF** (`00` amendment
+    34), and it is `None` only where nothing was replaced -- step 9's §6.9 ask,
+    raised before any reason was reached. It used to be neither: the record
+    refused to hold a reason on an `ask_user` at all, so `_abstention` handed a
+    question over and the reason went nowhere, and a classified photo no model
+    was allowed to look at came out of here identical to a vault nothing could
+    open. One review set, one sentence, and that sentence said nothing could be
+    read, which was false of the photo -- the pair `66` §4 forbids.
+
+    **SO THE TWO FACTS GET TWO SENTENCES, ABOUT ONE FILE.** The first is the
+    reason, written by `_abstention_explanation` -- the same words the same file
+    would have carried had no question been asked of it, so the question changes
+    what the person is offered and not what they are told happened. The second is
+    the question. Neither is allowed to stand in for the other: the reason alone
+    hides the one action that settles the file, and the question alone is the
+    erasure this amendment ended.
     """
     if context.privacy.protected:
         raise ProtectedMaterialIsNotAQuestion(
@@ -2903,18 +2969,15 @@ def _asking(conn: sqlite3.Connection, context: _Context, *,
         matching_facts=(), group_support=None, graph_anchors=(),
         conflicts_considered=context.retrieval.conflicts,
         alternatives=context.assessment.alternatives,
-        two_condition=context.assessment.two_condition, abstention_reason=None,
+        two_condition=context.assessment.two_condition,
+        abstention_reason=replaced,
         deferred_stage=None, privacy=context.privacy,
         review_policy=review_policy_for(
             privacy_state=context.privacy,
             two_condition=context.assessment.two_condition, group_support=None,
             unique_direct_match=False, destination_disposition=None,
             automatic_move_permitted=context.automatic_move_permitted),
-        explanation=(
-            "No destination in this plan was supported well enough to decide, and "
-            "nothing this run could read says what this file is. That is a "
-            "question for you rather than a judgement to make on thin evidence; "
-            "nothing has moved and the evidence is retained."),
+        explanation=_asking_explanation(context, replaced=replaced),
         residual=None,
     )
     return _write(conn, decision, inputs=inputs,
