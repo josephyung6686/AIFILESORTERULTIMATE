@@ -298,7 +298,7 @@ def test_a_marked_area_with_no_node_refuses_the_freeze(seeded):
     from tree_design.upstream import ProtectedArea
 
     area = ProtectedArea(
-        path="/Users/jy/Applications/Mail.app", display_label="Mail.app",
+        path="/Users/<name>/Applications/Mail.app", display_label="Mail.app",
         rule_subject="directory", applies_to="scan",
         label="untouched_protected", observed_at=T0)
     reasons = validate_for_freeze(
@@ -314,7 +314,7 @@ def test_representing_the_areas_first_lets_the_freeze_through(seeded):
     from tree_design.upstream import ProtectedArea
 
     area = ProtectedArea(
-        path="/Users/jy/Applications/Mail.app", display_label="Mail.app",
+        path="/Users/<name>/Applications/Mail.app", display_label="Mail.app",
         rule_subject="directory", applies_to="scan",
         label="untouched_protected", observed_at=T0)
     counter = iter(range(50))

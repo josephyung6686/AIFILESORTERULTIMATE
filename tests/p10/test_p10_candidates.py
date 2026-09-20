@@ -46,7 +46,7 @@ ACADEMIC = _group("g_phys", "PHYS 1401", "academic", ("lecture", "hw"))
 APPS = _group("g_apps", "Columbia application", "college_applications",
               ("transcript", "essay"))
 FOLDER = ExistingFolder(
-    directory_path="/Users/jy/Documents/School", parent_directory="/Users/jy/Documents",
+    directory_path="/Users/<name>/Documents/School", parent_directory="/Users/<name>/Documents",
     file_count=31, curation_signal="curated")
 
 
@@ -90,7 +90,7 @@ def test_a_curated_existing_folder_becomes_its_own_candidate(conn):
     assert "School" in candidates
     assert candidates["School"].source == "existing-folder"
     assert candidates["School"].resembling_existing_folders == (
-        "/Users/jy/Documents/School",)
+        "/Users/<name>/Documents/School",)
 
 
 def test_an_undetermined_folder_is_not_promoted_to_curated(conn):
@@ -98,7 +98,7 @@ def test_an_undetermined_folder_is_not_promoted_to_curated(conn):
     leaving something in review rather than guessing. An undetermined folder is
     still shown, and it is not treated as a strong expression of intent."""
     undetermined = ExistingFolder(
-        directory_path="/Users/jy/Downloads", parent_directory="/Users/jy",
+        directory_path="/Users/<name>/Downloads", parent_directory="/Users/<name>",
         file_count=904, curation_signal="undetermined")
     candidates = {c.display_label: c for c in _call(conn, existing_folders=(undetermined,))}
     assert "Downloads" in candidates
@@ -704,7 +704,7 @@ def test_a_protected_area_becomes_a_node_that_is_present_and_untouched():
     constructed one. A reserved name with no producer, and the consequence is the
     outcome the owner explicitly forbade: the area is silently omitted.
     """
-    node, = _protected(_area("/Users/jy/Applications/Numbers.app"))
+    node, = _protected(_area("/Users/<name>/Applications/Numbers.app"))
     assert node.node_type == "protected"
     assert node.display_label == "Numbers.app"
     assert node.protected_movement_permitted is False
@@ -715,7 +715,7 @@ def test_a_protected_node_carries_an_explanation_naming_the_area():
     """"Never described as 'understood and found unimportant'." A generic
     explanation fails the requirement as surely as an absent one, so the node has
     to name the thing it is declining to open."""
-    node, = _protected(_area("/Users/jy/Applications/Numbers.app"))
+    node, = _protected(_area("/Users/<name>/Applications/Numbers.app"))
     assert "Numbers.app" in node.explanation
     lowered = node.explanation.lower()
     assert "unimportant" not in lowered
@@ -729,7 +729,7 @@ def test_the_handling_class_for_a_protected_node_is_injected_never_guessed():
     from tree_design.config import ConfigurationRequired
 
     with pytest.raises(ConfigurationRequired):
-        _protected(_area("/Users/jy/Applications/Numbers.app"),
+        _protected(_area("/Users/<name>/Applications/Numbers.app"),
                    handling_class_for=None)
 
 

@@ -20,7 +20,7 @@ FILE_ROW = {
     "filename": "Wash U.docx",
     "normalized_filename": "wash u.docx",
     "extension": ".docx",
-    "directory_position": "/Users/jy/Downloads",
+    "directory_position": "/Users/<name>/Downloads",
     "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "observed_size": 18240,
     "observed_timestamps": "2026-07-17T14:03:22+00:00",
@@ -29,7 +29,7 @@ FILE_ROW = {
 
 def run_it(row=None, **kwargs):
     return extract_filesystem(file_row=row or FILE_ROW,
-                              path=Path("/Users/jy/Downloads/Wash U.docx"),
+                              path=Path("/Users/<name>/Downloads/Wash U.docx"),
                               policy=OPEN_POLICY, now=FIXED_CLOCK,
                               context_window=40, **kwargs)
 
@@ -56,7 +56,7 @@ def test_the_parent_folder_context_is_emitted_under_2_9s_name(sink):
     sink.write(result)
     path_rows = [o for o in sink.observations if o["location"]["zone"] == "path"]
     assert len(path_rows) == 1
-    assert path_rows[0]["raw_value"] == "/Users/jy/Downloads"
+    assert path_rows[0]["raw_value"] == "/Users/<name>/Downloads"
     assert path_rows[0]["location"]["text_span"] is None    # P4 segment rule 4
     assert locator_for(path_rows[0]["location"]) == "path"
 

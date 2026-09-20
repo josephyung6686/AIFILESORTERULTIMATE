@@ -97,7 +97,7 @@ def test_a_folder_called_screenshots_decides_nothing_about_what_is_in_it(
     `Screenshots` cannot make `holiday.jpg` a screen capture.
     """
     assert filename_pattern("Screenshots/holiday.jpg") is None
-    assert filename_pattern("/Users/jy/Screenshots/holiday.jpg") is None
+    assert filename_pattern("/Users/<name>/Screenshots/holiday.jpg") is None
     assert filename_pattern("Screenshots/Screenshot 2026-08-14 at 11.03.47.png") is None
 
 

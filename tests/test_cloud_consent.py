@@ -33,8 +33,8 @@ from database_agent.cloud_consent import (
     record_cloud_consent,
 )
 
-ROOT = "/Users/jy/Desktop/coursework"
-OTHER = "/Users/jy/Desktop/taxes"
+ROOT = "/Users/<name>/Desktop/coursework"
+OTHER = "/Users/<name>/Desktop/taxes"
 WHEN = "2026-06-14T09:00:00+00:00"
 LATER = "2026-09-02T09:00:00+00:00"
 
@@ -152,9 +152,9 @@ def test_a_grant_for_a_folder_does_not_cover_its_parent(conn):
     same shape as the bug where a directory ABOVE the corpus root changed
     classification: what is outside the thing you named must not be decided by it.
     """
-    _record(conn, root="/Users/jy/Desktop/coursework", decision=ENABLED)
-    assert cloud_consent_for(conn, "/Users/jy/Desktop") is None
-    assert cloud_consent_for(conn, "/Users/jy") is None
+    _record(conn, root="/Users/<name>/Desktop/coursework", decision=ENABLED)
+    assert cloud_consent_for(conn, "/Users/<name>/Desktop") is None
+    assert cloud_consent_for(conn, "/Users/<name>") is None
 
 
 def test_a_grant_for_a_folder_does_not_cover_its_children_either(conn):
@@ -166,16 +166,16 @@ def test_a_grant_for_a_folder_does_not_cover_its_children_either(conn):
     something other than what the person named is worse than one that stops and
     asks. The cost is one flag, once, for a folder the person is looking at anyway.
     """
-    _record(conn, root="/Users/jy/Desktop", decision=ENABLED)
-    assert cloud_consent_for(conn, "/Users/jy/Desktop/coursework") is None
+    _record(conn, root="/Users/<name>/Desktop", decision=ENABLED)
+    assert cloud_consent_for(conn, "/Users/<name>/Desktop/coursework") is None
 
 
 def test_a_folder_whose_name_merely_starts_the_same_is_a_different_folder(conn):
-    """`/Users/jy/work` and `/Users/jy/work-taxes`. A prefix comparison written
+    """`/Users/<name>/work` and `/Users/<name>/work-taxes`. A prefix comparison written
     with `LIKE` or `startswith` matches both, and the second is a folder nobody
     said anything about."""
-    _record(conn, root="/Users/jy/work", decision=ENABLED)
-    assert cloud_consent_for(conn, "/Users/jy/work-taxes") is None
+    _record(conn, root="/Users/<name>/work", decision=ENABLED)
+    assert cloud_consent_for(conn, "/Users/<name>/work-taxes") is None
 
 
 def test_two_decisions_at_two_folders_do_not_interfere(conn):
@@ -208,8 +208,8 @@ def test_a_root_that_is_not_in_its_settled_form_is_refused(conn):
     means resolving, resolving touches the filesystem, and a store that follows a
     symlink is a store that answers about a folder nobody named.
     """
-    for unsettled in ("/Users/jy/Desktop/", "/Users/jy/./Desktop",
-                      "/Users/jy/x/../Desktop", "/Users/jy//Desktop"):
+    for unsettled in ("/Users/<name>/Desktop/", "/Users/<name>/./Desktop",
+                      "/Users/<name>/x/../Desktop", "/Users/<name>//Desktop"):
         with pytest.raises(MalformedConsentRecord, match="settled"):
             _record(conn, root=unsettled)
 
@@ -260,8 +260,8 @@ def test_the_lookup_refuses_a_root_it_could_never_have_stored(conn):
     refuses `/a/b/` and a reader that accepts it would answer `None` for a folder
     that IS enabled, and the run would go quietly local while the person believed
     otherwise. The same check, on both sides."""
-    _record(conn, root="/Users/jy/Desktop")
-    for unsettled in ("Desktop", "/Users/jy/Desktop/", "/Users/jy/./Desktop"):
+    _record(conn, root="/Users/<name>/Desktop")
+    for unsettled in ("Desktop", "/Users/<name>/Desktop/", "/Users/<name>/./Desktop"):
         with pytest.raises(MalformedConsentRecord):
             cloud_consent_for(conn, unsettled)
 

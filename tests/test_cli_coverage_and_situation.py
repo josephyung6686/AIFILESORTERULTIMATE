@@ -359,7 +359,7 @@ class _Consent:
 def _posture(routing, consent=None) -> str:
     out = io.StringIO()
     cli.announce_cloud_posture(routing, consent,
-                               corpus_root=Path("/Users/jy/Desktop/Files"),
+                               corpus_root=Path("/Users/<name>/Desktop/Files"),
                                out=out)
     return " ".join(out.getvalue().split())
 

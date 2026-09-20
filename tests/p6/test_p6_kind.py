@@ -331,7 +331,7 @@ def test_the_absolute_path_is_not_one_of_the_files_own_words(p6_conn, tmp_path):
     # `Homework` is not a homework.
     file_id, content_hash, written = _run(
         p6_conn, tmp_path, name="IMG_4471.jpg",
-        readings=[("/Users/jy/Courses/Homework/IMG_4471.jpg", "path", None)])
+        readings=[("/Users/<name>/Courses/Homework/IMG_4471.jpg", "path", None)])
     assert written == ()
     assert _refusal(p6_conn, file_id, content_hash) == ["no_candidate_evidence"]
 

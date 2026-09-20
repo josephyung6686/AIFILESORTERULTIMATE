@@ -303,7 +303,7 @@ def test_two_members_with_the_same_path_yield_one_text_unit(sink):
         sqlite3.IntegrityError: UNIQUE constraint failed:
             text_units.run_id, text_units.unit_locator
 
-    from `/Users/jy/Desktop/.../libzip/regress/filename_duplicate.zip`, whose two
+    from `/Users/<name>/Desktop/.../libzip/regress/filename_duplicate.zip`, whose two
     members are both called `test1`. `text_units` is keyed `(run_id, unit_locator)`,
     the locator is the canonical form of the container path, and the container path
     for a member is `segment("entry", label=member.path)` -- the PATH and nothing

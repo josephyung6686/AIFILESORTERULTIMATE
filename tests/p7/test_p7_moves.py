@@ -348,7 +348,7 @@ def test_a_grant_at_a_scope_p7_cannot_resolve_does_not_permit(
     # file is the file's own id. A grant at "Academics" is not read as covering this
     # file, and the alternative -- guessing that it does -- would widen egress policy
     # on an unanswered question.
-    stored(p7_conn, automatic_move_permissions={"Academics": True, "/Users/jy": True})
+    stored(p7_conn, automatic_move_permissions={"Academics": True, "/Users/<name>": True})
     classify(store, file_id, content_hash, handling_class="sensitive_personal",
              protected=True)
     assert may_move_automatically(p7_conn, file_id, PLAN_ONE).allowed is False

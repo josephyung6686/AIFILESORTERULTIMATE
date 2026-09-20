@@ -72,7 +72,7 @@ class _Consent:
 def _announced(consent):
     out = io.StringIO()
     cli.announce_cloud_posture(
-        _Routing(), consent, corpus_root=Path("/Users/jy/Desktop/Files"), out=out)
+        _Routing(), consent, corpus_root=Path("/Users/<name>/Desktop/Files"), out=out)
     return out.getvalue()
 
 
@@ -145,7 +145,7 @@ def test_a_run_that_can_send_says_exactly_which_question_leaves_the_device():
     # and the account name, which is why the leak was worth closing -- but a
     # screen that SAYS so is wrong for a scan of an external volume, wrong for a
     # scan of the home directory itself, and imprecise whenever the corpus sits a
-    # few folders down. This fixture's own root, `/Users/jy/Desktop/Files`, is
+    # few folders down. This fixture's own root, `/Users/<name>/Desktop/Files`, is
     # already one of those: the part above it includes `Desktop`. So the clause is
     # asserted in the form that is true of every corpus, and the form that is not
     # is asserted absent.
@@ -174,7 +174,7 @@ def test_it_still_says_sending_is_on_and_how_to_turn_it_off():
 
     assert "Cloud sending is ON for this folder" in _unwrapped(said)
     assert "Turned on by jy on 2026-06-14" in _unwrapped(said)
-    assert "/Users/jy/Desktop/Files" in said
+    assert "/Users/<name>/Desktop/Files" in said
     assert "--disable-cloud" in said
     assert "Sending stays ON for this folder until you turn it off" in _unwrapped(said)
     # NAMED, not "an external provider": a person told the name has been told more.

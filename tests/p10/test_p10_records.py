@@ -101,14 +101,14 @@ def test_no_node_field_but_existing_path_may_hold_a_separator():
         Node(**{**BASE, "display_label": "Academics\\Columbia"})
     observed = Node(**{
         **BASE, "node_type": EXISTING, "display_label": "To Sort",
-        "existing_path": "/Users/jy/Documents/To Sort",
+        "existing_path": "/Users/<name>/Documents/To Sort",
     })
-    assert observed.existing_path == "/Users/jy/Documents/To Sort"
+    assert observed.existing_path == "/Users/<name>/Documents/To Sort"
 
 
 def test_existing_path_belongs_only_to_an_existing_node():
     with pytest.raises(MalformedTreeRecord) as excinfo:
-        Node(**{**BASE, "existing_path": "/Users/jy/Documents/Homework"})
+        Node(**{**BASE, "existing_path": "/Users/<name>/Documents/Homework"})
     assert "existing" in str(excinfo.value)
 
 

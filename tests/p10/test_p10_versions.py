@@ -66,7 +66,7 @@ def _node(node_id, label, *, parent=None, node_type="proposed", role="ordinary",
         accepts_placement=node_type != "ignored",
         handling_class="personal_non_sensitive",
         origin_node_id=origin or node_id,
-        existing_path="/Users/jy/Documents/School" if node_type == "existing" else None,
+        existing_path="/Users/<name>/Documents/School" if node_type == "existing" else None,
     )
 
 
@@ -85,7 +85,7 @@ def seeded(conn):
 def test_nodes_round_trip_through_the_store(seeded):
     nodes = {n.node_id: n for n in nodes_for_version(seeded, "plan_1")}
     assert nodes["n_a"].parent_node_id == "n_root"
-    assert nodes["n_school"].existing_path == "/Users/jy/Documents/School"
+    assert nodes["n_school"].existing_path == "/Users/<name>/Documents/School"
     assert nodes["n_root"].accepts_placement is True
 
 
@@ -252,7 +252,7 @@ def test_no_code_path_renames_an_existing_node_without_a_recorded_action(seeded)
     after = {n.origin_node_id: n for n in nodes_for_version(seeded, "plan_2")}
     assert after["n_school"].display_label == "School"
     assert after["n_school"].node_type == "existing"
-    assert after["n_school"].existing_path == "/Users/jy/Documents/School"
+    assert after["n_school"].existing_path == "/Users/<name>/Documents/School"
 
 
 def test_the_diff_reports_all_seven_kinds_it_can_observe(seeded):

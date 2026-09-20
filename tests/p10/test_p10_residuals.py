@@ -225,7 +225,7 @@ def test_replace_with_existing_maps_review_later_onto_an_existing_to_sort(conn):
         explanation="An existing folder the scan found, with 42 files.",
         node_role="ordinary", accepts_placement=True,
         handling_class="personal_non_sensitive", origin_node_id="n_to_sort",
-        existing_path="/Users/jy/Documents/To Sort",
+        existing_path="/Users/<name>/Documents/To Sort",
     )
     choices = (ResidualChoice(
         template_name="Review Later", action=REPLACE_WITH_EXISTING,
@@ -239,7 +239,7 @@ def test_replace_with_existing_maps_review_later_onto_an_existing_to_sort(conn):
     assert node.node_id == "n_to_sort"
     assert node.node_type == "existing"
     assert node.node_role == RESIDUAL
-    assert node.existing_path == "/Users/jy/Documents/To Sort"
+    assert node.existing_path == "/Users/<name>/Documents/To Sort"
 
 
 def test_all_three_dispositions_reach_a_node(conn):
@@ -361,7 +361,7 @@ def test_the_disposition_survives_onto_the_node_for_the_review_policy(conn):
         explanation="An existing folder the scan found, with 42 files.",
         node_role="ordinary", accepts_placement=True,
         handling_class="personal_non_sensitive", origin_node_id="n_to_sort",
-        existing_path="/Users/jy/Documents/To Sort")
+        existing_path="/Users/<name>/Documents/To Sort")
     mapped, = _project(
         [ResidualChoice(template_name="Review Later", action=REPLACE_WITH_EXISTING,
                         disposition=REVIEW_ONLY, display_label=None,

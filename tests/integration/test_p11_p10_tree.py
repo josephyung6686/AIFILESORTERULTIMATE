@@ -88,7 +88,7 @@ def _seed_a_real_frozen_p10_tree(conn):
     # constructed the node itself would prove the tree can hold one, not that the
     # product ever puts one there.
     area = ProtectedArea(
-        path="/Users/jy/Applications/Numbers.app", display_label="Numbers.app",
+        path="/Users/<name>/Applications/Numbers.app", display_label="Numbers.app",
         rule_subject="directory", applies_to="scan",
         label="untouched_protected", observed_at="2026-01-01T00:00:00Z")
     represent_protected_areas(
