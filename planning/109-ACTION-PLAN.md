@@ -500,7 +500,9 @@ phrase "amendment 13" appears nowhere in `00` itself.
 A second characteristic reaching for a blocking reason now fails there.
 
 **2. `test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart` — NOT
-FIXED. A question erases the reason it replaced, and the record contract says it
+FIXED AT THE TIME OF WRITING; BUILT UNDER OPTION (c) AND RENAMED, see the end of
+this file.
+ A question erases the reason it replaced, and the record contract says it
 must. THE OWNER'S, amendment 24.**
 
 **The evidence this document carried was the PRE-Phase-7 record and is withdrawn.**
@@ -1016,3 +1018,66 @@ not run under `offline`. So the new path is pinned at unit level and its effect 
 a real run is **unmeasured**. It is merged because it preserves the old keys, the
 coverage arithmetic and the printed question, all tested; not because it has been
 shown to do what amendment 32 wanted.
+
+### AMENDMENT 34 — BUILT under option (c), and the four-set pin is now a three-set one
+
+**The gate test was rewritten and the lead ratified it, because this document's own
+words require it.** `test_files_held_for_four_reasons_are_four_sets_a_person_can_
+tell_apart` is now `test_files_held_for_different_reasons_are_sets_a_person_can_
+tell_apart` and pins THREE. Option (a) above says in its own sentence that the
+corpus "has three reasons, not four ... and the test's four-set pin is stale";
+option **(b)** is the only one that "restores the fourth set"; the owner took
+**(c)**. So the fourth set is not lost by this build — it was never reachable
+under any ruling but (b).
+
+**AND THE FOURTH SET WAS AN ERASURE WEARING A REASON'S NAME.** "Waiting on a
+question you have been asked" held the vault because `_asking` wrote
+`abstention_reason=None`. Under 34 the reason survives the question, so no file in
+this corpus is left with nothing but the question. The label still exists and is
+still reached by the two `ask_user` writers that genuinely replace nothing
+(`pipeline.py:2225`, where no abstention was reached, and `pipeline.py:4703`,
+where §6.9's selector chooses BETWEEN asking and abstaining so the abstention was
+never concluded). **That is why clause two of the amendment is PERMITTED and not
+REQUIRED** — a fact discovered by building it, not by ruling it.
+
+The test now pins a PROPERTY rather than a count: the photo and the vault carry
+the same question, stopped for different reasons, and land in different sets. A
+count can be satisfied by an accident; this cannot.
+
+**ONE CLAIM OF THIS DOCUMENT IS WITHDRAWN.** §2 above says "`holiday.jpg` was
+read". Under the product's own predicate it was not —
+`_files_something_was_read_out_of` returns the passport and `misc.txt` only — so
+the folder question over the photo is legitimate. The false sentence was about
+CLASSIFICATION, not readability: the photo IS classified
+(`personal_non_sensitive`) and the screen said nothing could say what it is. That
+is what 34 fixes, and the repair is narrower than the complaint that produced it.
+
+**THE ROOT CAUSE WAS THE WRITER, NOT THE RENDERER**, which is the opposite of
+what §2 predicted. `_reason_of` checks `privacy_blocked` before `ask_user` and was
+always written to read this fact; `_asking` never gave it one. `src/cli.py` is
+untouched by this change — the fix is that `_reason_of` finally receives the fact
+it was written to read.
+
+**ONE READER CHANGED AND IT WAS A REAL DEFECT OF ITS OWN.**
+`placement/stage_output.py:87-104` `result_of` asked "no destination and a
+reason", which equalled "is this an abstention" only while the record FORBADE the
+pair. A question satisfies both halves, so under the widening every question would
+have been graded `evidential_abstention` and P2 could score a question the product
+put to a person as `abstained_correctly`. It now reads `outcome == ABSTAIN`, which
+selected exactly the same records before the widening.
+
+### FOR THE OWNER — one boundary the widening opens, pinned and not closed
+
+§8.6 says a budget deferral is never a question. The OLD biconditional enforced
+that as a side effect of forbidding the pair; the new three-clause rule does not,
+so `ask_user` + `budget_deferred` is now a record the class would ACCEPT. **Nothing
+builds one** — `_abstention` consults the hook only when the reason is not
+`BUDGET_DEFERRED` — and `test_where_the_widening_stops_and_the_pipeline_takes_over`
+records the boundary rather than closing it.
+
+Closing it means a FOURTH clause in a contract the owner ratified with three, so
+it is not built. **The lead's recommendation: ratify it.** It restores an
+invariant §8.6 already states and that the old contract enforced by accident, and
+the alternative is a rule the record class no longer defends and only the pipeline
+does — which is the arrangement that produced this amendment's defect in the first
+place.
