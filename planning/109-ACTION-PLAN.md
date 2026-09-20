@@ -1387,3 +1387,68 @@ decisions, and their own docstring ("compare them to the size of their folder")
 argued for the change. Re-aimed to subjects, with the expectation computed from
 subjects rather than from `_current`, so they assert WHICH survived and not merely
 how many.
+
+### THE TABLE NOW DESCRIBES THE VOLUME — and the lead's reason for building it was wrong
+
+`_constraints_for(destination_root)` reads `case_sensitive` off the destination by
+asking it, and leaves the other six fields as declared — a `mkdir` cannot ask a
+directory about a path budget. One probe per run: bound in `_move_frozen_files`
+after every early refusal (so a refused `--apply` probes nothing) and in `main`
+after `if not args.freeze: return 0` (so a report-only run makes no directory).
+The local IS the cache and the frame IS its lifetime.
+
+**THE BRIEF SAID THIS WAS A DATA-LOSS DEFECT. IT IS NOT, AND THE AGENT SAID SO.**
+The lead wrote that a mis-declared table lets "`find_collision` decide there is no
+collision, and the rename that follows overwrite the incumbent". **That stopped
+being true of this code.** `mutation/movement.py`'s `move_onto_free_path` moves
+with `os.link`, falling back to `O_CREAT|O_EXCL` then rename; `cross_volume.
+_copy_bytes` opens `"xb"`. All three fail `EEXIST` under the volume's OWN folding,
+whatever the table declared — and `tests/p12/test_p12_file_loss.py` already proves
+a mis-declared table on a folding volume does not destroy the incumbent.
+
+**SIXTH ERROR OF ONE SHAPE THIS SESSION:** the claim was reasoned from
+`_FILESYSTEM_CONSTRAINTS`' comment without reading the move path it describes.
+
+**WHAT A WRONG VALUE ACTUALLY COSTS, measured.** The twin is invisible to
+`find_collision`, the move reaches the syscall, the syscall refuses, and the
+person is told *"The destination changed after the preview"* — **false, nothing
+changed** — with **no collision record** naming what it hit, and no route by which
+re-running says anything else, because the table is just as wrong next time. With
+the volume measured the same twin reaches the COLLISION branch: recorded, named,
+paused for a decision. `constraints.py` puts it in one line — *measuring makes the
+SENTENCE right, the syscall makes the FILE safe.* Still worth building; `84` §6
+and `66` §4 are both broken by a false sentence with no record behind it.
+
+**TWO DEPARTURES FROM THE BRIEF, BOTH CORRECT, BOTH FLAGGED RATHER THAN QUIETLY
+TAKEN:**
+
+1. **An unaskable volume is treated as folding.** The brief asked for three things
+   that agree on darwin and CONTRADICT on linux: fall back to the declared value,
+   take the safe error, and do not proceed as sensitive. On linux the declared
+   value IS the unsafe direction. The agent took the safe error —
+   `VolumeUnmeasurable → case_sensitive=False` — on the authority of
+   `_filesystem_constraints`' own ratified sentence: *"the safe error is to see a
+   collision that is not there ... every unknown below takes its error the same
+   way."* A volume that will not answer is an unknown about that volume. Cost: a
+   pause over two capitals-only names on a genuinely case-sensitive disk.
+2. **The probe RUNS IN the corpus root, which the brief forbade.** The only
+   directory guaranteed to be on the destination volume IS the destination root;
+   its parent is the wrong volume exactly when the root is a mount point
+   (`/Volumes/STICK`, `/media/usb`) — the motivating case. The repo had already
+   ruled this: `tests/p12/test_p12_no_invention.py` says *"The probe runs in the
+   person's own corpus root, so leaving it behind was never an option."* It cleans
+   up in a `finally` and a test asserts it leaves nothing.
+
+**WHAT IS PROVEN AND WHAT IS REASONED, kept apart.** The fold, the probe and the
+bytes are REAL — every volume-touching test runs against a real directory on this
+APFS volume and moves real bytes through the real `apply_plan`. Only `sys.platform`
+is injected, and the table is built by `cli._filesystem_constraints()` under a
+patched platform rather than hand-typed. **`main --freeze`'s call site was never
+executed**: a structural test proves `main`'s code object reaches
+`_constraints_for` and no longer reaches `_FILESYSTEM_CONSTRAINTS`, which is not
+the same as running it. The end-to-end drivers are integration tests the agent was
+barred from.
+
+**Verified by the lead:** `tests/p12/`, `tests/apply/`, `tests/test_cli_platform_
+table.py` and `test_cli_moves_nothing_without_apply.py` — the mtime-stability test
+the agent predicted might go red — **358 passed, 1 xfailed.**
