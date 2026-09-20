@@ -337,7 +337,7 @@ definition is generic and each row binds the subset its situation uses. The
 Teaching institution slot in §5.1 is one of those 125. Auditing the rest is a
 larger piece of work than this one and is not attempted here.
 
-## 8. RATIFICATION PACKET — six questions, answerable in one sitting
+## 8. RATIFICATION PACKET — seven questions, answerable in one sitting
 
 **No name below is new.** Every situation id already ships in the recognition
 release. `109` row 21 bolded `travel.trip-records` because it was a **minted**
@@ -393,7 +393,22 @@ by kind of body, which no field supplies. Do these stay flat, or do you want a
 leaf. `institution` is bindable. Do you want a club-named level there, knowing
 `107` draws none?
 
-**6. The five field gaps of §7 — which, if any, do you want ruled?**
+**6. Three coursework-shaped academic rows bind no term — bind it, or stay flat?**
+*Names, unchanged:* `academic.continuing-education`, `academic.online-course`,
+`academic.study-abroad`. *Level that would be added to each:* a term level
+between the provider and the course (`term`, one label each).
+*The one question:* all three use `def.subject-work-record`, whose `cycle_period`
+slot is **optional at index 1 and unbound**, and `term` is live,
+destination-eligible and declared at `academic` — the identical shape as question
+1, with the same replace-not-add cost per row. `107`'s template table gives
+Coursework a term level generically, but your tree draws none of these three
+branches. Do you want the term bound on them, or do they stay flat because you
+did not draw them?
+*(`academic.standardized-testing` and `academic.transcripts-credentials` also
+bind no term; they use different templates and `107` is silent on both, so they
+are counted in §4's five and not asked about here.)*
+
+**7. The five field gaps of §7 — which, if any, do you want ruled?**
 `program` (Coursework), `rendition` (Photos), `project` and `stage` at `career`
 (Current work), `record_type` at `medical` / `identity` / `legal`.
 *The one question:* these are facts-layer vocabulary, not library rows, and each
