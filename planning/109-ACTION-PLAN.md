@@ -1081,3 +1081,71 @@ invariant §8.6 already states and that the old contract enforced by accident, a
 the alternative is a rule the record class no longer defends and only the pipeline
 does — which is the arrangement that produced this amendment's defect in the first
 place.
+
+### AMENDMENT 31 — WIRED, and condition 2 checked by the lead rather than by the agent
+
+`ap.academic.teaching` is v2 and binds `holder_institution → school` ("School I
+taught at"). The draft file is gone; its content is the shipped row.
+
+**THE BRIEF WAS WRONG ABOUT CONDITION 2 AND THE AGENT WAS RIGHT TO OVERRIDE IT.**
+The brief said to assert `shipped_situations`' output was BYTE-IDENTICAL before
+and after — which is impossible for a change whose entire purpose is to add a
+level, and which inverted the amendment's actual worry. Amendment 31 fears that
+the cloud-bound menu SILENTLY KEEPS THE OLD LABELS while the readers use the new
+row; the condition is that a label already shown is not RENAMED, not that the
+tuple may not grow. The agent followed the amendment over the brief's paraphrase
+and said so. That is the right order of authority.
+
+**MEASURED BY THE LEAD, against `b47940db` through the real loader:**
+
+```
+rows before: 208          rows after: 208
+situations added:   []    situations removed: []
+the one row whose labels differ: academic.teaching
+  before: ['Semester I taught', 'Course I taught', 'Kind of teaching material']
+  after : ['School I taught at', 'Semester I taught', 'Course I taught',
+           'Kind of teaching material']
+  OLD LABELS KEPT: 3 of 3        OLD ORDER PRESERVED: True
+```
+
+208 both times, nothing added, nothing removed, one row changed, every old label
+intact and in its old relative order. That is condition 2 exactly.
+
+**THE CAVEAT THE AGENT FLAGGED RATHER THAN HID, and it is not teaching's.**
+`holder_institution` is a GROUP-level role, so `school` resolves once per accepted
+group and one `--label` writes one group. A single-course corpus therefore RECORDS
+the school on the branch (`node_expected_values`) and does not build a child
+FOLDER for it — `00`:57's own rule, a level the files did not divide is measured
+and not built. Forcing a two-school folder fails structurally, not for want of a
+fixture: two schools in one accepted group make `105` §14.4's scope filter see one
+DISAGREEING scope rather than two agreeing ones. **This is equally true of
+`academic.coursework` and predates this row.** A real multi-school folder needs
+per-course groups, which is `00`'s option B and unratified.
+
+### WAVE 2 — `year` CANNOT BE FULLY BUILT FROM THE SHIPPED ROWS, and here is why
+
+Amendment 22 is right that `year` is wired in NO shipped row: `grep '"field_ref":
+"year"'` over the whole library returns nothing. But `107`'s two trees ask for
+fields that do not exist:
+
+| `107` §Current work / §Career applications | the shipped row |
+| --- | --- |
+| `Employer → year → project or activity → stage` | `ap.career.employment-records`: `employer`, `job_title`, `record_type` — **no `project`, no `stage`** |
+| `Year → organization and role → application stage` | `ap.career.recruiting`: `target_employer`, `job_title`, `recruiting_cycle`, `work_type` — a close match once `year` leads |
+
+**So Career applications is buildable and Current work is not.** Adding `year` to
+the front of `ap.career.recruiting` gives `107`'s shape almost exactly —
+`target_employer` + `job_title` ARE "organization and role", `work_type` IS the
+"application stage". `ap.career.employment-records` cannot reach `107`'s Current
+work without minting `project` and `stage`, **which is closed vocabulary and the
+owner's alone.** It is also not obvious that employment-records IS `107`'s
+"Current work": `107` lists that row's material as DOCX, PPTX and design files —
+work product — where employment-records holds job paperwork.
+
+**AND THE BINDING IS NOT A ROW EDIT ALONE.** `folder_levels_for` iterates
+`definition.default_order.dimensions`, so a `role_bindings` entry whose role is
+not a DIMENSION is silently dropped (`109` Tier B, still true). `year` therefore
+needs a dimension in `def.career-search-and-tenure` — and `_check_orders`
+(`templates.py`) requires every candidate order of a definition to cover the SAME
+role set, so each of that definition's orders gains the role or the record
+refuses. That is the real shape of the work, and it is contained.
