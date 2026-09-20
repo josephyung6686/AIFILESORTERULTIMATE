@@ -46,7 +46,7 @@ import pathlib
 import pytest
 
 import tree_design
-from facts.fields import DOMAIN_FIELDS, FIELD_ROWS
+from facts.fields import DOMAIN_FIELDS, FIELD_ROWS, UNIVERSAL_FIELDS
 from tree_design.catalogue import load_catalogue
 from tree_design.templates import (
     CompositionConflict,
@@ -249,7 +249,17 @@ def test_career_defaults_to_employer_first_with_cycle_first_offered(catalogue):
     employer-first on a job-seeker yields many small folders, which `00`'s canvas
     already warns about and offers to flatten; cycle-first on someone with ten
     years at two employers asserts a recruiting cycle that does not exist, and
-    there is no warning for that and nothing to flatten."""
+    there is no warning for that and nothing to flatten.
+
+    **THE RULING IS ABOUT THE DISJUNCTION, NOT ABOUT THE HEAD OF THE ORDER, and
+    since `00` amendment 33 those are two different positions.** `60` §8.3 decides
+    which side of `00`:70's *"company -> role OR recruiting cycle"* each order
+    takes; `year`, bound above both by amendment 22 and `107`'s *"Year ->
+    organization and role -> application stage"*, sits over the disjunction and
+    settles neither half of it. So these assertions pin employer BEFORE cycle in
+    the default and cycle BEFORE employer in the alternative -- which is the
+    ruling -- rather than an absolute index 0 that a level above the ruling can
+    move without touching it."""
     d30 = catalogue.definitions[(CAREER_D30, 1)]
     assert d30.default_order.order_id == EMPLOYER_FIRST
     offered = {order.order_id for order in d30.candidate_orders}
@@ -258,13 +268,19 @@ def test_career_defaults_to_employer_first_with_cycle_first_offered(catalogue):
     employer_first = [dimension.role_ref for dimension in
                       sorted(d30.default_order.dimensions,
                              key=lambda d: d.order_index)]
-    assert employer_first[0] == "employer_org"
+    assert employer_first[0] == "capture_time", "107 puts the year first"
+    assert employer_first.index("employer_org") < employer_first.index(
+        "cycle_period")
     cycle = next(o for o in d30.candidate_orders if o.order_id == CYCLE_FIRST)
-    assert sorted(cycle.dimensions, key=lambda d: d.order_index)[0].role_ref == \
-        "cycle_period"
+    cycle_first = [dimension.role_ref for dimension in
+                   sorted(cycle.dimensions, key=lambda d: d.order_index)]
+    assert cycle_first[0] == "capture_time"
+    assert cycle_first.index("cycle_period") < cycle_first.index("employer_org")
     # The merge is what actually orders a composition, so the recommendation has
     # to survive it rather than only sit in the record.
-    assert _merged(catalogue, d30).ordered_roles[0] == "employer_org"
+    merged = _merged(catalogue, d30).ordered_roles
+    assert merged[0] == "capture_time"
+    assert merged.index("employer_org") < merged.index("cycle_period")
 
 
 def test_career_files_both_halves_of_its_own_corpus(rows):
@@ -421,11 +437,25 @@ def test_every_bound_field_is_one_its_own_schema_declares(rows):
     """Checked against `facts.fields.DOMAIN_FIELDS` and never against a copy of
     `60` section 5. `60` section 9.6 is the reason: `active_field_allowlist` once
     walked DECLARATION scopes while five schemas REFERENCE keys they do not
-    declare, and a hard-coded list here would be that same bug transplanted."""
+    declare, and a hard-coded list here would be that same bug transplanted.
+
+    A UNIVERSAL key counts as declared, because that is what universal MEANS here
+    and `active_field_allowlist` already says so -- it lists "the universal fields
+    plus every active schema's field SET", so a universal key is in every file's
+    allowlist whatever its schema. `facts/fields.py` authored `year` that way on
+    purpose (`00` amendment 20): it derives from `creation_date`, which is §3.11's
+    universal set, "so a field-less schema's allowlist -- which IS the universal
+    scope -- carries it without a schema declaring it". Adding it to
+    `DOMAIN_FIELDS["career"]` instead would claim career DECLARES a key six
+    schemas' rows may equally bind. `year` is the only universal key that is
+    destination-eligible, so the assertion below still admits exactly one, and the
+    same shape is already asserted on the academic side by
+    `tests/p10/test_library_academic_teaching.py`."""
     destination_eligible = {row.field_key for row in FIELD_ROWS
                             if row.destination_eligible}
+    assert {f for f in UNIVERSAL_FIELDS if f in destination_eligible} == {"year"}
     for row in rows:
-        referenced = DOMAIN_FIELDS[row.uses_schema]
+        referenced = set(DOMAIN_FIELDS[row.uses_schema]) | set(UNIVERSAL_FIELDS)
         for field in row.allowed_fields:
             assert field in referenced, (row.applicability_id, field)
             assert field in destination_eligible, (row.applicability_id, field)

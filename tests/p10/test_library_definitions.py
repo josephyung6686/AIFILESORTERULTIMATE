@@ -387,8 +387,16 @@ def test_career_without_its_own_floor_is_refused():
 
 
 def test_career_authors_the_relative_order_its_definition_local_roles_need():
-    """All four of career's roles are definition-local, so `51` §3.4(b) applies to
+    """All FIVE of career's roles are definition-local, so `51` §3.4(b) applies to
     every one of them: a role the merge never saw carries no ordering constraint.
+
+    The fifth is `00` amendment 33's: `capture_time`, bound to `year` by
+    `ap.career.recruiting` v2 for `107`'s *Year -> organization and role ->
+    application stage*. It needed its own edge for exactly the reason this test
+    exists -- a role no ordering placed "was absent from the merged order and
+    `routing` sorted them LAST, silently and with ties" -- so a year level
+    authored at the head of both candidate orders and left out of `relative_order`
+    would have composed to the leaf.
 
     With the recipe's own edges the merge derives the authored nesting from
     nothing else. Without them — and with no tiebreak supplied — the merge
@@ -409,6 +417,7 @@ def test_career_authors_the_relative_order_its_definition_local_roles_need():
         d.role_ref for d in sorted(career.default_order.dimensions,
                                    key=lambda d: d.order_index))
     assert career.relative_order == (
+        ("capture_time", "employer_org"),
         ("employer_org", "role_title"),
         ("role_title", "cycle_period"),
         ("cycle_period", "artifact_kind"),
@@ -475,14 +484,24 @@ def test_career_binds_the_role_as_a_folder_level_because_00_does():
     template order in so many words — "a Career template may define company ->
     ROLE or recruiting cycle -> document type" — and a key `00` puts in a template
     order cannot be non-destination. So `role_title` is a DIMENSION here, in both
-    candidate orders, and not a search fact."""
+    candidate orders, and not a search fact.
+
+    "SECOND" IS SECOND OF `00`:70's OWN SEQUENCE, WHICH IS WHAT `00` SAYS. The
+    claim is `company -> ROLE`, a statement about which level the role sits under,
+    and `00` amendment 33 put a `year` level above the company for `107`'s Career
+    applications -- moving the absolute index without touching the sentence. So
+    this asserts the role sits immediately under the employer, which is the claim,
+    rather than an index that a level above the claim can move."""
     catalogue = _catalogue()
     career = catalogue.definitions[("def.career-search-and-tenure", 1)]
     for candidate in career.candidate_orders:
         assert "role_title" in candidate.role_set(), candidate.order_id
+    order = [d.role_ref for d in sorted(career.default_order.dimensions,
+                                        key=lambda d: d.order_index)]
+    assert order.index("role_title") == order.index("employer_org") + 1, (
+        "00's own career order puts the role straight under the company")
     role = next(d for d in career.default_order.dimensions
                 if d.role_ref == "role_title")
-    assert role.order_index == 1, "00's own career order puts the role SECOND"
     assert not role.metadata_only
     assert not any("destination-ineligible" in constraint
                    for constraint in career.validation_constraints)

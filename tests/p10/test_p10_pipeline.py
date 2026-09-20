@@ -814,6 +814,15 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
     shipped `ap.academic.teaching` row, replacing it in place. No row was added
     or removed and none of the seven colliding pairs above is `academic.teaching`,
     so only these two counts move.
+
+    504 -> 505: `00` amendment 33's second half adds ONE more --
+    `capture_time`/`year`, labelled "The year I applied" -- to the shipped
+    `ap.career.recruiting` row, replacing it in place at v2 under amendment 31's
+    same three conditions. The LAUNCH count stays 124 because that row is wave 2's
+    (`wave2_commerce.json`), and `career.recruiting` is in none of the seven
+    colliding pairs either. A count that grows by one with no label renamed is
+    what amendment 31's second condition permits and what it does not: the tuple
+    MAY grow, a label may not be renamed, dropped or reordered.
     """
     colliding = {pair: _colliding_roles(rows)
                  for pair, rows in _launch_pairs().items()
@@ -839,7 +848,7 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
                 if isinstance(rows, list)
                 for row in rows
                 for binding in row.get("role_bindings", ())]
-    assert len(bindings) == 504
+    assert len(bindings) == 505
     echoes = sorted({binding["label"] for binding in bindings
                      if binding["label"] == binding["field_ref"]})
     assert not echoes, (
