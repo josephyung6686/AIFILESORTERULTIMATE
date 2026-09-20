@@ -1332,3 +1332,58 @@ re-routed). It is still the owner's, and it is no longer a phase.
 **The error is this session's fifth of one shape:** a mechanism reasoned from the
 one place it was being looked at. `career`'s field list was read; the library's
 was not.
+
+### DECISION 5 IS RULED AND BUILT — `00` amendment 38
+
+The owner ruled: **the latest freeze governs, and it says so in the database.**
+Built in two halves, because it is one ruling read at two scales.
+
+**(a) ACROSS FREEZES.** `tree_design.store.supersede_version` beside
+`freeze_version`; `freeze` reads the replaced batch's versions BEFORE its loop
+(after it, nothing tells the batches apart but the clock) and supersedes them
+after, under `if plans:` — so a freeze that approved nothing still supersedes
+nothing, which is the 20 Sep defect's rule, now reached from the database end as
+well as the screen end. **Both guards still fire**, and the zero-plan test passes
+unedited apart from its docstring.
+
+**(b) INSIDE ONE PASS.** `freeze` now takes `placement.versions._current`. It was
+**the only reader of the decision list that did not**, and the reason it went
+unnoticed is worth keeping: `cli.py`'s `if not demand: return finished` means
+`carry_onto` — which does take `_current` — never runs on an ordinary run. The raw
+list reached `freeze` alone, so the defect was invisible on every General-minting
+run.
+
+**`_files_approved_for_two_places` IS RE-AIMED, NOT DELETED.** `_current` keys on
+`subject_ref` = `file:{file_id}:{content_hash}`, so one file at TWO HASHES is two
+subjects, both survive, both freeze, and the guard — keyed on `plan.file_id` —
+still refuses. The group-subject door was checked independently and is closed:
+`pipeline.py` gives a group subject `file_id=None` and `build_plan` refuses it at
+`get_file`.
+
+**ONE CHANGE BEYOND THE RULING, AND IT IS KEPT.** `write_node` refused a node
+whose version state `== "frozen"`; it now refuses `in ("frozen", "superseded")`.
+Without it the new state **reopened an approved-and-replaced tree to writes** —
+approved, replaced and editable at once, the combination §8.8 exists to forbid.
+The state was invented by this change, so the hole was too.
+
+**WHAT IS NOT BUILT, AND WHY IT IS NOT A GAP.** `latest_freeze` and
+`frozen_plans` still order by `MAX(created_at)` and do not consult
+`plan_versions.state`. Making them would pull `create_tree_schema` into
+`_move_frozen_files` and P10's tables into `tests/apply/conftest.py`, coupling the
+apply package to P10 to learn something the clock already tells it correctly.
+
+**The hazard was never that the reader ignores the state — it is that the two
+could DISAGREE, and that is pinned rather than argued.**
+`test_freezing_again_supersedes_the_plan_before_it_in_the_database` asserts the
+first version reads `superseded`, the second reads `frozen`, `frozen_plans`
+returns the second batch ALONE, and the files on disk are the second plan's. The
+statement and the clock are proven to agree, end to end, including the disk.
+
+**AND TWO TESTS WERE PINNING THE WRONG COUNT.** `tests/apply/test_freeze.py`'s
+`_outcome_decisions` builds one decision per member of `OUTCOMES`, which is longer
+than its world has files, so it re-uses four subjects across six decisions — and
+both tests asserted one held row per DECISION. A folder holds files, not
+decisions, and their own docstring ("compare them to the size of their folder")
+argued for the change. Re-aimed to subjects, with the expectation computed from
+subjects rather than from `_current`, so they assert WHICH survived and not merely
+how many.

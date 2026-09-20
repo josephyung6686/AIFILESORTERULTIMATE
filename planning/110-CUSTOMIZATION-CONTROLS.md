@@ -284,7 +284,11 @@ shape is inside ONE version, because `freeze()` is the only reader of the
 decision list that does not take `_current`; it is measured and closed in `109`. So: freeze, change a control, freeze again,
 `--apply-everything` — and both trees are live at once. The owner's own database
 already holds two frozen plans (`109` A4's usage note on `measure.py`). This is
-not a diff question; it is which plan governs, and it is Decision 5.
+not a diff question; it is which plan governs, and it was Decision 5.
+**RULED AND BUILT, 20 Sep — `00` amendment 38: the latest freeze governs and
+says so in the database.** `freeze` now writes `plan_versions.state =
+'superseded'` on the batch it replaces, and takes `placement.versions._current`
+so one subject decided twice in a pass yields one plan. See `109`.
 
 ---
 
