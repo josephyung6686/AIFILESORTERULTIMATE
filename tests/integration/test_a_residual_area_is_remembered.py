@@ -213,6 +213,42 @@ def test_naming_your_own_area_again_brings_it_back_without_retyping_residual(
         conn.close()
 
 
+def test_a_run_that_was_refused_remembers_nothing(tmp_path):
+    """A memory of a run that never ran would be the worst kind of memory.
+
+    This writer runs inside the composition, before a file is read, so a command
+    that is refused further down must not leave a confirmed answer behind --
+    the person would have been told the run was refused and then find the
+    product acting on it next time. It holds today because
+    `residual_library_choices` refuses the whole set of decisions before any of
+    them is written, and this pins that ordering rather than trusting it.
+    """
+    corpus, database = _corpus(tmp_path)
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Uni", "--user", "jy",
+                     "--database", str(database), "--accept-groups",
+                     "--residual", AREA,
+                     "--residual-library",
+                     "relocate:Reading Inbox=Nonexistent"], out=out)
+    assert code != 0, out.getvalue()
+    assert _answers_for(database, QUESTION) == [], out.getvalue()
+
+
+def test_an_area_left_out_stays_left_out_over_repeated_runs(tmp_path):
+    """A `disable` is replayed on every later run, so it has to be a decision
+    the tree can take twice. A refusal on the third run would mean a person
+    could turn an area off and then never run the command again."""
+    corpus, database = _corpus(tmp_path)
+    _run(corpus, database, "--residual", AREA)
+    _run(corpus, database, "--residual-library", f"disable:{AREA}")
+    _run(corpus, database)
+    _run(corpus, database)
+    assert not _area_is_in_the_newest_plan(database)
+    assert [option for option, _ in _answers_for(database, QUESTION)] == [
+        "enable", "disable"]
+
+
 def test_an_action_that_carries_a_name_is_not_remembered_and_says_so(tmp_path):
     """`84` §1: what is not kept is named, never silently dropped.
 

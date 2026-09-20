@@ -123,6 +123,21 @@ def test_a_run_after_a_freeze_shows_what_changed_since_the_freeze(tmp_path):
     assert "PHYS1401" in block, block
 
 
+def test_the_screen_does_not_say_the_person_removed_those_folders(tmp_path):
+    """`66` §4: two facts never share one message, and "Folders removed" is one.
+
+    Nobody removed those two folders. The corpus lost two MATH files, so the MATH
+    folder had nothing left to separate -- and PHYS then held every remaining
+    file, so it separated nothing either. A person who reads a count of removals
+    and did not remove anything goes looking for a change they did not make. The
+    lists are the record exactly; the sentence this asserts is the fact the
+    record does not carry.
+    """
+    flat = " ".join(_block(_two_runs(tmp_path)[0]).split())
+    assert "for one of two reasons" in flat, flat
+    assert "the files underneath it changed" in flat, flat
+
+
 def test_the_comparison_names_both_versions_it_is_between(tmp_path):
     """`84` §6: a screen that says "what changed" without saying changed FROM
     WHAT is a sentence the person cannot check."""

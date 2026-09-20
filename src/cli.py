@@ -24642,6 +24642,20 @@ _DIFF_CANNOT_TELL: str = (
     "of those happened."
 )
 
+#: Why a folder is on one of the four lists, when the lists themselves cannot
+#: say. A folder is proposed because the files under it divide, so it stops being
+#: proposed when they stop dividing -- "a folder that separates nothing is not a
+#: branch" -- and that is indistinguishable, in the record, from a folder a
+#: control took away. The person reads "removed" as something they did, and in
+#: the commonest case it is something their files did.
+_DIFF_WHY_A_FOLDER_MOVED: str = (
+    "A folder is on one of those lists for one of two reasons, and this "
+    "comparison does not say which: you changed something, or the files "
+    "underneath it changed. A folder is only built when the files in it divide "
+    "into it, so losing or gaining files can add a folder or take one away with "
+    "nothing on your part."
+)
+
 #: The four kinds of change this screen lists, and the heading each is listed
 #: under. Four of `diff.py`'s seven: re-templated, re-ordered and type-changed
 #: are about a node's recipe rather than about a folder appearing, moving or
@@ -24775,8 +24789,16 @@ def _print_tree_diff(diff: TreeDiffOnScreen, *, out) -> None:
         for line in by_kind[kind]:
             print(_wrapped(line, indent="      ", first="    - "), file=out)
     if any(by_kind[kind] for _, kind in _DIFF_HEADINGS):
-        # `84` §6: what the screen tells a person has to be true, and these are
-        # not gestures this build offers. They are the words an undo would be
+        # `66` §4 and `84` §6. "Folders removed: 2" reads as two folders SOMEBODY
+        # removed, and in the commonest case nobody did: the corpus lost the
+        # files that justified them, and a folder that separates nothing is not
+        # built. Measured on this product's own two-run corpus -- two MATH files
+        # left the folder, and the comparison reported the MATH folder and the
+        # PHYS folder removed, neither by any control. The lists are the record
+        # exactly; this sentence is the second fact they do not carry.
+        print(_wrapped(_DIFF_WHY_A_FOLDER_MOVED, indent="  "), file=out)
+        # `84` §6 again: what the screen tells a person has to be true, and these
+        # are not gestures this build offers. They are the words an undo would be
         # offered in, which is what makes the list readable; saying so keeps it
         # from reading as a command somebody could type.
         print(_wrapped(
