@@ -18501,7 +18501,67 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return tuple(row.name for row in shipped_situations(catalogue)
                      if row.schema == schema_id)
 
-    def _the_situation_the_person_chose(schema_id: str) -> str | None:
+    #: `00` amendment 32. Which ACCEPTED GROUP each file is in, by the packet's
+    #: own name -- built once, on first ask, because it is one read over the whole
+    #: roster and every caller wants the same map. Empty on every run before P9
+    #: has accepted anything, which is what makes the change safe: no packet, no
+    #: packet key, and every reader falls back to the kind exactly as today.
+    accepted_packets: list[dict[str, str]] = []
+
+    def _the_accepted_packets() -> dict[str, str]:
+        """Each roster file's accepted group, named the way the person sees it.
+
+        `PLAN_VERSION` is a constant of this command, so a packet the person
+        accepted on an earlier run is accepted as of this one -- which is the only
+        way an accepted group can exist while these questions are being asked. P9
+        accepts inside `run_production_p8_p11`, and that is below the whole of
+        `downstream`.
+
+        The enumeration is the composition root's own (`AcceptedGroupEnumeration`)
+        and the per-file read is `accepted_memberships_of`, which already applies
+        `104` R-11's rule -- this file's OWN memberships, keyed on its content
+        hash, and `included` ones only. Nothing new decides what an accepted group
+        is; this only asks which one a file is in.
+
+        A file in two accepted packets takes the first its memberships name,
+        which is P9's own insertion order and is therefore the same on every run.
+        """
+        accepted = tuple(dict.fromkeys(
+            row.group_id
+            for row in AcceptedGroupEnumeration(conn).accepted(PLAN_VERSION)
+            if row.membership_id is None and row.acceptance == ACCEPTED))
+        if not accepted:
+            return {}
+        # THE NAME THE PERSON READS, and the same expression the closing screen
+        # already names a group by: its display label, or its id where the draft
+        # carries none. A key they cannot read is the opaque id amendment 28
+        # declined.
+        names = {group_id: (current_group(conn, group_id).display_label
+                            or group_id)
+                 for group_id in accepted}
+        packets: dict[str, str] = {}
+        for file_id, _content_hash in corpus_roster(conn, scan_run_id[0]):
+            held = accepted_memberships_of(conn, file_id, accepted=accepted)
+            if held:
+                packets[file_id] = names[held[0]]
+        return packets
+
+    def _the_accepted_group_of(file_id: str) -> str | None:
+        # NOT BUILT BEFORE THE RUN ID EXISTS, and the guard is not decoration: a
+        # map built over `corpus_roster(conn, "")` is EMPTY, and a memo that kept
+        # it would answer `None` for every file for the rest of the run. The
+        # feature would then be dead in silence, on a path no offline test can
+        # reach. Every caller today runs after the scan, so this returns `None`
+        # for nobody; the day one does not, it costs one unmemoised read instead
+        # of the whole amendment.
+        if not scan_run_id[0]:
+            return None
+        if not accepted_packets:
+            accepted_packets.append(_the_accepted_packets())
+        return accepted_packets[0].get(file_id)
+
+    def _the_situation_the_person_chose(schema_id: str,
+                                        file_id: str | None = None) -> str | None:
         """THE ANSWER TO THE BRANCH'S OWN QUESTION, where the person has given one.
 
         `question_for_situation` puts the question at `branch:<branch_label>`, and
@@ -18520,8 +18580,20 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         Checked against the library's own list for `_situation_for`'s reason: an
         answer naming a situation of another schema settles nothing.
+
+        **AND THE PACKET'S OWN ANSWER FIRST, WHERE THE CALLER HAS A FILE** (`00`
+        amendment 32). One answer settles a course-term, so a file in an accepted
+        packet reads that packet's answer before the kind's. `the_situation_
+        chosen_for` falls back to the kind's key -- the bare `branch:<schema>`
+        this line has always read and the only key any answer already in the
+        person's database is filed under -- which is amendment 28's ruling that
+        the old key is read and not migrated away. With no file in hand there is
+        no packet, and the read is the kind's alone, unchanged.
         """
-        chosen = selected_situation(conn, scope=f"{SCOPE_BRANCH}:{schema_id}")
+        chosen = the_situation_chosen_for(
+            file_id, schema_id, group_of=_the_accepted_group_of,
+            chosen_at=lambda key: selected_situation(
+                conn, scope=f"{SCOPE_BRANCH}:{key}"))
         return chosen if chosen in _situations_of(schema_id) else None
 
     def _the_situation_already_settled(schema_id: str) -> str | None:
@@ -18668,7 +18740,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         named = _the_schema_named_for_this_file(file_id)
         if named is not None:
             raised = situation_cell[0].raised.get(file_id, ())
-            own = (_the_situation_the_person_chose(named)
+            # THE FILE IS NAMED HERE (`00` amendment 32), so the person's answer
+            # for the PACKET this file is in is read before their answer for its
+            # kind. One answer settles a course-term; the kind's answer still
+            # reaches every file of that kind it always reached.
+            own = (_the_situation_the_person_chose(named, file_id)
                    or the_one_situation(named, situations_of=_situations_of,
                                         raised=raised)
                    or _the_situation_the_judge_named(file_id, named))
@@ -18876,9 +18952,22 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                             if life_of(catalogue, situation) == branch.life)
             if not files or len(options) < 2:
                 continue
-            questions.append((question_for_situation(
-                branch_label=kind, situations=options, file_count=len(files)),
-                files))
+            # AND ONCE PER ACCEPTED PACKET (`00` amendment 32). The kind's open
+            # files are split by the group P9 accepted them into, and each packet
+            # is one question: the discriminator between coursework and teaching
+            # is the holder's ROLE, which is constant across a course-term, so one
+            # answer settles the packet. The files in NO accepted packet come back
+            # under `None` and are asked the kind's own question at the kind's own
+            # key -- the question they have today, unchanged, which is every file
+            # on every run before P9 has accepted anything.
+            for group, held in groups_of_files_still_open(
+                    files, group_of=_the_accepted_group_of):
+                questions.append((question_for_situation(
+                    branch_label=kind if group is None else group,
+                    scope_label=(None if group is None
+                                 else situation_scope_of_group(kind, group)),
+                    situations=options, file_count=len(held)),
+                    held))
         return questions
 
     def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
@@ -18976,13 +19065,25 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             options = _situations_of(kind)
             if not files or len(options) < 2:
                 continue
-            question = question_for_situation(
-                branch_label=kind, situations=options, file_count=len(files))
-            if question.question_id in already:
-                continue
-            record_question(conn, question, asked_at=clock)
-            branch_reaches[question.question_id] = files
-            asked.append(question)
+            # ONCE PER ACCEPTED PACKET HERE TOO (`00` amendment 32), and this is
+            # the loop the ruling was measured on: these are the files site G
+            # named a kind for and nothing named a situation for -- 218 of the
+            # owner's 257 situation facts -- and the person's only door to them
+            # was one line per file. Split by packet, one line settles a
+            # course-term. The residue keeps the kind's own question at the kind's
+            # own key, so nothing loses the door it has.
+            for group, held in groups_of_files_still_open(
+                    files, group_of=_the_accepted_group_of):
+                question = question_for_situation(
+                    branch_label=kind if group is None else group,
+                    scope_label=(None if group is None
+                                 else situation_scope_of_group(kind, group)),
+                    situations=options, file_count=len(held))
+                if question.question_id in already:
+                    continue
+                record_question(conn, question, asked_at=clock)
+                branch_reaches[question.question_id] = held
+                asked.append(question)
         return asked
 
     def _partition_branches(run_id: str) -> BranchPartition:
@@ -22168,6 +22269,100 @@ def files_of_kind_still_open(branch, kind: str, *, judged_kind_of,
     return tuple(file_id for file_id in branch.file_ids
                  if (judged_kind_of(file_id) or branch.kind_of(file_id)) == kind
                  and situation_under(file_id) is None)
+
+
+#: `00` amendment 32. What stands between a KIND and the ACCEPTED GROUP inside it
+#: in a situation question's key -- `situation:academic/Term One BIO 101`.
+#:
+#: A schema id carries no `/`, so the composite can never spell a bare kind and
+#: the two keys cannot collide. Amendment 28 ruled the shape: a composite the
+#: person can read, and not an opaque id, "because the line they type has to say
+#: which branch it answers". A group id would have been the opaque one; the
+#: group's own name is the word already printed beside those files.
+GROUP_SCOPE: str = "/"
+
+
+def situation_scope_of_group(kind: str, group: str) -> str:
+    """The key ONE ACCEPTED GROUP's situation question is recorded under.
+
+    ONE FUNCTION BECAUSE TWO SIDES MUST AGREE. The asking loop records the
+    question under this key and `the_situation_chosen_for` reads the answer back
+    from it; composed separately at each end they could drift, and the failure
+    would be silent in the worst way -- a question printed, an answer typed and
+    recorded, and no effect on any file. `108` §4's residual is what a silent
+    disagreement between two maps costs, and it cost a release.
+    """
+    return f"{kind}{GROUP_SCOPE}{group}"
+
+
+def groups_of_files_still_open(files, *, group_of
+                               ) -> tuple[tuple[str | None, tuple[str, ...]], ...]:
+    """`00` amendment 32. ONE QUESTION PER ACCEPTED GROUP, AND ONE FOR THE REST.
+
+    Splits a kind's open files into the packets P9 accepted, so the loop that
+    asks the situation asks it once over a course-term instead of once over a
+    file. The owner's ruling and its measurement: 218 of 257 situation facts
+    still carry only a kind, because a question asked once per file is a question
+    nobody finishes. Coursework and teaching are not told apart by a course code
+    -- the code is on both sides -- but by the HOLDER'S ROLE, and a role is
+    constant across a course-term. So one answer settles a packet.
+
+    **WHAT THIS COSTS, AND THE OWNER ACCEPTED IT.** A group holding both roles
+    gets one answer applied to all of it.
+
+    **THE RESIDUE IS A PAIR, NOT A REMAINDER, AND IT IS WHY THIS IS SAFE.** A
+    file in no accepted group -- which is every file on every run before P9 has
+    accepted anything -- comes back under `None`, and the caller asks it the
+    KIND's own question at the kind's own key, exactly as today. Coverage is not
+    traded for the saving: every file that is asked today is still asked, and the
+    only difference is how many times the person has to answer.
+
+    LAST, so the packets are read first and the residue reads as what it is. The
+    groups keep first-seen order, which is the caller's own order over its files
+    and therefore stable across runs.
+
+    Injected `group_of` for `files_of_kind_still_open`'s reason: the rule is
+    about a handful of inputs and site G, which is what puts files of a named
+    kind in front of that loop, does not run under `offline`.
+    """
+    by_group: dict[str | None, list[str]] = {}
+    for file_id in files:
+        by_group.setdefault(group_of(file_id), []).append(file_id)
+    residue = by_group.pop(None, None)
+    pairs = [(group, tuple(held)) for group, held in by_group.items()]
+    if residue is not None:
+        pairs.append((None, tuple(residue)))
+    return tuple(pairs)
+
+
+def the_situation_chosen_for(file_id: str | None, kind: str, *, group_of,
+                             chosen_at):
+    """The person's answer that covers this file: its PACKET's, else its KIND's.
+
+    `00` amendment 32's read half. The answer to a packet's question is about
+    the files in that packet, and it is the narrower word, so it is read first --
+    the same ordering that already puts `--situation-of`'s per-file word above
+    the branch's.
+
+    **THE BARE KIND IS READ AS A FALLBACK AND IS NOT MIGRATED AWAY.** This is
+    amendment 28's ruling, and amendment 32 creates its risk a second time: a
+    per-group key is a NEW key, and every answer already in the person's database
+    is filed under the bare kind. *"A reader that looks only for the new key
+    silently loses every answer they have already given -- and no test would
+    catch it, because the fixtures write both halves."* So the old key is read
+    here, by hand, and the test that pins it builds that key as a literal string
+    rather than by running the writer.
+
+    `file_id` is `None` where the caller has no file in hand -- the kind-level
+    read that gates a judge call. No file, no packet, and the kind's key is the
+    only one there could be.
+    """
+    group = None if file_id is None else group_of(file_id)
+    if group is not None:
+        chosen = chosen_at(situation_scope_of_group(kind, group))
+        if chosen is not None:
+            return chosen
+    return chosen_at(kind)
 
 
 def signals_for_branch(branch, *, situations_of, run_signal) -> frozenset[str]:
