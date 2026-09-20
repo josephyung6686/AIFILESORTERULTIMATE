@@ -1271,3 +1271,64 @@ the code does**, and this file has now been caught trusting one twice in a day.
 Decision 5 is untouched: no `superseded_by` write, no `plan_versions.state`, no
 flag, nothing hidden. **Reporting which plan governs is not choosing which plan
 governs**, and the screen now reports it.
+
+---
+
+## 20 Sep — "does this apply to everything, or just my files?" — MEASURED
+
+The owner asked whether the product works generally or only on the corpus it was
+developed against. Measured through the real loader, not argued:
+
+```
+shipped situations                       208
+domains                                   19
+distinct fields used as folder levels     39
+
+folder levels per situation
+    1 level    28 situations
+    2 levels   84
+    3 levels   78
+    4 levels   15
+    5 levels    3
+situations that build NO tree              0
+situations with NO detection signal        0
+```
+
+**EVERY shipped situation binds at least one folder level AND is named by a
+detection signal.** So none of the 208 is decorative: each can be reached and each
+can build. The library is not a handful of real rows beside two hundred names.
+
+**The levels are broadly shared rather than bespoke.** The most-used fields are
+`project` (94 situations), `record_type` (64), `work_type` (48), `artifact_type`
+(47), `stage` (30), `site` (30), `record_period` (25). Only 8 of the 39 fields are
+used by exactly one situation, so the vocabulary is general machinery, not one
+row's private key repeated.
+
+### A CLAIM OF THIS FILE AND OF THE LEAD'S REPORT IS WITHDRAWN
+
+Earlier today, on `107`'s Current work tree: *"it wants `project` and `stage`,
+which no row has, and minting them is closed vocabulary and the owner's alone."*
+**The first half is false.** `project` is the single most-used level field in the
+library and `stage` is used by thirty situations:
+
+```
+project   declared by 8 schemas   research, code, business_operations,
+                                  law_practice, creative,
+                                  construction_property, engineering, government
+stage     declared by 3 schemas   research, creative, engineering
+year      declared by 0 schemas   -- it is UNIVERSAL, not per-schema
+```
+
+**What is TRUE is narrower: `career` declares neither.** `DOMAIN_FIELDS["career"]`
+is `employer`, `target_employer`, `recruiting_cycle`, `work_type`, `record_type`,
+`job_title`.
+
+**AND THAT CHANGES THE DECISION'S SIZE.** Reaching `107`'s Current work is not
+minting new closed vocabulary — it is extending an EXISTING field to one more
+schema, which is a smaller act with a different rule over it (`60` H6.2: a file
+whose key is not declared by the active schema returns unknown and is never
+re-routed). It is still the owner's, and it is no longer a phase.
+
+**The error is this session's fifth of one shape:** a mechanism reasoned from the
+one place it was being looked at. `career`'s field list was read; the library's
+was not.
