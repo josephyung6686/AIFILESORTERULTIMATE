@@ -229,3 +229,67 @@ def test_a_models_year_is_canonicalised_by_the_same_rule():
     assert cli.normalize_for_model(cli.YEAR_FIELD, "2024-07-17") == "2024"
     assert cli.normalize_for_model(cli.YEAR_FIELD, "unknown") is None
     assert cli.normalize_for_model(cli.YEAR_FIELD, "2023 to 2024") is None
+
+
+# --- `year_of` directly: the PDF `D:` metadata form (`00` amendments 23, 33) ---
+#
+# Amendment 33: `year_of` refuses PDF `D:` timestamps (`D:YYYYMMDDHHmmSS`, with an
+# optional trailing `+HH'mm'` / `-HH'mm'` / `Z` / `Z HH'mm'` offset) because the year
+# sits inside a longer digit run and the standalone-year guard never fires. These
+# tests call `year_of` directly -- no DB fixture -- so the shape table is cheap to
+# grow and the regression pin below is what a broken regex turns red first.
+
+def test_year_of_pins_shapes_it_already_handles_before_the_regex_changes():
+    """Pinned BEFORE the `D:` regex is touched. `year_of` must keep answering these
+    exactly as it does today -- a regression here would mean the `D:` change broke
+    the general case, not just failed to extend it."""
+    assert cli.year_of("2024-07-17T14:03:22") == "2024"   # ISO with time
+    assert cli.year_of("2024-07-17") == "2024"             # ISO date
+    assert cli.year_of("2024:07:17 14:03:22") == "2024"    # EXIF spelling
+    assert cli.year_of("17 March 2024") == "2024"          # a written date
+    assert cli.year_of("03/15/2024") == "2024"              # a slashed date
+    assert cli.year_of("2024") == "2024"                    # a bare year
+    assert cli.year_of("0000-00-00") is None                # unset clock
+    assert cli.year_of("unknown") is None                   # no year at all
+    assert cli.year_of("2023-12-31 to 2024-01-02") is None  # a period, two years
+    assert cli.year_of("12345") is None                     # five digits, not a year
+
+
+@pytest.mark.parametrize("value", [
+    "D:20240115103000+05'00'",  # PDF spec: signed UTC offset, `+`
+    "D:20240115103000-05'00'",  # PDF spec: signed UTC offset, `-`
+    "D:20240115103000Z05'00'",  # relationship char `Z`, offset digits kept anyway
+    "D:20240115103000Z",        # relationship char `Z` alone, no offset digits
+    "D:20240115103000",         # no relationship char at all
+    "D:20240115",                # truncated to the day
+    "D:202401",                  # truncated to the month
+    "D:2024",                    # truncated to the year -- the shortest legal form
+])
+def test_year_of_reads_every_pdf_date_truncation(value):
+    """PDF 32000-1 §7.9.4: `D:YYYYMMDDHHmmSSOHH'mm'` where every field past `YYYY`
+    is optional and `O` (the relationship to UTC) is `+`, `-`, or `Z`. All eight
+    shapes above are legal values of one field and `year_of` must read all of them
+    the same way -- by where the year sits (right after `D:`), not by which
+    truncation or trailing form a given writer used."""
+    assert cli.year_of(value) == "2024"
+
+
+def test_year_of_still_refuses_two_different_pdf_years():
+    """`104` §18.108's finding, restated for the `D:` form: a value carrying two
+    DIFFERENT years is refused, not resolved by taking the first one. SABOTAGE: a
+    `D:`-anchored match (`re.match` instead of scanning the whole value) would read
+    only the first date and silently accept an ambiguous value."""
+    assert cli.year_of(
+        "D:20230101120000+00'00' D:20240101120000+00'00'") is None
+
+
+@pytest.mark.parametrize("value", [
+    "INVOICE-ID:20240115",  # a document number, not a date
+    "PO-ID:20240115",       # ditto -- ends in the same two characters as `D:`
+])
+def test_year_of_does_not_mistake_a_document_id_for_a_pdf_date(value):
+    """PDF's date prefix is the literal marker `D:`, not any string that happens to
+    end in the letter `D` followed by a colon. SABOTAGE: a lookbehind that excludes
+    only digits (not letters) before `D:` would take the `D:` inside `...ID:` and
+    misread a document number's digits as a year."""
+    assert cli.year_of(value) is None
