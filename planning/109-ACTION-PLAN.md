@@ -397,7 +397,28 @@ Phase 7. The policy is put in force for `tree.tree.plan_version_id` once
 the failing id carries the `_0` suffix — an earlier pass than the one the policy
 was set on. Phase 7 added passes, which is why it surfaced there.
 
-**NOT FIXED DELIBERATELY.** `placement/privacy.py`'s `privacy_state_for` is the
+**THE OWNER RULED IT (19 Sep): record the policy for every version the design
+mints.** That is built — `production.py` now loops `TreeDesignResult.
+plan_version_ids` — and it widens nothing, because the operation mode and the
+consent grants come from the person's command and are identical on every version.
+
+**IT DOES NOT FIX THIS TEST, and the traceback says why.** The crash is not on the
+design path at all:
+
+```
+cli.run -> placement.pipeline.act_on_residual_sets -> review_residual_sets
+        -> _send_set_to_approved_node -> run_residual_file -> _residual_decision
+        -> placement.privacy.privacy_state_for  -> PolicyRequired
+```
+
+`--send-set` is a GESTURE, acted on early in `run`, **before the design of that
+invocation has put any policy in force**. So the version it asks about has no
+policy yet no matter how many the design records afterwards. The real question is
+which plan a gesture acts under — the plan whose screen printed the set — and that
+is a different decision from the one already taken.
+
+**STILL NOT FIXED, and still for the original reason.**
+`placement/privacy.py`'s `privacy_state_for` is the
 gate that decides what may leave the device, and its refusal is written as a rule:
 "the operation mode decides whether anything may leave the device and P11 assumes
 none". Teaching it to fall back to another version's policy, or minting a policy

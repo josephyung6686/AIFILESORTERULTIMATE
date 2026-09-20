@@ -1134,7 +1134,21 @@ def run_production_p8_p11(
     tree = design_tree(conn, authorities=design, decisions=tree_decisions)
     plan_version = tree.tree.plan_version_id
     decisions.approve_plan(conn, accepted, plan_version)
-    decisions.set_privacy_policy(conn, plan_version)
+    # THE POLICY IS PUT IN FORCE FOR EVERY VERSION THE DESIGN MINTED, not only the
+    # last (the owner, 19 Sep). A run writes a plan version per refinement pass and
+    # `TreeDesignResult.plan_version_ids` is all of them; P11 asks
+    # `placement.privacy.privacy_state_for` about the version a NODE carries, which
+    # on a second `--send-set` run was an earlier pass than the one the policy had
+    # been recorded against -- so the run died on `PolicyRequired: no P7 policy in
+    # force`, which is that gate refusing to assume rather than a fault in it.
+    #
+    # THIS WIDENS NOTHING, and that is why it is the fix. The operation mode and the
+    # consent grants come from the person's command and are the same for the whole
+    # run: `set_privacy_policy` writes the identical answer on each version. No file
+    # becomes more sendable than it already was; a version that could not be asked
+    # about at all can now be answered, with the same answer as its siblings.
+    for version in dict.fromkeys((*tree.plan_version_ids, plan_version)):
+        decisions.set_privacy_policy(conn, version)
     if stop_after_design:
         # `106` Phase 5.3: the tree is the proposal, and it is shown before a
         # placement call is spent on it. The version is complete -- the
