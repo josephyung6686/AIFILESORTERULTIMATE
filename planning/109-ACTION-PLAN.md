@@ -1532,3 +1532,82 @@ DESTINATION is not one of them, so no placement change can make it stop closing.
 block naming the files and the "Ready to file into X" lines, and those are what the
 tests read. Both the commit message and one SABOTAGE docstring overstate it, and
 the overstatement is recorded here rather than quietly fixed.
+
+### THE TREE DIFF REACHES THE PERSON — and `110` §0.2 was wrong that it "exists end to end"
+
+**IT RAISED ON THE FIRST REAL REMOVAL AND COULD NEVER HAVE PRINTED.** Measured on
+a two-run CLI database, not deduced:
+
+```
+v1 nodes:  node_8d63b091_10 | branch:Uni/subject=MATH2010
+           node_8d63b091_11 | branch:Uni/subject=PHYS1401
+REPROJECT removed_node_ids ('node_8d63b091_10', 'node_8d63b091_11')
+```
+
+`placement/versions.py`'s `reproject` builds `removed_node_ids` from
+`decision.destination.node_id` — the **from-version's minted id** — and
+`review_surface/versions_view.py` compared that set against
+`entry.origin_node_id` — the **lineage key**. Under `node_key` those are different
+strings for one node, so `RemovedNodeMissingFromDiff` fires on ANY removal.
+
+**NINE GREEN TESTS NEVER SAW IT BECAUSE BOTH SHIPPED FIXTURES BUILD NODES WHERE
+`node_id == origin_node_id`.** That is the whole lesson: the fixtures made two
+different keys the same string, so every test agreed with a component that could
+not run. `110` §0.2 called this machinery "wired to nothing", which was true, and
+inferred it was *ready*, which was not — **nothing had ever asked it a question
+with a real removal in it.** Fixed by letting the guard accept either spelling,
+because the removed entry already carries both.
+
+**This is `110` wrong in a FOURTH place, and `110` is a document the lead wrote.**
+The pattern across all four: it read what a function was FOR and not what it does
+when called.
+
+### WHAT THE DIFF SAYS, AND THE TWO FALSE SENTENCES THAT DID NOT SHIP
+
+The block names added / removed / renamed / re-parented with undo labels, the
+carried-and-renewed arithmetic (`Accounted for: C + R = T`, where `T` is counted
+independently from the database rather than summed from the two numbers beside
+it), and the three producer gaps `110` §3.2 demanded be named rather than omitted.
+
+**Two sentences were written and removed for being false**, which is the part
+worth keeping:
+* *"a name on both lists is a folder that was rebuilt, not one that was deleted"*
+  — false: the lines carry a display LABEL, and labels repeat under different
+  parents.
+* `Folders removed: 2` standing alone read as something the PERSON did, when in
+  the measured case the corpus lost files and "a folder that separates nothing is
+  not a branch" collapsed two. Hence the standing sentence that a folder is on
+  those lists "for one of two reasons, and this comparison does not say which".
+
+`66` §4 is what both of those break, and both were caught by reading the rendered
+screen rather than the code.
+
+### RESIDUAL PERSISTENCE, AND `110` §2.4 IS WRONG ABOUT WHAT THE RECORD CAN HOLD
+
+§2.4 says to record "each `ResidualChoice`". **Four of §7.4's six actions carry an
+argument the person supplied** — rename's name, relocate's anchor, merge's target,
+replace's node id — and `residual_action` holds a closed-vocabulary member. The
+record's one free-text field is refused beside a chosen option BY NAME
+(`questions/records.py`: *"an answer carrying both a chosen option and a sentence
+has two answers in it that need never agree"*). So `enable`/`disable` persist and
+the other four are **named on the screen as not remembered**, rather than dropped
+or smuggled into one string as `action=argument` — a display string is not a key.
+
+### A `node_key` GAP FOUND IN PASSING, PINNED AS A STRICT XFAIL
+
+The review home a residual enablement mints carries its own per-version `node_id`
+as its `origin_node_id`, so it has **no lineage across versions**: two IDENTICAL
+runs with `--residual` report it removed and added, and the area beneath it
+re-parented. The diff reports the record faithfully; the fault is where the node is
+minted. `tests/integration/test_the_tree_diff_reaches_the_person.py` carries it as
+`xfail(strict=True)`, so it flips to passing the day it is fixed.
+
+### THREE THINGS IN THIS BUILD ARE UNTESTED AND SAID SO
+
+1. The **multi-version frozen branch** is coded and unreachable from the CLI —
+   `run_token` mints one version per run.
+2. The **`unapplied_user_edits`** block never fired on any corpus run.
+3. `_revalidates` with `revalidation_inputs=None` returns True for every
+   model-decided placement, so **"carried over unchanged" means the node still
+   exists, not that the verdict was re-validated.** The arithmetic is true; the
+   word is stronger than what was checked.
