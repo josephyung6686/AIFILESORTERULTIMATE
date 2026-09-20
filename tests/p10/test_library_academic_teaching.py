@@ -1,55 +1,62 @@
 # tests/p10/test_library_academic_teaching.py
-"""`111`: the Teaching branch's institution level, drafted and NOT installed.
+"""`111`: the Teaching branch's institution level, WIRED by `00` amendment 31.
 
 `107`'s branch-template table gives Teaching as *Institution -> term -> course ->
 teaching function*, and `107`'s own tree draws the institution explicitly
 (`Teaching/City Learning Center/2026 Fall/...`). The shipped row
-`ap.academic.teaching@1` binds `term`, `subject` and `work_type` and binds NO
+`ap.academic.teaching` bound `term`, `subject` and `work_type` and bound NO
 institution, although `def.subject-work-record.third-party` already declares
 `holder_institution` as an OPTIONAL dimension at `order_index` 0. `school` is a
-live, destination-eligible field DECLARED at `academic`, so the level needs no
+live, destination-eligible field DECLARED at `academic`, so the level needed no
 new field and no new situation name -- only the binding.
 
-WHY THE DRAFT CANNOT SIMPLY BE APPENDED TO `production.LIBRARY_FILES`.
-`folder_levels_for` and `schema_for_situation` resolve a situation by scanning
-every applicability row for its `recognition:` signal and REFUSE when two rows
-carry it -- "picking between two rows would be this module deciding what kind of
-material somebody's files are". A v2 row therefore does not supersede v1; the two
-coexist and `academic.teaching` stops resolving at all. `test_adding_the_draft_
-beside_v1_breaks_the_situation` pins that, so the cost of wiring is measured
-rather than assumed: it is an EDIT to a shipped row, which `111` refers to the
-owner.
+WHY THIS WAS AN EDIT AND NOT AN ADDITION. `folder_levels_for`, `life_of` and
+`template_id_for_situation` resolve a situation by scanning every applicability
+row for its `recognition:` signal and REFUSE when two rows carry it -- "picking
+between two rows would be this module deciding what kind of material somebody's
+files are". A v2 row therefore does not supersede a v1 row left in place beside
+it; the two coexist and `academic.teaching` stops resolving at all, and
+`shipped_situations` -- the cloud-bound menu, which collects rows with
+`setdefault((schema, name), ...)` -- silently keeps serving v1's three labels
+while `folder_levels_for` refuses outright. `00` amendment 31's own words: "the
+person would be shown one answer while the product held another, with nothing
+raising." So the row was measured, then REPLACED in place -- the shipped
+`ap.academic.teaching` row now carries `applicability_version` 2 and the
+`holder_institution` binding, and there is only ever one row for the signal.
+
+THIS FILE USED TO GATE THE DRAFT'S ABSENCE. Until amendment 31, wiring by
+addition was refused and untested here on purpose: `test_the_draft_is_not_in_
+the_shipped_release` pinned that the shipped answer for `academic.teaching` was
+v1's three levels and that the drafted row
+(`src/tree_design/library/drafts/academic_teaching_institution.json`, since
+deleted -- its content now lives in the shipped row directly) was unreachable.
+That assertion was right when written: nothing had authorised the replacement
+yet, and a gate that let the fourth level in by a file rename would have shipped
+an edit to a frozen row with no one having ruled on it. The amendment is that
+ruling, so the gate now asserts the row's PRESENCE and SHAPE instead, and a
+later edit that quietly drops the institution binding -- or renames one of the
+three labels the person has already been shown -- turns it red.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
-import production
 from facts.fields import DOMAIN_FIELDS, FIELD_ROWS, UNIVERSAL_FIELDS
 from production import (
-    LIBRARY_FILES, folder_levels_for, life_of, load_shipped_catalogue,
+    folder_levels_for, life_of, load_shipped_catalogue,
     read_packaged_library_file, schema_for_situation, shipped_situations,
     template_id_for_situation,
 )
-from tree_design.config import ConfigurationRequired
 
-LIBRARY = Path(__file__).resolve().parents[2] / "src" / "tree_design" / "library"
-DRAFT = "drafts/academic_teaching_institution.json"
 SITUATION = "academic.teaching"
 
-#: The levels `107` asks of Teaching, as the drafted row would answer them.
+#: `107`'s own order for Teaching -- Institution -> term -> course -> teaching
+#: function -- as the wired row now answers it. The three non-institution
+#: labels are v1's OWN LABELS, carried forward unchanged (`00` amendment 31's
+#: second condition): a person who has already been shown "Semester I taught"
+#: must keep finding it under that name.
 EXPECTED_LEVELS = (
     ("school", "School I taught at", "optional"),
-    ("term", "Semester I taught", "optional"),
-    ("subject", "Course I taught", "required"),
-    ("work_type", "Kind of teaching material", "required"),
-)
-
-#: What the SHIPPED row answers today: the institution level is missing.
-SHIPPED_LEVELS = (
     ("term", "Semester I taught", "optional"),
     ("subject", "Course I taught", "required"),
     ("work_type", "Kind of teaching material", "required"),
@@ -61,174 +68,144 @@ PERSON_NAMING_KEYS = frozenset(
     {"people", "subject_of_record", "account_holder", "client", "instructor"})
 
 
-@pytest.fixture
+@pytest.fixture()
 def shipped():
     return load_shipped_catalogue(read_packaged_library_file)
 
 
-@pytest.fixture
-def extended(monkeypatch):
-    """The shipped release PLUS the draft. Both `read_packaged_library_file` and
-    `shipped_catalogue_manifest` look the file list up at call time, so widening
-    the module attribute is enough."""
-    monkeypatch.setattr(production, "LIBRARY_FILES", (*LIBRARY_FILES, DRAFT))
-    return load_shipped_catalogue(read_packaged_library_file)
+# --- the wired row's own shape ------------------------------------------------
+
+def test_the_row_is_shipped_at_version_2(shipped):
+    """THE GATE. A later edit that reverts the row to v1, or that adds a second
+    row beside it instead of replacing this one, turns this red."""
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    assert row.detection_signal_refs == (f"recognition:{SITUATION}",)
+    assert ("ap.academic.teaching", 1) not in shipped.applicabilities, (
+        "v1 must be REPLACED, not left beside v2 -- two rows for one "
+        "recognition signal make the situation unresolvable")
 
 
-@pytest.fixture
-def draft():
-    return json.loads((LIBRARY / DRAFT).read_text(encoding="utf-8"))
-
-
-# --- the draft is in the library's own shape --------------------------------
-
-def test_the_draft_parses_through_the_real_loader(extended, draft):
-    assert set(draft) - {"_"} == {"fragments", "definitions", "applicabilities"}
-    assert draft["fragments"] == [] and draft["definitions"] == []
-    (row,) = draft["applicabilities"]
-    assert set(row["allowed_fields"]) == {
-        b["field_ref"] for b in row["role_bindings"]}
-    assert len(row["allowed_fields"]) == len(set(row["allowed_fields"]))
-    assert row["privacy_floor"] is None
-    assert (row["applicability_id"], 2) in extended.applicabilities
-
-
-def test_the_draft_reuses_a_shipped_template_and_mints_no_name(shipped, draft):
+def test_the_row_mints_no_new_situation_name_and_reuses_the_shipped_template(
+        shipped):
     """No new fragment, no new definition, and no new situation name: the only
-    drafted vocabulary is one label."""
-    (row,) = draft["applicabilities"]
-    assert (row["template_id"], row["template_version"]) in shipped.definitions
-    assert row["detection_signal_refs"] == [f"recognition:{SITUATION}"]
+    drafted vocabulary was one label, `'School I taught at'`."""
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    assert (row.template_id, row.template_version) in shipped.definitions
     assert SITUATION in {r.name for r in shipped_situations(shipped)}
 
 
-def test_the_draft_carries_the_shipped_bindings_forward_unchanged(shipped, draft):
-    """v2 ADDS the institution level and changes nothing else."""
-    v1 = shipped.applicabilities[("ap.academic.teaching", 1)]
-    (row,) = draft["applicabilities"]
-    drafted = {b["role_ref"]: (b["field_ref"], b["label"])
-               for b in row["role_bindings"]}
-    for binding in v1.role_bindings:
-        assert drafted[binding.role_ref] == (binding.field_ref, binding.label)
-    assert set(drafted) - {b.role_ref for b in v1.role_bindings} == {
-        "holder_institution"}
-    for key in ("uses_schema", "template_id", "life"):
-        assert row[key] == getattr(v1, key if key != "life" else "life")
+def test_the_row_carries_v1s_three_bindings_forward_unchanged(shipped):
+    """`00` amendment 31's second condition, read off the row itself: the
+    labels a person has already been shown are not renamed. v2 ADDS the
+    institution level and changes nothing else about the other three."""
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    bound = {b.role_ref: (b.field_ref, b.label) for b in row.role_bindings}
+    assert bound["cycle_period"] == ("term", "Semester I taught")
+    assert bound["subject_anchor"] == ("subject", "Course I taught")
+    assert bound["artifact_kind"] == ("work_type", "Kind of teaching material")
+    assert set(bound) - {"holder_institution"} == {
+        "cycle_period", "subject_anchor", "artifact_kind"}
+    assert bound["holder_institution"] == ("school", "School I taught at")
 
 
-# --- what the level would be worth ------------------------------------------
-
-def test_the_drafted_row_builds_107s_teaching_order(draft, shipped):
+def test_the_row_builds_107s_teaching_order(shipped):
     """`107`: Institution -> term -> course -> teaching function. Read off the
-    SHIPPED definition's own dimension order, so the draft cannot assert it."""
-    (row,) = draft["applicabilities"]
-    definition = shipped.definitions[("def.subject-work-record.third-party", 1)]
-    bound = {b["role_ref"]: b for b in row["role_bindings"]}
+    shipped DEFINITION's own dimension order, so this test cannot assert an
+    order the template does not actually carry."""
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    definition = shipped.definitions[(row.template_id, row.template_version)]
+    bound = {b.role_ref: b for b in row.role_bindings}
     answered = tuple(
-        (bound[d.role_ref]["field_ref"], bound[d.role_ref]["label"],
-         d.requirement)
+        (bound[d.role_ref].field_ref, bound[d.role_ref].label, d.requirement)
         for d in sorted(definition.default_order.dimensions,
                         key=lambda d: d.order_index)
         if d.role_ref in bound)
     assert answered == EXPECTED_LEVELS
 
 
-def test_the_shipped_row_is_missing_exactly_the_institution_level(shipped):
-    """The gap `111` measured, pinned so that closing it changes this test."""
+def test_the_shipped_situation_now_answers_all_four_levels(shipped):
+    """The gap `111` measured is closed: `folder_levels_for` now returns the
+    institution level alongside the three it always returned."""
     answered = tuple((lvl.field, lvl.label, lvl.requirement)
                      for lvl in folder_levels_for(shipped, SITUATION))
-    assert answered == SHIPPED_LEVELS
-    assert "school" not in {lvl.field for lvl in folder_levels_for(
-        shipped, SITUATION)}
+    assert answered == EXPECTED_LEVELS
 
 
-def test_the_institution_level_needs_no_new_field(draft):
+def test_the_institution_level_needed_no_new_field(shipped):
     """`school` is live, destination-eligible and declared at `academic`, so
-    unlike the Health and Travel drafts this row carries NO dependency gap."""
+    unlike the Health and Travel drafts this row carried NO dependency gap."""
     live = {r.field_key for r in FIELD_ROWS}
     eligible = {r.field_key for r in FIELD_ROWS if r.destination_eligible}
-    (row,) = draft["applicabilities"]
-    for field in row["allowed_fields"]:
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    for field in row.allowed_fields:
         assert field in live, field
         assert field in eligible, field
         assert (field in DOMAIN_FIELDS["academic"]
                 or field in UNIVERSAL_FIELDS), field
 
 
-def test_no_teaching_level_names_a_person(draft):
+def test_no_teaching_level_names_a_person(shipped):
     """`107` line 120, and `107`'s Teaching branch: 'Student Administration/
     # protected; no student-name folders'."""
-    (row,) = draft["applicabilities"]
-    assert not {b["field_ref"] for b in row["role_bindings"]} & PERSON_NAMING_KEYS
-    assert row["exclusions"]
+    row = shipped.applicabilities[("ap.academic.teaching", 2)]
+    assert not {b.field_ref for b in row.role_bindings} & PERSON_NAMING_KEYS
+    assert row.exclusions
 
 
-# --- the ratification gate ---------------------------------------------------
+# --- the replacement disturbed nothing else -----------------------------------
 
-def test_the_draft_is_not_in_the_shipped_release(shipped):
-    """DELETE THIS TEST when the owner rules on `111`'s packet. Until then the
-    shipped answer for `academic.teaching` is v1's three levels and the draft is
-    unreachable through the one filesystem touch."""
-    assert DRAFT not in LIBRARY_FILES
-    with pytest.raises(ConfigurationRequired):
-        read_packaged_library_file(DRAFT)
-    assert ("ap.academic.teaching", 2) not in shipped.applicabilities
+def test_the_domain_and_life_are_unchanged(shipped):
     assert schema_for_situation(shipped, SITUATION) == "academic"
     assert life_of(shipped, SITUATION) == "Teaching"
+    assert template_id_for_situation(shipped, SITUATION) == (
+        "def.subject-work-record.third-party")
 
 
-def test_adding_the_draft_beside_v1_breaks_the_situation(extended):
-    """THE MEASURED COST OF WIRING, and the reason `111` sends this to the owner
-    rather than appending a file name.
+def test_the_shipped_release_still_reports_208_situations_and_only_teaching_moved(
+        shipped):
+    """`00` amendment 31's own worry, checked directly against the release as it
+    shipped before this wave: a replacement must not silently widen or narrow
+    the menu, or touch any row but the one it was authorised to replace.
 
-    `folder_levels_for`, `life_of` and `template_id_for_situation` resolve a
-    situation by scanning every row for its `recognition:` signal and REFUSE when
-    two carry it. A v2 row does NOT supersede v1 -- the loader keys rows by
-    `(id, version)`, so the two coexist and `academic.teaching` stops resolving.
-    Wiring this row therefore means REPLACING the shipped v1 row, which is an
-    edit to a shipped row and the owner's alone to authorise."""
-    assert ("ap.academic.teaching", 1) in extended.applicabilities
-    assert ("ap.academic.teaching", 2) in extended.applicabilities
-    for call in (folder_levels_for, life_of, template_id_for_situation):
-        with pytest.raises(ConfigurationRequired) as caught:
-            call(extended, SITUATION)
-        assert "2 applicability rows" in str(caught.value), call.__name__
+    Compared against `git show HEAD:...applicabilities.json` rather than a
+    hand-written "the other 207 look like this" fixture, because 208 rows is
+    too many to retype and a retyped copy could drift from the release without
+    this test noticing. `shipped_situations` lists a name once per DOMAIN that
+    carries it (its own docstring: "a situation carried by rows in two domains
+    is listed under each"), so the comparison is over its full output, by
+    `(schema, name)`, not by name alone.
+    """
+    import subprocess
 
+    import production
 
-def test_the_domain_still_resolves_because_both_rows_agree_on_it(extended):
-    """`schema_for_situation` is the one that does NOT refuse: it collects
-    `uses_schema` across the carrying rows and refuses only when they DISAGREE.
-    Both rows say `academic`, so the domain survives while the folders do not.
-    Recorded so `111`'s claim is the measurement and not a guess."""
-    assert schema_for_situation(extended, SITUATION) == "academic"
+    before_json = subprocess.run(
+        ["git", "show", "HEAD:src/tree_design/library/applicabilities.json"],
+        capture_output=True, text=True, check=True).stdout
 
+    def read_before(name):
+        if name == "applicabilities.json":
+            return before_json
+        return read_packaged_library_file(name)
 
-def test_the_cloud_bound_menu_silently_keeps_the_old_levels(shipped, extended):
-    """THE FINDING `111` REPORTS, and the sharpest reason not to wire by addition.
+    before_catalogue = load_shipped_catalogue(read_before)
+    before = {(row.schema, row.name): row
+             for row in shipped_situations(before_catalogue)}
+    after = {(row.schema, row.name): row for row in shipped_situations(shipped)}
 
-    `shipped_situations` -- the menu `cli.py` builds for the model -- collects
-    rows with `setdefault((schema, name), ...)`, so the FIRST row carrying the
-    signal wins and the release still reports 208 situations. The menu would go
-    on advertising v1's three labels, with no institution level, while
-    `folder_levels_for` refuses to build anything at all. The person is shown one
-    answer and the product holds another, and nothing raises."""
-    assert len(shipped_situations(extended)) == len(shipped_situations(shipped))
-    listed = {row.name: row for row in shipped_situations(extended)}
-    assert listed[SITUATION].folder_levels == tuple(
-        level[1] for level in SHIPPED_LEVELS)
-    assert "School I taught at" not in listed[SITUATION].folder_levels
-    with pytest.raises(ConfigurationRequired):
-        folder_levels_for(extended, SITUATION)
+    assert len(after) == 208
+    assert set(before) == set(after), "the set of (schema, situation) rows moved"
 
-
-def test_no_other_situation_is_disturbed_by_the_draft(shipped, extended):
-    """Only `academic.teaching` changes; every other shipped answer is identical."""
-    before = {row.name for row in shipped_situations(shipped)}
-    after = {row.name for row in shipped_situations(extended)}
-    assert before == after
-    for situation in sorted(before - {SITUATION}):
-        assert folder_levels_for(shipped, situation) == folder_levels_for(
-            extended, situation), situation
-        assert schema_for_situation(shipped, situation) == schema_for_situation(
-            extended, situation), situation
-        assert life_of(shipped, situation) == life_of(extended, situation), situation
+    changed = {key for key in before if before[key] != after[key]}
+    assert changed == {("academic", SITUATION)}, (
+        "a row other than academic.teaching changed shape")
+    assert after[("academic", SITUATION)].folder_levels == tuple(
+        level[1] for level in EXPECTED_LEVELS)
+    # the three old labels are a PREFIX-preserving subset, in their old order --
+    # `00` amendment 31's second condition, checked on the exact tuple the
+    # cloud-bound menu serves rather than on the row alone.
+    assert before[("academic", SITUATION)].folder_levels == (
+        "Semester I taught", "Course I taught", "Kind of teaching material")
+    assert after[("academic", SITUATION)].folder_levels == (
+        "School I taught at", "Semester I taught", "Course I taught",
+        "Kind of teaching material")

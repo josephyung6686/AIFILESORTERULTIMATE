@@ -164,9 +164,16 @@ def test_every_binding_carries_a_label(rows):
     """`RoleBinding.label` is required rather than optional, deliberately: *"An
     optional label is a label nobody authors."* The record enforces it; this
     asserts the shipped data actually exercised that requirement, which a file
-    of zero rows would also satisfy."""
+    of zero rows would also satisfy.
+
+    123 -> 124: `00` amendment 31 (20 Sep 2026) adds ONE binding --
+    `holder_institution`/`school`, labelled "School I taught at" -- to the
+    shipped `ap.academic.teaching` row, replacing it in place under the
+    amendment's standing permission. No row was added or removed, so this is
+    the only count in this file the change touches.
+    """
     bindings = [b for row in rows for b in row.role_bindings]
-    assert len(bindings) == 123
+    assert len(bindings) == 124
     assert all(b.label.strip() for b in bindings)
 
 

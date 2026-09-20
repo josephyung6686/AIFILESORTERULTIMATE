@@ -806,8 +806,14 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
     row of a definition must share one name has no audience-specific naming left.
 
     So: the seven pairs still disagree about their labels, on exactly the roles
-    they disagreed about before, and not one of the 503 bindings has decayed into
+    they disagreed about before, and not one of the 504 bindings has decayed into
     its own field key.
+
+    123 -> 124 and 503 -> 504: `00` amendment 31 (20 Sep 2026) adds ONE binding
+    -- `holder_institution`/`school`, labelled "School I taught at" -- to the
+    shipped `ap.academic.teaching` row, replacing it in place. No row was added
+    or removed and none of the seven colliding pairs above is `academic.teaching`,
+    so only these two counts move.
     """
     colliding = {pair: _colliding_roles(rows)
                  for pair, rows in _launch_pairs().items()
@@ -819,7 +825,7 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
     launch = [binding
               for row in launch_catalogue().applicabilities.values()
               for binding in row.role_bindings]
-    assert len(launch) == 123, "the 54 launch rows' authored names"
+    assert len(launch) == 124, "the 54 launch rows' authored names"
 
     # Every row the library holds, waves 2 included, because the claim is about
     # the authored vocabulary and not about which wave shipped it.
@@ -833,7 +839,7 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
                 if isinstance(rows, list)
                 for row in rows
                 for binding in row.get("role_bindings", ())]
-    assert len(bindings) == 503
+    assert len(bindings) == 504
     echoes = sorted({binding["label"] for binding in bindings
                      if binding["label"] == binding["field_ref"]})
     assert not echoes, (
