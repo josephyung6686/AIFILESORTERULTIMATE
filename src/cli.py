@@ -20530,6 +20530,32 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         decisions=design_decisions(_accepted),
         placement_inputs=placement_inputs,
         component_version=COMPONENT_VERSION, observed_at=now())
+    # THE 19 SEP RULING, REACHING THE VERSIONS IT COULD NOT SEE. `production.py`
+    # puts the policy in force for every version THE DESIGN mints, and the two
+    # steps above mint one AFTER that loop has returned: `design_authorities`
+    # takes a fresh `run_token` per call, so a home minted on demand lands on a
+    # plan version of its own with no policy behind it. `act_on_residual_sets`
+    # then asks `placement.privacy.privacy_state_for` about exactly that version
+    # -- the comment above says so, and it is the right version to ask about --
+    # and the gate refused, which is the gate working: a run where `--residual`
+    # was not typed died `PolicyRequired` on a version the person never saw
+    # named, and threw away a plan that had already been computed.
+    #
+    # IT WIDENS NOTHING, and that is why it is bookkeeping rather than a
+    # decision. The operation mode and the consent grants come from the person's
+    # command and are the same for every version of this run; `set_privacy_policy`
+    # writes the identical answer, and `_permissions_in_force` falls back to the
+    # standing grants for a version carrying none exactly as it did for the
+    # design's own. No file becomes more sendable than it already was: a version
+    # that could not be asked about at all can now be answered, with its
+    # siblings' answer.
+    #
+    # `is None` AND NOT AN UNCONDITIONAL WRITE. `set_policy` supersedes the row in
+    # force, so re-stating the design's own policy would churn the record §8.5's
+    # replay reads back with a second version of identical content.
+    for version in result.tree.plan_version_ids:
+        if current_policy(conn, plan_version=version) is None:
+            set_privacy_policy(conn, version)
 
     _two_home_questions(
         conn, result, asked_at=clock,

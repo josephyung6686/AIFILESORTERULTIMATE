@@ -334,3 +334,113 @@ def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
     assert "Folders in this plan" in printed, printed
     assert AREA_ADVICE in printed, printed
     assert "--residual 'Review Later'" in printed, printed
+
+
+#: The columns of `privacy_policies` that decide whether anything about a file
+#: may leave the device: the operation mode, the consent the person gave, the
+#: per-file `--file-held` grants and the always-local kinds a policy suspends.
+#: `policy_version`, `plan_version` and `set_at` differ between two rows of one
+#: run by construction and say nothing about egress, so they are left out --
+#: comparing whole rows would be comparing the clock.
+EGRESS_COLUMNS = ("operation_mode", "consent_grants",
+                  "automatic_move_permissions", "suspended_item_kinds")
+
+
+def _live_policies(corpus: Path) -> dict[str, tuple]:
+    """plan version -> its egress answer, for every policy standing right now."""
+    conn = sqlite3.connect(corpus.parent / "plan.sqlite")
+    conn.row_factory = sqlite3.Row
+    try:
+        return {row["plan_version"]: tuple(row[name] for name in EGRESS_COLUMNS)
+                for row in conn.execute("SELECT * FROM privacy_policies "
+                                        "WHERE superseded_by IS NULL")}
+    finally:
+        conn.close()
+
+
+def _the_set_decision(corpus: Path) -> tuple[str, str]:
+    """(the version the answer was acted under, the version that printed the set).
+
+    Both read off the product's own row rather than recomputed here: the answer
+    records the plan version it was given in, and `set_id` is prefixed with the
+    version whose screen named the set. A test that derived either would be
+    asserting against its own arithmetic.
+    """
+    conn = sqlite3.connect(corpus.parent / "plan.sqlite")
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = list(conn.execute(
+            "SELECT plan_version, set_id FROM residual_set_decisions"))
+    finally:
+        conn.close()
+    assert len(rows) == 1, [dict(row) for row in rows]
+    return rows[0]["plan_version"], rows[0]["set_id"].split(":")[0]
+
+
+def test_a_set_answer_acts_under_a_version_this_run_put_a_policy_on(tmp_path):
+    """Which plan a gesture acts under, and that the gate can be asked about it.
+
+    MEASURED, because the call path is not the one it reads like. A `--send-set`
+    is not acted on before the design: `cli.run` designs the tree, `production.py`
+    puts the policy in force for every version the design minted, and only then
+    does `act_on_residual_sets` ask `placement.privacy.privacy_state_for` about
+    `placement_inputs(result.tree).plan_version`. The answer to "which plan" is
+    written in `cli.run` beside the call that decides it -- the version the sets
+    are answered against "is the one that holds the homes" -- and it is the right
+    answer: the set is this run's set, the screen offering it is this run's
+    screen, and `act_on_residual_sets` already refuses to carry an answer across
+    versions because a later run's set may hold different files.
+
+    WHAT WAS WRONG WAS THAT ONE VERSION OF THE RUN HAD NO POLICY. `00` amendment
+    13 mints the review home on demand for a person who did not type
+    `--residual`, and `mint_review_homes_on_demand` takes a fresh
+    `design_authorities`, whose `run_token` is minted per call -- so the home
+    lands on a plan version of its own, minted AFTER `production.py`'s loop had
+    already returned. The gate was then asked about a version nothing had
+    answered for and refused, which is the gate working: `PolicyRequired` says
+    the operation mode decides whether anything may leave the device and P11
+    assumes none. The run died and threw away a plan it had already computed.
+
+    SO THIS PINS TWO THINGS AT ONCE, and the second is why the fix is
+    bookkeeping rather than a decision about egress: every version of one run
+    carries the SAME answer. The operation mode and the consent grants come from
+    the person's command; a version minted later in the same command cannot mean
+    a different answer to "may anything about this file leave the device", and
+    if it ever did, this run would be widening what the person agreed to
+    somewhere they could not see.
+
+    SABOTAGE: drop the loop in `cli.run` that puts the policy in force for the
+    versions minted after the design. The first `--send-set` typed without
+    `--residual` dies `PolicyRequired` on a plan version the person was never
+    shown, and `code == 0` below fails with no plan printed at all.
+
+    SABOTAGE 2: write the later version a policy of its own choosing -- a
+    different operation mode, or grants read from somewhere other than this
+    command. The run survives and the last assertion fails, which is the only
+    assertion here that is about egress rather than about a crash.
+    """
+    corpus = _corpus(tmp_path)
+    _first_run(corpus)
+
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(corpus.parent / "plan.sqlite"),
+                     "--accept-groups",
+                     "--send-set", FIRST_SET], out=out)
+    printed = "\n".join(line for line in out.getvalue().splitlines()
+                        if not line.startswith("Plan database:"))
+
+    # The gate was reached and answered, rather than taking the run down.
+    assert code == 0, printed
+    assert "Would go into Review Later" in printed, printed
+
+    acted_under, printed_the_set = _the_set_decision(corpus)
+    standing = _live_policies(corpus)
+    assert acted_under in standing, (acted_under, sorted(standing))
+    assert printed_the_set in standing, (printed_the_set, sorted(standing))
+    # THE SAME ANSWER, NOT A WIDER ONE. Both versions belong to this one
+    # command, so anything but equality here would be a second egress answer
+    # nobody typed.
+    assert standing[acted_under] == standing[printed_the_set], (
+        acted_under, printed_the_set, standing)
