@@ -1424,6 +1424,41 @@ def enable_review_homes(conn, authorities, decisions, *, version: str,
     Published so `mint_review_homes` can call it after placement, on a draft
     opened from the frozen tree -- the same seam `mint_scoped_generals` uses
     for `00`:99's General.
+
+    **THE ROOT IS MINTED BY ORIGIN AND FOUND BY LABEL, AND THAT IS NOT AN
+    OVERSIGHT.** It reads like one -- `9bf8ffe3` keyed the mint and left the
+    lookup on `display_label` -- so the measurement is here rather than left for
+    somebody to "fix". The label is what reunites this run with the folder the
+    LAST run created. Once a plan has been applied the person really has a
+    `98 Review and Unsorted` directory, `cli.adopted_folders` offers every
+    directory to the design, and it comes back as a parentless `existing` node
+    whose origin is `existing:<its path>` and never `branch:98 Review and
+    Unsorted`. Measured on a corpus holding that folder: the homes land INSIDE
+    the person's own `98`. A lookup on `origin_node_id == branch_key(...)` would
+    miss it and mint a second root-level `98` beside the first, so the swap is
+    not the behaviour-neutral tightening it looks like, whichever of the two
+    behaviours is the wanted one.
+
+    **AND WHICH OF THEM IS WANTED IS NOT SETTLED HERE.** The paragraph above says
+    "the parent is still a branch THIS RUN proposed and never a folder the person
+    already had (`00`:100)", and the measurement says that on the second run over
+    an applied corpus it IS a folder they already had. Reuse reads like the
+    kinder answer -- the folder exists and holds their files -- and `00`:100 as
+    quoted reads like it forbids exactly that. Two readings of one paragraph is
+    the owner's to decide and not an agent's; what is recorded here is that the
+    two disagree and where, so whoever settles it starts from the measurement.
+
+    What the label lookup cannot find is a root somebody RENAMED --
+    `store.apply_review_action`'s RENAME arm writes `display_label` and leaves
+    the origin alone. That is unreachable today and by more than one argument:
+    no production caller constructs a RENAME at all (`pipeline._apply` emits
+    `ACCEPT`, `IGNORE`, `ADD_SCOPED_GENERAL` and `SET_SHARED_MATERIAL_POLICY`,
+    and the CLI's `--rename` is P6's value claim while a canvas relabel travels
+    as P13's gesture into `user_level_edits`), and the two callers here both run
+    within one invocation, the second on a draft opened from the first's frozen
+    tree. If a RENAME writer ever arrives, the answer is the shape
+    `placement.versions` already uses for exactly this problem -- match EITHER
+    identity, the label or the origin -- and not a swap of one for the other.
     """
     existing = {node.node_id: node for node in nodes_for_version(conn, version)}
     root = next((node for node in existing.values()
