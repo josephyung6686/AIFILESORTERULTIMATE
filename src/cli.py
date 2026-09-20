@@ -5023,12 +5023,21 @@ CREATION_DATE_FIELD = "creation_date"
 #: clock. OWNER ITEM, shared with `_CAPTURE_YEAR`: `1970` and `1980` are epoch and
 #: default-clock values on some writers and this pattern admits them; the floor is
 #: a threshold, and a threshold is the owner's number.
-_CALENDAR_YEAR = re.compile(r"(?<!\d)[12]\d{3}(?!\d)")
+#:
+#: `00` amendment 33: PDF metadata dates are `D:YYYYMMDDHHmmSS` with an optional
+#: trailing UTC offset (`+HH'mm'`, `-HH'mm'`, `Z`, or `Z` followed by `HH'mm'`), and
+#: any prefix of the digits (`D:YYYY`, `D:YYYYMM`, ...) is equally legal -- the year
+#: sits right after the `D:` marker no matter which of those a given writer wrote,
+#: so the second alternative below reads exactly the four digits there and never
+#: looks past them. The lookbehind excludes a preceding LETTER, not just a digit,
+#: so a value that merely ends in `...ID:` (a document number) is not mistaken for
+#: one that opens with the PDF marker.
+_CALENDAR_YEAR = re.compile(r"(?<!\d)([12]\d{3})(?!\d)|(?<!\w)D:([12]\d{3})")
 
 
 def year_of(raw: str) -> str | None:
     """The one calendar year a `creation_date` value carries, or `None`."""
-    years = set(_CALENDAR_YEAR.findall(raw or ""))
+    years = {plain or pdf for plain, pdf in _CALENDAR_YEAR.findall(raw or "")}
     return next(iter(years)) if len(years) == 1 else None
 
 
