@@ -168,27 +168,27 @@ def test_no_outcome_but_an_abstention_or_a_question_may_carry_a_reason():
 
 
 def test_where_the_widening_stops_and_the_pipeline_takes_over():
-    """THE ONE HOLE THE WIDENING OPENS, PINNED RATHER THAN QUIETLY CLOSED.
+    """THE HOLE THE WIDENING OPENED, NOW CLOSED BY A FOURTH CLAUSE.
 
     §8.6: a run cut short at a ceiling did not look, and a question is the
     strongest possible claim that it did, so a budget deferral is never a
-    question. Before the amendment the record enforced that as a side effect --
-    an `ask_user` could carry no reason at all, so it could not carry that one.
-    It no longer does: the deferral biconditional below still refuses the
-    stage-less form, and the form WITH a stage is now a record this class
-    accepts. It is built by nothing: `pipeline._abstention` consults the ask hook
-    only `if reason != BUDGET_DEFERRED`, and `_asking` is reached from there and
-    from step 9, which has no reason at all.
+    question. Before amendment 34 the record enforced that as a side effect --
+    an `ask_user` could carry no reason at all, so it could not carry that one
+    either. 34's middle clause let a question carry ANY reason, including this
+    one, and dropped the side effect along with the rule it rode in on.
 
-    Closing it here would be a rule the owner did not ratify -- amendment 34
-    names three clauses and this is a fourth -- so it is recorded as the boundary
-    of what was ratified rather than legislated past.
+    `00` amendment 37 is the fourth clause that puts it back, named rather than
+    inherited: `budget_deferred` is NEVER a question, on any stage. Nothing
+    builds such a record today -- `pipeline._abstention` consults the ask hook
+    only `if reason != BUDGET_DEFERRED` -- so this closes a latent hole rather
+    than a live one, and it is closed because a rule defended only by the
+    pipeline is the arrangement that produced 34's defect in the first place.
     """
     with pytest.raises(MalformedPlacementRecord):
         _asked(abstention_reason=v.BUDGET_DEFERRED, deferred_stage=None)
-    admitted = _asked(abstention_reason=v.BUDGET_DEFERRED,
-                      deferred_stage=v.PLACEMENT_SCORING)
-    assert admitted.deferred_stage == v.PLACEMENT_SCORING
+    with pytest.raises(MalformedPlacementRecord):
+        _asked(abstention_reason=v.BUDGET_DEFERRED,
+              deferred_stage=v.PLACEMENT_SCORING)
 
 
 def test_return_to_placement_is_residual_only_and_ask_user_is_placement_only():
