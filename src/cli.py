@@ -4135,22 +4135,118 @@ ROOT_ANCHOR: str = "root_documents"
 #: `00`:173's platform table. Every field is a fact about the filesystem this
 #: build runs on, and none of them may be guessed inside a part package.
 #:
-#: `case_sensitive=False` on darwin is deliberate and is the field that can
-#: destroy a file if it is wrong. APFS and HFS+ are case-INSENSITIVE by default,
-#: so `Resume.pdf` and `resume.pdf` are one path; declaring the filesystem
-#: case-sensitive would let `find_collision` decide there was no collision and
-#: let the rename that follows overwrite the incumbent. The safe error is to see
-#: a collision that is not there -- that stops and asks -- not to miss one.
-_FILESYSTEM_CONSTRAINTS: FilesystemConstraints = FilesystemConstraints(
-    unicode_form="NFC",
-    case_sensitive=sys.platform not in ("darwin", "win32"),
-    max_component_bytes=255,
-    max_path_bytes=1024 if sys.platform == "darwin" else 4096,
-    prohibited_characters=(frozenset({"/", "\0", ":"})
-                           if sys.platform == "darwin"
-                           else frozenset({"/", "\0"})),
-    reserved_names=frozenset(),
-    replacement_character="_")
+#: **`00` AMENDMENT 39 MADE THAT SENTENCE TRUE OF THE WHOLE BLOCK.** Three fields
+#: read `sys.platform` and three did not, and each of the three that did had an
+#: `else` -- so a platform nobody here had reasoned about never failed, it quietly
+#: collected LINUX'S answers: a 4096-byte path budget, a case-sensitive collision
+#: test, and a prohibited set of two characters. All three are false on Windows,
+#: and the middle one is false in the direction that loses a file. The owner ruled
+#: MAC AND LINUX LAPTOPS and ruled Windows a phase of its own -- separators,
+#: `MAX_PATH`, reserved device names and different rename semantics all reach the
+#: move path -- so the fix is not a third arm. It is to stop implying there is one.
+#: These two are the platforms whose rules were read; anything else is refused
+#: below rather than filed under somebody else's table.
+_ESTABLISHED_PLATFORMS: tuple[str, ...] = ("darwin", "linux")
+
+
+def _filesystem_constraints() -> FilesystemConstraints:
+    """The target's rules, per platform, each one with the source it came from.
+
+    **`case_sensitive=False` on darwin is deliberate and is the field that can
+    destroy a file if it is wrong.** APFS and HFS+ are case-INSENSITIVE by
+    default, so `Resume.pdf` and `resume.pdf` are one path; declaring the
+    filesystem case-sensitive would let `find_collision` decide there was no
+    collision and let the rename that follows overwrite the incumbent. The safe
+    error is to see a collision that is not there -- that stops and asks -- not to
+    miss one. **Every unknown below takes its error the same way.**
+
+    **`unicode_form` KEEPS ITS VALUE AND GAINS THE ARGUMENT IT NEVER HAD.** It was
+    the one field in the block nobody asked, and asking it does not move it -- but
+    NFC is right on the two targets for two DIFFERENT reasons, and only one of
+    them is a fact about a volume:
+
+    * macOS, MEASURED on this build's own platform (APFS, Darwin 24.6.0, 2026-09-20):
+      a file created under the decomposed bytes `cafe\\xcc\\x81.txt` listed back as
+      those bytes, NOT recomposed -- and the composed path `caf\\xc3\\xa9.txt`
+      opened that same file and overwrote it. Apple's APFS FAQ states the same
+      from the other side: APFS "preserves the normalization of the filename and
+      uses hashes of the normalized form" to be normalization-INSENSITIVE, in
+      both the case-sensitive and case-insensitive variants, where HFS+ instead
+      "stores the normalized form of the filename on disk". So on a Mac the form
+      written is not the filesystem's business -- it keeps whatever it is handed --
+      and the two forms are ALREADY one path whatever this field says.
+    * Linux: the kernel's ext4 documentation describes a directory as mapping "an
+      arbitrary byte string (usually ASCII) to an inode number". Nothing
+      normalizes, so the two forms are TWO files and there is no volume answer to
+      read. The product must pick a form, and picking one makes `collation_key`
+      fold them together: a collision reported where the filesystem would have
+      allowed both. That is the safe error again, taken on purpose -- two names a
+      person cannot tell apart are stopped and asked about, not filed side by side.
+
+    NFC rather than NFD because it is the composed form text arrives in and the
+    form the Mac keeps unchanged; but the claim this field makes is only ever
+    *this is the form the product writes and compares under*, and neither target
+    contradicts it. It is not a claim that either filesystem stores NFC.
+
+    **`reserved_names=frozenset()` IS CORRECT, AND THAT IS NOW RECORDED RATHER
+    THAN ASSUMED.** Neither target reserves a filename: `CON`, `NUL` and `LPT1`
+    are ordinary names on APFS and on ext4. The two components that are
+    impossible on every filesystem are handled elsewhere and deliberately not
+    here -- a separator and NUL are `mutation.constraints.ALWAYS_PROHIBITED`, and
+    `.`/`..` are refused structurally by `mutation.names`. The field exists for
+    the platform where emptiness would be a lie; on these two it is an answer.
+
+    **THE LENGTHS ARE EACH KERNEL'S OWN.** 255 bytes a component on both:
+    `os.pathconf('/', 'PC_NAME_MAX')` measures 255 on darwin, and the ext4
+    documentation gives the same ceiling ("file names cannot be longer than 255
+    bytes"). The whole path differs -- `PC_PATH_MAX` measures 1024 on darwin, and
+    Linux's `include/uapi/linux/limits.h` defines `PATH_MAX` as 4096.
+
+    **AND `sys.platform` IS A FACT ABOUT THE PROCESS, NOT ABOUT THE VOLUME.**
+    `mutation.constraints.measure_case_sensitivity` exists to ask the destination
+    itself, because a Linux process files onto exFAT sticks, NTFS partitions and
+    SMB shares that all fold; nothing in this file calls it yet. That gap is real
+    and is not this function's to close. It is named here so the next reader knows
+    this table is DECLARED per platform, not measured per volume.
+    """
+    if sys.platform == "darwin":
+        return FilesystemConstraints(
+            unicode_form="NFC",
+            case_sensitive=False,
+            max_component_bytes=255,
+            max_path_bytes=1024,
+            # The colon is legal at the POSIX layer and unreadable above it.
+            # MEASURED 2026-09-20: a file written as `a:b.txt` is handed back by
+            # System Events as `a/b.txt` -- the Carbon path layer still uses `:`
+            # as its separator and swaps the two -- so a name carrying one is a
+            # name the person cannot read back in the Finder.
+            prohibited_characters=frozenset({"/", "\0", ":"}),
+            reserved_names=frozenset(),
+            replacement_character="_")
+    if sys.platform == "linux":
+        return FilesystemConstraints(
+            unicode_form="NFC",
+            case_sensitive=True,
+            max_component_bytes=255,
+            max_path_bytes=4096,
+            # An ext4 name is an arbitrary byte string, so every byte but the
+            # separator and NUL is legal in it -- colons included, and there is
+            # no display layer that would show one as something else.
+            prohibited_characters=frozenset({"/", "\0"}),
+            reserved_names=frozenset(),
+            replacement_character="_")
+    raise SystemExit(
+        f"This build has established the filesystem rules of "
+        f"{' and '.join(_ESTABLISHED_PLATFORMS)}, and it is running on "
+        f"{sys.platform!r}, which it has not. How long a name may be there, "
+        f"whether two names differing only in case are one file, and which "
+        f"characters that filesystem forbids have none of them been read here "
+        f"-- and a file filed under another platform's answers is a file that "
+        f"can be overwritten by a sibling that only looked different. Refusing "
+        f"rather than moving anything under a table nobody established.")
+
+
+_FILESYSTEM_CONSTRAINTS: FilesystemConstraints = _filesystem_constraints()
 
 #: **`74` §8 Q6, the half of it this build needs: the halt rule.** The batch
 #: BOUND is not needed -- `apply_run` applies one plan at a time, which is

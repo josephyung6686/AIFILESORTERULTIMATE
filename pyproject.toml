@@ -3,6 +3,22 @@ name = "database-agent"
 version = "0.1.0"
 requires-python = "==3.12.*"
 dependencies = []
+# THE PACKAGE DECLARED NO OPERATING SYSTEM AT ALL, while `cli.py` enforced two
+# (`00` amendment 39: Mac and Linux laptops are the target). A person installing
+# this had nothing to read before the install that said so, and an index had
+# nothing to filter on. These two classifiers are the same statement as
+# `cli._ESTABLISHED_PLATFORMS`, and
+# `tests/test_cli_platform_table.py::test_the_package_declares_the_platforms_the_code_accepts`
+# compares the two lists so neither can gain a platform on its own.
+#
+# `MacOS :: MacOS X` rather than the bare `MacOS` parent: `sys.platform ==
+# "darwin"` is the Darwin lineage, and the classic Mac OS the parent also covers
+# is not a system this build runs on. Windows is absent because it is absent from
+# the code -- it is a phase of its own and an unestablished platform refuses.
+classifiers = [
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+]
 
 [project.optional-dependencies]
 # `pytest-randomly` is not optional tooling: every guard in this suite is a
