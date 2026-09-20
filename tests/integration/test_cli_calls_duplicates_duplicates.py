@@ -129,3 +129,55 @@ def test_a_corpus_with_no_duplicates_says_nothing_about_them(tmp_path):
     _, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
 
     assert "same bytes" not in report, report
+
+
+#: THREE copies, which is what a browser's third download leaves behind and what
+#: the two-file fixture above could never produce. Found by running the product
+#: on a mixed corpus rather than by reading it: the sentence is assembled once
+#: and its prose was written for exactly two files.
+def _three_copies(root: Path) -> Path:
+    corpus = _corpus(root)
+    shutil.copyfile(corpus / "Lecture 05.txt", corpus / "Lecture 05 (2).txt")
+    return corpus
+
+
+def test_three_files_with_the_same_bytes_are_not_called_two_documents(tmp_path):
+    """`84` §6: what the screen tells a person has to be true.
+
+    The sentence said "are the same bytes, not TWO documents ... nothing here
+    deletes EITHER, and BOTH are filed the same way" over a list that is built by
+    joining however many names share a digest. With three copies every one of
+    those three words is false, and the person is reading a count that disagrees
+    with the names printed immediately before it.
+
+    SABOTAGE: restore the hardcoded "two ... either ... both". Red here, and the
+    two-file test above stays green -- which is exactly why this went unnoticed.
+    """
+    corpus = _three_copies(tmp_path)
+    _, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
+    flat = " ".join(report.split())
+
+    assert "same bytes" in flat, report
+    assert "not two documents" not in flat, (
+        "three files were named and the sentence still says two: " + report)
+    assert "deletes either" not in flat, report
+    assert "and both are filed" not in flat, report
+
+
+def test_the_three_are_named_as_a_list_and_not_chained_with_and(tmp_path):
+    """The other half of the same sentence, and the same cause.
+
+    `' and '.join(...)` reads as "A and B" for two names and "A and B and C" for
+    three. A person scanning a report for their own filename reads a list; the
+    chain reads as a sentence that lost its commas.
+
+    SABOTAGE: join with " and " again. The names are still all there, so nothing
+    else fails -- only a person's eye does.
+    """
+    corpus = _three_copies(tmp_path)
+    _, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
+    flat = " ".join(report.split())
+
+    assert ("Lecture 05 (1).txt, Lecture 05 (2).txt and Lecture 05.txt "
+            "are the same bytes") in flat, (
+        "three names should be listed, not chained with `and`: " + report)

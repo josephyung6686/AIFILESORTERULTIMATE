@@ -25771,11 +25771,31 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             also = (f" {elsewhere} more file(s) in this plan have the same "
                     f"bytes and are listed elsewhere in this report."
                     if elsewhere else "")
+            # THE COUNT IS READ OFF THE NAMES, and it used to be the word
+            # "two". `together` is however many names share one digest, so a
+            # browser's THIRD download printed three names and then told the
+            # person they were "not two documents ... nothing here deletes
+            # either, and both are filed the same way" -- three words, each
+            # false, immediately under the three names contradicting them.
+            # `84` §6. Found by running the product on a mixed corpus; the
+            # fixture beside this had exactly two copies and could not see it.
+            #
+            # The names are LISTED rather than chained for the same reason: a
+            # person scanning a report for their own filename reads a list,
+            # where "A and B and C" reads as a sentence that lost its commas.
+            listed = (" and ".join(together) if len(together) < 3 else
+                      ", ".join(together[:-1]) + " and " + together[-1])
+            how_many = {2: "two", 3: "three", 4: "four", 5: "five",
+                        6: "six"}.get(len(together), str(len(together)))
+            none_of_them = "either" if len(together) == 2 else "any of them"
+            all_of_them = ("both are" if len(together) == 2
+                           else f"all {how_many} are")
             print(_wrapped(
-                f"{' and '.join(together)} are the same bytes, not two "
+                f"{listed} are the same bytes, not {how_many} "
                 f"documents. Keeping one is probably what you want; nothing "
-                f"here deletes either, and both are filed the same way until "
-                f"you say otherwise.{also}", indent="    "), file=out)
+                f"here deletes {none_of_them}, and {all_of_them} filed the "
+                f"same way until you say otherwise.{also}",
+                indent="    "), file=out)
         if crossing_here:
             where_from = ", ".join(crossing_here)
             print(_wrapped(
