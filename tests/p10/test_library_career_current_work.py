@@ -252,9 +252,16 @@ def test_the_release_gains_exactly_one_situation_and_renames_nothing(shipped):
     cloud-bound menu, collected with `setdefault((schema, name), ...)`, so a row
     added on a signal another row already carried would leave the menu serving the
     older row's labels while `folder_levels_for` refused -- the person shown one
-    answer while the product held another. The three files this change touches are
-    all read at the before-SHA, because reading only one would compare a
-    half-state against itself.
+    answer while the product held another.
+
+    THREE FILES ARE READ AT THE BEFORE-SHA AND ONLY ONE OF THEM CHANGED. This row
+    and its recipe both land in `wave2_commerce.json`; `definitions.json` and
+    `applicabilities.json` are swapped out beside it because they are the other two
+    files a career change could have reached -- `definitions.json` holds D30, which
+    a third order would have gone into, and `applicabilities.json` holds the launch
+    library. Reading only the changed file would compare a half-state against
+    itself and report as unchanged anything this build had quietly touched next
+    door.
     """
     import subprocess
 

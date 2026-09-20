@@ -82,6 +82,11 @@ import cli
 SITUATION = "career.current-work"
 LABEL = "Current work"
 
+#: A NEUTRAL HOLDER, not the owner's name. `00` amendment 40, ruled today: *"THE
+#: OWNER'S NAME IS NOT A TEST FIXTURE."* Sixteen test files carry it and were
+#: replaced; this file is new and starts where they ended up.
+HOLDER = "holder"
+
 #: `107`'s own example person is an employee -- *"product designer at Northstar
 #: Health"* -- which is the corpus shape this template is for, and the reason
 #: `client` is not the employer wearing another name: an in-house corpus has one
@@ -219,7 +224,7 @@ def run(tmp_path):
                 answer=_answers_from_the_files_own_words(local)) as stub:
             monkeypatch.setenv(local.LOCAL_BASE_URL_NAME, stub.base_url)
             cli.main([str(corpus), "--situation", SITUATION,
-                      "--label", LABEL, "--user", "jy",
+                      "--label", LABEL, "--user", HOLDER,
                       "--accept-groups",
                       "--database", str(database)], out=out)
     finally:
