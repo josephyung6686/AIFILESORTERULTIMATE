@@ -112,8 +112,15 @@ from dataclasses import dataclass
 #: `106` Phase 6.2 added the two other type keys: a `validated` `artifact_type`
 #: is declared by five schemas and `record_type` by seven, and a what-kind fact
 #: must not hold one file between four branches.
+#:
+#: `00` amendment 33's second half added `year`, and it is the widest member here
+#: by a long way: `artifact_type` is declared by five schemas and `record_type` by
+#: seven, where `year` is UNIVERSAL and every schema declares it. A year fact that
+#: reached branches would hold one file between all twenty-three -- the same
+#: sentence above, at its limit. It was correctly absent until a folder level
+#: bound it, because a field no folder expects is a rule with nothing to act on.
 BRIDGES_THAT_DO_NOT_REACH: frozenset[str] = frozenset(
-    {"work_type", "artifact_type", "record_type", "term"})
+    {"work_type", "artifact_type", "record_type", "term", "year"})
 
 #: The scope a per-branch situation question is asked at, `questions.vocabulary.
 #: SCOPE_BRANCH`'s word. Spelled here for the same reason as the set above; the

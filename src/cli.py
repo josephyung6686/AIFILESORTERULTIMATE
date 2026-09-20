@@ -5945,7 +5945,27 @@ TYPE_KEYS: tuple[str, ...] = (WORK_TYPE_FIELD, ARTIFACT_TYPE_FIELD, RECORD_TYPE_
 #: reasoning; it is left out because no folder in this deployment expects it, so
 #: naming it would be a rule with nothing to act on. The same is true of every
 #: role above that no producer fills.
-FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({*TYPE_KEYS, TERM_FIELD})
+#:
+#: `year` JOINED ON THE DAY THIS COMMENT NAMED. Both halves of the membership rule
+#: became true at once: `year_facts` had long filled it, and `00` amendment 33's
+#: second half bound it as a folder level on `ap.career.recruiting`, so a folder
+#: in this deployment now expects it. Until then it was precisely the
+#: `media_type` case -- a rule with nothing to act on -- which is why it was
+#: right to be absent and is wrong to stay absent now.
+#:
+#: The harm is `00`:42's, one field over. A career branch whose files all carry
+#: one year absorbs `year` onto the branch folder itself (`materialise._project`'s
+#: `stated`, because the level did not divide and there was no child to put it
+#: on), and any other file carrying that year and nothing else would then be
+#: carried into it -- the six physics papers into `Desktop/AP world`, read on a
+#: field EVERY schema declares rather than on one four do.
+#:
+#: It costs the year folder nothing. `_without_kind_only_moves` drops a candidate
+#: only where the folder is something else: "a folder may claim a file on
+#: what-kind-or-when alone exactly when THAT IS WHAT THE FOLDER IS". A `2024/`
+#: node built as the `year` level carries `dimension = year` and still claims its
+#: files. This refuses the ABSORBED expectation and leaves the real level alone.
+FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({*TYPE_KEYS, TERM_FIELD, YEAR_FIELD})
 #: `artifact_kind`'s closed vocabulary, WHICH THE LIBRARY ALREADY SHIPPED. The
 #: compiled recognition release carries `work_type_terms` per schema and nothing had
 #: ever read them for a field -- the detector tokenises them to decide handling and
