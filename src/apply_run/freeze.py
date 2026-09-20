@@ -64,6 +64,11 @@ from placement.records import PlacementDecision
 from placement.vocabulary import (
     AUTO_ELIGIBLE, BLOCKED_PENDING_USER, PLACE, REVIEW_REQUIRED,
 )
+# THE UNDERSCORE IS KEPT ON PURPOSE. `00` amendment 38 is the owner's ratified
+# text and it names this function `placement.versions._current`; so do `109`,
+# `110` and the two comments that cite it. Renaming it to suit a third caller
+# would leave the ruling that authorised the caller pointing at nothing.
+from placement.versions import _current
 from review_run.structure import (
     protected_label_classes, protected_label_provenance,
 )
@@ -314,10 +319,35 @@ def freeze(conn: sqlite3.Connection,
     four-file corpus that reported two frozen, one not frozen, and said nothing
     at all about the fourth.
 
-    So the loop below is TOTAL: every decision handed in appends either a plan or
+    So the loop below is TOTAL: every decision it walks appends either a plan or
     a `Held`, and `_not_a_move` is where the ones that were never going to move
     get their reason. A person can add `Frozen` to the count under *"still
     exactly where they are"* and get back the number of files they gave it.
+
+    **TOTAL OVER SUBJECTS, AND `_current` IS WHAT MAKES THAT TRUE** (`00`
+    amendment 38). This was the ONLY reader of the decision list that did not
+    first take `placement.versions._current`; `carry_onto` and
+    `scoped_general_demand` both do, and `_current`'s own docstring names the
+    shape that produced the defect -- *"a subject can be decided twice in one
+    pass -- a group member placed by its packet and then resolved again as shared
+    material is the shape that does it."* The second row supersedes the first, so
+    the earlier one is a decision THE RUN ITSELF WITHDREW, and freezing it wrote
+    two contradicting destinations for one of somebody's files into one approved
+    set. Measured: `--apply` moved the file under the first plan, met the second,
+    found no source where it had just been, and printed that file as MOVED and,
+    four lines lower, as needing a drive reconnected that nobody had disconnected.
+
+    **Dropping the withdrawn row IS "the later decision wins"**, read inside one
+    pass instead of across two freezes, which is why it took the same ruling.
+    Until that ruling it could not be done here: choosing between two approved
+    destinations was `110`'s Decision 5 and the owner's.
+
+    **AND NO HOLD REASON IS MINTED FOR THE ROW THAT GOES.** `HOLD_REASONS` is a
+    closed vocabulary and its members are the owner's, and none is needed: `84`
+    §1's rule is that a file is marked and counted, and the file IS counted --
+    once, under the decision the run ended on. It was being counted TWICE, which
+    is the count being wrong rather than generous, and a person adding `Frozen`
+    to the not-frozen block would have got back more files than they handed in.
 
     **The provenance of every node's NAME is joined here, once, and handed down.**
     P12 refuses to compose a directory out of a label that IS protected material
@@ -344,7 +374,7 @@ def freeze(conn: sqlite3.Connection,
     plans: list[MovePlan] = []
     held: list[Held] = []
 
-    for decision in decisions:
+    for decision in _current(decisions):
         if decision.outcome != PLACE or decision.destination is None:
             held.append(_not_a_move(decision))
             continue

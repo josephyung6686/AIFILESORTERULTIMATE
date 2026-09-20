@@ -25327,29 +25327,36 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
         #
         # `110` §3.3 looked for this in the union three lines below and put it in
         # the wrong place. `frozen_plans` reads ONE freeze -- `MAX(created_at)`
-        # and then the rows carrying exactly that value -- and the clock is
-        # `datetime.now(timezone.utc)`, so a second freeze REPLACES the first
-        # rather than joining it. `apply_run/freeze.py`'s module docstring says
-        # so and `tests/apply/test_freeze.py`'s
-        # `test_freezing_again_replaces_the_earlier_proposal` pins it. The union
-        # below is over the versions of ONE approved set, which is what a run
-        # whose tree gained a folder legitimately produces.
+        # and then the rows carrying exactly that value -- and `00` amendment 38
+        # now DECLARES that rather than leaving it to the clock: a freeze that
+        # approved plans of its own marks the versions it replaced
+        # `'superseded'`. `apply_run/freeze.py`'s module docstring says so and
+        # `tests/apply/test_the_latest_freeze_governs.py` pins it on the database
+        # and on the disk. The union below is over the versions of ONE approved
+        # set, which is what a run whose tree gained a folder legitimately
+        # produces.
         #
-        # WHAT DOES REACH HERE is one approved set that names one file twice.
-        # `apply_run.freeze.freeze` writes one plan per decision it is handed and
-        # is the only reader of that list that does not first take
-        # `placement.versions._current` -- whose own docstring says the list can
-        # hold "a subject decided twice in one pass". MEASURED BEFORE THIS
+        # THE ROOT CAUSE IS CLOSED AND THIS GUARD STAYS. It used to reach here
+        # because `freeze` was the only reader of the decision list that did not
+        # first take `placement.versions._current`, so a row the run itself
+        # withdrew was frozen beside the one that stood. MEASURED BEFORE THIS
         # EXISTED: the run moved the file under the first plan, met the second,
         # and printed that file as MOVED and, four lines lower, as "the drive or
         # folder this move needs is not available right now. Reconnect it and try
         # again." `already_applied` keys on `plan_id`, so a second PLAN for one
         # file is not an already-applied plan and nothing caught it -- and the
         # person is told to reconnect a drive that was never disconnected.
+        # Amendment 38 ruled the later decision wins, `freeze` now takes
+        # `_current`, and that door is shut.
         #
-        # IT REFUSES AND DOES NOT CHOOSE. Which of the two governs is `110`'s
-        # Decision 5 and the owner's alone; picking the later one here would be
-        # this function deciding where somebody's file lives.
+        # WHAT STILL REACHES HERE is one file at TWO HASHES. `_current` keys on
+        # `subject_ref_of`, which is `file:{file_id}:{content_hash}` because "a
+        # decision about `f1` at one hash is not a decision about `f1` after it
+        # was edited" -- two subjects, both kept, both frozen against one
+        # `file_id`. A rule about which PLAN governs is not a rule about which of
+        # two live subjects a person meant, and it is not a licence to move a
+        # file on a contradiction, so this still refuses and still does not
+        # choose.
         # `moving` AND NOT ON THE UNDO PATH, which is the one thing this guard
         # must never block. `--undo` takes back what ACTUALLY HAPPENED, read from
         # the journal by `applied_entries` and not from the frozen set at all --
