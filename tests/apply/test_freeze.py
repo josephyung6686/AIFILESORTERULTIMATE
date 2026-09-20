@@ -229,29 +229,60 @@ def test_every_decision_that_is_not_a_move_is_still_named_with_a_reason(
 
     The detail is the outcome itself, so `report` can say what was decided
     instead of printing one sentence over six different things.
+
+    **ONE ROW PER SUBJECT, AND IT IS THE RUN'S LAST WORD ON IT** (`00` amendment
+    38). `OUTCOMES` is longer than this world has files, so `_outcome_decisions`
+    re-uses its four subjects and some of them are decided twice. That used to
+    produce a held row per DECISION -- a person counting the block against their
+    folder got back more files than they had -- and the ruling makes `freeze`
+    take `placement.versions._current` like every other reader of the list.
+    The expectation below is computed from the subjects rather than from
+    `_current`, so it asserts WHICH decision survived and not merely how many.
     """
     decisions = _outcome_decisions(world)
     proposal = _freeze(world, decisions, ids=ids, clock=clock)
 
-    assert len(proposal.held) == len(decisions)
+    last_word = {}
+    for decision in decisions:
+        last_word[decision.subject.file_id] = decision
+    assert len(proposal.held) == len(last_word)
     assert {(item.reason, item.detail) for item in proposal.held} == {
-        (NOT_A_MOVE, decision.outcome) for decision in decisions}
+        (NOT_A_MOVE, decision.outcome) for decision in last_word.values()}
     # No destination is claimed for a decision that named none.
     assert {item.destination_node for item in proposal.held} == {None}
 
 
 def test_a_freeze_accounts_for_every_decision_it_was_given(world, ids, clock):
-    """The property, not the number: plans + holds == what went in.
+    """The property, not the number: plans + holds == THE SUBJECTS that went in.
 
     This is what a person does with the block -- add the two counts and compare
     them to the size of their folder -- and it is the assertion that holds for
     any corpus rather than for the four files that happened to find the bug.
+
+    **A FOLDER HOLDS FILES, NOT DECISIONS** (`00` amendment 38). The property
+    used to be counted per decision, which is the same number only while no
+    subject is decided twice; here every one of them is, because
+    `_outcome_decisions` re-uses this world's four subjects. So the two arms
+    below are the same ten decisions in the two possible orders, and the freeze
+    follows the run's own order both times -- which is the whole of what "the
+    later decision wins" means, measured at the scale of a corpus.
     """
     decisions = world.decisions + _outcome_decisions(world)
     proposal = _freeze(world, decisions, ids=ids, clock=clock)
+    subjects = {decision.subject.file_id for decision in decisions}
 
-    assert len(proposal.plans) + len(proposal.held) == len(decisions)
-    assert len(proposal.plans) == len(world.decisions)
+    assert len(proposal.plans) + len(proposal.held) == len(subjects)
+    # Every subject's last word here is a non-`place` outcome, so the run
+    # withdrew all four placements and the freeze approves none of them.
+    assert len(proposal.held) == len(subjects)
+    assert proposal.plans == (), (
+        "a placement the run itself withdrew was frozen anyway")
+
+    other_way = _freeze(world, _outcome_decisions(world) + world.decisions,
+                        ids=ids, clock=clock)
+    assert len(other_way.plans) + len(other_way.held) == len(subjects)
+    assert len(other_way.plans) == len(world.decisions)
+    assert other_way.held == ()
 
 
 def test_an_unclassified_file_that_never_reached_a_placement_says_so(

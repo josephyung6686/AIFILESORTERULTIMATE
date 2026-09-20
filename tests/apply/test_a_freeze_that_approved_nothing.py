@@ -22,12 +22,22 @@ the earlier batch's files. That is the whole defect, and it is why both tests
 below end on the disk rather than on a string: a sentence about which plan
 governs is only true or false against what the apply gesture actually does.
 
-WHAT IS NOT IN SCOPE, and is not fixed here. Which plan governs after a second
-freeze is `110` §5 Decision 5 and is the owner's, unruled. Nothing in this file
-or in the change it drove writes `superseded_by`, writes
+WHAT WAS NOT IN SCOPE, and is not fixed here. Which plan governs after a second
+freeze was `110` §5 Decision 5 and the owner's, unruled when this was written.
+Nothing in this file or in the change it drove writes `superseded_by`, writes
 `plan_versions.state = 'superseded'`, deletes or hides the earlier batch, or
 adds a gesture that would choose between the two. Reporting which plan governs
 is not choosing which plan governs.
+
+RULED LATER THE SAME DAY, and this file is untouched by it. `00` amendment 38
+makes a freeze that approved plans of its own mark the versions it replaced
+`'superseded'` -- and a freeze that approved NOTHING still marks nothing, which
+is why every assertion below still holds and why it must. Superseding here would
+take a person's approved plan away and leave them with none, which is a worse
+screen than the false sentence this file closed.
+`tests/apply/test_the_latest_freeze_governs.py` is the sequel and pins both
+halves; what it adds for this case is the one fact this file could not assert,
+that the database is not marked either.
 """
 from __future__ import annotations
 

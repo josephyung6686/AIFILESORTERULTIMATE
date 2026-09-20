@@ -1137,20 +1137,23 @@ def test_the_new_values_block_never_names_a_protected_file(the_morning):
 # THE SHAPE §3.3 WAS REACHING FOR IS REAL, and it arrives through a different
 # door: ONE approved set that names ONE file TWICE, for two different folders.
 # `apply_run.freeze.freeze` walks the decisions it is handed and writes one plan
-# per placement, and it is the only reader of that list which does NOT first take
-# `placement.versions._current`. `_current`'s own docstring says what the raw
-# list can hold -- "a subject can be decided twice in one pass -- a group member
-# placed by its packet and then resolved again as shared material is the shape
-# that does it" -- and `carry_onto` and `scoped_general_demand`, the two readers
-# that do take it, exist because of that. So a run that reaches the freeze with a
-# withdrawn row still in the list freezes the withdrawn placement beside the one
-# that stands, and `--apply-everything` then has two contradicting instructions
-# for one of somebody's files and no way to tell which they meant.
+# per placement, and `_files_approved_for_two_places` keys on `plan.file_id`, so
+# two plans naming one file and two paths are two contradicting instructions for
+# one of somebody's files with no way to tell which they meant.
 #
-# THE ROOT CAUSE IS NOT FIXED HERE and deliberately so. Taking `_current` in
-# `freeze` would drop the earlier row -- which is a decision about WHICH plan
-# governs, and that is `110`'s Decision 5, the owner's. What is built here is the
-# last gate before bytes move: `--apply` refuses, names what is in conflict, and
+# THE ROOT CAUSE WAS FIXED ON 20 SEP AND THIS GUARD STAYS. `00` amendment 38
+# ruled `110`'s Decision 5 -- the later decision wins -- which unblocked `freeze`
+# taking `placement.versions._current` like every other reader of the list. So
+# the door this was originally aimed at, a subject decided twice in one pass with
+# the withdrawn row still in the list, is SHUT: that row never becomes a plan.
+#
+# THE GUARD IS STILL LIVE THROUGH A NARROWER DOOR, and the fixture below is
+# aimed at it. `_current` keys on `subject_ref_of`, which for a file is
+# `file:{file_id}:{content_hash}` -- "a decision about `f1` at one hash is not a
+# decision about `f1` after it was edited" -- so one file observed at two hashes
+# in one pass is TWO subjects, both survive, and both are frozen against one
+# `file_id`. A rule about which plan governs is not a licence to move files on a
+# contradiction, so `--apply` still refuses, names what is in conflict, and
 # moves nothing.
 
 
@@ -1283,11 +1286,25 @@ def _freeze_a_small_world(root: Path, *, contested: bool):
             review_policy=AUTO_ELIGIBLE))
 
     if contested:
-        # THE WITHDRAWN ROW, STILL IN THE LIST. This is the second decision the
-        # pass reached for one subject; `_current` would have dropped it and
-        # `freeze` never asks for `_current`.
+        # ONE FILE, TWO SUBJECTS. `subject_ref_of` is
+        # `file:{file_id}:{content_hash}` and its own docstring says why -- "a
+        # decision about `f1` at one hash is not a decision about `f1` after it
+        # was edited" -- so a file observed at two hashes in one pass is two
+        # subjects, `_current` keeps BOTH, and both become plans. The guard keys
+        # on `plan.file_id`, which is one file, so this is the shape that still
+        # reaches it after `00` amendment 38.
+        #
+        # THIS USED TO BE THE SAME SUBJECT TWICE and that door is now shut:
+        # amendment 38 made `freeze` take `placement.versions._current` like
+        # every other reader of the list, so a row the run withdrew never
+        # becomes a plan at all. Re-aimed rather than deleted, because a
+        # contradiction reaching the disk is what this guard is for and the
+        # narrower way in is still a way in.
         decisions.append(dataclasses.replace(
-            decisions[0], decision_id="decision-withdrawn",
+            decisions[0], decision_id="decision-under-a-second-hash",
+            subject=dataclasses.replace(
+                decisions[0].subject,
+                content_hash=decisions[0].subject.content_hash[::-1]),
             destination=Destination(node_id="n-read", node_role=ORDINARY)))
 
     counter = count()

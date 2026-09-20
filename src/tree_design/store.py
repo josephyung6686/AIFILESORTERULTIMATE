@@ -78,12 +78,15 @@ class DuplicateNodeKey(ValueError):
 
 
 class FrozenVersionImmutable(RuntimeError):
-    """§8.8: a frozen version is never amended in place. An edit opens a draft.
+    """§8.8: an approved version is never amended in place. An edit opens a draft.
 
-    This names exactly one condition: a write reached a version whose state is
-    `frozen`. It is NOT the refusal for an action that cannot be applied — a
-    caller that catches this to mean "open a draft and retry" would retry forever
-    on an action that has no writer at all.
+    This names exactly one condition: a write reached a version the user has
+    already approved. `superseded` is that same condition one ruling later --
+    `00` amendment 38 makes a later freeze supersede the plan before it, and a
+    version being replaced is not a version becoming editable again; what the
+    person approved is still what they approved. It is NOT the refusal for an
+    action that cannot be applied — a caller that catches this to mean "open a
+    draft and retry" would retry forever on an action that has no writer at all.
     """
 
 
@@ -178,11 +181,13 @@ def write_plan_version(conn: sqlite3.Connection, version: PlanVersion) -> None:
 
 
 def write_node(conn: sqlite3.Connection, node: Node) -> None:
-    if _state(conn, node.plan_version_id) == "frozen":
+    state = _state(conn, node.plan_version_id)
+    if state in ("frozen", "superseded"):
         raise FrozenVersionImmutable(
-            f"plan version {node.plan_version_id!r} is frozen. §8.8 requires an "
-            "edit to open a DRAFT version and show a diff; amending a frozen "
-            "version in place would change what the user already approved."
+            f"plan version {node.plan_version_id!r} is {state}. §8.8 requires "
+            "an edit to open a DRAFT version and show a diff; amending an "
+            "approved version in place would change what the user already "
+            "approved."
         )
     # `106` Phase 5.1: ONE KEY, ONE NODE, PER VERSION. A check in the writer
     # rather than a UNIQUE index, so no index is created over databases
@@ -322,6 +327,31 @@ def freeze_version(conn: sqlite3.Connection, plan_version_id: str) -> None:
     conn.execute(
         "UPDATE plan_versions SET state = 'frozen' WHERE plan_version_id = ?",
         (plan_version_id,))
+
+
+def supersede_version(conn: sqlite3.Connection, plan_version_id: str) -> None:
+    """Mark a version superseded: the plan before the one that governs now.
+
+    `00` amendment 38, the owner's ruling of 2026-09-20 on `110`'s Decision 5 --
+    THE LATEST FREEZE GOVERNS, AND IT SAYS SO IN THE DATABASE. `plan_versions`
+    has admitted `'superseded'` since the schema was written and nothing had ever
+    written it; `apply_run.freeze.freeze` now does, once per freeze that approved
+    plans of its own.
+
+    **THE STATE LIVES HERE AND NOT IN `apply_run/`**, beside `freeze_version`,
+    for the reason `latest_plan_version`'s docstring gives about its own lookup:
+    a SELECT or an UPDATE over `plan_versions` written outside P10 is a second
+    home for P10's schema, and the two spellings of the same word drift.
+
+    `_require_version` first, so a version id that names no row refuses rather
+    than updating nothing in silence -- which is `freeze_version`'s own rule and
+    matters more here, where the caller is naming a version it read out of
+    another table.
+    """
+    _require_version(conn, plan_version_id)
+    conn.execute(
+        "UPDATE plan_versions SET state = 'superseded' "
+        "WHERE plan_version_id = ?", (plan_version_id,))
 
 
 def set_shared_material_policy(conn: sqlite3.Connection,

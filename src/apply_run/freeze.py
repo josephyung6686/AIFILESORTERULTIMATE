@@ -21,19 +21,36 @@ directory the plans name is still absent when this returns.
 
 **A freeze is the set of plans written at one instant.** `created_at` is
 sampled once for the whole call and stamped on every plan, so the latest freeze
-is the plans carrying the latest `created_at`. That is why re-freezing does not
-have to supersede anything: the older plans stay exactly as they were written
-(§8.2 makes these tables append-only anyway), and a freeze THAT WRITES PLANS OF
-ITS OWN leaves them simply no longer the approved set.
+is the plans carrying the latest `created_at`. The older plans stay exactly as
+they were written (§8.2 makes these tables append-only anyway); what changes is
+which set is the approved one.
+
+**AND A FREEZE THAT WROTE PLANS NOW SAYS SO, INSTEAD OF WINNING ON THE CLOCK.**
+`00` amendment 38, the owner's ruling of 2026-09-20 on `110` §5 Decision 5: THE
+LATEST FREEZE GOVERNS, AND IT SAYS SO IN THE DATABASE. `--apply` already behaved
+this way and only by accident -- `latest_freeze` takes `MAX(created_at)` and two
+invocations cannot share a timestamp -- and nothing declared it, which is the gap
+two defects grew in. So a freeze that approved plans of its own now marks the
+plan versions of the set it replaced `'superseded'`
+(`tree_design.store.supersede_version`), which is the state P10's schema has
+admitted since it was written and nothing had ever written.
+
+**A VERSION IS NEVER SUPERSEDED BY A FREEZE THAT WROTE INTO IT.** The versions
+this call wrote plans under are subtracted from the ones it replaces, the way
+`database_agent.supersede.mark_superseded` refuses a row that would supersede
+itself. In the product the subtraction takes nothing -- `cli.py`'s `run_token`
+mints a fresh version per run -- and where it takes everything, the two batches
+are two sittings over ONE approved tree and the clock is what separates them.
 
 **A freeze that writes NONE replaces nothing, and this sentence used to say it
 did.** `MAX(created_at)` does not move when no row is written, so after a
 re-freeze that approved nothing the earlier batch is still what `frozen_plans`
-returns and still what the apply gesture acts on. `replaces` is therefore the
-set that was approved when this freeze BEGAN -- `_previous` reads it before the
-loop and cannot yet know what the loop will write -- and `report.freeze_lines`
-is where a person is told which of the two happened. Which of the two plans
-GOVERNS is `110` §5 Decision 5, the owner's and unruled; nothing here chooses.
+returns and still what the apply gesture acts on -- and it supersedes nothing
+either, because superseding on a freeze that approved nothing would take a
+person's approved plan away and leave them with none. `replaces` is therefore
+the set that was approved when this freeze BEGAN -- `_previous` reads it before
+the loop and cannot yet know what the loop will write -- and
+`report.freeze_lines` is where a person is told which of the two happened.
 """
 from __future__ import annotations
 
@@ -47,10 +64,16 @@ from placement.records import PlacementDecision
 from placement.vocabulary import (
     AUTO_ELIGIBLE, BLOCKED_PENDING_USER, PLACE, REVIEW_REQUIRED,
 )
+# THE UNDERSCORE IS KEPT ON PURPOSE. `00` amendment 38 is the owner's ratified
+# text and it names this function `placement.versions._current`; so do `109`,
+# `110` and the two comments that cite it. Renaming it to suit a third caller
+# would leave the ruling that authorised the caller pointing at nothing.
+from placement.versions import _current
 from review_run.structure import (
     protected_label_classes, protected_label_provenance,
 )
 from tree_design.records import Node
+from tree_design.store import supersede_version
 
 from mutation.constraints import FilesystemConstraints
 from mutation.names import NameUnresolvable
@@ -158,6 +181,26 @@ def _previous(conn: sqlite3.Connection) -> Replaced | None:
         "SELECT COUNT(*) FROM move_plans WHERE created_at = ? "
         "AND superseded_by IS NULL", (frozen_at,)).fetchone()[0]
     return Replaced(frozen_at=frozen_at, count=count)
+
+
+def _previous_versions(conn: sqlite3.Connection,
+                       frozen_at: str) -> frozenset[str]:
+    """The plan versions the approved set spanned when this freeze began.
+
+    Read beside `_previous` and BEFORE the loop, for the same reason: once this
+    call has written its own rows, nothing in `move_plans` tells the two batches
+    apart but the timestamp, and the whole point of amendment 38 is to stop
+    depending on that.
+
+    A SET, not one id. A run whose tree gained a folder carries its decisions
+    onto the new version and can leave the freeze spanning more than one -- which
+    is what `FrozenProposal.plan_version` being `None` on `len(versions) != 1`
+    has always said. Every version the replaced set spanned is replaced with it.
+    """
+    return frozenset(
+        row[0] for row in conn.execute(
+            "SELECT DISTINCT plan_version FROM move_plans WHERE created_at = ? "
+            "AND superseded_by IS NULL", (frozen_at,)).fetchall())
 
 
 
@@ -276,10 +319,35 @@ def freeze(conn: sqlite3.Connection,
     four-file corpus that reported two frozen, one not frozen, and said nothing
     at all about the fourth.
 
-    So the loop below is TOTAL: every decision handed in appends either a plan or
+    So the loop below is TOTAL: every decision it walks appends either a plan or
     a `Held`, and `_not_a_move` is where the ones that were never going to move
     get their reason. A person can add `Frozen` to the count under *"still
     exactly where they are"* and get back the number of files they gave it.
+
+    **TOTAL OVER SUBJECTS, AND `_current` IS WHAT MAKES THAT TRUE** (`00`
+    amendment 38). This was the ONLY reader of the decision list that did not
+    first take `placement.versions._current`; `carry_onto` and
+    `scoped_general_demand` both do, and `_current`'s own docstring names the
+    shape that produced the defect -- *"a subject can be decided twice in one
+    pass -- a group member placed by its packet and then resolved again as shared
+    material is the shape that does it."* The second row supersedes the first, so
+    the earlier one is a decision THE RUN ITSELF WITHDREW, and freezing it wrote
+    two contradicting destinations for one of somebody's files into one approved
+    set. Measured: `--apply` moved the file under the first plan, met the second,
+    found no source where it had just been, and printed that file as MOVED and,
+    four lines lower, as needing a drive reconnected that nobody had disconnected.
+
+    **Dropping the withdrawn row IS "the later decision wins"**, read inside one
+    pass instead of across two freezes, which is why it took the same ruling.
+    Until that ruling it could not be done here: choosing between two approved
+    destinations was `110`'s Decision 5 and the owner's.
+
+    **AND NO HOLD REASON IS MINTED FOR THE ROW THAT GOES.** `HOLD_REASONS` is a
+    closed vocabulary and its members are the owner's, and none is needed: `84`
+    §1's rule is that a file is marked and counted, and the file IS counted --
+    once, under the decision the run ended on. It was being counted TWICE, which
+    is the count being wrong rather than generous, and a person adding `Frozen`
+    to the not-frozen block would have got back more files than they handed in.
 
     **The provenance of every node's NAME is joined here, once, and handed down.**
     P12 refuses to compose a directory out of a label that IS protected material
@@ -301,10 +369,12 @@ def freeze(conn: sqlite3.Connection,
                 group_id for node in nodes
                 for group_id in node.associated_group_ids))))
     replaces = _previous(conn)
+    replaced_versions = (frozenset() if replaces is None
+                         else _previous_versions(conn, replaces.frozen_at))
     plans: list[MovePlan] = []
     held: list[Held] = []
 
-    for decision in decisions:
+    for decision in _current(decisions):
         if decision.outcome != PLACE or decision.destination is None:
             held.append(_not_a_move(decision))
             continue
@@ -375,6 +445,14 @@ def freeze(conn: sqlite3.Connection,
         plans.append(plan)
 
     versions = {plan.organization_plan_version for plan in plans}
+    # AMENDMENT 38, AND `if plans` IS THE WHOLE OF THE CONDITION. A freeze that
+    # approved nothing replaces nothing -- the module docstring says why, and
+    # `test_a_freeze_that_approved_nothing.py` is the defect that taught it --
+    # so it marks nothing either. The subtraction keeps a freeze from superseding
+    # the version it has just written into.
+    if plans:
+        for plan_version_id in sorted(replaced_versions - versions):
+            supersede_version(conn, plan_version_id)
     return FrozenProposal(
         frozen_at=frozen_at,
         plan_version=versions.pop() if len(versions) == 1 else None,
