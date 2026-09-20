@@ -333,6 +333,7 @@ from questions.roles import (
 )
 from questions.schema import create_questions_schema
 from questions.store import (
+    RESIDUAL_KIND_ID,
     activated_schemas, chosen_destination, gated_template, live_answer,
     selected_situation,
     live_answer_id,
@@ -340,6 +341,10 @@ from questions.store import (
     record_answer,
     record_question, set_aside_questions,
 )
+#: `110` §2.4 item 1. Aliased, because `run` already binds `residual_choices` to
+#: the decisions THIS invocation composed and the two would be one name for two
+#: different sets -- the ones typed now and the ones settled before.
+from questions.store import residual_choices as settled_residual_areas
 from questions.triggers import (
     SUBJECT_DRAWN_FROM_THE_CORPUS,
     DestinationChoice, NestingChoice, question_for_nesting,
@@ -347,8 +352,8 @@ from questions.triggers import (
     question_for_unreadable_folder, tied_readings_and_the_files_they_reach,
 )
 from questions.vocabulary import (
-    CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_FILE, SCOPE_FOLDER, SKIPPED,
-    STRUCTURAL,
+    CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_FILE, SCOPE_FOLDER,
+    SKIPPED, STRUCTURAL,
 )
 from production import (
     CorpusAuthorities, CorpusDecisions, InvalidCorpusAuthority,
@@ -5390,6 +5395,190 @@ def residual_library_choices(library: Mapping[str, ResidualTemplate],
             merge_into=None, replaces_node_id=None))
     return tuple(
         sorted(named.values(), key=lambda one: one.action == MERGE_RESIDUAL))
+
+
+# ======================================================================================
+# `110` §2.4 item 1: a catch-all area you turned on stays on.
+#
+# The other four consequences a structural answer carries live in
+# `structural_questions` / `structural_answers`, keyed by question id and scope and
+# never by plan version, so a re-run reads them. A residual choice lived in one
+# invocation's argv and in nothing else -- §3.1's list of what a control change
+# preserves ends with "**Residual choices** -- today, nothing" -- so a person who
+# had decided that Review Later belongs in their plan re-typed `--residual` for
+# ever, and the run that forgot quietly built a different plan.
+# ======================================================================================
+
+#: The two of §7.4's six actions a `QuestionOption` can hold ON ITS OWN, and
+#: therefore the two this remembers. `rename`, `relocate` and `merge` each carry
+#: an argument the person supplied -- the new name, the anchor folder, the area it
+#: joins -- and `replace-with-existing` carries a node id nothing can mint this
+#: early. `residual_action` holds a member of a closed vocabulary, and the
+#: record's one free-text field, `StructuralAnswer.raw_wording`, is refused beside
+#: a chosen option BY NAME ("an answer carrying both a chosen option and a
+#: sentence has two answers in it that need never agree"). An option spelling
+#: `rename` would be an option that had lost what to rename the area to, and a
+#: later run acting on it would build a folder under a name nobody chose -- which
+#: is worse than not remembering. `110` §2.4 proposes recording "each
+#: `ResidualChoice`"; this is the half the shipped record can carry, and the other
+#: half is named on the screen rather than dropped.
+REMEMBERED_RESIDUAL_ACTIONS: tuple[str, ...] = (ENABLE, DISABLE)
+
+
+def residual_area_question(name: str) -> StructuralQuestion:
+    """§7.4's one question about one catch-all area, in the form P15 stores.
+
+    Built here rather than in `questions/`, where `_multi_home_decision`'s
+    question is built here too and for the same reason: the question is raised by
+    a gesture the composition root reads, and P15's triggers raise questions from
+    evidence the pipeline found.
+
+    `evidence_refs` is the person's own gesture rather than a file, which is the
+    shape `question_for_role_declaration` already takes -- "they chose to declare
+    a role, and §14's 'the user can see why the question arose' is answered by
+    saying so". Nothing in anybody's files asks for a catch-all area.
+
+    TWO OPTIONS AND NOT SIX. A question that offered `rename` would be offering
+    an answer this record cannot hold, and `record_answer` would refuse it after
+    the person had given it.
+    """
+    return StructuralQuestion(
+        question_id=f"{RESIDUAL_KIND_ID}:{name}",
+        answer_class=STRUCTURAL,
+        prompt=f'What should happen to the catch-all area "{name}"?',
+        evidence_context=(
+            f'You named "{name}" on the command line. Nothing in your files '
+            "asked this."),
+        unlocks=(
+            "This decides whether that area is one of the folders your plan "
+            "offers -- on this run, and on every later run over this folder "
+            "until you say otherwise."),
+        will_not_do=(
+            "It will not move, rename or delete anything, and it does not "
+            "decide which of your files go into the area. It records one "
+            "decision about one folder, in a plan you still have to approve."),
+        scope=SCOPE_CORPUS,
+        # The area is either one of §7.3's nine fixed names or a name the person
+        # typed at `--define-residual`. `SUBJECT_DRAWN_FROM_THE_CORPUS`'s own
+        # note names "a branch label they typed" as the case it covers, and this
+        # is that: not public, and not a credential or a person's name either.
+        handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
+        options=tuple(
+            QuestionOption(action, label, residual_action=action)
+            for action, label in (
+                (ENABLE, f'Keep "{name}" in my plan'),
+                (DISABLE, f'Leave "{name}" out of my plan'))),
+        evidence_refs=(f"typed:{name}",))
+
+
+def record_residual_choices(conn: sqlite3.Connection,
+                            choices: Sequence[ResidualChoice], *,
+                            user_id: str,
+                            recorded_at: str) -> tuple[str, ...]:
+    """Remember this run's area decisions. Return the ones that could not be kept.
+
+    The write is `questions.roles._record`'s, which is the shipped precedent for
+    a question raised by a gesture rather than by evidence: record the question,
+    read the answer this one replaces, and append a new answer naming it. §12
+    requires an answer to be "edited, revoked, or re-run", and an overwrite would
+    lose that the person once said otherwise.
+
+    **A RE-RUN OF THE SAME COMMAND IS NOT A NEW DECISION.** Unlike `declare_role`,
+    which a person invokes when they have something to say, this runs on every
+    command that carries the flag -- so writing unconditionally would append one
+    superseding answer per run, each claiming the person "decided this area
+    again", and `--explain` would date the decision to this morning for somebody
+    who made it in June. A live answer that already says this is left alone: the
+    fact it records has not changed, and the record should not say it has.
+    """
+    unkept: list[str] = []
+    for choice in choices:
+        if choice.action not in REMEMBERED_RESIDUAL_ACTIONS:
+            unkept.append(choice.template_name)
+            continue
+        question = residual_area_question(choice.template_name)
+        record_question(conn, question, asked_at=recorded_at)
+        standing = live_answer(conn, question_id=question.question_id,
+                               scope=SCOPE_CORPUS)
+        if (standing is not None and standing.state == CONFIRMED
+                and standing.option_id == choice.action):
+            continue
+        previous = live_answer_id(conn, question_id=question.question_id,
+                                  scope=SCOPE_CORPUS)
+        record_answer(conn, StructuralAnswer(
+            question_id=question.question_id, option_id=choice.action,
+            state=CONFIRMED, scope=SCOPE_CORPUS, user_id=user_id,
+            recorded_at=recorded_at, supersedes=previous,
+            supersede_reason=("the person decided this area again"
+                              if previous else None)))
+    return tuple(unkept)
+
+
+def remembered_residual_choices(
+        conn: sqlite3.Connection, library: Mapping[str, ResidualTemplate], *,
+        named: Collection[str],
+) -> tuple[tuple[ResidualChoice, ...], tuple[str, ...]]:
+    """The areas settled on an earlier run that this command did not name again.
+
+    Returns the choices to compose, and the names that were settled and could not
+    be composed -- an area the person defined for themselves with
+    `--define-residual` and has not defined on this command is a name with no
+    template behind it, and building one would be this run inventing a treatment
+    for a folder the person authored. `84` §1: it is returned to be said, not
+    dropped.
+
+    An area this command named again is left alone: `residual_library_choices`
+    refuses two decisions for one area by name, and the typed one is the later
+    of the two anyway.
+    """
+    replayed: list[ResidualChoice] = []
+    without_a_template: list[str] = []
+    for name, action in sorted(settled_residual_areas(
+            conn, scope=SCOPE_CORPUS).items()):
+        if name in named:
+            continue
+        if name not in library:
+            without_a_template.append(name)
+            continue
+        replayed.append(ResidualChoice(
+            template_name=name, action=action,
+            # `residual_library_choices`' own rule, one branch each: §7.4 makes
+            # the disposition meaningless on a `disable`, which builds no node,
+            # and P10 refuses an enabled area without one.
+            disposition=(None if action == DISABLE else
+                         disposition_for_treatment(library[name].treatment)),
+            display_label=None, parent_node_id=None, root_anchor=ROOT_ANCHOR,
+            merge_into=None, replaces_node_id=None))
+    return tuple(replayed), tuple(without_a_template)
+
+
+def residual_memory_lines(unkept: Sequence[str],
+                          without_a_template: Sequence[str]) -> tuple[str, ...]:
+    """What this run could not remember about a catch-all area, and why.
+
+    `84` §1 and `66` §4: two facts, two sentences. One is about an action that
+    carries a name of the person's own; the other is about an area whose template
+    this command was not given. Saying neither is how a person finds out on the
+    next run that a decision they made was never kept.
+    """
+    lines: list[str] = []
+    if unkept:
+        lines.append(
+            "Not remembered for next time: "
+            + ", ".join(f'"{name}"' for name in sorted(set(unkept)))
+            + ". Keeping one of those areas, or leaving it out, is a decision "
+            "this product can store on its own. Renaming one, moving one, or "
+            "merging one into another also needs the name you chose, and there "
+            "is nowhere in the record to keep it yet -- so it applies to this "
+            "run and you will need to type it again.")
+    if without_a_template:
+        lines.append(
+            "Settled on an earlier run and not applied now: "
+            + ", ".join(f'"{name}"' for name in sorted(set(without_a_template)))
+            + ". You named those areas yourself, and this command did not say "
+            "what is in them, so there is no area to build. Add "
+            "--define-residual for each one to have it back.")
+    return tuple(lines)
 
 
 _RECOGNITION_MANIFEST = (
@@ -17213,6 +17402,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         residual_library, residuals, library_actions,
         landscape=tuple(high_level_folders(directory, also_read,
                                            candidate_roots)))
+    # `110` §2.4 item 1. WRITTEN FIRST AND READ SECOND, so a decision typed on
+    # this command is the one this command remembers: the read below skips every
+    # area the flags named, and an area settled a moment ago by this same run is
+    # one of them. The replayed choices are appended rather than merged, because
+    # `residual_library_choices` has already refused two decisions for one area
+    # and none of these is a merge, which is the only ordering that tuple carries.
+    _unkept = record_residual_choices(
+        conn, residual_choices, user_id=user_id, recorded_at=clock)
+    _replayed, _no_template = remembered_residual_choices(
+        conn, residual_library,
+        named={choice.template_name for choice in residual_choices})
+    residual_choices = residual_choices + _replayed
+    for line in residual_memory_lines(_unkept, _no_template):
+        print("", file=out)
+        print(_wrapped(line, indent="  "), file=out)
     residual_configuration = {choice.template_name: choice.action
                               for choice in residual_choices}
 

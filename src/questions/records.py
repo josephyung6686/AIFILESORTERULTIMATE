@@ -108,6 +108,28 @@ class QuestionOption:
     #: it resolves to if that is not a destination -- which is the right place for
     #: the check, because it moves when the tree does.
     chooses_destination: str | None = None
+    #: §13's FIFTH consequence, and §7.4's own question: what happens to one of
+    #: the nine catch-all areas -- enable it, disable it, rename it, relocate it,
+    #: merge it, or replace it with a folder you already have. `110` §2.4 item 1:
+    #: this was the one decision the product forgot between runs, because it
+    #: lived in an invocation's argv and in nothing else.
+    #:
+    #: A MEMBER OF `tree_design.vocabulary.RESIDUAL_LIBRARY_ACTIONS`, and
+    #: unchecked here for `gates_template`'s reason one noun along: the actions
+    #: are P10's vocabulary and this module must not import P10 to hold a second
+    #: copy of it. `residual_library_choices` in the composition root already
+    #: refuses an action the release does not carry, before a file is read.
+    #:
+    #: THE ACTION ALONE, never the argument four of the six take. A rename's new
+    #: name, a relocate's anchor, a merge's target and a replace's node are the
+    #: person's own words about one area, and the field for the person's own
+    #: words -- `StructuralAnswer.raw_wording` -- is refused beside a chosen
+    #: option by name, because "an answer carrying both a chosen option and a
+    #: sentence has two answers in it that need never agree". So an option that
+    #: carried `rename` would be an option that had lost what to rename it to.
+    #: Those four are settled per run and said so on the screen; `enable` and
+    #: `disable` are their whole decision and are what this remembers.
+    residual_action: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("option_id", "label"):
@@ -224,6 +246,16 @@ class StructuralQuestion:
                     "'ever determines ... WHERE A FILE IS PLACED' is a defect "
                     "rather than a feature, and this consequence is that sentence "
                     "exactly -- it names the node a file is filed into")
+            settling = [option.option_id for option in self.options
+                        if option.residual_action]
+            if settling:
+                raise AnswerNotPermitted(
+                    f"a contextual question's options {settling} would settle a "
+                    "residual area. §13 forbids a contextual answer to 'create, "
+                    "remove, hide, or rename folders', and every one of §7.4's "
+                    "six actions does one of those four to a catch-all folder -- "
+                    "which is the same refusal the four consequences above this "
+                    "one carry, for the same sentence")
 
 
 @dataclass(frozen=True, slots=True)

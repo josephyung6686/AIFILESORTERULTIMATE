@@ -54,6 +54,13 @@ CONSEQUENCE_WORDS: dict[str, str] = {
     "chooses_destination": (
         "It files the material in this folder into `{value}`, in a plan you still "
         "have to approve."),
+    # One wording for all six of §7.4's actions rather than a sentence each.
+    # `enable` and `disable` read as verbs and `replace-with-existing` does not,
+    # so a sentence built round the action as a verb would be ungrammatical for
+    # the one action nobody can type yet and correct for the rest -- which is a
+    # worse screen than naming the action and stopping.
+    "residual_action": (
+        "It settles the catch-all area this question is about: `{value}`."),
 }
 
 #: How each answer state came about, in `66` §12's own distinction between an
