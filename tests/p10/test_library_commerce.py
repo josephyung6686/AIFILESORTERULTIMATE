@@ -503,12 +503,12 @@ def _normalise(value: str) -> str:
     return value.strip().casefold().replace("_", " ")
 
 
-#: `00` amendment 35's one ratified exception. The owner was shown the row's
-#: label reading as the field it names -- "Year" for `year` -- and preferred the
-#: folder word to a sentence anyway: "`Year` reads as a folder level, which is
-#: what it is. The owner preferred the folder to the sentence." Every other row
-#: in the library still owes a label that is not its key; this one alone does
-#: not, by name, because the ruling names it by name and nothing wider.
+#: `00` amendment 35's one ratified exception. The owner ruled the label is the
+#: plain word `Year`, and named the cost of that as the row's five labels no
+#: longer sharing one voice -- not this invariant, which the ruling never
+#: discusses. The collision with the field key `year` is a mechanical side
+#: effect of the ratified string, not a weighing of this rule; it is carved out
+#: by name, for this one row, rather than read as license to widen it.
 _RATIFIED_KEY_LABELS = frozenset({("ap.career.recruiting", "year", "Year")})
 
 
