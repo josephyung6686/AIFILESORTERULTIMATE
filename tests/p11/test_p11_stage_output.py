@@ -13,7 +13,7 @@ from eval_harness.stage_output import ForeignVocabulary, record_stage_output
 from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS as P2_STAGE_IDS
 
 from placement import vocabulary as v
-from placement.records import ResidualContext
+from placement.records import Ask, ResidualContext
 from placement.stage_output import (
     BUDGET_DEFERRAL, DECISION_WRITTEN, EVIDENTIAL_ABSTENTION, P11_RESULTS,
     UnknownP11Result, dimension_for, envelope_for, envelope_of, result_of,
@@ -123,6 +123,41 @@ def test_a_non_place_non_abstain_outcome_is_still_produced():
     # `produced`. `leave_in_place` is a decision, not a failure to decide.
     for outcome in (v.LEAVE_IN_PLACE, v.MARK_REVIEW_LATER):
         assert envelope_for(_residual(outcome))[0] == "produced"
+
+
+def test_a_question_that_names_what_it_replaced_is_not_an_abstention():
+    """`00` amendment 34, read by the one module it broke.
+
+    `result_of` asked "is there no destination and is there a reason", which was
+    the same question as "is this an abstention" only while the record refused to
+    let a question carry a reason. It no longer does, and a question satisfies
+    both halves: the file is not placed, and it names why it stopped before the
+    question replaced that. Graded through the abstention envelope, P2 would call
+    a question the product put to a person `abstained_correctly` or
+    `abstained_incorrectly` -- a judgement about evidence, over a file where the
+    product deliberately made none. That is this module's own opening sentence
+    about a deferral, said again about a question.
+
+    The fix is to read the field that says what the decision IS. `outcome` is
+    that field; `abstention_reason` stopped being it.
+    """
+    asked = _decision(
+        outcome=v.ASK_USER, destination=None,
+        ask=Ask(question="Where should the files in Private go?",
+                options=("n-private", "n-review")),
+        confidence_class=v.ABSTAIN_NO_SUPPORTED_DESTINATION,
+        abstention_reason=v.PRIVACY_BLOCKED)
+    assert result_of(asked) == DECISION_WRITTEN
+    assert envelope_for(asked) == ("produced", "within_ceiling")
+    # And it is still told apart from a question that replaced nothing only by
+    # the reason it carries -- both are `produced`, which is the point: what the
+    # reason changes is what the SCREEN says, not how P2 grades the run.
+    replaced_nothing = _decision(
+        outcome=v.ASK_USER, destination=None,
+        ask=Ask(question="Which packet is this transcript's home?",
+                options=("n-columbia", "n-duke")),
+        confidence_class=v.ABSTAIN_NO_SUPPORTED_DESTINATION)
+    assert result_of(replaced_nothing) == DECISION_WRITTEN
 
 
 # --- the dimensions ---------------------------------------------------------------------
