@@ -439,9 +439,14 @@ touch this file — Phase 7 updated 17 test files and not this one. So four of t
 five assertions were asking a mapping of characteristic keys whether it held a
 reason word, which is false of every reason there is: they passed because they
 could not fail. The test now reads the union of the mapping's values, and pins
-`NOT_YET_CLASSIFIED`'s one divider by name: `00` amendment 13's "Unsupported or
-encrypted", which may divide a blocking reason because amendment 13 gave it its
-OWN sentence (`cli.py:15740`) rather than borrowing `no_supported_destination`'s.
+`NOT_YET_CLASSIFIED`'s one divider by name: "Unsupported or encrypted", which may
+divide a blocking reason because it was given its OWN sentence (`cli.py:15740`)
+rather than borrowing `no_supported_destination`'s. Provenance: `00`:368 is the
+owner's own amendment text -- "the sets inside `98` are characteristic and named
+(screenshots, standalone PDFs, unsupported or encrypted, possible duplicates,
+deferred decisions), and every one is offered to the person before anything moves"
+-- and `106-SORT-PLAN.md` is where it is numbered amendment 13 and built. The
+phrase "amendment 13" appears nowhere in `00` itself.
 A second characteristic reaching for a blocking reason now fails there.
 
 **2. `test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart` — NOT
@@ -461,9 +466,19 @@ asks `inputs.ask_about_file` before it writes, and when a question comes back it
 hands the file to `_asking` (`pipeline.py:2856`), which writes `ASK_USER` with
 `abstention_reason=None` — so `privacy_blocked` is erased from the record and the
 screen can only call the file "Waiting on a question you have been asked". Phase 7
-did not change `placement/` at all. It changed the INPUT: the proposed residual
+did not touch `placement/pipeline.py` (it added six lines to `placement/residual.py`
+and nothing else under `placement/`). It changed the INPUT: the proposed residual
 home `98 Review and Unsorted` gave the corpus root a home question to ask, so a
 hook that answered `None` for this file before now answers a question.
+
+**TRACED, not inferred.** `ask_about_file` is consulted at exactly two places,
+`pipeline.py:2222` (the place-building path, `chosen_node_id is None`) and
+`pipeline.py:2817` (inside `_abstention`). Wrapping `_asking` and recording its
+caller on this corpus at `HEAD`: `holiday.jpg <- pipeline.py:2820` with
+`ask='Where should the files in corpus go?'`, and `credentials.kdbx <-
+pipeline.py:2820` with `ask='Where should the files in Private go?'`. Both come
+through `_abstention`'s hook, so `holiday.jpg` DID abstain and the question is an
+overlay on an abstention that already had its reason.
 
 **AND THE ERASURE IS A RULE, not an oversight.** `placement/records.py:525` refuses
 any record where the two disagree: "an abstention names why (§6.10); an unexplained

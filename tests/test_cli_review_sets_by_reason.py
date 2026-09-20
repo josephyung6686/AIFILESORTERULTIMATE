@@ -651,17 +651,21 @@ def test_a_blocking_reason_is_still_a_set_of_its_own():
     a characteristic may divide and is now `characteristic -> frozenset(reason)`
     (`cli.py:15721`). The four `not in` lines below were asking a mapping of
     characteristics whether it held a reason, which is false of every reason
-    there is: they passed because they could not fail, and this test said
-    nothing for six days. The reasons are the union of the values, so that is
-    what is asked.
+    there is: they passed because they could not fail, and have said nothing
+    since `229c7526`. The reasons are the union of the values, so that is what
+    is asked.
 
-    **AND `NOT_YET_CLASSIFIED` IS THE ONE EXCEPTION, ruled and built.** `00`
-    amendment 13 names "Unsupported or encrypted" a set of its own, and a locked
-    archive is unread and therefore unclassified -- it would never reach that set
-    through `no_supported_destination`. It divides the reason WITHOUT the thing
-    `66` §4 forbids, because amendment 13 gave both its sets their own sentence
-    (`cli.py:15740`) rather than borrowing `no_supported_destination`'s the way
-    the first three do. It is pinned by name below so a SECOND characteristic
+    **AND `NOT_YET_CLASSIFIED` IS THE ONE EXCEPTION, ruled and built.** `00`:368
+    is the owner's own amendment: "the sets inside `98` are characteristic and
+    named (screenshots, standalone PDFs, unsupported or encrypted, possible
+    duplicates, deferred decisions)". A locked archive is unread and therefore
+    unclassified -- it would never reach that set through
+    `no_supported_destination`. It divides the reason WITHOUT the thing `66` §4
+    forbids, because that set and the duplicates set were each given their own
+    sentence (`cli.py:15740`) rather than borrowing
+    `no_supported_destination`'s the way the first three do. `106-SORT-PLAN.md`
+    is where this is numbered amendment 13 and built; the number is the plan's
+    and not `00`'s. It is pinned by name below so a SECOND characteristic
     reaching for a blocking reason fails here.
     """
     divided = frozenset().union(*cli.REFINED_BY_CHARACTERISTIC.values())
