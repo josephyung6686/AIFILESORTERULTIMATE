@@ -64,7 +64,7 @@ CYCLE_FIRST = "ord.cycle-kind-employer-role"
 #: shown keep their exact words and their relative order; the tuple may grow.
 OLD_LABELS = ("Company I applied to", "Job I went for", "My search",
               "What I sent them")
-YEAR_LABEL = "The year I applied"
+YEAR_LABEL = "Year"
 
 #: `107`: *Year -> organization and role -> application stage*, as the wired row now
 #: answers it. `target_employer` + `job_title` ARE "organization and role" and

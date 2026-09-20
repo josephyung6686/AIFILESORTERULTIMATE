@@ -503,14 +503,27 @@ def _normalise(value: str) -> str:
     return value.strip().casefold().replace("_", " ")
 
 
+#: `00` amendment 35's one ratified exception. The owner was shown the row's
+#: label reading as the field it names -- "Year" for `year` -- and preferred the
+#: folder word to a sentence anyway: "`Year` reads as a folder level, which is
+#: what it is. The owner preferred the folder to the sentence." Every other row
+#: in the library still owes a label that is not its key; this one alone does
+#: not, by name, because the ruling names it by name and nothing wider.
+_RATIFIED_KEY_LABELS = frozenset({("ap.career.recruiting", "year", "Year")})
+
+
 def test_no_label_is_the_field_key_it_replaces(rows):
     identical = [(row.applicability_id, b.field_ref, b.label)
                  for row in rows for b in row.role_bindings
-                 if b.label == b.field_ref]
+                 if b.label == b.field_ref
+                 and (row.applicability_id, b.field_ref, b.label)
+                 not in _RATIFIED_KEY_LABELS]
     assert identical == []
     despaced = [(row.applicability_id, b.field_ref, b.label)
                 for row in rows for b in row.role_bindings
-                if _normalise(b.label) == _normalise(b.field_ref)]
+                if _normalise(b.label) == _normalise(b.field_ref)
+                and (row.applicability_id, b.field_ref, b.label)
+                not in _RATIFIED_KEY_LABELS]
     assert despaced == []
 
 
