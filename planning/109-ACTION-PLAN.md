@@ -1168,3 +1168,50 @@ amendment 34.
 `--timeout=600` with no `pytest-timeout` installed. pytest printed `ERROR:
 unrecognized arguments` and **exited 0**, and nothing ran. A green exit code from
 pytest is not evidence a test executed; only a count line is.
+
+---
+
+## 20 Sep — A SECOND STALE-PLAN DEFECT, found by reading after the first was closed
+
+The `--apply` agent flagged this and did not fix it; the lead read it and it is
+worse than the flag said. **Predicted from the code and dispatched; not yet
+reproduced at the time of writing** — recorded in that state deliberately, because
+this session has already killed five confident mechanisms that were reasoned from
+one file without reading its input.
+
+**THE READING.**
+
+1. `freeze.latest_freeze` = `SELECT MAX(created_at) FROM move_plans WHERE
+   superseded_by IS NULL`; `frozen_plans` returns only the rows carrying it.
+2. **Nothing in `src/` ever writes `superseded_by` on a move plan** —
+   `grep -rn "UPDATE move_plans" src/` returns nothing at all. Replacement is
+   entirely an artefact of `created_at` ordering.
+3. So a second freeze that writes ZERO `move_plans` rows leaves `MAX(created_at)`
+   unchanged, and **batch 1 is still the approved set**.
+4. `report.py:231-236` prints *"This replaces the N file(s) you froze on
+   <timestamp>. Anything from that plan you had already filed stays filed and can
+   still be taken back."* whenever `proposal.replaces is not None` — and
+   `_previous` computes that from batch 1 BEFORE this freeze has written anything.
+5. `report.py:238-241`, immediately below: if `not total`, *"Nothing was frozen:
+   no placement in this run is ready to move."*
+
+**THE TWO SENTENCES PRINT TOGETHER.** The person is told their earlier plan is
+replaced AND that nothing was frozen this time, from which the only reasonable
+conclusion is that there is nothing to apply. `--apply` then moves batch 1's
+files. That is the same shape as the defect just closed — a screen that says
+something false while files move — reached through a different door.
+
+**A freeze writes zero plans when every decision is withheld** (`_withheld`:
+protected material with no permitting policy, a file not shown, and the other
+refusals). It is not an exotic state.
+
+**WHAT THE FIX MAY NOT DO.** It may not decide which plan governs — that is `110`
+Decision 5 and the owner's. No `superseded_by` write, no `plan_versions.state`,
+no flag. The defect is a `84` §6 defect: the screen says the earlier plan was
+replaced when it was not. **Reporting which plan governs is not choosing which
+plan governs**, and the honest screen says the plan from <timestamp> is still the
+approved set.
+
+**One thing to verify rather than assume:** a freeze that writes FEWER plans than
+before is the case that sentence was written for and it is TRUE there — batch 1's
+extra files really are no longer approved. The fix must keep that working.
