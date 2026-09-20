@@ -1434,9 +1434,9 @@ def enable_review_homes(conn, authorities, decisions, *, version: str,
                   and choice.action not in (DISABLE, REPLACE_WITH_EXISTING)
                   and choice.template_name != ARCHIVE]
     if parentless and root is None:
-        node_id = authorities.mint_node_id()
         root = _with_refinement(Node(
-            node_id=node_id, plan_version_id=version, node_type=PROPOSED,
+            node_id=authorities.mint_node_id(), plan_version_id=version,
+            node_type=PROPOSED,
             display_label=REVIEW_AND_UNSORTED, parent_node_id=None,
             root_anchor=authorities.root_anchor,
             ordinal=sum(1 for node in existing.values() if node.parent_node_id is None),
@@ -1448,7 +1448,15 @@ def enable_review_homes(conn, authorities, decisions, *, version: str,
             accepts_placement=derive_accepts_placement(
                 PROPOSED, protected_movement_permitted=False),
             handling_class=authorities.collapse_handling_classes(frozenset()),
-            origin_node_id=node_id),
+            # `106` Phase 5.1 keyed every other mint site and this root, added
+            # afterwards by amendment 13, kept the fresh mint's own id -- so it
+            # was the one node in the tree with NO LINEAGE, and two identical
+            # runs reported it removed and added and every home under it moved.
+            # It is a parentless proposal, which is exactly what `branch_key`
+            # keys: the label, because a proposal has nothing else it is named
+            # by. `node_id` is still minted per version.
+            origin_node_id=branch_key(display_label=REVIEW_AND_UNSORTED,
+                                      existing_path=None)),
             lambda _node, _count, *, was_split: decisions.residual_refinement,
             file_count=0, was_split=False)
         write_node(conn, root)

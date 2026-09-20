@@ -23,6 +23,14 @@ WHAT A KEY IS MADE OF, and nothing else:
 * a template-local level        the parent's key + `/` + `role=label` -- it has
   no P6 field, so its role names it.
 * a residual area               `residual:` + the template name.
+* the root the homeless areas   `branch_key` too -- amendment 13's `98` is a
+  live under (`98`)             PARENTLESS PROPOSAL and has no other claim. It
+                                was added after this list was written and spent
+                                a while carrying its own mint, which is a node
+                                with no lineage: two identical runs reported it
+                                removed and added, and every area beneath it
+                                moved. Anything minted from here on belongs on
+                                this list before it is written.
 * a protected area              `protected:` + the observed path.
 * the scoped General            the parent's key + `/general`.
 

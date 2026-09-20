@@ -173,6 +173,27 @@ that the code equals itself. Three things moved and each is ratified:
 cloud banner where a pytest run without a key records "No model was consulted" --
 the same code writing two screens. Neutralise `cli.ENV_FILE` and the model
 variables before capturing, or the fixture pins the developer's machine.
+
+**Recaptured on 20 Sep 2026 for `98 Review and Unsorted`'s LINEAGE, and the diff
+was read before it was taken.** `106` Phase 5.1 made `origin_node_id` a composed
+key at every mint site; amendment 13's review root was added afterwards and kept
+the fresh mint's own id, so it was the one node in the tree with no lineage
+across versions and two identical runs reported it removed and added. It is a
+parentless proposal and now takes `node_key.branch_key` like any other.
+
+Structurally the recapture differs from its predecessor in EXACTLY ONE FIELD OF
+ONE ROW: `placement_index_entries`, the review root's payload, whose
+`origin_node_id` reads `branch:98 Review and Unsorted` for
+`<node:proposed:None:98 Review and Unsorted>`. **The screen is identical line for
+line and thirteen of the fourteen tables are identical row for row** --
+`tree_nodes` among them, because the shared normaliser drops `origin_node_id` as
+a MINTED column and only this payload blob carried the value as text. Nothing
+this corpus concludes changed; no placement moved and no count did.
+
+The fact worth recording is what the predecessor already showed: every other
+node in it read a composed key -- `branch:Coursework/term=Fall2024`,
+`residual:Review Later` -- and this root read a minted id. The fixture had been
+printing the odd one out since Phase 5.1 and nothing was reading it.
 """
 from __future__ import annotations
 

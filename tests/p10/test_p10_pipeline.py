@@ -1113,6 +1113,54 @@ def test_a_residual_home_with_no_parent_lives_under_the_review_root(corpus):
     assert root.node_id in result.tree.freeze_record.legal_destination_ids
 
 
+def test_a_review_root_minted_twice_is_the_same_node_both_times(corpus):
+    """§8.8's identity, for the root amendment 13 added after §8.8 was written.
+
+    THIS ASSERTS ON THE ORIGIN AND NOT ON A SCREEN. The defect it pins reached
+    the person as `Folders removed: 1 / Folders added: 1` on two identical runs,
+    and the integration test that caught it there reads that wording; a pin on
+    wording dies the day the wording is improved. What has to hold is upstream
+    of every screen: the node a second run mints for the same claim is THE SAME
+    NODE, and `origin_node_id` is the only thing that says so.
+
+    So the two runs mint from separate id spaces -- which is what two runs are.
+    A per-version `node_id` is expected to differ and is asserted to differ; the
+    origin is expected to agree, and is asserted to be neither run's mint, which
+    is the shape the defect had.
+    """
+    from tree_design.node_key import branch_key
+    from tree_design.vocabulary import RESIDUAL, REVIEW_AND_UNSORTED
+
+    def run(prefix):
+        counter = iter(range(10_000))
+        result = design(corpus, auth=authorities(
+            corpus,
+            mint_node_id=lambda: f"{prefix}_n_{next(counter)}",
+            mint_version_id=lambda: f"{prefix}_plan_{next(counter)}"))
+        nodes = {node.node_id: node for node in result.tree.nodes}
+        home = next(node for node in nodes.values()
+                    if node.node_role == RESIDUAL)
+        assert home.parent_node_id is not None, "no review root was minted"
+        return nodes[home.parent_node_id], home
+
+    first_root, first_home = run("one")
+    second_root, second_home = run("two")
+
+    assert first_root.display_label == REVIEW_AND_UNSORTED
+    assert second_root.display_label == REVIEW_AND_UNSORTED
+    # Two runs are two mints. The id is per version and is NOT the identity.
+    assert first_root.node_id != second_root.node_id
+    # The identity that IS the identity agrees, and is a composed key rather
+    # than either run's mint -- which is exactly what it was not.
+    assert first_root.origin_node_id == second_root.origin_node_id
+    assert first_root.origin_node_id not in {first_root.node_id,
+                                             second_root.node_id}
+    assert first_root.origin_node_id == branch_key(
+        display_label=REVIEW_AND_UNSORTED, existing_path=None)
+    # And so the area beneath it did not re-parent: same area, same home.
+    assert first_home.origin_node_id == second_home.origin_node_id
+
+
 def test_no_review_root_is_minted_when_nothing_is_under_it(corpus):
     """`00`:121: "These templates are not automatically created." An empty
     `98` would be a folder nobody asked for."""

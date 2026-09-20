@@ -30,8 +30,6 @@ import re
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 import cli
 
 #: Two courses, two files each. Two so that a course folder is a folder that
@@ -280,16 +278,18 @@ def test_running_the_same_command_twice_reports_nothing_changed(tmp_path):
     assert total == len(CORPUS), block
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "NOT THIS SCREEN'S DEFECT, pinned where it shows. The review home a "
-    "residual enablement mints -- `98 Review and Unsorted` -- carries its own "
-    "per-version `node_id` as its `origin_node_id`, so it has no lineage to "
-    "match across versions and two identical runs report it removed and added "
-    "and the area beneath it moved. `node_key` gives every other node a key "
-    "spelled from its claim; this one was missed. The comparison is reporting "
-    "the record faithfully, which is why the fix belongs where the node is "
-    "minted and not here. When it lands, this test passes and says so."))
 def test_an_unchanged_run_with_a_residual_area_reports_nothing_changed(tmp_path):
+    """The same re-run as above, with a residual area turned on.
+
+    This was a strict `xfail` for as long as `98 Review and Unsorted` carried
+    its own per-version mint as its `origin_node_id`: the one node in the tree
+    with no lineage, reported removed and added on two identical runs, with
+    every area beneath it moved because its parent was a different node each
+    time. The comparison was reporting the record faithfully and the fix was at
+    the mint (`tree_design.pipeline.enable_review_homes`), which is why this
+    test stayed here and stayed strict -- so that the day the cause was fixed,
+    the screen said so on its own.
+    """
     block = _rerun_unchanged(tmp_path, "--residual", "Review Later")
     for heading in ("Folders added", "Folders removed",
                     "Folders moved under a different folder"):
