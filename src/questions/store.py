@@ -18,12 +18,20 @@ import json
 import sqlite3
 from dataclasses import asdict
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from evidence_shape.canonical import canonical_json
 
 from questions.records import QuestionOption, StructuralAnswer, StructuralQuestion
 from questions.vocabulary import BINDING_STATES, REVOKED, SKIPPED
+
+
+#: The prefix a `residual:<area>` question id carries. Here and not in
+#: `registry.py`, where the other five kind ids are literals, because
+#: `residual_choices` below has to take the id APART to name the area and
+#: `registry` imports its readers from this module -- so the reader and the
+#: prefix it parses live together and the kind reads both from one place.
+RESIDUAL_KIND_ID: str = "residual"
 
 
 class AnswerConflict(ValueError):
@@ -328,6 +336,48 @@ def chosen_destination(conn: sqlite3.Connection, *,
              for option in answered_options(conn, scope=scope)
              if option.chooses_destination]
     return named[0] if named else None
+
+
+def residual_choices(conn: sqlite3.Connection, *,
+                     scope: str) -> Mapping[str, str]:
+    """What the person has settled about each catch-all area, by area.
+
+    `66` §13's fifth consequence, in one place, for the reason the four above it
+    are each in one place: a reader can see every area the user decided about and
+    where the decision came from, and a second path to the same effect would
+    falsify that sentence.
+
+    **A MAPPING where `gated_template` returns one value.** A nesting answer is
+    about one branch and the branch IS the scope, so naming the scope names the
+    answer. Every residual area is settled at the SAME scope -- §7.4's areas are
+    the whole corpus's -- and which area an answer is about is in the question
+    id. A reader returning one value could not say which of the nine it meant,
+    and one call per area would walk this table nine times to read at most nine
+    rows.
+
+    The id is split ONCE, after the kind. `--define-residual` lets a person name
+    an area of their own and an area name may hold a `:`; splitting on the last
+    one would take `Notes: 2024` apart and report an area nobody named.
+
+    Absent for unanswered, for skipped and for revoked -- `answered_options`
+    already draws that line, and all three mean the same thing to the tree:
+    nobody told this run to build the area, so it builds the plan it built
+    before. That is what makes asking free.
+    """
+    prefix = f"{RESIDUAL_KIND_ID}:"
+    out: dict[str, str] = {}
+    for row in conn.execute("SELECT * FROM structural_questions "
+                            "ORDER BY question_id"):
+        question_id = row["question_id"]
+        if not question_id.startswith(prefix) or row["scope"] != scope:
+            continue
+        answer = live_answer(conn, question_id=question_id, scope=row["scope"])
+        if answer is None or answer.state not in BINDING_STATES:
+            continue
+        for option in _question_of(row).options:
+            if option.option_id == answer.option_id and option.residual_action:
+                out[question_id[len(prefix):]] = option.residual_action
+    return out
 
 
 def questions_for(conn: sqlite3.Connection,

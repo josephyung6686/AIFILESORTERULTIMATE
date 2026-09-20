@@ -31,7 +31,8 @@ from dataclasses import dataclass
 
 from questions.records import QuestionOption
 from questions.store import (
-    activated_schemas, chosen_destination, gated_template, selected_situation,
+    RESIDUAL_KIND_ID, activated_schemas, chosen_destination, gated_template,
+    residual_choices, selected_situation,
 )
 from questions.vocabulary import (
     SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_FOLDER, SCOPE_ORGANIZATION, SCOPES, check,
@@ -146,10 +147,29 @@ HOME_KIND = QuestionKind(
     consequence_field="chooses_destination",
     reader=chosen_destination)
 
+#: `cli.record_residual_choices`. §7.4 asks one question per catch-all area --
+#: enable it, disable it, rename it, relocate it, merge it, or replace it with a
+#: folder you already have -- and the person answers it by typing `--residual` or
+#: `--residual-library`. `residual_choices` hands the answers back to the
+#: composition root on every LATER run, which is the whole of `110` §2.4: this
+#: was the one decision of the five that lived in an invocation's argv and in
+#: nothing else, so a person who had settled an area re-settled it every run.
+#:
+#: `SCOPE_CORPUS`, like ROLE_KIND and for a plainer reason: §7.4's areas are the
+#: whole corpus's. There is one Review Later, not one per branch, and the area a
+#: question is about is in its id rather than in its scope -- which is why this
+#: kind's reader returns a mapping where three of the four above return a value.
+RESIDUAL_KIND = QuestionKind(
+    kind_id=RESIDUAL_KIND_ID,
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="residual_action",
+    reader=residual_choices)
+
 #: Every kind this deployment ships, and the tests assert that every
 #: consequence `QuestionOption` can carry is claimed by one of them.
 QUESTION_KINDS: tuple[QuestionKind, ...] = (
-    READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND, HOME_KIND)
+    READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND, HOME_KIND,
+    RESIDUAL_KIND)
 
 
 def kind_of(question_id: str) -> QuestionKind | None:
