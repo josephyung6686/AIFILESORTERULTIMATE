@@ -331,3 +331,52 @@ and 21); a life the library never imagined, added by the person (12a(ii)); the
 6. **The `max_depth` constant.** `TREE_LIMITS.max_depth=5` at `cli.py:628` has
    no flag. Leave it (per-branch omission is the control `107` actually
    describes), or expose it as the eighteenth P1 ceiling with a flag.
+
+---
+
+## 5. The one thing §4 left unverified, now read — item 2 is medium PLUS a C5 gate
+
+§4 said: *"One thing NOT verified for item 2: `_recommended_order`'s docstring
+says an order recommendation 'cannot override an edge a fragment states'. Whether
+every non-default `candidate_orders` entry is already validated against the
+definition's fragment partial orders ... decides whether item 2 is medium or
+medium plus a C5 gate. Read that before costing it."* It has been read.
+
+**IT IS NOT VALIDATED. Only the default order ever meets C5.**
+
+Three reads, and they agree:
+
+1. `_recommended_order` (`src/tree_design/routing.py:275`) builds its sequence
+   from `definition.default_order.dimensions` — **the default order and nothing
+   else**. `candidate_orders` is iterated nowhere in that function.
+2. `merge_fragment_constraints` is called **once per branch**
+   (`routing.py:423-431`), with `preferred_order=_recommended_order(...)`. C5 is
+   raised from inside it, so C5 sees exactly one order: the recommended one.
+3. `TemplateDefinition._check_orders` (`src/tree_design/templates.py:372-423`) is
+   the only other thing that inspects `candidate_orders`, and it checks four
+   things — at least one order, unique `order_id`s, exactly one `is_default`, the
+   same role set across all of them, plus the `sole_order_attestation` rule. **It
+   never looks at a fragment edge.** It cannot: a fragment's constraints are
+   merged at routing time from the fragments actually in play, and the definition
+   record does not have them.
+
+**WHY THIS IS NOT A TECHNICALITY.** `templates.py:309-311` draws the distinction
+itself: a template-local pair *"cannot reorder what a fragment constrains. A pair
+contradicting a fragment edge makes the combined graph cyclic and C5 refuses it,
+which is the difference between a recipe's recommendation and a fragment's
+rule."* A fragment edge is a **safety-and-meaning constraint**, not a preference.
+So the moment item 2 offers a non-default order to the person as a nesting
+choice, it is offering an order that **nothing has checked against the rules** —
+and the person picking it is the first thing in the system to assert it is legal.
+
+**THE COST, CORRECTED.** Item 2 is *medium plus a C5 gate*: every entry the
+branch offers has to go through `merge_fragment_constraints` before it is shown,
+and an entry that cycles is not offered rather than offered and later refused.
+`84` §6 again — a choice the screen presents has to be one the person can
+actually take.
+
+**WHAT IS NOT WRONG TODAY.** Nothing ships a non-default order to anyone, because
+`routing.py` reads only `default_order` — `_recommended_order`'s own docstring
+says the whole mechanism *"was built, tested, and wired to nothing"*. This is a
+cost discovered before the build, not a defect in the product. It is recorded
+here so item 2 is not quoted at its §4 price.
