@@ -463,12 +463,13 @@
   "applicabilities": [
     {
       "applicability_id": "ap.career.recruiting",
-      "applicability_version": 1,
+      "applicability_version": 2,
       "template_id": "def.career-search-and-tenure",
       "template_version": 1,
       "uses_schema": "career",
       "purpose_profile_ref": null,
       "allowed_fields": [
+        "year",
         "target_employer",
         "job_title",
         "recruiting_cycle",
@@ -478,6 +479,11 @@
         "recognition:career.recruiting"
       ],
       "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "year",
+          "label": "The year I applied"
+        },
         {
           "role_ref": "employer_org",
           "field_ref": "target_employer",
@@ -501,7 +507,9 @@
       ],
       "exclusions": [
         "employer as a folder level: on this side of the process the organization is the one being ADDRESSED, and 00:44's rule - 'An application essay can mention the author's current school and the university to which the essay is addressed. Those are not the same field.' - is why this row binds target_employer and the tenure row binds employer",
-        "our_firm and client as folder levels: career.json rules both out by name, 'client is the counterparty of the our_firm role split rather than an employer of record'"
+        "our_firm and client as folder levels: career.json rules both out by name, 'client is the counterparty of the our_firm role split rather than an employer of record'",
+        "scope_period as the year's role: 00 amendment 23 rules that year (the year a file was MADE) and tax_year (the year a record is ABOUT) are different fields, and scope_period is 'the period a record covers or is measured over' -- the role tax_year binds. Binding year there would put the two meanings under one role in one release.",
+        "cycle_period as the year's role: it is already taken on this row by recruiting_cycle ('My search'), and 43 section 2.1 defines it as 'a named recurring process instance -- term, round, wave, run, season -- that is NOT a date'. A calendar year is a date."
       ],
       "provenance": [
         "row:career.recruiting",
@@ -509,7 +517,10 @@
         "60-VOCABULARY-RULINGS.md section 8.3 - the search half of career is the work_type half, 'the search (resumes, cover letters, portfolio) - work_type'",
         "60-VOCABULARY-RULINGS.md section 5 - career declares employer, target_employer, recruiting_cycle, work_type, record_type and job_title",
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - D30 ships and this is one of the rows it had none of",
-        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers",
+        "00-database-agent-product-design.md amendment 22 - year is bound as a folder level where 107 already says it goes, and Career applications is one of the two places 107 names",
+        "00-database-agent-product-design.md amendment 33 - year is bound and its producer is repaired in one change; this row is the level half, replacing a shipped row under amendment 31's three conditions",
+        "107-IDEAL-TREE-REFERENCE.md - Career applications is 'Year -> organization and role -> application stage'"
       ],
       "privacy_floor": null,
       "life": "Career"

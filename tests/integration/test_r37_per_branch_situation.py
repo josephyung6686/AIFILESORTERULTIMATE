@@ -48,7 +48,14 @@ MODEL_ID = "stub-qwen3:8b"
 #: less the two `104` §11.2 step 2 routes to the group (`school`, `term`).
 COURSEWORK_FIELDS = {"subject", "term", "work_type", "school"}  # `school` since R-131: an anchor is asked the holder's school
 #: `career.recruiting`'s file-level fields, from the shipped library's own row.
-RECRUITING_FIELDS = {"target_employer", "job_title", "recruiting_cycle", "work_type"}
+#: `year` since `00` amendment 33 bound it as this situation's first level
+#: (`107`: *Year -> organization and role -> application stage*). It is a
+#: UNIVERSAL field, so the two assertions below that a coursework file is never
+#: offered a recruiting field still hold for the right reason: `open_question`
+#: narrows a file's question to ITS OWN situation's levels, and
+#: `academic.coursework` has no `year` level.
+RECRUITING_FIELDS = {"year", "target_employer", "job_title", "recruiting_cycle",
+                     "work_type"}
 
 COURSEWORK = ("PHYS 1401 syllabus.txt", "Lecture 08.txt", "PHYS 1401 notes.txt")
 COVER_LETTERS = ("Cover letter Acme.txt", "Cover letter Beta.txt")

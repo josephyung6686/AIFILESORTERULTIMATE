@@ -22,6 +22,7 @@ import pytest
 
 from cli import fact_call_authorities, load_shipped_catalogue, read_packaged_library_file
 from facts.domains import DOMAIN_FIELDS, UNIVERSAL_SCOPE
+from facts.fields import FIELD_ROWS
 from llm_harness.records import EvidenceItem, FolderLevel
 from llm_harness.vocabulary import DIRECT_ANCHOR
 from production import (
@@ -67,8 +68,18 @@ def test_every_level_field_is_inside_that_situations_own_allowlist(catalogue):
     `pending_fields_for` warns about -- so it is checked across all 208 rows here,
     where a library edit meets it, and not only on the one situation we measure.
     """
-    universal = {"file_type", "creation_date", "language", "authored_by",
-                 "media_type", "duplicate_family"}
+    #: DERIVED FROM THE CATALOGUE'S OWN SCOPE COLUMN, NOT RETYPED. It was a
+    #: literal set of six until `00` amendment 33 bound `year` -- a universal
+    #: field this list had never heard of, because the list was written before
+    #: the field existed and nothing made it move with the catalogue. That is
+    #: `60` §9.6's own bug ("a hard-coded list here would be that same bug
+    #: transplanted") at one remove, and `active_field_allowlist` prepends
+    #: `fields_in_scope(conn, UNIVERSAL_SCOPE)`, which is exactly this. The one
+    #: name the literal held that this does not is `media_type`, which never
+    #: needed to be here: it is declared at `photos` and is already in
+    #: `DOMAIN_FIELDS["photos"]`, so the schema arm below covers it.
+    universal = {row.field_key for row in FIELD_ROWS
+                 if row.scope == UNIVERSAL_SCOPE}
     for situation in sorted({row.name for row in shipped_situations(catalogue)}):
         schema = schema_for_situation(catalogue, situation)
         allowed = set(DOMAIN_FIELDS.get(schema, ())) | universal
