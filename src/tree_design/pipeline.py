@@ -74,10 +74,17 @@ from tree_design.upstream import (
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
-    ACCEPT, ADD_SCOPED_GENERAL, ARCHIVE, C3, DISABLE, ENABLE, EXISTING,
+    ACCEPT, ADD_SCOPED_GENERAL, ARCHIVE, C3, DISABLE, ENABLE, EXISTING, IGNORE,
     ORDINARY, PROPOSED, REPLACE_WITH_EXISTING, REVIEW_AND_UNSORTED,
     REVIEW_SURFACES, SET_SHARED_MATERIAL_POLICY, check,
 )
+
+#: `110` §2.1's scope for leaving a branch out. NOT a new member: `branch` is
+#: `CORRECTION_SCOPES`' own, ratified by the owner on 11 Sep 2026 as *a node AND
+#: everything under it*, which is exactly this gesture's reach. It is named here
+#: rather than spelled at each of its two sites so the gesture P13 collects and
+#: the event P1 records cannot drift apart.
+IGNORED_BRANCH_SCOPE: str = "branch"
 
 #: §5's chain, in §5's order, plus §6.1 and §8.8. Named so the shape is checkable
 #: against the design rather than against this file — the same reason
@@ -290,6 +297,16 @@ class TreeDesignDecisions:
     surface: str
     shared_material: SharedMaterialAnswer | None = None
     scoped_general: tuple[ScopedGeneralAnswer, ...] = ()
+    #: `110` §2.1's *Disable*: the ORIGIN KEYS of the branches the person has
+    #: said to leave out. Keys and not node ids, because §8.8 mints a new node id
+    #: per plan version and this decision outlives the version it was made on --
+    #: `node_key` spells an origin from the node's own claim, so the branch a
+    #: person left out last week is findable in the tree this run just designed.
+    #: Naming a key this tree does not carry is not an error: the corpus may
+    #: simply no longer produce that branch, and the decision is kept for the day
+    #: it does (the same rule `learned_preferences_still_applicable` states for a
+    #: rejection of a node that no longer exists).
+    ignored_branches: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("from_plan_version", "created_at", "user_id",
@@ -923,6 +940,15 @@ def design_tree(conn: sqlite3.Connection, *,
         root_anchor=authorities.root_anchor,
         mint_node_id=authorities.mint_node_id,
         handling_class_for=authorities.handling_class_for_area)
+    # `110` §2.1, LAST among the edits and before the freeze, which is the only
+    # order that works: the branches to leave out are named by origin key, and
+    # the nodes carrying those keys do not exist until every pass above has
+    # written them. Before the freeze because `approved_branch_ids` is filtered
+    # on `accepts_placement` -- an ignored branch must not be named approved, and
+    # `freeze`'s own comment below already says so -- and before placement
+    # because P11 reads the index this freeze projects.
+    version = _apply_ignored_branches(conn, authorities, decisions,
+                                      version=version, versions=versions)
 
     profiles = build_profiles(
         conn, plan_version_id=version, groups_by_id=by_id,
@@ -955,6 +981,70 @@ def design_tree(conn: sqlite3.Connection, *,
         tree=frozen_tree(conn, plan_version=version),
         plan_version_ids=tuple(versions), branches=tuple(branches),
         protected_areas=areas, candidates=candidates)
+
+
+def _apply_ignored_branches(conn, authorities, decisions, *, version: str,
+                            versions: list[str]) -> str:
+    """`110` §2.1's *Disable*, through the `IGNORE` writer that already exists.
+
+    The node stays in the tree as `ignored` and stops accepting placement, which
+    is `84` §1 rather than a half-measure: material is marked and counted and
+    never silently omitted, so a branch the person left out is still on their
+    screen, still named, and no longer somewhere a file can go.
+
+    **THE WHOLE SUBTREE, and that is not a convenience.** `accepts_placement` is
+    read per node -- `placement/index.py` writes one entry per node carrying it
+    and walks no ancestor -- so ignoring the branch alone would leave every
+    folder beneath it a live destination, and files would go on landing inside a
+    branch the person had just taken out. `branches_named` already selects the
+    subtree at the gesture; this walks it again here because the tree this run
+    designed is not the tree the gesture was typed against, and the children are
+    this run's.
+
+    **Walked by parent, not by key prefix.** A level's origin key is spelled from
+    its parent's, so a descendant's key does start with its ancestor's -- and
+    matching on that string would make the KEY a path, which is the one thing
+    `node_key` says it is not. The parent links are what the tree is made of.
+
+    NOTHING HAPPENS WHEN NOTHING IS IGNORED, which is every run before the person
+    types the flag: no draft is opened and no row is written, so a corpus nobody
+    has edited produces byte-identically the run it produced before this existed.
+    """
+    if not decisions.ignored_branches:
+        return version
+    wanted = frozenset(decisions.ignored_branches)
+    nodes = nodes_for_version(conn, version)
+    children: dict[str | None, list] = {}
+    for node in nodes:
+        children.setdefault(node.parent_node_id, []).append(node)
+    origins: list[str] = []
+    seen: set[str] = set()
+    pending = [node for node in nodes if node.origin_node_id in wanted]
+    while pending:
+        node = pending.pop()
+        if node.node_id in seen:
+            continue
+        seen.add(node.node_id)
+        origins.append(node.origin_node_id)
+        pending.extend(children.get(node.node_id, ()))
+    # Sorted, so two runs over one corpus apply the same edits in the same order
+    # and mint the same chain of versions. `_add_scoped_generals` orders its own
+    # for the same reason.
+    for origin in sorted(origins):
+        version = _apply(conn, authorities, decisions, action=_Action(
+            review_action_id=f"ra_ignore_{origin}",
+            surface=decisions.surface,
+            subject_ref=origin,
+            plan_version=version, action=IGNORE,
+            # `branch`, the scope the gesture was collected at: a node AND
+            # everything under it (the owner, 11 Sep 2026). The event log says
+            # the same thing about this edit that P13's record says about the
+            # gesture that caused it.
+            correction_scope=IGNORED_BRANCH_SCOPE,
+            presented_state_ref=f"ps_{origin}",
+            user_id=decisions.user_id, observed_at=decisions.created_at))
+        versions.append(version)
+    return version
 
 
 def _add_scoped_generals(conn, authorities, decisions, *, version: str,

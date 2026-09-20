@@ -430,9 +430,9 @@ from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
 from tree_design.materialise import MaterialisationRefused
 from tree_design.pipeline import (
-    NothingToDesign, ScopedGeneralAnswer, SharedMaterialAnswer,
-    TreeDesignAuthorities, TreeDesignDecisions, mint_review_homes,
-    mint_scoped_generals,
+    IGNORED_BRANCH_SCOPE, NothingToDesign, ScopedGeneralAnswer,
+    SharedMaterialAnswer, TreeDesignAuthorities, TreeDesignDecisions,
+    mint_review_homes, mint_scoped_generals,
 )
 from tree_design.store import ReviewActionRefused
 from tree_design.template_schema import (
@@ -470,7 +470,9 @@ from structure_file import (
     render as structure_render,
 )
 from apply_run.approval import approval_reader, approval_writer
-from apply_run.branches import BranchRefused, branches_named
+from apply_run.branches import (
+    BranchRefused, branches_named, qualified_path as _qualified_path,
+)
 from apply_run.freeze import freeze, frozen_plans
 from apply_run.report import apply_lines, freeze_lines, undo_lines
 from apply_run.run import (
@@ -485,8 +487,9 @@ from review_run.progress import progress_lines
 # the function is imported directly and nothing in P13 is widened to hold them.
 from database_agent.events import CORRECTION_SCOPES, append_event
 from review_gestures import (
-    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_leaves,
-    collect_set_sends, record_level_presentations, record_set_presentations,
+    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_branch_ignore,
+    collect_level_relabel, collect_set_leaves, collect_set_sends,
+    record_level_presentations, record_set_presentations,
 )
 from review_surface.bulk import collect_bulk, expand
 from review_surface.collect import (
@@ -500,7 +503,7 @@ from review_surface.presentation import record_presentation
 from review_surface.residual import (
     SEVEN_ATTRIBUTES, IncompleteResidualCard, residual_card,
 )
-from review_surface.store import record_action
+from review_surface.store import record_action, subjects_acted_on
 from review_surface.progress import (
     UNREADABLE, assert_every_file_accounted, bucket_for,
 )
@@ -509,7 +512,8 @@ from review_surface.schema import create_review_schema
 from review_surface.trail import file_trail
 from review_surface.vocabulary import (
     ACTION_ACCEPT, ACTION_REJECT, ACTION_RENAME, SOURCE_P4_RUNS, SOURCE_P8,
-    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED, SURFACE_GROUP_PLAN,
+    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED, SURFACE_CANVAS,
+    SURFACE_GROUP_PLAN,
 )
 from grouping.learning import apply_review_action as record_group_review
 # `104` §18.2 gap 10: P4's own extraction record, for the files the fact pass
@@ -17215,6 +17219,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return TreeDesignDecisions(
             from_plan_version=PLAN_VERSION,
             branch_group_ids=tuple(accepted) + adopted_folders(),
+            # `110` §2.1. EVERY standing ignore and not this run's flags: the
+            # gesture is a decision about a branch, not about an invocation, and
+            # a person who left a folder out last week should not have to retype
+            # it to keep it out -- which is the very defect `110` item 1 names
+            # about the residual flags one row up its own table.
+            ignored_branches=ignored_branch_origins(conn),
             choose_option=nesting_chooser(conn, asked_at=clock), refinement_for=refinement_for,
             residual_library=residual_library,
             residual_choices=residual_choices,
@@ -21925,6 +21935,98 @@ def apply_level_relabels(conn: sqlite3.Connection, relabels: Sequence[str], *,
             raise RelabelRefused(str(refusal)) from refusal
 
 
+class IgnoreRefused(NotConfigured):
+    """`--ignore-branch` named no branch of this plan, or named two."""
+
+
+def apply_ignored_branches(conn: sqlite3.Connection, names: Sequence[str], *,
+                           user_id: str, observed_at: str,
+                           mint_action_id) -> None:
+    """`--ignore-branch NAME`: leave this branch out, and everything under it.
+
+    `110` §2.1's *Disable*, and `107`'s promise that "every split can be changed
+    before freeze". The `IGNORE` writer has existed since P10 landed -- the node
+    becomes `ignored`, stops accepting placement and stays in the tree -- and
+    nothing reached it. This is the gesture that does.
+
+    **Named exactly as `--apply` names a branch**, through `branches_named` and
+    not a second selector: the bare label when it is the only one in the tree,
+    the `/`-joined path always, and an ambiguous word refused by a sentence
+    listing every branch there is. Two ways of saying "which folder do you mean"
+    would be `109`'s two-spellings defect on the surface a person types at.
+
+    **Collected as a `review_action` FIRST, then applied** -- `81` §13.1's order
+    and `apply_level_relabels`' -- so one history explains every change. What is
+    APPLIED is not applied here, and that is the second half of the design:
+    this run has designed no tree yet, and editing the tree the last run left
+    behind would edit a plan nothing downstream reads. The row is the durable
+    fact; `design_tree` reads it back through `TreeDesignDecisions` and applies
+    `IGNORE` to the branch in the tree THIS run designs, which is the tree the
+    person is about to be shown and the one the files are placed against.
+
+    **The subject is the branch's ORIGIN KEY and not its node id**, for `64` §3's
+    reason applied one record over: §8.8 mints a fresh node id per plan version,
+    so a decision filed under one would stop applying at the first edit. The key
+    is spelled from the node's own claim (`node_key`), so the branch survives
+    re-derivation and the gesture keeps working on every run after the one it was
+    typed on.
+    """
+    from_version = latest_plan_version(conn)
+    if from_version is None:
+        raise IgnoreRefused(
+            "there is no proposal to leave a branch out of. Run the command "
+            "without `--ignore-branch` first: the folder list is printed by the "
+            "run that proposes it, and a branch nothing has shown you is one "
+            "nobody can name. This is a second-run gesture for the reason "
+            "`--rename-level` is.")
+    nodes = nodes_for_version(conn, from_version)
+    by_id = {node.node_id: node for node in nodes}
+    for name in names:
+        try:
+            # ONE NAME AT A TIME, although the selector takes many: a person who
+            # typed two words wants two decisions, each with its own row and its
+            # own refusal, and one call would file them under a single record
+            # naming a subtree nobody asked for as a whole.
+            selected = branches_named([name], nodes=nodes)
+        except BranchRefused as refusal:
+            # P12's own sentence, re-raised as this command's refusal rather than
+            # paraphrased -- it is the one that names every branch there is, and
+            # `84` §6 asks that what the screen offers can actually be typed.
+            raise IgnoreRefused(str(refusal)) from refusal
+        # THE ROOT OF WHAT WAS SELECTED. `branches_named` returns the subtree,
+        # because naming a branch names everything under it; the decision is
+        # about the branch itself, and the subtree is re-walked per run by
+        # `design_tree` against the tree that run designed.
+        root = next(node for node in (by_id[node_id] for node_id in selected)
+                    if node.parent_node_id not in selected)
+        try:
+            collect_branch_ignore(
+                conn, origin_key=root.origin_node_id,
+                display_path=_qualified_path(root, nodes),
+                action_id=mint_action_id(), plan_version=from_version,
+                settings=display_policy(conn, plan_version=from_version),
+                correction_scope=IGNORED_BRANCH_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=observed_at)
+        except (PresentationRequired, ProtectedContainerHasNoAction,
+                ScopeNotPresented, BulkMembersRequired) as refusal:
+            raise IgnoreRefused(str(refusal)) from refusal
+
+
+def ignored_branch_origins(conn: sqlite3.Connection) -> tuple[str, ...]:
+    """The branches the person has left out, by origin key, oldest first.
+
+    Read off P13's own store rather than out of a table of this command's own:
+    the `review_action` IS the durable fact (`110` §2.1), and a second record
+    saying the same thing is `109`'s two-spellings defect. A key this run's tree
+    does not carry is not filtered out here -- `design_tree` simply finds no node
+    for it -- because the decision is still the person's and the corpus may put
+    that branch back tomorrow.
+    """
+    return subjects_acted_on(
+        conn, surface=SURFACE_CANVAS, action=ACTION_REJECT,
+        correction_scope=IGNORED_BRANCH_SCOPE)
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -24535,6 +24637,36 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     draw(None, 0)
     _print_health(health, group_names, out=out)
+    # `84` §6, the rule the `--rename-level` line below answers one block on: a
+    # control the screen does not name is a control nobody has, and `107`'s
+    # promise that every split can be changed before freeze is kept by a person
+    # who can see how. The branch named is one this tree really has, spelled the
+    # way the flag reads it -- the bare label when it is the only one, the whole
+    # path when it is not -- because an invented example is a line the product
+    # told somebody to paste and the flag would refuse.
+    #
+    # BELOW THE TREE AND NOT INSIDE IT, which is `_print_cards`' own reason at
+    # the other end of the same block: every reader of this screen slices
+    # between "Folders in this plan:" and the heading after it, and prose
+    # printed inside that slice reads as a folder to anything counting them.
+    # Unindented for the same reason -- `draw` indents by two per level, so a
+    # sentence that started with a space would be depth-one folder to the
+    # slicers that measure it.
+    leavable = [node for node in tree.nodes if node.accepts_placement]
+    example = next((node for node in leavable if node.parent_node_id is not None),
+                   leavable[0] if leavable else None)
+    if example is not None:
+        labels = [node.display_label for node in tree.nodes]
+        typed = (example.display_label
+                 if labels.count(example.display_label) == 1
+                 else _qualified_path(example, tree.nodes))
+        print("", file=out)
+        print(_wrapped(
+            f"To leave one of those folders out: --ignore-branch '{typed}'. It "
+            "stays in this plan, marked and counted, and stops being somewhere "
+            "a file can go -- the files that were going there are held for "
+            "review instead. Nothing is moved, renamed or deleted, and it holds "
+            "on later runs as well.", indent=""), file=out)
 
     # `104` R-41(a). WHAT EACH LEVEL OF THAT TREE IS, named by the key a rename
     # is stored under (`64` §3). The tree above prints folder names -- values --
@@ -25989,6 +26121,17 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "nothing under a different kind of material. Nothing moves. Can be "
              "given more than once.")
     parser.add_argument(
+        "--ignore-branch", action="append", default=[], metavar="NAME",
+        help="leave one branch of this plan out, e.g. --ignore-branch "
+             "'PHYS1401'. Name it exactly as the folder list printed it -- the "
+             "bare name when it is the only one, the whole path from the top "
+             "when it is not -- and if two folders answer to it you are asked "
+             "which. The folder stays in the plan, marked and counted, and "
+             "stops being somewhere a file can go: the files that would have "
+             "gone there are held for review instead. Nothing is moved, renamed "
+             "or deleted, and it holds on later runs as well. Can be given more "
+             "than once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -26565,6 +26708,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             apply_level_relabels(
                 conn, args.rename_level, user_id=args.user, observed_at=now(),
                 mint_action_id=mint_relabel_action_id)
+        # BESIDE `--rename-level` and for its reason, and it is the same kind of
+        # sentence: `--rename-level` is what a level is CALLED and this is
+        # whether a branch is THERE. Both are read off the folder list the last
+        # run printed and both are typed on the next command, so both are
+        # collected here, before the run, where P13's refusals land in front of
+        # anything being written.
+        if args.ignore_branch:
+            _bootstrap(conn)
+            ignored = count()
+
+            def mint_ignore_action_id() -> str:
+                # `mint_relabel_action_id`'s rule: the prefix is what says which
+                # kind of thing a bare uuid in the audit trail names.
+                return f"ignore-{uuid.uuid4().hex}:{next(ignored)}"
+
+            apply_ignored_branches(
+                conn, args.ignore_branch, user_id=args.user, observed_at=now(),
+                mint_action_id=mint_ignore_action_id)
         if args.explain:
             _bootstrap(conn)
             for question_id in args.explain:

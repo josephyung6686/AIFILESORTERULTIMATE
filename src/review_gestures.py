@@ -51,6 +51,7 @@ from review_surface.store import last_presentation_ref, record_action
 from review_surface.vocabulary import (
     ACTION_ACCEPT_BULK,
     ACTION_LEAVE_UNTOUCHED,
+    ACTION_REJECT,
     ACTION_RENAME,
     SURFACE_CANVAS,
     SURFACE_RESIDUAL_SET,
@@ -418,6 +419,74 @@ def collect_level_relabel(
         presented_state_ref="" if shown is None else shown,
         user_id=user_id, acted_at=acted_at, component_version=component_version,
         payload={"display_label": display_label})
+    record_action(conn, record)
+    conn.commit()
+    return record
+
+
+def collect_branch_ignore(
+    conn: sqlite3.Connection, *,
+    origin_key: str,
+    display_path: str,
+    action_id: str,
+    plan_version: str,
+    settings: RedactionSettings,
+    correction_scope: str,
+    user_id: str,
+    component_version: str,
+    acted_at: str,
+) -> ReviewAction:
+    """One `--ignore-branch`, collected as the word P13 already has for it.
+
+    `110` §2.1's *Disable*. The person has read the folder list and said no to
+    one of its branches; P10's `IGNORE` writer is what then takes it out of the
+    destinations, and this is the record of their having said so.
+
+    **`reject` and not a new member, and `81` §14.1 is why.** A `review_action`'s
+    action word is a closed vocabulary whose members are the owner's alone --
+    *"they are not minted by whoever notices the gap"* -- and `ignore` is not one
+    of them. It does not need to be: `reject` is P13's own word for *"no to this
+    proposal"*, `prior_rejections` already reads it back by subject, and §8.7's
+    no-resurfacing rule is exactly what an ignored branch wants. P10's `IGNORE`
+    is the argument to `apply_review_action`, a different vocabulary that keeps
+    its own word -- the two-vocabulary shape `collect_level_relabel` already has,
+    where P13 collects a `rename` and P10 stores a `renamed`.
+
+    **`branch` scope, ratified 11 Sep 2026** as *a node AND everything under it*.
+    That is exactly this gesture's reach: `branches_named` selects the subtree,
+    and a scope naming only the node would record a smaller decision than the
+    person made. `node` is wrong for `64` §3's reason besides -- §8.8 mints a new
+    node id per plan version -- which is why the SUBJECT is the origin key and
+    not a node id.
+
+    **The presentation is recorded a moment before the gesture rather than by the
+    screen that drew it**, which is the limitation `--accept-groups` already
+    carries and names: the report showing a person their folders is printed at
+    the end of a run, and the gesture they type is read at the start of the next
+    one. What makes the record true rather than decorative is that the branch was
+    resolved against the plan the last run left behind -- a word naming no branch
+    of it is refused, by a sentence naming every branch there is.
+    """
+    presented = record_presentation(
+        conn, surface=SURFACE_CANVAS, subject_ref=origin_key,
+        plan_version=plan_version, session_id=plan_version, settings=settings,
+        # A folder line shows a name, a type and a count and no observation key,
+        # and `record_presentation` says an empty tuple is a real answer rather
+        # than a missing one. The level lines beside it are the same shape.
+        evidence_refs=(), user_id=user_id,
+        component_version=component_version, rendered_at=acted_at)
+    record = collect(
+        conn, action_id=action_id, surface=SURFACE_CANVAS,
+        subject_ref=origin_key, plan_version=plan_version,
+        session_id=plan_version, action=ACTION_REJECT,
+        correction_scope=correction_scope,
+        presented_state_ref=presented.presented_state_ref,
+        user_id=user_id, acted_at=acted_at, component_version=component_version,
+        # THE PATH THEY TYPED, kept beside the key it resolved to. The key is
+        # what every later run matches on; the path is what the person would
+        # recognise, and a record holding only the key could not say back to
+        # them which folder they left out.
+        payload={"display_path": display_path})
     record_action(conn, record)
     conn.commit()
     return record
