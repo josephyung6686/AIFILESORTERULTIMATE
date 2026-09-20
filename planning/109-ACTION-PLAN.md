@@ -793,3 +793,89 @@ failure says that is the soft spot in the safety story. It is a small thing —
 record what was on the screen when the person approved and how long it was there —
 and it is not in Tier A because it is a new measurement, not a repair. Raise it
 with the owner before building it.
+
+---
+
+## 20 Sep — the four amendments dispatched, and the one measurement a build cannot fake
+
+Amendments 31–34 were ratified on 19–20 Sep and recorded in `00` (`b47940db`).
+They are now **in build**, four agents in isolated worktrees plus a fifth on the
+`--apply` defect. What follows is what the lead settled before dispatch, because
+three of the four had an unknown in them that would have been discovered late.
+
+### Amendment 22 DOES name the fork, so both halves of 33 are buildable
+
+`109` Tier B said binding `year` was blocked because "one default order cannot
+serve both `employer → year` and `year → organization`" and the owner had to name
+a fork. **Amendment 22 names it in its own first sentence** — Current work
+(`employer → year → project → stage`) and Career applications (`year →
+organization and role → application stage`), "and nowhere else for now". Two rows,
+two orders, no fork to pick. The Tier B entry was written without reading 22 to
+its end. It is wrong and this supersedes it.
+
+### `year_of`'s defect, located exactly
+
+`src/cli.py:5026` — `_CALENDAR_YEAR = re.compile(r"(?<!\d)[12]\d{3}(?!\d)")`. A
+PDF metadata date is `D:YYYYMMDDHHmmSS` with an optional offset, so the year sits
+inside a 14-digit run and **both** guards fail. Not a near-miss: the function
+cannot ever answer for the PDF form.
+
+### THE FIRST MEASUREMENT — the producer alone, before any level is bound
+
+Amendment 33 requires that "the build must measure the producer ALONE before the
+level is bound — same commit, two measurements — so the middle state exists in the
+record even though it never ships." This is that measurement, taken on the real
+corpus (47 active `creation_date` facts) with the shipped code:
+
+```
+year_of ANSWERS:   4 of 47
+year_of REFUSES:  43 of 47
+
+the 43, by masked shape (# a digit, A a letter):
+  18   A:##############+##'##'
+  17   A:##############-##'##'
+   5   A:##############A##'##'
+   2   A:##############A
+   1   A:##############
+
+the 4 that answer:
+   3   AAA ##, ####
+   1   ## AAAAAAAA ####
+```
+
+**43 of 43 are one family** — `D:` plus a 14-digit prefix, then one of five
+endings. The 5-count and 2-count shapes end in a LETTER, so a repair that handles
+only `+`/`-` leaves seven files refused and builds a level that is blank on them.
+That is why the census was taken before the fix and not after: it decides how many
+cases the test table needs, and the number would not have been discovered by
+reading the PDF specification alone.
+
+The second measurement is taken on the repaired producer, by the lead, and both
+numbers travel in the merge commit. The agent does not measure and was told not to
+estimate — an estimate in the record would be indistinguishable from a measurement
+later.
+
+### What each agent was told it may NOT do
+
+Because three of the four amendments have an obvious over-build one step past what
+was ratified, and the over-build is what a later reader would mistake for the
+ruling:
+
+| build | the over-build that was forbidden |
+| --- | --- |
+| **31** teaching v2 | minting a new situation name; moving `shipped_situations`' output by a byte |
+| **32** per-group question | dropping the old key. Answers in the owner's database sit under `situation:<kind>=` and `situation:default:<label>=` and **nothing tests the fallback**, because fixtures write whichever key the code writes |
+| **33** `year` | binding the level in the same agent. The producer lands alone and is measured alone |
+| **34** reason on a question | a general "any record may carry a reason". Ratified: required on `ABSTAIN`, permitted on `ASK_USER`, forbidden elsewhere — `66` §4 is satisfied by the third clause |
+| **`--apply`** | picking a governing plan, writing `superseded`, adding a `--force`. Which plan governs is `110` Decision 5 and is the owner's |
+
+### The `--apply` defect is narrower than "two frozen plans"
+
+`110` §3.3 is right that `--apply` unions every frozen version
+(`cli.py:25078-25080`), but a blanket refusal on more than one version would be
+wrong: versions are minted per run, `tree.plan_version_ids` is plural, and
+`test_one_branch_moves_exactly_the_files_that_branch_froze` **depends** on the
+union working. The data-loss shape is **one `file_id` with two different
+destinations across the chosen plans** — the only case where the product cannot
+know which tree the person meant. That refuses, names both versions, and moves
+nothing. It does not resolve the ambiguity, because resolving it is Decision 5.
