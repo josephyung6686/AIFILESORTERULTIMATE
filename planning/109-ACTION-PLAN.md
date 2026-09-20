@@ -387,7 +387,7 @@ the suite has been describing the world before it ever since.
 | `r37_single_branch` | screen legitimately moved: residual home, amendment 26's fold, the role→field fix | recaptured after diffing, `ea37e64d` |
 | `cli_correction_loop` | amendment 26: `PHYS1401` holds ONE file, so `notes` folds into the course | re-argued |
 
-**THREE ARE NAMED AND NOT FIXED, each for a stated reason.**
+**THREE WERE NAMED AND NOT FIXED, each for a stated reason. The first of them is now fixed** — see the measurement under it, which overturns the diagnosis it was left unfixed on.
 
 **1. `cli_orphaned_send` — a real crash, and it is at the privacy boundary.**
 A second run with `--send-set` dies:
@@ -417,14 +417,64 @@ policy yet no matter how many the design records afterwards. The real question i
 which plan a gesture acts under — the plan whose screen printed the set — and that
 is a different decision from the one already taken.
 
-**STILL NOT FIXED, and still for the original reason.**
-`placement/privacy.py`'s `privacy_state_for` is the
-gate that decides what may leave the device, and its refusal is written as a rule:
-"the operation mode decides whether anything may leave the device and P11 assumes
-none". Teaching it to fall back to another version's policy, or minting a policy
-per pass, is a decision about which answer governs a file's egress. That is the
-owner's, not a lead's, and the standing order is to escalate rather than
-reformulate until it passes.
+**FIXED 19 SEP, AND THE PARAGRAPH ABOVE IS WRONG ABOUT WHERE THE CRASH IS.**
+Measured, three runs of the failing corpus with `design_tree`, `set_policy`,
+the two on-demand mints and `act_on_residual_sets` all instrumented:
+
+```
+[run2] design_tree      minted (version_A_0, version_A_2, version_A_4)
+[run2] set_policy       version_A_0 / version_A_2 / version_A_4
+[run2] mint_generals_on_demand      version_A_4 -> version_A_4
+[run2] mint_review_homes_on_demand  version_A_4 -> version_B_0     <- HERE
+[run2] act_on_residual_sets  inputs.plan_version='version_B_0'
+                             set_ids=['version_A_4:No folder matched-1', ...]
+[run2] CRASH PolicyRequired: no P7 policy in force for 'version_B_0'
+```
+
+**THE GESTURE IS NOT ACTED ON BEFORE THE DESIGN.** The design ran, the 19 Sep
+ruling put the policy in force for all three versions it minted, and only then
+was the gesture handled. **Nor is the failing version an earlier refinement
+pass**: its `_0` is the first id of a FRESH `run_token`, because
+`design_authorities` mints one per call (`cli.py:16727`) and `cli.run` calls it
+again for each on-demand step. `version_B_0` is minted LATER than every version
+the policy loop saw, by `mint_review_homes_on_demand` — `00` amendment 13, which
+puts the review home in the tree for a person who did not type `--residual`.
+With `--residual` typed the home is already there, nothing is minted, and the run
+is fine, which is why only one shape of command ever hit this.
+
+**WHICH PLAN A GESTURE ACTS UNDER: the version that holds the homes, and
+`cli.run` already says so** beside the call that decides it (§8.4's egress
+question is asked about a version, and this run's screen is the one the person
+answered). Neither candidate (a) nor (b) as posed: the set is THIS run's set
+(`version_A_4:No folder matched-1`), the screen offering it is this run's screen,
+and `act_on_residual_sets`'s own standing decision already refuses to carry an
+answer across versions. The previous run supplied nothing but the label the
+person retyped.
+
+**So it was never a decision about which answer governs a file's egress** — it
+was one version of one run with no answer at all. Fixed in `cli.run` by the 19
+Sep ruling's own loop, applied to the versions `production.py` cannot see:
+`for version in result.tree.plan_version_ids: if current_policy(...) is None:
+set_privacy_policy(...)`. **It widens nothing**: same operation mode, same
+consent grants, same `--file-held` permissions — `set_privacy_policy` writes the
+identical answer for every version of one command, and the new test asserts that
+equality rather than taking it on trust. `placement/privacy.py` is untouched; it
+was right to refuse.
+
+**AND CASE A OF THAT TEST IS NOW STALE — the lead's call, not fixed here.**
+`test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan` is written
+against a world where omitting `--residual` means the area does not exist, so the
+refusal's advice ("`--residual` enables an area for the run it is typed in") is
+true. Amendment 13 ended that world for every set in `REVIEW_HOME_FOR_SET`:
+`No folder matched` maps to `tv.REVIEW_LATER`, the home is minted on demand, and
+with the policy in force the send is HONOURED — the screen prints "Would go into
+Review Later ... 25 files" and there is no refusal to advise about. Printing the
+advice now would tell the person to add a flag the product no longer needs, which
+is precisely the defect Case B (the test immediately above) exists to forbid.
+The assertion has NOT been rewritten to match: whether Case A should be re-aimed
+at an area amendment 13 does not mint, or retired, is the lead's decision.
+After the fix the file is **7 passed, 1 failed**, the one failure being that
+stale assertion at `AREA_ADVICE` and no longer a crash.
 
 **2 and 3. `test_cli_review_sets_by_reason` — a contradiction, measured, not
 resolved.** The corpus should produce four review sets and produces three: "A model
