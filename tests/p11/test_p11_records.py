@@ -100,21 +100,23 @@ def test_an_abstention_names_a_reason_and_a_reason_needs_an_abstention():
         _decision(abstention_reason=v.LOW_MARGIN)
 
 
-#: `00` amendment 34, "a question names what it replaced". The rule these three
-#: tests state, and it is the whole of it:
+#: `00` amendment 34, "a question names what it replaced", plus amendment 37's
+#: fourth clause. The rule the four tests below state, and it is the whole of it:
 #:
 #:     abstention_reason is REQUIRED  iff outcome == abstain
 #:     abstention_reason is PERMITTED iff outcome == ask_user
 #:     abstention_reason is FORBIDDEN otherwise
+#:     and                  NEVER     budget_deferred on ask_user
 #:
-#: The middle line is the amendment. A file a model was not allowed to look at
+#: The second line is amendment 34. A file a model was not allowed to look at
 #: abstains with `privacy_blocked` and is then overlaid with a question about
 #: where its folder should go; before this, the record refused to carry both, so
 #: the reason was dropped and an unopenable vault and a classified photo came out
 #: of the pipeline indistinguishable. The question is what the person acts on and
 #: the reason is why the file stopped, and `66` §4 is satisfied by the THIRD line
 #: rather than the second: what keeps a reason from meaning two things is that no
-#: outcome but these two may carry one.
+#: outcome but these two may carry one. The fourth line is amendment 37, closing
+#: the one case the second line let back in that §8.6 already forbade.
 def _asked(**overrides):
     values = dict(
         outcome=v.ASK_USER, destination=None,
