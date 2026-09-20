@@ -879,3 +879,50 @@ union working. The data-loss shape is **one `file_id` with two different
 destinations across the chosen plans** — the only case where the product cannot
 know which tree the person meant. That refuses, names both versions, and moves
 nothing. It does not resolve the ambiguity, because resolving it is Decision 5.
+
+### THE SECOND MEASUREMENT — the producer repaired, the level still unbound
+
+Amendment 33's middle state, which never ships and now exists in the record:
+
+```
+                      BEFORE (shipped)      AFTER (fc48b96c)
+year_of ANSWERS            4 of 47              47 of 47
+year_of REFUSES           43 of 47               0 of 47
+```
+
+**The repair is one alternative, not a date parser.**
+`(?<!\d)([12]\d{3})(?!\d)|(?<!\w)D:([12]\d{3})`, with `year_of` reading
+`{plain or pdf for plain, pdf in ...findall(...)}`. It reads the four digits
+after the `D:` marker and never looks past them, which is why all five measured
+endings fall to one branch: none of them touch the year's POSITION, only what
+follows it. The lookbehind excludes a preceding letter rather than a digit, so a
+value ending `...ID:2024` is not read as a PDF marker.
+
+**THE NUMBER WAS NOT TAKEN ON TRUST, because a producer that answers MORE may be
+answering WRONGLY.** `104` §18.108 requires a value carrying two disagreeing
+years to stay unread, and a repair that collapsed such a value would show as an
+improvement. Checked structurally, on the same 47:
+
+```
+values holding exactly ONE date-bearing token   47 of 47
+values holding more than one                     0 of 47
+  (one `D:` marker, no standalone year)         43   <- the 43 that were refused
+  (no marker, one standalone year)               4   <- the 4 that already answered
+```
+
+Nothing in this corpus could have been collapsed, and the two measurements
+reconcile exactly: 43 refused become 43 answered, and the 4 that answered are
+untouched.
+
+**A FIRST ATTEMPT AT THAT CHECK WAS WRONG AND IS RECORDED BECAUSE IT WAS
+PLAUSIBLE.** It searched for `[12]\d{3}` anywhere in the value and reported that
+42 of 47 held several "years" — an alarming number that was entirely the
+checker's own defect: that pattern matches digit runs INSIDE a 14-digit
+timestamp (`0115103000` contains `1151`). The measurement rule has to be as
+careful as the thing it measures, and an unbounded pattern is not.
+
+**WHAT IS STILL NOT MEASURED.** This says `year` can now be COMPUTED for 47 of
+47. It does not say a `year` FOLDER helps anyone — that is the binding, it is
+wave 2, and it is the half amendment 33 warns has no measurement between it and
+the producer if the producer is wrong. The producer is now measured. The level is
+not yet built.
