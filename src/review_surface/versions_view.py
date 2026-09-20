@@ -124,8 +124,23 @@ def structural_diff_view(conn: sqlite3.Connection, *, before: str, after: str,
     that the two halves are talking about the same removals.
     """
     entries = diff_versions(conn, before=before, after=after)
-    removed_in_tree = {entry.origin_node_id for entry in entries
-                       if entry.kind == DIFF_REMOVED}
+    # BOTH SPELLINGS OF EACH REMOVED NODE, because the two halves spell it
+    # differently and each is right about its own side. P11 builds
+    # `VersionDiff.removed_node_ids` from `decision.destination.node_id` -- the
+    # id the BEFORE version minted, which is what a decision names -- and P10
+    # keys its diff by lineage. Under `node_key` those are different strings for
+    # one node (`node_8d63b091_10` against `branch:Uni/subject=MATH2010`), so
+    # comparing the claim against the lineage alone raised on the first real
+    # removal and this view could never be printed at all.
+    #
+    # The removed ENTRY already carries both -- `diff.py` builds it as
+    # `NodeDiffEntry(DIFF_REMOVED, node.node_id, origin, ...)` off the before
+    # version's own node -- so this reads the record it was handed rather than
+    # converting one id into the other, which would be a second answer to "which
+    # node is this" and could disagree with the first.
+    removed_in_tree = {identifier for entry in entries
+                       if entry.kind == DIFF_REMOVED
+                       for identifier in (entry.origin_node_id, entry.node_id)}
     removed_claimed = tuple(version_diff.removed_node_ids)
     unexplained = [node_id for node_id in removed_claimed
                    if node_id not in removed_in_tree]

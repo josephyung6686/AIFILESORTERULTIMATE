@@ -155,7 +155,7 @@ from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
     FileVersionRef)
 from grouping.p8_seam import Answered, MemberDecision, ModelAnswer, ObservedOnly
-from placement.vocabulary import GROUP
+from placement.vocabulary import GROUP, PLACE
 from grouping.pipeline import (
     GroupingKnowledge, GroupingResult, ModelCallAuthorities,
 )
@@ -269,7 +269,7 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from placement.index import build_destination_index, entries_for_plan
-from placement.versions import carry_onto, scoped_general_demand
+from placement.versions import carry_onto, reproject, scoped_general_demand
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, FileTookTooLong, PerFileCeiling,
     dossier_tokens, fact_call_stage,
@@ -507,6 +507,10 @@ from review_surface.progress import (
 from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
 from review_surface.trail import file_trail
+#: `110` §0.2. The comparison between the plan the person froze and the proposal
+#: this run built, which existed in four functions and was called by nothing.
+#: This line and `_tree_diff_for` below are the callers.
+from review_surface.versions_view import StructuralDiffView, structural_diff_view
 from review_surface.vocabulary import (
     ACTION_ACCEPT, ACTION_REJECT, ACTION_RENAME, SOURCE_P4_RUNS, SOURCE_P8,
     STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED, SURFACE_GROUP_PLAN,
@@ -531,7 +535,8 @@ from tree_design.user_edits import (
     UserEditRefused, UserLevelEdit, record_user_level_edit,
 )
 from tree_design.vocabulary import (
-    ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
+    ACTION_RENAMED, DIFF_ADDED, DIFF_REMOVED, DIFF_RENAMED, DIFF_REPARENTED,
+    DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
     PHYSICAL_DESTINATION, PROTECTED as PROTECTED_NODE_TYPE, PROTECTED_RECORDS,
     REFINE_LATER, REFINED, RELOCATE,
     RENAME_RESIDUAL, REPLACE_WITH_EXISTING, RESIDUAL_LIBRARY_ACTIONS,
@@ -24378,6 +24383,232 @@ def structure_edits(conn: sqlite3.Connection, text: str, *,
     return gestures
 
 
+# ======================================================================================
+# §8.8's comparison, between the plan the person froze and the proposal this run
+# built. `107` promises "every split can be changed before freeze", and a control
+# whose effect nobody can see is not a control. `110` §0.2 measured the gap: the
+# four functions that compute this all exist and `grep -rn "structural_diff_view(\|
+# reproject(" src` found no production caller. Nothing below computes a diff; it
+# calls the ones that do and says what they returned.
+# ======================================================================================
+
+#: What the comparison does not look at, in this screen's own words. §8.8 asks for
+#: six dimensions and three have no producer anywhere in `src/`;
+#: `versions_view.GAP_NOTES` records all three for a lead and cites a section
+#: three times doing it, and `104` R-M keeps a section number off a person's
+#: screen. So the same three facts are said here in the words the rest of the
+#: report uses. Named and never dropped -- `84` §1 -- because "this comparison
+#: showed you nothing about your protected folders" and "nothing about your
+#: protected folders changed" are different sentences and only one is true.
+_DIFF_CANNOT_SEE: tuple[str, ...] = (
+    "which kinds of material this product recognises were turned on or off. "
+    "Nothing in this build measures that between two plans.",
+    "whether anything about a protected folder changed. Nothing compares "
+    "protected folders between two plans, and working it out from the list "
+    "above would mean reading material this product does not open.",
+    "whether any automatic filing was paused. This build files nothing "
+    "automatically, so there is no such setting for a change to have touched.",
+)
+
+#: `110` §3.2's caveat, said on the screen instead of discovered by the person.
+#: A folder is identified by the chain of names above it (`node_key.level_key` is
+#: the parent's key plus `field=value`), so changing the ORDER a branch splits in
+#: gives every folder beneath it a new identity: the comparison reports every one
+#: of them removed and every one of them added, and the re-ordered kind never
+#: fires. The cheap headline -- one line per branch naming the old order and the
+#: new -- needs `chosen_order_id`, which nothing writes yet. Until it does, this
+#: says which of the two it cannot tell apart rather than picking one, which is
+#: `66` §4: a count that meant either would be two facts in one message.
+#:
+#: IT DOES NOT TELL THE PERSON TO COMPARE THE TWO LISTS, and the first draft did.
+#: "A name on both lists is a folder that was rebuilt, not one that was deleted"
+#: is false twice over: these lines carry a folder's NAME and a name repeats under
+#: different parents (`PHYS1401/lecture` and `CS3134/lecture` are two folders
+#: called `lecture`), and a folder can change identity for a reason nobody asked
+#: for -- measured on two identical runs, where the review home this build mints
+#: is reported removed and added because its lineage is its own per-version id.
+#: So the sentence says what it cannot tell and stops there.
+_DIFF_CANNOT_TELL: str = (
+    "This comparison cannot tell you why a folder is on both lists. A folder is "
+    "identified by the chain of names above it, so changing the order a folder "
+    "splits in gives every folder beneath it a new identity, and every one of "
+    "them is reported removed and added again. A folder can also change identity "
+    "for a reason you did not ask for. A name on both lists is therefore not by "
+    "itself a folder that was deleted, and this screen cannot yet tell you which "
+    "of those happened."
+)
+
+#: The four kinds of change this screen lists, and the heading each is listed
+#: under. Four of `diff.py`'s seven: re-templated, re-ordered and type-changed
+#: are about a node's recipe rather than about a folder appearing, moving or
+#: changing its name, and none of the three is a sentence a person reading "what
+#: changed" is asking for. They are in the record either way.
+_DIFF_HEADINGS: tuple[tuple[str, str], ...] = (
+    ("Folders added", DIFF_ADDED),
+    ("Folders removed", DIFF_REMOVED),
+    ("Folders renamed", DIFF_RENAMED),
+    ("Folders moved under a different folder", DIFF_REPARENTED),
+)
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class TreeDiffOnScreen:
+    """The comparison the report prints, and the total it has to add up to.
+
+    Computed where the connection is and passed IN, for the reason `report`'s own
+    docstring gives about `questions`: it takes a finished run and a naming table
+    and holds no connection.
+
+    `placed_by_the_frozen_plan` is COUNTED FROM THE DATABASE and not added up
+    from the two halves of the view. A total derived from the numbers beside it
+    could only ever agree with them, and `84` §1 is about the file that fell out
+    of both.
+    """
+
+    #: Every plan version the approved set spans. `apply_run.freeze` admits more
+    #: than one -- a run whose tree gained a folder carries its decisions onto
+    #: the new version -- and this screen names that rather than averaging over
+    #: it.
+    frozen_versions: tuple[str, ...]
+    proposal_version: str
+    #: `None` when the approved set spans more than one version, because there is
+    #: then no single plan this proposal is a change FROM.
+    view: StructuralDiffView | None
+    placed_by_the_frozen_plan: int
+
+
+def _tree_diff_for(conn: sqlite3.Connection,
+                   result: ProductionRun) -> TreeDiffOnScreen | None:
+    """The comparison, or `None` when there is nothing to compare against.
+
+    `None` on a first proposal: there is no frozen plan, and `_print_answer_
+    effects` already holds the rule that a first answer is not a change. `None`
+    too when the frozen version IS this proposal, which is what re-reading a
+    database nobody has run since the freeze looks like -- a plan compared with
+    itself is a screen full of zeroes saying nothing happened, which is true and
+    is not news.
+    """
+    frozen = tuple(sorted({plan.organization_plan_version
+                           for plan in frozen_plans(conn)}))
+    proposal = result.tree.tree.plan_version_id
+    if not frozen or frozen == (proposal,):
+        return None
+    # EVERY VERSION THE APPROVED SET SPANS, so the total is every file the person
+    # actually approved a destination for. `reproject` skips a decision that
+    # named no node -- an abstention under the old tree is still an abstention --
+    # so the total this is measured against counts the same set it does.
+    placed = sum(
+        1 for version in frozen
+        for decision in placement_decisions_for(conn, plan_version=version)
+        if decision.outcome == PLACE and decision.destination is not None)
+    if len(frozen) != 1:
+        return TreeDiffOnScreen(frozen, proposal, None, placed)
+    # `64` §5c's record, off the compositions that produced it. A rename this
+    # shape could not honour is a question for the person, and the version screen
+    # is where "what changed when I updated" and "what changed when I edited"
+    # are read together.
+    unapplied = tuple(
+        edit for branch in result.tree.branches
+        if branch.composition is not None
+        for edit in branch.composition.unapplied_user_edits)
+    return TreeDiffOnScreen(
+        frozen, proposal,
+        structural_diff_view(
+            conn, before=frozen[0], after=proposal,
+            version_diff=reproject(conn, from_plan_version=frozen[0],
+                                   to_plan_version=proposal),
+            unapplied=unapplied),
+        placed)
+
+
+def _diff_entry_lines(entries: Sequence, kind: str) -> tuple[str, ...]:
+    """One line per change of one kind, named the way its undo is named.
+
+    The undo label already carries the folder for three of the four -- `Undo
+    removing "MATH2010"` -- so repeating the label beside it would print the
+    name twice. A rename is the one that needs both, because the whole change
+    is which of two names the folder wears.
+    """
+    lines: list[str] = []
+    for entry in entries:
+        if entry.kind != kind:
+            continue
+        if kind == DIFF_RENAMED:
+            lines.append(
+                f'"{(entry.before or {}).get("display_label")}" is now '
+                f'"{(entry.after or {}).get("display_label")}" -- '
+                f'{entry.undo_label}')
+        else:
+            lines.append(entry.undo_label)
+    return tuple(lines)
+
+
+def _print_tree_diff(diff: TreeDiffOnScreen, *, out) -> None:
+    """What this proposal changed about the plan the person froze."""
+    print("\nWhat changed since the plan you froze:", file=out)
+    if diff.view is None:
+        # `66` §4: the fact here is that there is no single plan to compare
+        # against, and a comparison against one of several would be a different
+        # fact wearing this one's words.
+        print(_wrapped(
+            f"The plan you froze was written across {len(diff.frozen_versions)} "
+            "proposals, so there is no single one for this proposal to be a "
+            "change from, and nothing is compared here. It approved "
+            f"{diff.placed_by_the_frozen_plan} file(s), and freezing this "
+            "proposal replaces it.", indent="  "), file=out)
+        return
+    view = diff.view
+    print(_wrapped(
+        f"You froze {diff.frozen_versions[0]}. This proposal is "
+        f"{diff.proposal_version}.", indent="  "), file=out)
+    by_kind = {kind: _diff_entry_lines(view.node_entries, kind)
+               for _, kind in _DIFF_HEADINGS}
+    for heading, kind in _DIFF_HEADINGS:
+        # PRINTED AT ZERO TOO. "Nothing was renamed" is what somebody who has
+        # just changed a name came to this screen to read, and a heading that
+        # appears only when it is non-zero cannot say it.
+        print(f"  {heading}: {len(by_kind[kind])}", file=out)
+        for line in by_kind[kind]:
+            print(_wrapped(line, indent="      ", first="    - "), file=out)
+    if any(by_kind[kind] for _, kind in _DIFF_HEADINGS):
+        # `84` §6: what the screen tells a person has to be true, and these are
+        # not gestures this build offers. They are the words an undo would be
+        # offered in, which is what makes the list readable; saying so keeps it
+        # from reading as a command somebody could type.
+        print(_wrapped(
+            "Those lines are named the way an undo of each change would be. "
+            "Nothing here undoes anything: to change the shape, change the "
+            "answer or the flag that produced it and run the command again.",
+            indent="  "), file=out)
+    if by_kind[DIFF_ADDED] and by_kind[DIFF_REMOVED]:
+        print(_wrapped(_DIFF_CANNOT_TELL, indent="  "), file=out)
+    # THE ARITHMETIC, and every file the frozen plan placed is in it -- including
+    # the ones that are no longer in the folder at all. `84` §1: marked and
+    # counted, never silently omitted.
+    carried = len(view.carried_unchanged)
+    renewed = view.renewed_review.count
+    print(f"\n  Files the plan you froze had placed: "
+          f"{diff.placed_by_the_frozen_plan}", file=out)
+    print(f"  Of those, carried over unchanged: {carried}", file=out)
+    print(f"  Of those, needing your review again: {renewed}", file=out)
+    print(f"  Accounted for: {carried} + {renewed} = {carried + renewed}",
+          file=out)
+    if renewed:
+        print(_wrapped(view.renewed_review.sentence, indent="  "), file=out)
+    if view.unapplied_user_edits:
+        print(f"\n  Renames of yours this shape could not honour: "
+              f"{len(view.unapplied_user_edits)}", file=out)
+        for edit in view.unapplied_user_edits:
+            print(_wrapped(edit.explanation, indent="      ", first="    - "),
+                  file=out)
+    print("", file=out)
+    print(_wrapped("Three things this comparison does not look at. None of "
+                   "them is a way of saying nothing changed:", indent="  "),
+          file=out)
+    for note in _DIFF_CANNOT_SEE:
+        print(_wrapped(note, indent="      ", first="    - "), file=out)
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            levels: Sequence[LevelOnScreen] = (),
@@ -24409,6 +24640,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            #: caller that predates it prints exactly the report it printed before.
            structure: Sequence[StructureRow] = (),
            structure_path: Path | None = None,
+           #: `110` §0.2. What this proposal changed about the plan the person
+           #: froze, computed at the call site and passed IN for the reason
+           #: `questions` is, and defaulted `None` so a caller that predates it
+           #: -- and a run with nothing frozen to compare against -- prints
+           #: exactly the report it printed before.
+           tree_diff: "TreeDiffOnScreen | None" = None,
            ) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -25212,6 +25449,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     print(f"\nNothing was moved.\nPlan version: {tree.plan_version_id}  "
           f"(the name this proposal is saved under)", file=out)
+    # AFTER the version this proposal is saved under and BEFORE the invitation to
+    # freeze it, because that is the order the two questions arrive in: a person
+    # who has just changed a control reads what it did, and then decides whether
+    # to freeze. `110` §3.2 puts it here, and a `--freeze` run prints the same
+    # comparison and then freezes, because both paths come through `report`.
+    if tree_diff is not None:
+        _print_tree_diff(tree_diff, out=out)
     if invite_freeze:
         # A gesture nothing on screen names is a gesture nobody finds. This says
         # what freezing does and what it does NOT do, because freezing is the
@@ -26864,7 +27108,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    # `00` amendment 2 of 14 Sep. Composed here, where the run's
                    # situations and the library both are, and printed by `report`
                    # under the folders it is about.
-                   structure=outline, structure_path=structure_path)
+                   structure=outline, structure_path=structure_path,
+                   # `110` §0.2, read here and passed IN like the rest: the
+                   # comparison between the plan the person froze and this
+                   # proposal. `None` when nothing has been frozen, which is
+                   # every first run.
+                   tree_diff=_tree_diff_for(conn, result))
     # THE SAME TEXT THE SCREEN JUST PRINTED, written where the person can edit
     # it. AFTER the report and not before: a file written for a run that then
     # refused would be an invitation to edit a proposal nobody was shown.

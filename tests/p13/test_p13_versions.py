@@ -247,3 +247,46 @@ def test_a_gesture_outside_the_three_named_actions_is_refused(p13_conn):
             plan_version="plan-2", session_id="s-1", correction_scope="corpus",
             presented_state_ref=_ref(p13_conn, "plan-2"), user_id="jy",
             acted_at=T0, component_version="p13-1")
+
+
+def test_the_two_halves_are_compared_in_the_same_id_space(p13_conn):
+    """The seam `110` §0.2 called end to end, measured: it raises on any removal.
+
+    P11 spells `VersionDiff.removed_node_ids` with the FROM-VERSION `node_id` --
+    `reproject` reads `decision.destination.node_id` and adds that -- and this
+    module compared the claim against `origin_node_id`. Under `node_key` the two
+    are different strings for the same node (`node_8d63b091_10` against
+    `branch:Uni/subject=MATH2010`), so the first real removal raised
+    `RemovedNodeMissingFromDiff` and the screen this diff was built for could
+    never be printed. Measured on a two-run CLI database, not deduced: run one
+    froze `version_8d63b091_8` with a folder per course, run two lost the MATH
+    files, and `reproject` returned `('node_8d63b091_10', 'node_8d63b091_11')`
+    while the node diff reported `branch:Uni/subject=MATH2010` removed.
+
+    Both spellings are accepted rather than one being converted, because the
+    removed ENTRY already carries both -- `diff.py` builds it as
+    `NodeDiffEntry(DIFF_REMOVED, node.node_id, origin, ...)` from the before
+    version's own node -- so this is the guard reading the record it was handed
+    rather than a translation that could disagree with it.
+
+    SABOTAGE: drop `entry.node_id` from the accepted set and this fails; the
+    existing `origin-gone` tests above stay green, which is how the defect
+    survived to be shipped.
+    """
+    _versions(p13_conn)
+    view = _view(p13_conn, version_diff=VersionDiff(
+        from_plan_version="plan-1", to_plan_version="plan-2",
+        requiring_renewed_review=("d-1",), carried_unchanged=(),
+        removed_node_ids=("n-gone",)))
+    assert view.removed_node_ids == ("n-gone",)
+    assert any(entry.origin_node_id == "origin-gone"
+               for entry in view.node_entries if entry.kind == DIFF_REMOVED)
+
+    # And a node id the before version never held is still refused, so the
+    # widening is about the two spellings of a real node and not about
+    # accepting anything.
+    with pytest.raises(RemovedNodeMissingFromDiff):
+        _view(p13_conn, version_diff=VersionDiff(
+            from_plan_version="plan-1", to_plan_version="plan-2",
+            requiring_renewed_review=("d-1",), carried_unchanged=(),
+            removed_node_ids=("n-never-existed",)))
