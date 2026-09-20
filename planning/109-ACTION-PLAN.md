@@ -425,6 +425,44 @@ Whoever takes it: find where a `PlacementReviewItem` gets its `.label` and wheth
 
 ---
 
+### Amendment 28 — RULED, NOT BUILT, and the reason is in the code's own words
+
+The owner chose `situation:Education/academic` over a branch id. Building it hit a
+constraint the design did not know about, and it is stated in `branch_situation.
+_asked_of_a_life`:
+
+> `cli._ask_which_situation_each_branch_is` records it at the KIND's scope, **so
+> the answer is read where every reader of the person's answer already reads it**
+> (arm 0).
+
+Arm 0 is `_life_of_file`, and it derives a file's LIFE from
+`_persons_answer_for(kind)` — the kind-scoped answer. **So the life is computed
+FROM the answer that amendment 28 would key BY the life.** A composite-keyed answer
+cannot be read by the arm that decides which life a file is in, which is the arm
+that would put the file under the branch the answer is about.
+
+`_resolved_situation(file_id, kind, life)` already receives the life and is the
+clean place to read a composite — but it runs AFTER the life is decided, so it
+closes the reading half and not the derivation half.
+
+**AND THE COLLISION ACTUALLY MEASURED IS NARROWER THAN THE RULING.** On the A1
+fixture the two questions were the DEFAULT branch (keyed by `branch.label`, which
+is its majority kind when nothing is typed) and a sibling life branch (keyed by
+`branch.schemas[0]`). Both spelled `academic`. Two branches in two different LIVES
+sharing a kind — the case `Education/academic` vs `Research/academic` solves — has
+not been observed on any corpus here.
+
+So there is a smaller fix that closes the measured defect without touching the
+kind scope every reader depends on: **mark the default's question as the
+default's**. It collides with a sibling only because a bare label and a bare kind
+can spell the same word.
+
+**NOT CHOSEN BY THE LEAD.** Both options migrate answers already in the owner's
+database, and which one is right depends on whether they expect two lives to share
+a kind. Put to them with both costs.
+
+---
+
 ### A2. The amendment-16 residual regression — HALF BUILT, and the half is the mechanism
 
 `e9b7c550` declared it: `cli._each_kinds_question_under` selects a kind's files by
