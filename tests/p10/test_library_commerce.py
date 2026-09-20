@@ -503,14 +503,27 @@ def _normalise(value: str) -> str:
     return value.strip().casefold().replace("_", " ")
 
 
+#: `00` amendment 35's one ratified exception. The owner ruled the label is the
+#: plain word `Year`, and named the cost of that as the row's five labels no
+#: longer sharing one voice -- not this invariant, which the ruling never
+#: discusses. The collision with the field key `year` is a mechanical side
+#: effect of the ratified string, not a weighing of this rule; it is carved out
+#: by name, for this one row, rather than read as license to widen it.
+_RATIFIED_KEY_LABELS = frozenset({("ap.career.recruiting", "year", "Year")})
+
+
 def test_no_label_is_the_field_key_it_replaces(rows):
     identical = [(row.applicability_id, b.field_ref, b.label)
                  for row in rows for b in row.role_bindings
-                 if b.label == b.field_ref]
+                 if b.label == b.field_ref
+                 and (row.applicability_id, b.field_ref, b.label)
+                 not in _RATIFIED_KEY_LABELS]
     assert identical == []
     despaced = [(row.applicability_id, b.field_ref, b.label)
                 for row in rows for b in row.role_bindings
-                if _normalise(b.label) == _normalise(b.field_ref)]
+                if _normalise(b.label) == _normalise(b.field_ref)
+                and (row.applicability_id, b.field_ref, b.label)
+                not in _RATIFIED_KEY_LABELS]
     assert despaced == []
 
 

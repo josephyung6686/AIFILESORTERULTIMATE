@@ -559,6 +559,18 @@ class PlacementDecision:
                 "reason it replaced. On any other outcome it contradicts the "
                 "decision the record already carries"
             )
+        # `00` amendment 37, the fourth clause: `budget_deferred` is NEVER a
+        # question. §8.6 already says a budget deferral is not a question --
+        # a run cut short at a ceiling did not look, and a question is the
+        # strongest possible claim that it did. The OLD biconditional enforced
+        # this as a side effect of forbidding any reason on `ask_user`; amendment
+        # 34's middle clause permits a reason there and dropped the side effect
+        # along with the rule it rode in on. This clause puts it back by name.
+        if self.outcome == ASK_USER and self.abstention_reason == BUDGET_DEFERRED:
+            raise MalformedPlacementRecord(
+                "a budget deferral is never a question (§8.6): it names a run "
+                "that did not look, and a question claims the opposite"
+            )
 
         # Path exclusivity (SPEC:437-445). This is the only place the two paths differ.
         if self.outcome == RETURN_TO_PLACEMENT and self.origin_stage != RESIDUAL:

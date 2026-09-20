@@ -482,7 +482,7 @@
         {
           "role_ref": "capture_time",
           "field_ref": "year",
-          "label": "The year I applied"
+          "label": "Year"
         },
         {
           "role_ref": "employer_org",
