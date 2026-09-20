@@ -23,8 +23,17 @@ directory the plans name is still absent when this returns.
 sampled once for the whole call and stamped on every plan, so the latest freeze
 is the plans carrying the latest `created_at`. That is why re-freezing does not
 have to supersede anything: the older plans stay exactly as they were written
-(§8.2 makes these tables append-only anyway), and they are simply no longer the
-approved set. `replaces` on the result is how the person is told.
+(§8.2 makes these tables append-only anyway), and a freeze THAT WRITES PLANS OF
+ITS OWN leaves them simply no longer the approved set.
+
+**A freeze that writes NONE replaces nothing, and this sentence used to say it
+did.** `MAX(created_at)` does not move when no row is written, so after a
+re-freeze that approved nothing the earlier batch is still what `frozen_plans`
+returns and still what the apply gesture acts on. `replaces` is therefore the
+set that was approved when this freeze BEGAN -- `_previous` reads it before the
+loop and cannot yet know what the loop will write -- and `report.freeze_lines`
+is where a person is told which of the two happened. Which of the two plans
+GOVERNS is `110` §5 Decision 5, the owner's and unruled; nothing here chooses.
 """
 from __future__ import annotations
 
@@ -100,7 +109,14 @@ class Held:
 
 @dataclass(frozen=True)
 class Replaced:
-    """The proposal this freeze supersedes, so a person is told it is gone."""
+    """The approved set as it stood when this freeze began.
+
+    Usually the proposal this freeze supersedes, which is where the name comes
+    from -- but not when the freeze writes no plan, and the module docstring
+    above says why. It is a FACT (a batch of this many was approved at this
+    moment), never the claim that it is gone: that claim is a sentence, and
+    `report.freeze_lines` is the only thing entitled to make it.
+    """
 
     frozen_at: str
     count: int
