@@ -45,6 +45,7 @@ from dataclasses import dataclass
 
 from tree_design.templates import MalformedTemplateRecord, ResolvedDimension
 from tree_design.vocabulary import (
+    ACTION_OMITTED,
     ACTION_RENAMED,
     BASIS_USER,
     DIFF_REMOVED,
@@ -58,10 +59,19 @@ from tree_design.vocabulary import (
 #: they each restate it: the rule travels with the record that must obey it.
 _SEPARATORS = frozenset({"/", "\\", os.sep, os.altsep or "/"})
 
-#: The one dimension action this overlay can apply. `64` §6 names the ten edit
-#: actions still without a writer and says making renames durable does not make
-#: those exist; this tuple is where that list grows, one action at a time.
-OVERLAY_ACTIONS_WITH_A_WRITER: tuple[str, ...] = (ACTION_RENAMED,)
+#: The dimension actions this overlay can apply. `64` §6 names the edit actions
+#: still without a writer and says making renames durable does not make those
+#: exist; this tuple is where that list grows, ONE ACTION AT A TIME, and each
+#: member is here because something honours it.
+#:
+#: `omitted` joined on `110` §2.2, and it is the smaller of the two changes it
+#: looks like: the record already held any of `DIMENSION_ACTIONS` (`64` §6: "the
+#: overlay should be designed to hold them rather than retrofitted per action"),
+#: and what it gained is an applier -- `apply_user_level_edits` marks the
+#: dimension omitted and `materialise` does not build a folder for it. It is
+#: `107`'s *change depth* as `110` reads it: not the `max_depth` ceiling, which
+#: is one number for every tree, but leaving out ONE level of ONE branch.
+OVERLAY_ACTIONS_WITH_A_WRITER: tuple[str, ...] = (ACTION_RENAMED, ACTION_OMITTED)
 
 
 class UserEditRefused(RuntimeError):
@@ -98,8 +108,18 @@ class UserLevelEdit:
     basis: str = BASIS_USER
 
     def __post_init__(self) -> None:
-        for name in ("uses_schema", "role_ref", "field_ref", "display_label",
-                     "user_id", "recorded_at"):
+        # `display_label` IS NOT REQUIRED OF AN OMISSION, and that is the field
+        # being honest rather than the check being relaxed. It holds "what the
+        # user calls this level", and a person who left a level out has not
+        # called it anything -- so an empty one here is a real answer, exactly as
+        # `record_presentation`'s empty `evidence_refs` is. A stand-in word would
+        # be the record inventing a name nobody typed, and `describe_applied_edits`
+        # would then say the library was overruled on a label.
+        required = ["uses_schema", "role_ref", "field_ref", "user_id",
+                    "recorded_at"]
+        if self.action != ACTION_OMITTED:
+            required.append("display_label")
+        for name in required:
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
                 raise MalformedTemplateRecord(
@@ -117,7 +137,7 @@ class UserLevelEdit:
         # "a renamed level is a display label, never a path fragment". The same
         # check exists on `ResolvedDimension`, but by the time it fires there the
         # edit is already stored and every later route raises on it.
-        if any(sep in self.display_label for sep in _SEPARATORS):
+        if any(sep in (self.display_label or "") for sep in _SEPARATORS):
             raise MalformedTemplateRecord(
                 f"{self.display_label!r} holds a path separator. A renamed level "
                 "is a display label, never a path fragment; P12 alone composes "
@@ -198,7 +218,7 @@ def apply_user_level_edits(
     schemas_for_binding: Mapping[tuple[str, str], frozenset[str]],
     composition_schemas: frozenset[str],
 ) -> tuple[tuple[ResolvedDimension, ...], tuple[UnappliedUserEdit, ...]]:
-    """The user's last word about PRESENTATION, applied to gated dimensions.
+    """The user's last word about a level, applied to gated dimensions.
 
     Called at the END of routing and never at the start (`64` §4). The C1-C8
     gates must go on judging THE RECIPE rather than the recipe-as-the-user-
@@ -210,6 +230,17 @@ def apply_user_level_edits(
     those would be a structural edit wearing a label's clothes — and `templates.py`
     already fixes what a rename is: "a renamed level is a display label, never a
     path fragment".
+
+    **AN OMISSION IS STRUCTURAL AND THIS FUNCTION STILL ONLY WRITES AN ACTION**
+    (`110` §2.2). It was once true that everything here was about presentation,
+    and it is not any more: leaving a level out changes which folders exist. What
+    has not changed is where the change is MADE. The level stays in the list,
+    keeps its field, its order and its label, and is marked `omitted`;
+    `materialise` is what then builds no folder for it, on exactly the branch it
+    already takes for a level the corpus does not divide at. Rewriting the list
+    here instead would put a second spelling of "this level is not built" in
+    front of the one the projection already has, and the level would vanish from
+    the screen that has to keep naming it (`84` §1).
 
     An edit for a schema this composition does not use is not this composition's
     business and is neither applied nor reported; an edit for a schema it DOES
@@ -230,27 +261,33 @@ def apply_user_level_edits(
             kind = DIFF_RETEMPLATED if edit.role_ref in roles else DIFF_REMOVED
             unapplied.append(UnappliedUserEdit(
                 edit, kind,
-                f"you renamed {edit.role_ref!r} to {edit.display_label!r} when "
+                f"you {_said_of(edit)} {edit.role_ref!r} when "
                 f"it resolved to {edit.field_ref!r}; this release "
                 + ("resolves it to another field"
                    if kind == DIFF_RETEMPLATED
                    else "does not include that level")
-                + ", so the rename is not applied and nothing was invented in "
+                + ", so your edit is not applied and nothing was invented in "
                   "its place"))
             continue
         if edit.uses_schema not in schemas_for_binding.get(
                 (edit.role_ref, edit.field_ref), frozenset()):
             continue
         standing = applied.get(index)
-        if standing is not None and standing.display_label != edit.display_label:
+        if standing is not None and (
+                (standing.action, standing.display_label)
+                != (edit.action, edit.display_label)):
             # C4's shape, applied to the user's own edits. One question with two
-            # answers has none, and taking either would make the shipped name
-            # depend on the order the rows happened to be listed in.
+            # answers has none, and taking either would make the shipped tree
+            # depend on the order the rows happened to be listed in. The ACTION
+            # is compared as well as the label, because "call it Class" and
+            # "leave it out" are two answers to one question just as two names
+            # are, and comparing labels alone read an omission (which carries no
+            # label) as agreeing with every other omission and with nothing else.
             raise UserEditRefused(
-                f"{edit.role_ref!r} is renamed {standing.display_label!r} in "
-                f"{standing.uses_schema!r} and {edit.display_label!r} in "
+                f"{edit.role_ref!r} is {_said_of(standing)} in "
+                f"{standing.uses_schema!r} and {_said_of(edit)} in "
                 f"{edit.uses_schema!r}, and this composition uses both schemas. "
-                "P10 names none silently"
+                "P10 takes neither silently"
             )
         applied[index] = edit
 
@@ -262,25 +299,55 @@ def apply_user_level_edits(
             field_ref=dimension.field_ref,
             # `ACTION_RENAMED` is `DIFF_RENAMED` — one word, so the edit is
             # legible to the diff surface without a translation table.
-            action=ACTION_RENAMED,
+            action=edit.action,
             order_index=dimension.order_index,
-            display_label=edit.display_label,
+            # AN OMISSION KEEPS THE LIBRARY'S OWN LABEL, and that is `84` §1
+            # rather than an oversight: the level is still MEASURED and still
+            # named on the screen, and a level that vanished from the list would
+            # be a level the person could no longer see they had left out.
+            display_label=(dimension.display_label
+                           if edit.action == ACTION_OMITTED
+                           else edit.display_label),
             scope=dimension.scope,
             # What THIS release proposed, kept beside what the user said. §5b:
             # the user wins AND the library's proposal is recorded, not
             # discarded — a proposal that vanished cannot be offered back and an
-            # upgrade could not be explained.
+            # upgrade could not be explained. For an omission the proposal was
+            # to BUILD it, which is what lets a later release say "this release
+            # would have built a Purpose level here; you omitted it".
             proposed_label=dimension.display_label,
         )
     return tuple(resolved), tuple(unapplied)
 
 
+def _said_of(edit: UserLevelEdit) -> str:
+    """What the person said about one level, as a clause naming the action.
+
+    One spelling for the three sentences that have to say it -- the conflict
+    refusal, the unapplied-edit explanation and the composition's own
+    description -- because three of them written separately is how one gesture
+    comes to be described three ways on one screen.
+    """
+    if edit.action == ACTION_OMITTED:
+        return "left out"
+    return f"renamed {edit.display_label!r}"
+
+
 def describe_applied_edits(dimensions: Sequence[ResolvedDimension]) -> str:
-    """One sentence about the renames in a composition, in `diff.py`'s words."""
+    """One sentence about the user's edits to a composition, in `diff.py`'s words."""
     renamed = [d for d in dimensions if d.action == ACTION_RENAMED]
-    if not renamed:
-        return ""
-    parts = ", ".join(
-        f"{d.proposed_label!r} -> {d.display_label!r}" for d in renamed)
-    return (f" The user {DIFF_RENAMED} {len(renamed)} level(s) and this release "
-            f"proposed otherwise: {parts}.")
+    omitted = [d for d in dimensions if d.action == ACTION_OMITTED]
+    said = ""
+    if renamed:
+        parts = ", ".join(
+            f"{d.proposed_label!r} -> {d.display_label!r}" for d in renamed)
+        said += (f" The user {DIFF_RENAMED} {len(renamed)} level(s) and this "
+                 f"release proposed otherwise: {parts}.")
+    if omitted:
+        # NAMED, not counted only. `84` §1's shape applied to a level: a person
+        # reading this has to be able to tell WHICH level they left out, and a
+        # bare number is the sentence that sounds complete and answers nothing.
+        parts = ", ".join(repr(d.proposed_label or d.role_ref) for d in omitted)
+        said += (f" The user left {len(omitted)} level(s) out of this shape and "
+                 f"this release would have built them: {parts}.")
+    return said

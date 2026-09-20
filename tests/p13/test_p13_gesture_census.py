@@ -215,10 +215,21 @@ def test_reorder_has_a_receiver():
     the only durable per-level record this product has -- holds any of
     `DIMENSION_ACTIONS` by design, so it is SHAPED to carry a reorder ("the
     overlay should be designed to hold them rather than retrofitted per action"),
-    and `OVERLAY_ACTIONS_WITH_A_WRITER` is `(renamed,)`. `record_user_level_edit`
-    refuses anything else before storing it, on its own stated ground: "an edit
-    nothing can apply is a silent no-op that survives every future session, and
-    the user would see their edit accepted and never honoured".
+    and `OVERLAY_ACTIONS_WITH_A_WRITER` does not name it.
+    `record_user_level_edit` refuses anything outside that tuple before storing
+    it, on its own stated ground: "an edit nothing can apply is a silent no-op
+    that survives every future session, and the user would see their edit
+    accepted and never honoured".
+
+    **That tuple was `(renamed,)` and is now `(renamed, omitted)`** -- `110`
+    §2.2's `--omit-level` landed the second member, 20 Sep 2026 -- and this test
+    is still red, which is the shape of the refusal doing exactly what it was
+    written to do: the list grows ONE ACTION AT A TIME and only when an applier
+    exists. `omitted` got one (`materialise` builds no folder for the level);
+    `reordered` still has none, and would need routing to honour a dimension
+    order the recipe did not compose. That is why this asserts membership rather
+    than the tuple's length: a test pinned to "one member" would have gone green
+    on somebody else's gesture.
 
     So `104` R-41's wiring does NOT reach this one, and the shape of the refusal
     is why: the writer is the place that list grows, one action at a time, and
@@ -235,9 +246,10 @@ def test_reorder_has_a_receiver():
 test_reorder_has_a_receiver = pytest.mark.xfail(
     strict=True,
     reason="`reorder` is refused twice: tree_design.store.ACTIONS_WITH_NO_WRITER "
-           "names it, and the label overlay's OVERLAY_ACTIONS_WITH_A_WRITER is "
-           "(renamed,) so record_user_level_edit refuses a reordered dimension "
-           "rather than store one nothing applies. XPASSes when either writer lands.",
+           "names it, and the label overlay's OVERLAY_ACTIONS_WITH_A_WRITER does "
+           "not (it holds renamed and, since 110 2.2, omitted), so "
+           "record_user_level_edit refuses a reordered dimension rather than "
+           "store one nothing applies. XPASSes when either writer lands.",
 )(test_reorder_has_a_receiver)
 
 

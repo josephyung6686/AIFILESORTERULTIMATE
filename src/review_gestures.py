@@ -323,6 +323,11 @@ class LevelOnScreen:
     field_ref: str
     display_label: str
     proposed_label: str | None = None
+    #: `110` §2.2: the person said not to build folders for this level. It is on
+    #: the screen ANYWAY, and that is `84` §1 -- marked and counted, never
+    #: silently omitted. A level that disappeared from the list the moment it was
+    #: left out would be one the person could no longer see they had left out.
+    omitted: bool = False
 
     def key(self) -> str:
         """`64` §3's triple as one string: what the screen prints and the flag reads."""
@@ -369,6 +374,27 @@ def record_level_presentations(
     }
 
 
+def _level_last_shown(conn: sqlite3.Connection,
+                      level_key: str) -> tuple[str | None, str]:
+    """The last screen that showed this level, and the plan version it drew.
+
+    The plan version the person was LOOKING AT, and not a new one: the invocation
+    reading their gesture has designed nothing yet, and a gesture stamped with a
+    version that does not exist would name a sitting nobody ever had.
+
+    One reader for both level gestures. `--rename-level` and `--omit-level` are
+    two sentences about the same thing on the same screen, and two lookups
+    written separately is how one of them comes to accept a level the other
+    refuses.
+    """
+    shown = last_presentation_ref(
+        conn, surface=SURFACE_CANVAS, subject_ref=level_key)
+    row = None if shown is None else conn.execute(
+        "SELECT plan_version FROM review_presentations "
+        "WHERE presented_state_ref = ?", (shown,)).fetchone()
+    return shown, ("" if row is None else row["plan_version"])
+
+
 def collect_level_relabel(
     conn: sqlite3.Connection, *,
     level_key: str,
@@ -400,17 +426,7 @@ def collect_level_relabel(
     person reads is P13's own sentence about a ref no row carries rather than a
     paraphrase of it written in the deployment layer.
     """
-    shown = last_presentation_ref(
-        conn, surface=SURFACE_CANVAS, subject_ref=level_key)
-    row = None if shown is None else conn.execute(
-        "SELECT plan_version FROM review_presentations "
-        "WHERE presented_state_ref = ?", (shown,)).fetchone()
-    # The plan version the person was LOOKING AT, and not a new one: this
-    # invocation has designed nothing yet, and a gesture stamped with a version
-    # that does not exist would name a sitting nobody ever had. `session_id` is
-    # the same value for `collect_set_sends`' reason -- it names this sitting and
-    # nothing else here has a truer claim to being it.
-    plan_version = "" if row is None else row["plan_version"]
+    shown, plan_version = _level_last_shown(conn, level_key)
     record = collect(
         conn, action_id=action_id, surface=SURFACE_CANVAS,
         subject_ref=level_key, plan_version=plan_version,
@@ -487,6 +503,48 @@ def collect_branch_ignore(
         # recognise, and a record holding only the key could not say back to
         # them which folder they left out.
         payload={"display_path": display_path})
+    record_action(conn, record)
+    conn.commit()
+    return record
+
+
+def collect_level_omission(
+    conn: sqlite3.Connection, *,
+    level_key: str,
+    action_id: str,
+    correction_scope: str,
+    user_id: str,
+    component_version: str,
+    acted_at: str,
+) -> ReviewAction:
+    """One typed `--omit-level`, collected as P13's record and stored.
+
+    `110` §2.2. The twin of `collect_level_relabel`, and everything true of that
+    function is true here: `81` §13.1 settled that a canvas gesture travels as a
+    `review_action` so one history explains every change, it is collected BEFORE
+    the overlay is written so P13's refusals land in front of the write, and the
+    presentation is the last one recorded for this triple -- a level no run has
+    shown resolves to none and meets P13's own sentence about it.
+
+    **`reject` and not a new member.** `ignore` and `omit` are not members of
+    `review_surface.vocabulary.ACTIONS`, and `81` §14.1 reserves that vocabulary
+    to the owner: *"they are not minted by whoever notices the gap."* `reject` is
+    P13's own word for "no to this proposal", and the proposal here is a level
+    the library composed. P10's `omitted` is a different vocabulary and keeps its
+    own word, exactly as P13's `rename` and P10's `renamed` do one function up.
+
+    **No payload.** `collect_level_relabel` carries the new name because there is
+    one; an omission names nothing new, and a field holding the level's own key
+    back would be the record repeating the subject it already carries.
+    """
+    shown, plan_version = _level_last_shown(conn, level_key)
+    record = collect(
+        conn, action_id=action_id, surface=SURFACE_CANVAS,
+        subject_ref=level_key, plan_version=plan_version,
+        session_id=plan_version, action=ACTION_REJECT,
+        correction_scope=correction_scope,
+        presented_state_ref="" if shown is None else shown,
+        user_id=user_id, acted_at=acted_at, component_version=component_version)
     record_action(conn, record)
     conn.commit()
     return record

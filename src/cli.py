@@ -488,8 +488,8 @@ from review_run.progress import progress_lines
 from database_agent.events import CORRECTION_SCOPES, append_event
 from review_gestures import (
     LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_branch_ignore,
-    collect_level_relabel, collect_set_leaves, collect_set_sends,
-    record_level_presentations, record_set_presentations,
+    collect_level_omission, collect_level_relabel, collect_set_leaves,
+    collect_set_sends, record_level_presentations, record_set_presentations,
 )
 from review_surface.bulk import collect_bulk, expand
 from review_surface.collect import (
@@ -535,7 +535,8 @@ from tree_design.user_edits import (
     UserEditRefused, UserLevelEdit, record_user_level_edit,
 )
 from tree_design.vocabulary import (
-    ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
+    ACTION_OMITTED, ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW,
+    MERGE_RESIDUAL,
     PHYSICAL_DESTINATION, PROTECTED as PROTECTED_NODE_TYPE, PROTECTED_RECORDS,
     REFINE_LATER, REFINED, RELOCATE,
     RENAME_RESIDUAL, REPLACE_WITH_EXISTING, RESIDUAL_LIBRARY_ACTIONS,
@@ -21935,6 +21936,80 @@ def apply_level_relabels(conn: sqlite3.Connection, relabels: Sequence[str], *,
             raise RelabelRefused(str(refusal)) from refusal
 
 
+class OmitRefused(NotConfigured):
+    """`--omit-level` was not a level key, or named one no run has shown."""
+
+
+def apply_level_omissions(conn: sqlite3.Connection, omissions: Sequence[str], *,
+                          user_id: str, observed_at: str,
+                          mint_action_id) -> None:
+    """`--omit-level SCHEMA:ROLE:FIELD`: do not build folders for this level.
+
+    `110` §2.2, and `107`'s *change depth* as `110` reads it -- *"keep all
+    receipts directly under 2026, or split by purpose"*. That is ONE level of ONE
+    branch, and not `TREE_LIMITS.max_depth`, which is one number for every tree a
+    person will ever have.
+
+    **The same key `--rename-level` takes, and that is the point** (`64` §3). A
+    level is named by the vocabulary -- schema, role, field -- so one report line
+    serves both gestures and the sentence the person pastes works either way.
+    There is no `=` half: a rename says a new word and an omission says none.
+
+    **Collected as a `review_action` FIRST, then stored as the user's fact**, in
+    `apply_level_relabels`' order and for its reason (`81` §13.1): P13's refusals
+    -- a level no run has shown, a scope nobody chose -- land in front of the
+    overlay write, or the person meets them after a stored row already says they
+    omitted something.
+
+    **The record is BUILT first, collected second, stored third**, which is again
+    `apply_level_relabels`' order: `UserLevelEdit.__post_init__` is where P10's
+    shape refusals fire, and constructing the record after the gesture was
+    collected would leave a `review_action` row saying the person omitted a level
+    the very next line told them they had not.
+    """
+    for level_key in omissions:
+        try:
+            schema, role_ref, field_ref = level_key.split(LEVEL_KEY_SEPARATOR)
+        except ValueError:
+            schema = role_ref = field_ref = ""
+        if not all((schema, role_ref, field_ref)):
+            raise OmitRefused(
+                f"{level_key!r} is not a level. The form is "
+                "`--omit-level <schema>:<role>:<field>`, naming a level exactly "
+                "as the report printed it -- for example "
+                "`--omit-level 'academic:subject_anchor:subject'`. It takes no "
+                "new name, because leaving a level out gives it none.")
+        try:
+            edit = UserLevelEdit(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                action=ACTION_OMITTED,
+                # EMPTY, AND IT IS THE ANSWER RATHER THAN A MISSING ONE. The
+                # field holds what the user calls the level; somebody who left
+                # it out has not called it anything, and a stand-in word here
+                # would be this command inventing one on their behalf.
+                display_label="",
+                # `None` for `apply_level_relabels`' reason: what the library
+                # proposed is filled in per release by `apply_user_level_edits`
+                # from the dimension the omission lands on, which is the version
+                # of the fact that can still be true after an upgrade.
+                proposed_label=None, user_id=user_id,
+                recorded_at=observed_at)
+            collect_level_omission(
+                conn, level_key=level_key, action_id=mint_action_id(),
+                correction_scope=LEVEL_RELABEL_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=observed_at)
+            record_user_level_edit(conn, edit)
+        except (PresentationRequired, ProtectedContainerHasNoAction,
+                ScopeNotPresented, BulkMembersRequired, UserEditRefused,
+                MalformedTemplateRecord) as refusal:
+            # P13's and P10's OWN SENTENCES, re-raised as this command's refusal
+            # rather than paraphrased -- `apply_level_relabels`' rule, and the
+            # commonest of them is the one a person will actually meet: a triple
+            # no run has printed has no recorded presentation, so this is a
+            # second-run gesture exactly as `--rename-level` is.
+            raise OmitRefused(str(refusal)) from refusal
+
+
 class IgnoreRefused(NotConfigured):
     """`--ignore-branch` named no branch of this plan, or named two."""
 
@@ -23869,7 +23944,8 @@ def levels_on_screen(result: ProductionRun) -> tuple[LevelOnScreen, ...]:
             level = LevelOnScreen(
                 uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
                 display_label=dimension.display_label,
-                proposed_label=dimension.proposed_label)
+                proposed_label=dimension.proposed_label,
+                omitted=dimension.action == ACTION_OMITTED)
             levels.setdefault(level.key(), level)
             depth.setdefault(level.key(), dimension.order_index)
     return tuple(levels[key]
@@ -24689,7 +24765,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             # The library's own proposal, kept beside the person's word rather
             # than replaced by it (`64` §5b): a proposal that vanished cannot be
             # offered back, and an upgrade could not be explained.
-            was = ("" if level.proposed_label is None
+            # `110` §2.2's level, and it says which thing happened. A level the
+            # person left out has `proposed_label` filled for `64` §5b's reason
+            # -- the library proposed to BUILD it -- and the rename sentence read
+            # against that would tell somebody the release had called it
+            # something else, which is a true-sounding sentence about a thing
+            # that did not happen.
+            was = ("  (you left this level out; this release would have built "
+                   "it)" if level.omitted else
+                   "" if level.proposed_label is None
                    else f"  (this release calls it {level.proposed_label})")
             print(f"  {level.display_label} -- {level.key()}{was}", file=out)
         # NAMING A LEVEL THIS RUN ACTUALLY HAS. An invented example would be a
@@ -24700,6 +24784,18 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             "means rather than against these folders, so a re-shaped tree and a "
             "library update both keep it, and it changes nothing under a "
             "different kind of material.", indent="  "), file=out)
+        # `110` §2.2, on the same block and in the same breath, because it is
+        # the same key: a person reading this list is owed both of the things
+        # they can say about a level, and the second one is what `107` calls
+        # changing depth -- one level of one branch, not a ceiling for every
+        # tree. Named with a level this run really has, for the line above's
+        # reason.
+        print(_wrapped(
+            f"To stop one of them becoming folders: --omit-level "
+            f"'{levels[0].key()}'. The files it would have split are kept in "
+            "the folder above instead. The level stays on this list, so you can "
+            "always see what you left out and what this release would have "
+            "built.", indent="  "), file=out)
 
     # `00` amendment 2 of 14 Sep, the SECOND of its three beats: the proposed
     # structure as something the person edits, "before any file is placed under
@@ -26132,6 +26228,20 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "or deleted, and it holds on later runs as well. Can be given more "
              "than once.")
     parser.add_argument(
+        "--omit-level", action="append", default=[],
+        metavar="SCHEMA:ROLE:FIELD",
+        help="do not build folders for one of the levels your folders are "
+             "named by, e.g. --omit-level "
+             "'academic:subject_anchor:subject'. Name the level exactly as the "
+             "report printed it -- the same words --rename-level takes, with no "
+             "new name after them. The files that would have been split by it "
+             "are kept in the folder above instead. The level is still measured "
+             "and still named on your screen, so you can see what you left out "
+             "and what this release would have built. Like a rename it is kept "
+             "against the level's meaning rather than against these folders, so "
+             "a later run and a library update both keep it, and it applies in "
+             "that context only. Nothing moves. Can be given more than once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -26708,6 +26818,21 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             apply_level_relabels(
                 conn, args.rename_level, user_id=args.user, observed_at=now(),
                 mint_action_id=mint_relabel_action_id)
+        # BESIDE `--rename-level`, and it is the same sentence with one word
+        # changed: both are read off the level list the last run printed, both
+        # are typed on the next command, and both are the person's last word
+        # about a level rather than about a file. A person who renames one level
+        # and leaves another out in one command should see both on this run.
+        if args.omit_level:
+            _bootstrap(conn)
+            omissions = count()
+
+            def mint_omit_action_id() -> str:
+                return f"level-{uuid.uuid4().hex}:{next(omissions)}"
+
+            apply_level_omissions(
+                conn, args.omit_level, user_id=args.user, observed_at=now(),
+                mint_action_id=mint_omit_action_id)
         # BESIDE `--rename-level` and for its reason, and it is the same kind of
         # sentence: `--rename-level` is what a level is CALLED and this is
         # whether a branch is THERE. Both are read off the folder list the last
