@@ -777,3 +777,41 @@ take `_current` — dropping a withdrawn row is exactly "the later decision wins
 read inside one pass instead of across two freezes. The refusals built on 20 Sep
 stay: a rule about which plan governs is not a licence to move files on a
 contradiction, and a conflict `_current` cannot resolve still stops the run.
+
+## Amendments of 2026-09-20, third sitting — the product runs on other people's machines
+
+**39. MAC AND LINUX LAPTOPS ARE THE TARGET, AND THE PLATFORM TABLE MAY NOT GUESS.**
+`00`:173's table (`_FILESYSTEM_CONSTRAINTS`) says of itself that "every field is a
+fact about the filesystem this build runs on, and none of them may be guessed
+inside a part package". Two of its fields are guessed anyway:
+
+* `unicode_form="NFC"` is a constant on every platform, where `case_sensitive`,
+  `max_path_bytes` and `prohibited_characters` all read `sys.platform`. It is the
+  one field in the block that was never asked.
+* `reserved_names=frozenset()` is empty everywhere. Empty is CORRECT on Unix and
+  the field exists for platforms where it is not.
+
+**AND `prohibited_characters` IS WRONG OFF DARWIN** — it gives `{"/", "\0"}` to
+every other platform, which is right for Linux and false for Windows. Windows is
+OUT OF SCOPE by this ruling, so the fix is not to add it; **the fix is to stop
+implying it is covered.** A platform this build has not been reasoned about must
+refuse loudly rather than inherit another one's facts.
+
+**THE OWNER RULED MAC AND LINUX LAPTOPS.** Windows is a phase of its own — path
+separators, `MAX_PATH`, reserved device names and different rename semantics
+reach the move path, which is the one place a mistake destroys a file — and it is
+not ordered here. `pyproject.toml` declares no operating system at all today; it
+now declares the two.
+
+**THE SAFE ERROR IS THE EXISTING ONE.** `case_sensitive=False` on darwin is
+chosen because "the safe error is to see a collision that is not there — that
+stops and asks — not to miss one". Every field added under this amendment takes
+its unknown cases the same way.
+
+**40. THE OWNER'S NAME IS NOT A TEST FIXTURE.** Sixteen test files carry
+`/Users/jy/...` as literal path strings. They pass anywhere — the strings are
+opaque to the code under test — but `tests/p3/test_p3_basic_record.py` exists to
+assert a record "carries no `/Users/<name>` prefix ever again", and the fixture
+proving it should not be the one name the product is trying to keep out. Replaced
+with a neutral holder. No behaviour changes; this is about what travels in a
+diff, a log or a transcript.
