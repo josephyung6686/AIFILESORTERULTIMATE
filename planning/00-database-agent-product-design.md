@@ -837,3 +837,56 @@ guarded, and a second row wanting the same licence has to come back here.
 `Year` to the owner without knowing it collided; the collision was found by the
 build. The owner was told and kept `Year`. The cost is one documented hole in a
 library-wide invariant, and it is the owner's to spend.
+
+## Amendments of 2026-09-20, fourth sitting — what `107`'s Current work costs
+
+**41. `career` IS A NAMED EXEMPTION FROM `00`:48'S CEILING, AND THE CEILING STANDS
+FOR EVERY OTHER SCHEMA.** `00`:48 describes "three to six" keys that may help
+build a future folder proposal, and `tests/p6/test_p6_vocabulary_adoption.py`
+asserts that nothing exceeds six. Four schemas sit exactly at it —
+`resource_operations`, `research`, `manufacturing` and `career`.
+
+Declaring `project` and `stage` at `career` takes it to **eight**:
+
+```
+career now  : employer, target_employer, recruiting_cycle, work_type,
+              record_type, job_title                                    (6)
+career after: + project, stage                                          (8)
+```
+
+**THE OWNER RULED AN EXEMPTION RATHER THAN A WIDER BAND**, so six remains the
+number every other schema is held to and the one that moved is named with its
+reason: `107` asks a single schema to hold BOTH a job search and the work itself
+— `Career applications` and `Current work` are two of its thirteen templates and
+both are career's. The exemption mechanism already exists in that test for the
+FLOOR (`government`, `nonprofit`, `hr`, `clinical_practice` are named there), and
+this is the same shape applied to the ceiling.
+
+**42. `107`'s CURRENT WORK GETS A SITUATION OF ITS OWN.** A row is keyed on a
+`detection_signal_ref` that must name a compiled `recognition` row, so the set of
+situations a row may cite is CLOSED. `career` has seven; three are filed
+(`recruiting`, `employment-records`, `employer-side-hiring`), three are refused
+for keys this ruling does not declare (`client`, `issuing_body`,
+`artifact_type`), and one is the bare kind anchor. **Current work is not among the
+358 researched situations at all.**
+
+**THE OWNER RULED A NEW SITUATION RATHER THAN THE BARE ANCHOR.** The anchor route
+mints nothing and is precedented — `ap.nonprofit.restricted-fund` cites
+`recognition:nonprofit`, one row in 208 — but `cli.signals_for_branch` gives an
+UNSETTLED branch one signal per situation its files were judged to hold, and
+amendment 30 has the judge name the KIND. So an anchor row becomes the recipe for
+every career branch nobody has settled, and **218 of 257 situation facts today
+carry only a kind**. Résumés and offer letters would be offered `employer → year →
+project → stage` by default. The owner declined that.
+
+**WHAT THIS COSTS, ACCEPTED:** a new closed-vocabulary member, a researched
+recognition node with its own deterministic block, and a compiled row — the full
+price of a situation, paid so that the two rows already filed keep their meaning.
+
+**AND HALF THIS RULING IS WORSE THAN NONE.** `facts.domains.active_field_allowlist`
+is built from `DOMAIN_FIELDS`, so declaring `project` and `stage` makes a
+`project` fact PROPOSABLE on every career file, and
+`model_template.file_fits_its_situation` makes a proposal-eligible fact with no
+level in the file's situation UNFIT at site E — one template call per file, for a
+fact with nowhere to live. That is precisely the cost amendment 22 argued binding
+`year` REMOVES. **The fields and the row land together or not at all.**
