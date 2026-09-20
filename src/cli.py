@@ -25044,6 +25044,30 @@ def _typed(directory: Path, database: Path | None, tail: str) -> str:
     return " ".join(parts) + " " + tail
 
 
+def _files_approved_for_two_places(plans: Sequence) -> dict[str, tuple]:
+    """File ids the approved set sends to more than one place, with their plans.
+
+    KEYED ON THE RESOLVED PATH AND NOT ON THE NODE. Two plans naming two nodes
+    that compose to one string are not a contradiction -- the file ends up in one
+    folder either way -- and a person told those were "two different folders"
+    would be reading a refusal about a difference their disk does not have. The
+    resolved path is what P12 actually composed, and it is what the screen shows.
+
+    A dict rather than a bool because every conflicting file has to be NAMED:
+    `84` §1's rule is marked and counted, never silently omitted, and a refusal
+    that said only "some file is approved twice" would leave the person with
+    nothing to look for.
+    """
+    by_file: dict[str, list] = {}
+    for plan in plans:
+        by_file.setdefault(plan.file_id, []).append(plan)
+    return {
+        file_id: tuple(sorted(group,
+                              key=lambda plan: plan.resolved_destination_path))
+        for file_id, group in by_file.items()
+        if len({plan.resolved_destination_path for plan in group}) > 1}
+
+
 def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                        everything: bool, out) -> int:
     """`--apply` and `--undo`: act on the frozen plan, running no pipeline.
@@ -25082,6 +25106,82 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                 "command over this folder again with --freeze added -- the one "
                 "with your --situation and --label on it. Freezing still moves "
                 "nothing; it prints the lines that do.", indent="  "), file=out)
+            return 2
+
+        # ONE FILE, TWO DESTINATIONS, AND IT IS THE LAST GATE BEFORE BYTES MOVE.
+        #
+        # `110` §3.3 looked for this in the union three lines below and put it in
+        # the wrong place. `frozen_plans` reads ONE freeze -- `MAX(created_at)`
+        # and then the rows carrying exactly that value -- and the clock is
+        # `datetime.now(timezone.utc)`, so a second freeze REPLACES the first
+        # rather than joining it. `apply_run/freeze.py`'s module docstring says
+        # so and `tests/apply/test_freeze.py`'s
+        # `test_freezing_again_replaces_the_earlier_proposal` pins it. The union
+        # below is over the versions of ONE approved set, which is what a run
+        # whose tree gained a folder legitimately produces.
+        #
+        # WHAT DOES REACH HERE is one approved set that names one file twice.
+        # `apply_run.freeze.freeze` writes one plan per decision it is handed and
+        # is the only reader of that list that does not first take
+        # `placement.versions._current` -- whose own docstring says the list can
+        # hold "a subject decided twice in one pass". MEASURED BEFORE THIS
+        # EXISTED: the run moved the file under the first plan, met the second,
+        # and printed that file as MOVED and, four lines lower, as "the drive or
+        # folder this move needs is not available right now. Reconnect it and try
+        # again." `already_applied` keys on `plan_id`, so a second PLAN for one
+        # file is not an already-applied plan and nothing caught it -- and the
+        # person is told to reconnect a drive that was never disconnected.
+        #
+        # IT REFUSES AND DOES NOT CHOOSE. Which of the two governs is `110`'s
+        # Decision 5 and the owner's alone; picking the later one here would be
+        # this function deciding where somebody's file lives.
+        # `moving` AND NOT ON THE UNDO PATH, which is the one thing this guard
+        # must never block. `--undo` takes back what ACTUALLY HAPPENED, read from
+        # the journal by `applied_entries` and not from the frozen set at all --
+        # so a contradictory approved set says nothing about whether a move can
+        # be reversed. Refusing here would strand a person whose files had
+        # already been moved: the moves are done, and the one gesture that puts
+        # them back would be the gesture this refusal blocked.
+        contested = _files_approved_for_two_places(plans) if moving else {}
+        if contested:
+            named = file_names(conn, directory)
+            print(_wrapped(
+                "The plan you approved sends one of your files to two different "
+                "folders, so this run has stopped and has moved nothing. "
+                "Freezing records one destination for each file; for the "
+                "file(s) below it recorded two, and nothing here can tell which "
+                "one you meant.", indent="  "), file=out)
+            print("", file=out)
+            for file_id, group in contested.items():
+                print(f"    {named.get(file_id, file_id)}", file=out)
+                for plan in group:
+                    print(f"      -> {plan.resolved_destination_path}",
+                          file=out)
+                approved_in = sorted(
+                    {plan.organization_plan_version for plan in group})
+                print("      " + (
+                    f"both approved in plan version {approved_in[0]}"
+                    if len(approved_in) == 1 else
+                    "approved in plan versions " + " and ".join(approved_in)),
+                    file=out)
+            print("", file=out)
+            print(_wrapped(
+                f"{len(contested)} file(s) in conflict. Nothing was moved, and "
+                "nothing on your disk was changed.", indent="  "), file=out)
+            print("", file=out)
+            # NO command is printed here, for the reason the no-frozen-plan block
+            # above prints none: `84` §6, what the screen tells a person to type
+            # has to be true. The command that would settle this -- the one that
+            # says which of the two plans governs -- does not exist, and naming a
+            # flag that is not there is worse than naming nothing.
+            print(_wrapped(
+                "There is no command to fix this one, because choosing between "
+                "two approved destinations is not something this product can do "
+                "for you yet. What does work is approving again: run the "
+                "ordinary command over this folder with --freeze added -- the "
+                "one with your --situation and --label on it -- and the proposal "
+                "you approve replaces this one completely. Freezing still moves "
+                "nothing.", indent="  "), file=out)
             return 2
 
         versions = sorted({plan.organization_plan_version for plan in plans})

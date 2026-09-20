@@ -1116,3 +1116,336 @@ def test_the_new_values_block_never_names_a_protected_file(the_morning):
     assert "--confirm " in partly, (
         "the question stopped being answerable although a nameable file carried "
         "the value")
+
+
+# --- one file, two destinations, one approved set --------------------------------
+#
+# WHAT `110` §3.3 SAYS IS NOT WHAT THE CODE DOES, and this block is the pin for
+# the difference. §3.3 reads `cli.py`'s `--apply` unioning "the nodes of EVERY
+# frozen version" and concludes that freezing twice leaves both trees live. It
+# read the union and not its input. `apply_run.freeze.frozen_plans` takes
+# `MAX(created_at) WHERE superseded_by IS NULL` and then the rows carrying
+# exactly that value, `cli.py`'s clock is `datetime.now(timezone.utc)` so two
+# invocations cannot share one, and `tests/apply/test_freeze.py`'s
+# `test_freezing_again_replaces_the_earlier_proposal` already pins the result:
+# after a second freeze, reading back gives the second proposal ONLY.
+# `freeze.py`'s own module docstring says the same thing in words -- "re-freezing
+# does not have to supersede anything ... they are simply no longer the approved
+# set". So a second freeze is not the defect, and `plan_versions.state` going
+# unwritten is a documented consequence of that design rather than a gap.
+#
+# THE SHAPE §3.3 WAS REACHING FOR IS REAL, and it arrives through a different
+# door: ONE approved set that names ONE file TWICE, for two different folders.
+# `apply_run.freeze.freeze` walks the decisions it is handed and writes one plan
+# per placement, and it is the only reader of that list which does NOT first take
+# `placement.versions._current`. `_current`'s own docstring says what the raw
+# list can hold -- "a subject can be decided twice in one pass -- a group member
+# placed by its packet and then resolved again as shared material is the shape
+# that does it" -- and `carry_onto` and `scoped_general_demand`, the two readers
+# that do take it, exist because of that. So a run that reaches the freeze with a
+# withdrawn row still in the list freezes the withdrawn placement beside the one
+# that stands, and `--apply-everything` then has two contradicting instructions
+# for one of somebody's files and no way to tell which they meant.
+#
+# THE ROOT CAUSE IS NOT FIXED HERE and deliberately so. Taking `_current` in
+# `freeze` would drop the earlier row -- which is a decision about WHICH plan
+# governs, and that is `110`'s Decision 5, the owner's. What is built here is the
+# last gate before bytes move: `--apply` refuses, names what is in conflict, and
+# moves nothing.
+
+
+#: The two branches the small world below files into. They do not share a parent,
+#: for `tests/apply/conftest.py`'s reason: a world whose branches nest inside one
+#: another cannot tell "two destinations" from "one destination and its parent".
+_TWO_BRANCHES = (("n-course", "Coursework", None),
+                 ("n-read", "Reading Inbox", None))
+
+#: The two files. `_CONTESTED` is the one the freeze is made to name twice.
+_CONTESTED = "PHYS 1401 syllabus.txt"
+_UNCONTESTED = "saved article.txt"
+_SMALL_CORPUS = {
+    _CONTESTED: "PHYS 1401, spring term, week one.\n",
+    _UNCONTESTED: "an article kept to read later.\n",
+}
+
+
+def _freeze_a_small_world(root: Path, *, contested: bool):
+    """A corpus, a database and ONE freeze, written by the product's own `freeze`.
+
+    NOT THROUGH `cli.main`, and that is the honest limit of this fixture. The
+    double decision comes out of a group pass resolving one member twice
+    (`placement.versions._current`), which this file's stubbed cloud corpus has
+    no deterministic way to provoke -- so the shape is staged at the seam that
+    produces it, `apply_run.freeze.freeze`, with two `PlacementDecision`s for one
+    subject. Everything downstream of that seam is the product: the plans are
+    written by `record_plan`, the database is the one `--apply` opens, and the
+    move is driven by `cli.main` exactly as a person would type it.
+
+    `contested=False` builds the same world with the twin decision left out, so
+    the two arms differ in exactly one thing and the green arm below can say
+    that the refusal is about the conflict rather than about this small world.
+    """
+    import dataclasses
+    from itertools import count
+
+    from database_agent.db import create_schema, open_database
+    from database_agent.files_table import record_file
+    from eval_harness.store import create_eval_schema
+    from grouping.schema import create_grouping_schema
+    from mutation.constraints import FilesystemConstraints
+    from mutation.schema import create_mutation_schema
+    from mutation.vocabulary import STOP_AND_ASK
+    from placement.fixtures import EXACT_PLACEMENT
+    from placement.records import Destination, PrivacyState, Subject
+    from placement.schema import create_placement_schema
+    from placement.vocabulary import AUTO_ELIGIBLE, ORDINARY
+    from privacy.classification_store import (
+        ClassificationRecord, ClassificationStore,
+    )
+    from privacy.schema import create_privacy_schema
+    from tree_design.records import Node, PlanVersion
+    from tree_design.schema import create_tree_schema
+    from tree_design.store import (
+        freeze_version, write_node, write_plan_version,
+    )
+
+    from apply_run.freeze import freeze
+
+    version = "plan-one-file-twice"
+    corpus = root / "holder" / "corpus"
+    corpus.mkdir(parents=True)
+    for name, body in _SMALL_CORPUS.items():
+        (corpus / name).write_text(body)
+
+    database = root / "holder" / "plan.sqlite"
+    conn = open_database(database, scan_roots=[corpus])
+    for create in (create_schema, create_eval_schema, create_privacy_schema,
+                   create_placement_schema, create_mutation_schema,
+                   create_grouping_schema, create_tree_schema):
+        create(conn)
+
+    # The tree, written where `--apply` reads it back from. `nodes_for_version`
+    # is what the green arm reaches once nothing is in conflict, and a world with
+    # no `tree_nodes` rows would refuse there for a reason that is not this one.
+    #
+    # DRAFT FIRST AND FROZEN AFTER, because `write_node` refuses a frozen version
+    # outright (§8.8: an edit opens a draft). That is the product's own order and
+    # not a workaround: a tree is built and then approved.
+    write_plan_version(conn, PlanVersion(
+        plan_version_id=version, predecessor_id=None, state="draft",
+        created_at="2026-09-20T00:00:00+00:00", cross_folder_moves=True,
+        selection_id="selection-one-file-twice"))
+    nodes = []
+    for ordinal, (node_id, label, parent) in enumerate(_TWO_BRANCHES):
+        node = Node(
+            node_id=node_id, plan_version_id=version, node_type="proposed",
+            display_label=label, parent_node_id=parent,
+            root_anchor="root_documents", ordinal=ordinal,
+            associated_group_ids=(), explanation="fixture",
+            node_role="ordinary", accepts_placement=True,
+            handling_class="personal_non_sensitive", origin_node_id=node_id)
+        write_node(conn, node)
+        nodes.append(node)
+    freeze_version(conn, version)
+
+    ids = {}
+    decisions = []
+    for index, (name, node_id) in enumerate(
+            ((_CONTESTED, "n-course"), (_UNCONTESTED, "n-read"))):
+        source = corpus / name
+        stat = source.stat()
+        file_id = record_file(
+            conn, source, filename=name, normalized_filename=name.lower(),
+            extension=".txt", observed_size=stat.st_size,
+            observed_timestamps=str(stat.st_mtime),
+            parent_folder_context=corpus.name, mime_type="text/plain",
+            detected_format="txt", scan_state="included", materialized=True)
+        ids[name] = file_id
+        content_hash = conn.execute(
+            "SELECT content_hash FROM files WHERE file_id = ?",
+            (file_id,)).fetchone()[0]
+        ClassificationStore(conn).write(ClassificationRecord(
+            file_id=file_id, content_hash=content_hash,
+            handling_class="personal_non_sensitive", protected=False,
+            basis="user", evidence_refs=(), reliability_state="direct",
+            observed_at="2026-09-20T00:00:00+00:00"))
+        decisions.append(dataclasses.replace(
+            EXACT_PLACEMENT, decision_id=f"decision-{index}",
+            plan_version=version,
+            destination=Destination(node_id=node_id, node_role=ORDINARY),
+            subject=Subject(kind="file", file_id=file_id,
+                            content_hash=content_hash, group_id=None,
+                            member_file_ids=()),
+            privacy=PrivacyState(handling_class="personal_non_sensitive",
+                                 protected=False,
+                                 model_eligibility="local_only",
+                                 consent_audit_ref=None),
+            review_policy=AUTO_ELIGIBLE))
+
+    if contested:
+        # THE WITHDRAWN ROW, STILL IN THE LIST. This is the second decision the
+        # pass reached for one subject; `_current` would have dropped it and
+        # `freeze` never asks for `_current`.
+        decisions.append(dataclasses.replace(
+            decisions[0], decision_id="decision-withdrawn",
+            destination=Destination(node_id="n-read", node_role=ORDINARY)))
+
+    counter = count()
+
+    proposal = freeze(
+        conn, tuple(decisions), nodes=tuple(nodes),
+        legal_destination_ids=frozenset(node.node_id for node in nodes),
+        cross_folder_moves=True,
+        constraints=FilesystemConstraints(
+            unicode_form="NFC", case_sensitive=True, max_component_bytes=255,
+            max_path_bytes=4096, prohibited_characters=frozenset(),
+            reserved_names=frozenset(), replacement_character="_"),
+        high_level_folders={"root_documents": corpus},
+        volume_of=lambda path: "vol-main",
+        protected_handling_classes=frozenset({"sensitive_personal"}),
+        collision_policy=STOP_AND_ASK,
+        expiration_state="no expiry configured",
+        shown_file_ids=frozenset(ids.values()),
+        approve_reviewed=lambda plan, at: None,
+        component_version="conflict-test",
+        now=lambda: "2026-09-20T01:00:00+00:00",
+        mint_id=lambda: f"plan-{next(counter)}")
+    conn.commit()
+    conn.close()
+    return {"corpus": corpus, "database": database, "ids": ids,
+            "proposal": proposal, "version": version}
+
+
+def _apply_everything(world) -> tuple[int, str]:
+    """`--apply-everything` over that folder, in the words `_typed` prints."""
+    out = io.StringIO()
+    code = cli.main([str(world["corpus"]), "--database", str(world["database"]),
+                     "--apply-everything"], out=out)
+    return code, out.getvalue()
+
+
+@pytest.fixture(scope="module")
+def the_contested_file(tmp_path_factory):
+    """The approved set that names one file twice, and what `--apply` does to it."""
+    root = tmp_path_factory.mktemp("one_file_twice")
+    world = _freeze_a_small_world(root, contested=True)
+    before = _on_disk(world["corpus"])
+    code, said = _apply_everything(world)
+    return {**world, "before": before, "after": _on_disk(world["corpus"]),
+            "code": code, "said": said}
+
+
+@pytest.fixture(scope="module")
+def the_uncontested_file(tmp_path_factory):
+    """The same world with nothing in conflict: the moves must still happen."""
+    root = tmp_path_factory.mktemp("one_file_once")
+    world = _freeze_a_small_world(root, contested=False)
+    before = _on_disk(world["corpus"])
+    code, said = _apply_everything(world)
+    return {**world, "before": before, "after": _on_disk(world["corpus"]),
+            "code": code, "said": said}
+
+
+def test_the_freeze_really_did_approve_one_file_for_two_folders(
+        the_contested_file):
+    """The premise, asserted before anything is asked of `--apply`.
+
+    Without this the refusal below could be passing because the world is empty.
+    Three plans over two files, and the contested one has two destinations that
+    are not the same string.
+    """
+    state = the_contested_file
+    plans = state["proposal"].plans
+    assert len(plans) == 3, [plan.resolved_destination_path for plan in plans]
+    contested = state["ids"][_CONTESTED]
+    where = {plan.resolved_destination_path for plan in plans
+             if plan.file_id == contested}
+    assert len(where) == 2, where
+    # And BOTH are in the approved set the apply run reads back, under one
+    # version -- which is why the refusal below names one version and not two.
+    assert {plan.organization_plan_version for plan in plans} == {
+        state["version"]}
+
+
+def test_apply_everything_refuses_an_approved_set_that_names_a_file_twice(
+        the_contested_file):
+    """`--apply-everything` over a self-contradicting plan: refuse, move nothing.
+
+    The assertion that matters is the third: NOT ONE BYTE. An exit code on its
+    own would pass for a run that moved four files and then failed, which is the
+    outcome this exists to prevent.
+    """
+    state = the_contested_file
+    assert state["code"] == 2, state["said"]
+    assert state["after"] == state["before"], (
+        "the folder changed although the run refused: "
+        f"{set(state['after'].items()) ^ set(state['before'].items())}")
+    assert _rows(state["database"], "move_journal") == 0, (
+        "a move was journalled by a run that refused")
+    assert _rows(state["database"], "execution_records") == 0
+
+
+def test_the_refusal_names_the_file_and_both_folders_it_was_approved_for(
+        the_contested_file):
+    """`84` §6, and `84` §1's marked-and-counted rule.
+
+    What is in conflict is named -- the file by the name its owner calls it, and
+    BOTH destinations in full -- and no command is printed, because the command
+    that would settle it does not exist: which plan governs is unruled. The
+    no-frozen-plan block a few lines above in `cli.py` prints no command for the
+    same reason and says so.
+    """
+    state = the_contested_file
+    said = state["said"]
+    assert _CONTESTED in said, said
+    for plan in state["proposal"].plans:
+        if plan.file_id == state["ids"][_CONTESTED]:
+            assert plan.resolved_destination_path in said, (
+                f"{plan.resolved_destination_path} was not on the screen")
+    assert state["version"] in said, "the plan version was not named"
+    # NOT ONE OF THE PRODUCT'S OWN COMMANDS, because none of them settles this.
+    assert "database-agent " not in said, (
+        "a command was printed for a question the product cannot answer yet")
+    # And the file that was NOT in conflict is not reported as though it were.
+    assert said.count(_UNCONTESTED) == 0, (
+        "a file with one destination was named among the contested ones")
+
+
+def test_the_conflict_never_blocks_taking_a_move_back(the_contested_file):
+    """`--undo` is not about the frozen set, so the refusal must not reach it.
+
+    THE TRAP THIS EXISTS TO CLOSE. The guard sits above the point where `--apply`
+    and `--undo` part company, so the first version of it refused BOTH. A person
+    whose files had already moved under an earlier approval and who then froze a
+    contradictory one would have had the moves done and the one gesture that puts
+    them back taken away -- a refusal doing more damage than the defect. `--undo`
+    reads `applied_entries`, which is the journal of what actually happened, and
+    a contradictory approved set says nothing about whether a move can be
+    reversed.
+    """
+    state = the_contested_file
+    out = io.StringIO()
+    code = cli.main([str(state["corpus"]), "--database", str(state["database"]),
+                     "--undo-everything"], out=out)
+    said = out.getvalue()
+    assert "two different folders" not in said, (
+        "the apply-side refusal reached the undo path")
+    assert code == 0, said
+
+
+def test_the_same_world_with_nothing_in_conflict_still_moves_its_files(
+        the_uncontested_file):
+    """THE COMPANION THE REFUSAL MUST NOT SWALLOW.
+
+    Two files, two branches, one approved set, nothing named twice -- which is
+    the ordinary shape of every freeze -- and `--apply-everything` moves them.
+    This world differs from the contested one in exactly one decision, so a
+    guard that refused here would be refusing plurality rather than conflict.
+    """
+    state = the_uncontested_file
+    assert state["code"] == 0, state["said"]
+    moved = _files_on_disk(state["after"])
+    assert _CONTESTED not in moved, "the file never left the folder root"
+    assert f"Coursework/{_CONTESTED}" in moved, moved
+    assert f"Reading Inbox/{_UNCONTESTED}" in moved, moved
+    assert _rows(state["database"], "move_journal") == 2
