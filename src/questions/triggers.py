@@ -297,7 +297,8 @@ def _nesting_label(choice: NestingChoice) -> str:
 
 def question_for_situation(*, branch_label: str, situations: Iterable[str],
                            file_count: int,
-                           unjudged_menu_of: str | None = None) -> StructuralQuestion:
+                           unjudged_menu_of: str | None = None,
+                           scope_label: str | None = None) -> StructuralQuestion:
     """§13's third consequence: the person says which of their lives a branch is.
 
     `--situation` takes ONE string for a whole disk and derives the schema from it.
@@ -362,19 +363,29 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
             f"can have. Otherwise run with a model and it may name {them} one by "
             f"one. Until one of those happens {they} {'stays' if one else 'stay'} "
             f"under {branch_label} with no folders beneath {them}.")
+    # `scope_label` IS THE KEY; `branch_label` IS THE WORD THE PERSON READS, and
+    # until the owner's ruling of 19 Sep they were one string. Two branches could
+    # then mint one `question_id` -- a DEFAULT branch keyed by its label and a
+    # sibling keyed by its kind, both spelling `academic` on an untyped run --
+    # and `questions.store.record_question` is `ON CONFLICT DO NOTHING`, so both
+    # printed, one was stored, and the options under the dropped one belonged to
+    # the other branch. A display string is not a key.
+    #
+    # The prompt keeps `branch_label` so nothing the person reads changes.
+    key = branch_label if scope_label is None else scope_label
     return StructuralQuestion(
-        question_id=f"{SITUATION_KIND.kind_id}:{branch_label}",
+        question_id=f"{SITUATION_KIND.kind_id}:{key}",
         answer_class=STRUCTURAL,
         prompt=f"Which of these is {branch_label}?",
         evidence_context=evidence,
         unlocks=unlocks,
         will_not_do=WILL_NOT_DO,
-        scope=f"{SCOPE_BRANCH}:{branch_label}",
+        scope=f"{SCOPE_BRANCH}:{key}",
         handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
         options=tuple(QuestionOption(situation, situation,
                                      selects_situation=situation)
                       for situation in offered),
-        evidence_refs=(f"{SCOPE_BRANCH}:{branch_label}",))
+        evidence_refs=(f"{SCOPE_BRANCH}:{key}",))
 
 
 @dataclass(frozen=True)

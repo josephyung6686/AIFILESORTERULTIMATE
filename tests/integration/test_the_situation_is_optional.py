@@ -197,16 +197,28 @@ def test_a_label_with_no_situation_is_still_the_persons_own_name(tmp_path):
     A person who named the folder and not the life gets the folder they named:
     the branch's question is asked under THEIR name, and the answer they are told
     to type is the one the run will look for.
+
+    **THE KEY GAINED A MARKER ON 19 Sep and the NAME did not** (the owner's
+    ruling). The default branch's question is keyed `situation:default:<label>` so
+    it cannot collide with a sibling branch keyed by the same word -- on an untyped
+    run the default's label IS its majority kind, and `record_question` is
+    `ON CONFLICT DO NOTHING`, so one of the two questions was silently dropped.
+    The PROMPT still reads "Which of these is Coursework?": what changed is the
+    string the person types, and this test is exactly the guard that the string
+    printed is the string the run then looks for.
     """
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
     code, report = _run(corpus, database, "--label", "Coursework")
     assert code == 0, report
-    assert "--answer situation:Coursework=academic.coursework" in _flat(report), (
-        report)
+    assert ("--answer situation:default:Coursework=academic.coursework"
+            in _flat(report)), report
+    # The name is still theirs, on the line they read.
+    assert "Which of these is Coursework?" in _flat(report), report
 
     code, report = _run(corpus, database, "--label", "Coursework",
-                        "--answer", "situation:Coursework=academic.coursework")
+                        "--answer",
+                        "situation:default:Coursework=academic.coursework")
     assert code == 0, report
     assert "Coursework" in report, report
 

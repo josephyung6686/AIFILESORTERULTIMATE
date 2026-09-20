@@ -116,7 +116,8 @@ from facts.learning import (
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
     branch_votes,
-    BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, folder_name_for_schema,
+    BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, DEFAULT_SCOPE,
+    folder_name_for_schema,
     partition_by_branch,
     single_owner_terms, the_one_situation,
 )
@@ -18928,6 +18929,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             question = question_for_situation(
                 branch_label=(branch.label if branch.is_default
                               else branch.schemas[0]),
+                # THE KEY, WHICH IS NOT THE WORD ON SCREEN. Only the default is
+                # marked; every other branch keeps the kind's scope, which is
+                # where `_persons_answer_for` and `_life_of_file` read.
+                scope_label=(f"{DEFAULT_SCOPE}{branch.label}"
+                             if branch.is_default else None),
                 situations=branch.candidate_situations,
                 file_count=len(branch.file_ids),
                 # `00` AMENDMENT 25: an unsettled default is an UNTYPED run's

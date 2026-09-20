@@ -120,6 +120,12 @@ BRIDGES_THAT_DO_NOT_REACH: frozenset[str] = frozenset(
 #: registry test asserts the two agree.
 SCOPE_BRANCH: str = "branch"
 
+#: What marks the DEFAULT branch's situation question as the default's, so its key
+#: cannot collide with a sibling that happens to be its majority kind. Spelled once
+#: because `cli` writes it and `_situation_for` reads it, and two spellings of one
+#: key is the defect it exists to close.
+DEFAULT_SCOPE: str = "default:"
+
 
 @dataclass(frozen=True)
 class Branch:
@@ -520,7 +526,17 @@ def partition_by_branch(
         run where the promoted situation is read (`cli._the_situation_of_a_run`).
         """
         candidates = tuple(dict.fromkeys(situations_of(schema_id)))
-        chosen = chosen_situation(f"{SCOPE_BRANCH}:{branch_label}")
+        # THE DEFAULT'S QUESTION IS KEYED AS THE DEFAULT'S (the owner, 19 Sep).
+        # Its label is its majority kind on an untyped run, so a bare key collided
+        # with a sibling branch keyed by that same kind and one of the two
+        # questions was dropped by `record_question`'s `ON CONFLICT DO NOTHING`.
+        #
+        # THE BARE KEY IS STILL READ, and that is not tidiness: every answer the
+        # person has already given for a default is filed under it, and a reader
+        # that looked only for the new key would lose them in silence -- no test
+        # would catch it, because fixtures write whichever key the code writes.
+        chosen = (chosen_situation(f"{SCOPE_BRANCH}:{DEFAULT_SCOPE}{branch_label}")
+                  or chosen_situation(f"{SCOPE_BRANCH}:{branch_label}"))
         if chosen is not None and chosen in candidates:
             return chosen, ()
         return None, (candidates if len(candidates) >= 2 else ())
