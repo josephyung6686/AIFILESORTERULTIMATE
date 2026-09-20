@@ -62,8 +62,13 @@ SIXTY_FIVE = {
     "photos": {"capture_year", "event", "location", "media_type", "people",
                "camera_information", "capture_date"},
     "code": {"project", "repository", "programming_language", "artifact_type"},
+    # `00` amendment 41 declares `project` and `stage` at `career`, which `107`'s
+    # Current work -- *Employer -> year -> project or activity -> stage* -- needs
+    # and which `60` §5's six do not carry. Neither key is MINTED: `project` is
+    # declared at `research` and referenced by seven schemas already, `stage` by
+    # three. It is `60` §5's table extended by a ruling, like `job_title` before it.
     "career": {"employer", "target_employer", "recruiting_cycle", "work_type",
-               "record_type", "job_title"},
+               "record_type", "job_title", "project", "stage"},
     "business_operations": {"organization", "record_period", "project", "client",
                             "supplier", "record_type", "issuing_body"},
     "law_practice": {"project", "work_type", "client", "record_period", "our_firm",
@@ -479,10 +484,10 @@ SIXTY_FIVE_DEST = {
     "nonprofit": 2, "hr": 2, "clinical_practice": 0,
 }
 
-#: Where the shipped count is NOT `60` §5's, with the reason. Both are cases where §5's
-#: table and §4's mint list disagree and §4 (or `00`) governs. Named rather than left to
-#: be discovered, which is the discipline J-5a itself applies to the schemas under the
-#: band's floor.
+#: Where the shipped count is NOT `60` §5's, with the reason. The first two are cases
+#: where §5's table and §4's mint list disagree and §4 (or `00`) governs; the third is a
+#: RULING on top of both. Named rather than left to be discovered, which is the
+#: discipline J-5a itself applies to the schemas under the band's floor.
 DIVERGENCES = {
     # §5's `code` row ("repository · programming_language", dest 1) counts the keys
     # DECLARED at scope `code`. `00` §3.11 names four for Code and `60` drops nothing.
@@ -492,7 +497,24 @@ DIVERGENCES = {
     # per-template" -- and §4 mints `supplier` eligible, which `business_operations`
     # needs to reach §5's own dest count of 6.
     "logistics": 5,
+    # `00` amendment 41: `career` gains `project` and `stage`, both
+    # destination-eligible, taking it from §5's six to EIGHT. This is the one entry
+    # here that is a RULING rather than `60` contradicting itself, and it is the
+    # exemption `CEILING_EXEMPTIONS` names below.
+    "career": 8,
 }
+
+#: `00`:48's "three to six" stays a CEILING for every schema but one, and the one is
+#: named with its reason rather than the band being widened for everybody. `00`
+#: amendment 41: *"THE OWNER RULED AN EXEMPTION RATHER THAN A WIDER BAND, so six
+#: remains the number every other schema is held to and the one that moved is named
+#: with its reason: `107` asks a single schema to hold BOTH a job search and the work
+#: itself -- `Career applications` and `Current work` are two of its thirteen
+#: templates and both are career's."*
+#:
+#: This is the shape J-5a already applies to the FLOOR (`government`, `nonprofit`,
+#: `hr`, `clinical_practice` are named there), applied to the ceiling.
+CEILING_EXEMPTIONS = {"career"}
 
 
 def test_the_dest_counts_are_sixty_five_s_except_where_sixty_contradicts_itself():
@@ -516,6 +538,17 @@ def test_the_schemas_under_j_4_s_floor_are_exactly_the_named_exemptions():
     # `code` is under the band on §5's own count and over it on `00`'s; the divergence
     # above is what moves it, so it is asserted from the same place and not twice.
     assert SIXTY_FIVE_DEST["code"] < 3 <= DIVERGENCES["code"]
-    # Nothing exceeds six.
-    assert max(sum(1 for key in keys if BY_KEY[key].destination_eligible)
-               for keys in DOMAIN_FIELDS.values()) == 6
+
+    # THE CEILING, and `00` amendment 41's named exemption from it. The exemption is
+    # asserted EXACTLY -- the set of schemas over six is the set the owner ruled --
+    # so a second schema drifting over the band fails here rather than raising the
+    # number, which is J-5a's own discipline read from the other end.
+    dest = {schema_id: sum(1 for key in keys if BY_KEY[key].destination_eligible)
+            for schema_id, keys in DOMAIN_FIELDS.items()}
+    over = {schema_id for schema_id, count in dest.items() if count > 6}
+    assert over == CEILING_EXEMPTIONS, sorted(over)
+    # Six remains the number every other schema is held to.
+    assert max(count for schema_id, count in dest.items()
+               if schema_id not in CEILING_EXEMPTIONS) == 6
+    # And the exemption is a real one, not a set naming a schema that fits anyway.
+    assert dest["career"] == 8

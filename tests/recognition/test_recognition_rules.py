@@ -117,7 +117,9 @@ def test_the_packaged_manifest_loads_and_covers_every_schema_the_rows_named():
     assert set(rules.schemas) <= set(SCHEMA_IDS)
     # 361 since 15 Sep 2026: nonprofit.volunteering-and-club-life, the owner's
     # own member (text 8), a person's record of belonging beside the association's registers.
-    assert rules.compiled_rows == 361
+    # 362 since 20 Sep 2026: `career.current-work`, `00` amendment 42 -- `107`'s
+    # Current work template, which `career`'s seven rows had no situation for.
+    assert rules.compiled_rows == 362
     # Not asserted as a literal count of schemas: `SCHEMA_IDS` is widening
     # underneath this package, so the guard is that every compiled schema is a
     # recognised one and that the rule set is not empty.

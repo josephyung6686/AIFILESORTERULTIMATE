@@ -458,6 +458,87 @@
       ],
       "privacy_floor": "baseline",
       "sole_order_attestation": "career.employer-side-hiring is the only corpus behind this recipe and it states one nesting and rules out the reversal in the same sentence it states the nesting: the requisition is 'the intelligible parent ... because a scorecard or a debrief is unreadable without knowing which opening it was written for', so a document-type level above it is exactly the unintelligible shape the row argues against, and 'Document type goes last, as on every career situation.' The alternative the row actually records is not a second order but a missing key - the requisition as one identifier - and it hands that decision to Joseph. Authoring a second candidate here would put a choice in front of the user that this corpus never offered."
+    },
+    {
+      "template_id": "def.employer-project-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.employer-year-project-stage",
+          "is_default": true,
+          "rationale": "107 verbatim, and this recipe exists because that order cannot be reached from def.career-search-and-tenure: 'Current work | Employer \u2192 year \u2192 project or activity \u2192 stage'. production.folder_levels_for reads definition.default_order.dimensions - the DEFAULT order and only that - so every row on one definition builds in ONE order, and D30's default is capture_time-first for the recruiting half under 00 amendment 33. A non-default candidate order builds nothing at all. _check_orders would refuse D30 gaining project_anchor and lifecycle_stage besides, because 'candidate orders must cover the same roles. An order that drops or adds a role is a different RECIPE' - and a job search and the work itself ARE two recipes, which is exactly why 00 amendment 41 had to record career as a named exemption from 00:48's ceiling to let one schema hold both. THE EMPLOYER IS FIRST AND NOT THE YEAR, which is the one place this order and Career applications' disagree and the disagreement is 107's own: a status report or a deck is unintelligible without knowing which organization it was made inside, and a year above the employer would scatter one job across calendar years - the year-first mistake 00 warns about. On the search side the year leads because an application IS dated by the season it belongs to.",
+          "dimensions": [
+            {
+              "role_ref": "employer_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "107 puts the employer first and career.json's own argument for company-first applies to the work as well as to the job: a document type such as a status report is unintelligible without the employer. REQUIRED, and the only required level here: a work document with no employer is not 'current work at an employer', it is a file - so a file carrying no employer fact is correctly UNFIT for this situation at site E rather than filed under it. 00:57 still decides whether the FOLDER is built, and in a single-employer corpus it will not be."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "00 amendment 22 ratified the position - 'year IS BOUND AS A FOLDER LEVEL WHERE 107 ALREADY SAYS IT GOES -- Current work (employer -> year -> project -> stage)' - and facts/fields.py authored the field for it. OPTIONAL, not required: a required level with no fact makes the file UNFIT at site E (model_template.file_fits_its_situation), and amendment 22's whole argument is that binding year REMOVES that cost rather than adding one. The role is capture_time because 43 section 2.1 defines it as 'the year a capture was taken, from capture metadata' and facts/fields.py authored year 'patterned on capture_date -> capture_year' off the same kind of source; scope_period is the period a record COVERS, which is tax_year's role and which 00 amendment 23 keeps deliberately apart from year."
+            },
+            {
+              "role_ref": "project_anchor",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "107's third level, in its own words 'project or activity', and the thing a person actually looks for. The role is project_anchor because business_operations already binds it to this exact key on four rows ('Delivery project', 'Sourcing event'), so nothing is minted. OPTIONAL: not every work document belongs to a named project, and 107 offers the level as 'project OR activity' rather than requiring one."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 3,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "107's leaf. The role is lifecycle_stage because creative, research and engineering already bind it to this exact key on twenty-odd rows, so nothing is minted here either. OPTIONAL and LAST because a stage is a state of the work rather than a kind of thing: it is the level most corpora will not divide on, and 00:57 will record it and build nothing far more often than it builds a folder."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "flatten to project and stage alone where one person has worked at one employer for the whole corpus, which is 00's own instruction to 'recommend flattening when a dimension does not materially improve retrieval' and the state 00:57 already produces without being asked"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "employer_org must NEVER bind target_employer on this recipe. 00:44 governs - 'An application essay can mention the author\u2019s current school and the university to which the essay is addressed. Those are not the same field.' - and D30's own constraint says the same for career: the employer the holder WORKS FOR and the employer the holder APPLIED TO are never one key. This recipe is the work side and binds employer.",
+        "NO CLIENT LEVEL, and this is the refusal the recipe exists closest to. Five Career-life rows carry client -> project -> stage -> artifact_type, which is 107's SHAPE with the wrong organisation at the top. client is the counterparty of the our_firm role split rather than an employer of record, and 60 M12 - quoted by ap.career.employment-records - settles which side an employee's employer is on: 'for an employee the employer IS the holder\u2019s own organization'. A corpus whose top-level organisation is a commissioner is career.consulting-client-engagement's or creative's, not this one's.",
+        "NO PERSON LEVEL of any kind. 00 section 3.8 forbids authorship as a destination dimension and 00:97 forbids 'an author or organization merely as a collector'; a handover note names two colleagues and a meeting note names several, and none of them may become a folder.",
+        "lifecycle_stage binds the state of THE WORK and never a stage named in the work's subject matter - a design review deck discussing a product's launch stage is not itself at that stage. The node's own needs_llm entry records that this reading is the model's and not a rule's.",
+        "capture_time binds the year the artifact was MADE and never a period a record is ABOUT: 00 amendment 23 separates them by name - 'year is the year a file was MADE (derived from creation_date), tax_year is the year the record is ABOUT' - and scope_period is the role that carries the second.",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Northstar Health",
+          "2026",
+          "Atlas Redesign",
+          "In review"
+        ]
+      ],
+      "relative_order": [
+        [
+          "employer_org",
+          "capture_time"
+        ],
+        [
+          "capture_time",
+          "project_anchor"
+        ],
+        [
+          "project_anchor",
+          "lifecycle_stage"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "107 is the only corpus behind this recipe and it states exactly one nesting for it, in one line of its branch-template table: 'Current work | Employer \u2192 year \u2192 project or activity \u2192 stage | 3\u20135'. It offers no reversal anywhere. The two variations 107 DOES record for this material are not orders: 'Combine Career and Work' is a MERGE of two branches and 'enable Freelance' is a different template being turned on, both listed under 'Customization model' as controls a person exercises before freeze rather than as a second nesting the library offers. 00 amendment 22 then ratified the year's position inside that one order and amendment 24 recorded which half of this is the person's: 'Change split order' is a control 107 asks the product to expose to ANY person, which is a runtime choice and not a second authored candidate. Offering an invented alternative here would put a choice in front of the user that no corpus ever offered, and 'an invented alternative is worse than an absent one, because the user cannot tell it is invented.'"
     }
   ],
   "applicabilities": [
@@ -614,6 +695,64 @@
         "60-VOCABULARY-RULINGS.md section 5 - career declares job_title, recruiting_cycle and record_type, which is exactly the requisition this row files by",
         "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
         "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null,
+      "life": "Career"
+    },
+    {
+      "applicability_id": "ap.career.current-work",
+      "applicability_version": 1,
+      "template_id": "def.employer-project-record",
+      "template_version": 1,
+      "uses_schema": "career",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "employer",
+        "year",
+        "project",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:career.current-work"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "employer_org",
+          "field_ref": "employer",
+          "label": "Where I work"
+        },
+        {
+          "role_ref": "capture_time",
+          "field_ref": "year",
+          "label": "Work year"
+        },
+        {
+          "role_ref": "project_anchor",
+          "field_ref": "project",
+          "label": "Project or activity"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "How far the work got"
+        }
+      ],
+      "exclusions": [
+        "client as a folder level: career.current-work's own collides_with says why - a commissioned document names a COMMISSIONER in a recipient position, and in-house work names one organization in an authorship position only. 60 M12, as ap.career.employment-records quotes it: 'for an employee the employer IS the holder\u2019s own organization'. Binding client here would make this row career.consulting-client-engagement wearing 107's shape.",
+        "our_firm as a folder level: it is 'the authorship-side identity that is never a destination' and facts/fields.py ships it destination_eligible false, so the level could not be built even if this row asked for it.",
+        "target_employer as the employer's key: 00:44 keeps the organization ADDRESSED and the organization WORKED FOR apart, and ap.career.recruiting binds the first. This row is the work side and binds employer, which is the same discrimination D30 already carries between its two rows.",
+        "record_type or work_type as a fourth level: 107 gives Current work four levels ending at the stage and names a document-type level on Career applications and on the tenure row instead. Adding one here would be this row deciding a depth 107 already set - 'typical depth 3\u20135'.",
+        "job_title as a level: the tenure row binds it ('Job I held') because the paperwork of a job is filed by the role it belonged to. The WORK is filed by the project it belonged to, and a role level above the project would split one project across a promotion."
+      ],
+      "provenance": [
+        "row:career.current-work",
+        "memo:planning/domains/nodes/career.current-work.research.md",
+        "00-database-agent-product-design.md amendment 41 - project and stage are declared at career, and career is a NAMED EXEMPTION from 00:48's six-key ceiling because 107 asks one schema to hold both a job search and the work",
+        "00-database-agent-product-design.md amendment 42 - 107's Current work gets a situation of its own rather than the bare kind anchor, and the fields and the row land together or not at all",
+        "00-database-agent-product-design.md amendment 22 - year is bound as a folder level where 107 already says it goes, and Current work is the first of the two places 107 names",
+        "60-VOCABULARY-RULINGS.md section 5 - project is declared at research and stage beside it, which is why amendment 41 REFERENCES two existing keys at one more schema rather than minting any",
+        "60-VOCABULARY-RULINGS.md section 8.3 - the two halves of career, the search and the tenure; this row is the third thing career holds, the WORK, which section 8.3 does not split off because no key existed for it",
+        "107-IDEAL-TREE-REFERENCE.md - Current work is 'Employer \u2192 year \u2192 project or activity \u2192 stage'"
       ],
       "privacy_floor": null,
       "life": "Career"

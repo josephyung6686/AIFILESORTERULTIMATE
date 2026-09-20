@@ -1,5 +1,5 @@
 {
- "compiled_rows": 361,
+ "compiled_rows": 362,
  "manifest_version": 1,
  "refused_rows": 44,
  "schemas": {
@@ -1935,8 +1935,10 @@
     "client confidential",
     "credential",
     "deliverable",
+    "draft for review",
     "engagement",
     "expires",
+    "handover",
     "in good standing",
     "issued by",
     "kickoff",
@@ -1944,15 +1946,19 @@
     "license",
     "member since",
     "milestone",
+    "next steps",
     "prepared by",
     "prepared for",
+    "project status",
     "registration",
     "registry",
     "renewal",
     "retainer",
     "scope of work",
     "steering committee",
-    "valid through"
+    "valid through",
+    "work in progress",
+    "workstream"
    ],
    "extensions": [
     ".ai",
@@ -2009,6 +2015,16 @@
     },
     {
      "readings": [
+      "deciding whether an organization in a document's authorship position is the holder's EMPLOYER or a client they were commissioned by, when no labelled slot marks it. 00 requires the judgement be made at all — 'The system must separate roles that happen to contain the same entity type' — and it cannot be made from a gazetteer, because both strings are organizations. 60 M12 is the discriminator the reading has to apply, in the words ap.career.employment-records' own exclusions quote it by: 'for an employee the employer IS the holder’s own organization'. Abstention is the correct output when the role is unmarked; 00's general instruction covers it — 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "deciding whether an unlabelled prose or slide document is WORK PRODUCT of a job held or the paperwork OF that job — a compensation review is the second, a performance review of a project is the first. 00 lists this class of determination among the model's allowed ones: it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'.",
+      "judging whether a recurring token across sibling files names a PROJECT OR ACTIVITY or merely a document series — 'Q3' and 'Weekly' recur exactly as a project name does, and only a reading of what the documents are about tells them apart. The wrong answer here opens a folder level for a filename habit, which is 00:57's own warning read forward.",
+      "judging whether a heterogeneous set of files is purpose-coherent as ONE project or activity rather than several. 00's named example of the outcome is 'a career packet EY Internship Application', and the same shape on this side of career is one project's plan, deck, workbook and status notes.",
+      "reading a stage or state word — draft, in review, delivered, on hold — as the state of THE WORK rather than as a word in the document's subject matter. A design review deck that discusses a product's launch stage is not itself at that stage."
+     ],
+     "row": "career.current-work"
+    },
+    {
+     "readings": [
       "whether a resume-shaped document is the holder's own or another person's — the single judgement this whole template rests on, and the one no rule can make from the document alone, because the two files are identical in kind, structure and vocabulary. 00 names this class among the reasons rules are insufficient: \"vague filenames, indirect language, multilingual documents, screenshots, unlabeled forms, unusual professional artifacts, and user-specific workflows\", and names the determination itself among the model's allowed ones — it \"may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain\"",
       "unlabelled debrief or calibration prose that discusses several people without naming a requisition, a role or, sometimes, anyone at all — the file whose only evidence is its rhetoric",
       "whether a heterogeneous set of files is one requisition's pipeline or several requisitions bundled in one export — a group-coherence question, not a per-file one, and 00 restricts the model to exactly that: \"an LLM receives only compact evidence packets for files or groups that remain ambiguous, have multiple plausible domains, or contain language that requires interpretation\"",
@@ -2060,6 +2076,10 @@
      "row": "career.credentials-licenses"
     },
     {
+     "cautions": 7,
+     "row": "career.current-work"
+    },
+    {
      "cautions": 9,
      "row": "career.employer-side-hiring"
     },
@@ -2081,6 +2101,7 @@
     "career",
     "career.consulting-client-engagement",
     "career.credentials-licenses",
+    "career.current-work",
     "career.employer-side-hiring",
     "career.employment-records",
     "career.portfolio-work-samples",
@@ -2097,6 +2118,11 @@
      "id": "career.credentials-licenses",
      "name": "Professional licenses, certifications and memberships",
      "one_line": "The organizational situation of holding a durable professional standing that a body granted and that expires: licence and certification certificates, renewal notices, membership confirmations and good-standing letters, where the file is about the credential itself rather than about a job, a course, or a degree, and where a validity window - issued on, valid through, renewal due - is the structure that makes it recognizable."
+    },
+    {
+     "id": "career.current-work",
+     "name": "Current work at an employer",
+     "one_line": "The work itself rather than the paperwork of the job: what a person produces while employed — plans, decks, analyses, status reports, reviews of the work and handovers — filed by the employer it was made at, the year it was made, and the project or activity it belongs to. It is the counterpart of career.employment-records, which holds the TERMS of a job rather than its output, and of career.consulting-client-engagement, which holds work done FOR a commissioning client rather than inside an employer of record."
     },
     {
      "id": "career.employer-side-hiring",
@@ -2155,6 +2181,7 @@
     "cover letter",
     "credentials or capabilities deck",
     "data model",
+    "design review deck",
     "design source file",
     "direct deposit authorization",
     "disciplinary or status notice",
@@ -2171,6 +2198,7 @@
     "final report",
     "goals or objectives document",
     "good-standing or verification letter",
+    "handover note",
     "hiring rubric or interview guide",
     "interim deliverable deck",
     "interview debrief notes",
@@ -2198,6 +2226,7 @@
     "portfolio document",
     "professional certification certificate",
     "project one-pager",
+    "project plan",
     "promotion or compensation change letter",
     "proposal",
     "recruiter correspondence",
@@ -2211,6 +2240,7 @@
     "rejection notice issued",
     "renewal notice",
     "renewed certificate",
+    "requirements document",
     "resignation letter",
     "resume",
     "sample code excerpt",
@@ -2229,6 +2259,7 @@
     "work authorization record",
     "work sample",
     "work sample or case study",
+    "working draft",
     "writing sample"
    ]
   },

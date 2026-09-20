@@ -71,9 +71,16 @@ RANK = {"baseline": 0, "protected": 1}.__getitem__
 SCHEMAS = ("career", "logistics", "retail_hospitality")
 
 #: One row per bindable node row in the three schemas. The counts are the census
-#: this wave owes: 6 career template rows, 7 logistics, 14 retail_hospitality,
+#: this wave owes: 7 career template rows, 7 logistics, 14 retail_hospitality,
 #: minus the six refusals named in `REFUSED`.
-EXPECTED_PER_SCHEMA = {"career": 3, "logistics": 6, "retail_hospitality": 12}
+#:
+#: CAREER MOVED 3 -> 4 under `00` amendment 42, which minted a SEVENTH career
+#: template node -- `career.current-work`, `107`'s *Employer -> year -> project or
+#: activity -> stage*. The wave's own census moves with the node census by
+#: construction: `test_every_recognisable_row_in_these_schemas_is_filed_or_named_as_
+#: refused` below reads both from the live files, so a node added without a row
+#: here fails there rather than being absorbed by this number.
+EXPECTED_PER_SCHEMA = {"career": 4, "logistics": 6, "retail_hospitality": 12}
 
 #: The refusals, each with the sentence from its own node row that earned it. A
 #: refusal recorded only in a report is a refusal the next author re-litigates;
@@ -102,16 +109,28 @@ REFUSED = {
 
 #: The keys each refused row would have needed and its schema does not declare.
 #: Kept beside `REFUSED` so the refusal is checkable rather than asserted.
+#:
+#: TWO CAREER ENTRIES NARROWED UNDER `00` AMENDMENT 41, which declares `project` and
+#: `stage` at `career`. `project` is no longer missing anywhere, so it is struck from
+#: both rows that named it -- and each stays refused on the key it still lacks,
+#: `client` and `artifact_type`. That is the point of keeping the keys rather than
+#: the sentences: *"a refused row is refused because a key is missing, not by
+#: taste"*, so the moment the last missing key is declared this table empties a tuple
+#: and the assertion below asks for the row instead of leaving the gap unexamined.
 REFUSED_MISSING_KEYS = {
-    "career.consulting-client-engagement": ("client", "project"),
+    "career.consulting-client-engagement": ("client",),
     "career.credentials-licenses": ("issuing_body",),
-    "career.portfolio-work-samples": ("project", "artifact_type"),
+    "career.portfolio-work-samples": ("artifact_type",),
     "logistics.route-dispatch": ("record_period",),
     "retail_hospitality.menu-recipe-costing": (),
     "retail_hospitality.product-catalogue": (),
 }
 
 CAREER_D30 = "def.career-search-and-tenure"
+#: `00` amendment 42's recipe, authored in THIS file rather than referenced from
+#: `definitions.json` -- it is the first career recipe the launch library did not
+#: already carry.
+CAREER_CURRENT_WORK = "def.employer-project-record"
 EMPLOYER_FIRST = "ord.employer-role-cycle-kind"
 CYCLE_FIRST = "ord.cycle-kind-employer-role"
 
@@ -188,7 +207,7 @@ def test_the_wave_loads_through_the_real_loader(rows):
     """Every record has passed `TemplateApplicability.__post_init__`, which is
     what rejects a row binding outside its own allow-list and a row with no
     provenance. A JSON file that merely parses proves neither."""
-    assert len(rows) == sum(EXPECTED_PER_SCHEMA.values()) == 21
+    assert len(rows) == sum(EXPECTED_PER_SCHEMA.values()) == 22
 
 
 def test_each_schema_carries_the_rows_its_node_census_supports(rows):
@@ -230,10 +249,19 @@ def test_career_rows_bind_the_shipped_d30_and_this_wave_re_authors_none(
     """`60` section 8.2: *"D30 ships, because J-3 giving career six fields is
     meaningless if career cannot produce a folder."* It ships in
     `definitions.json`; what career lacked was applicability rows, and `51`
-    section 5 has no `uses_schema: career` section at all."""
+    section 5 has no `uses_schema: career` section at all.
+
+    A THIRD RECIPE JOINED THEM UNDER `00` AMENDMENT 42, and it is a new definition
+    rather than a third order on D30 for a mechanical reason:
+    `production.folder_levels_for` reads `definition.default_order.dimensions` --
+    the DEFAULT order and only that -- so every row on one definition builds in one
+    order, and D30's default is `capture_time`-first for the recruiting half. A
+    non-default candidate order builds nothing at all. `_check_orders` would also
+    refuse D30 gaining two roles its cycle-first order does not carry, because every
+    candidate order of a definition must cover the SAME role set."""
     career = [row for row in rows if row.uses_schema == "career"]
     assert {row.template_id for row in career} == {
-        CAREER_D30, "def.requisition-record"}
+        CAREER_D30, "def.requisition-record", CAREER_CURRENT_WORK}
     on_d30 = [row for row in career if row.template_id == CAREER_D30]
     assert {row.applicability_id for row in on_d30} == {
         "ap.career.recruiting", "ap.career.employment-records"}

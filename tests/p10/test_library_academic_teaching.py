@@ -197,7 +197,10 @@ def test_the_shipped_release_still_reports_208_situations_and_only_teaching_move
              for row in shipped_situations(before_catalogue)}
     after = {(row.schema, row.name): row for row in shipped_situations(shipped)}
 
-    assert len(after) == 208
+    # 209 since `00` amendment 42 added `career.current-work`. `read_before` swaps
+    # only `applicabilities.json`, so the added row is in BOTH sides here and the
+    # set equality below is untouched by it -- this count is the only line it moves.
+    assert len(after) == 209
     assert set(before) == set(after), "the set of (schema, situation) rows moved"
 
     changed = {key for key in before if before[key] != after[key]}

@@ -138,7 +138,8 @@ def test_the_shipped_library_resolves_no_schema_by_its_shape_alone():
         under[row.schema] = under.get(row.schema, 0) + 1
 
     assert len(under) == 23, sorted(under)
-    assert sum(under.values()) == 208, under
+    # 209 since `00` amendment 42 added `career.current-work`.
+    assert sum(under.values()) == 209, under
     # NOT ONE of the twenty-three carries exactly one, so the first arm is
     # unreachable on this release and the pick decided every named file.
     assert [schema_id for schema_id, count in under.items() if count == 1] == []

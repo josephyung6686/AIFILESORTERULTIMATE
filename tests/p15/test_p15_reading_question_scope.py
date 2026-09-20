@@ -174,7 +174,8 @@ def test_the_family_narrows_every_shipped_situation_and_empties_none():
     """
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     names = sorted({row.name for row in shipped_situations(catalogue)})
-    assert len(names) == 208, len(names)
+    # 209 since `00` amendment 42 added `career.current-work`.
+    assert len(names) == 209, len(names)
     for name in names:
         family = situation_schema_family(catalogue, name)
         assert family, name

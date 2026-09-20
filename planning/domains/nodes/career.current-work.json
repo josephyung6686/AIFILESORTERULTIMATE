@@ -1,0 +1,258 @@
+{
+  "id": "career.current-work",
+  "kind": "template",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Current work at an employer",
+  "one_line": "The work itself rather than the paperwork of the job: what a person produces while employed — plans, decks, analyses, status reports, reviews of the work and handovers — filed by the employer it was made at, the year it was made, and the project or activity it belongs to. It is the counterpart of career.employment-records, which holds the TERMS of a job rather than its output, and of career.consulting-client-engagement, which holds work done FOR a commissioning client rather than inside an employer of record.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 names the domain at launch and records its template dimensions verbatim: 'a Career template may define company → role or recruiting cycle → document type'. It does not itself split the work from the job, so this row is an extension of a named domain and its provenance is inference, not design. What names this situation is 107's branch-template table, in its own words: 'Current work | Employer → year → project or activity → stage | 3–5 | DOCX, PDF, PPTX, XLSX, CSV, email exports, design files'. 00 amendment 22 ratified that year is bound here — 'Current work (employer -> year -> project -> stage) and Career applications ... and nowhere else for now' — and amendments 41 and 42 supplied the two things the row needed and did not have: the keys (project and stage declared at career) and a situation of its own to be a row FOR.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A work document naming an EMPLOYING organization in an authorship position — a footer, a title block, a template header, a 'Prepared by' line — together with a project or activity token that recurs across sibling files. The recurrence is the evidence and the organization name alone is not: 00 states the pattern-plus-context SHAPE for course codes ('BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as syllabus, lecture, credits, instructor, or semester') and this row copies the shape without claiming 00 wrote it for career.",
+      "A status or progress document — a status report, a project one-pager, a kickoff or review deck, meeting notes, a handover note — carrying BOTH a recurring project or activity token and an internal reporting cue ('workstream', 'next steps', 'draft for review', 'project status'). One of the two is never enough: a status report with no project token is a loose document, and a project token with no work-document shape is as likely to be a filename convention.",
+      "A dated series of documents under one project token whose dates span more than one calendar year, which is the shape the year level exists for. 00:57 governs whether the level is built — 'a level your files did not actually divide is measured and not built' — so this evidence proposes the year fact and never the folder.",
+      "A design or authoring source file (.psd, .ai, .indd, .dwg) sitting beside an exported deliverable with the same normalised stem AND an employing-organization signal in the sibling document's authorship position. WITHOUT that signal this is career.portfolio-work-samples' or creative's file and not this row's — the layered file alone says the work exists, never who it was made for.",
+      "An email export or calendar item whose subject carries a recurring project or activity token and whose participants share one organization's mail domain. The shared domain is what separates work INSIDE an employer from work done for a client, where two domains are the ordinary case."
+    ],
+    "needs_llm": [
+      "deciding whether an organization in a document's authorship position is the holder's EMPLOYER or a client they were commissioned by, when no labelled slot marks it. 00 requires the judgement be made at all — 'The system must separate roles that happen to contain the same entity type' — and it cannot be made from a gazetteer, because both strings are organizations. 60 M12 is the discriminator the reading has to apply, in the words ap.career.employment-records' own exclusions quote it by: 'for an employee the employer IS the holder’s own organization'. Abstention is the correct output when the role is unmarked; 00's general instruction covers it — 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "deciding whether an unlabelled prose or slide document is WORK PRODUCT of a job held or the paperwork OF that job — a compensation review is the second, a performance review of a project is the first. 00 lists this class of determination among the model's allowed ones: it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'.",
+      "judging whether a recurring token across sibling files names a PROJECT OR ACTIVITY or merely a document series — 'Q3' and 'Weekly' recur exactly as a project name does, and only a reading of what the documents are about tells them apart. The wrong answer here opens a folder level for a filename habit, which is 00:57's own warning read forward.",
+      "judging whether a heterogeneous set of files is purpose-coherent as ONE project or activity rather than several. 00's named example of the outcome is 'a career packet EY Internship Application', and the same shape on this side of career is one project's plan, deck, workbook and status notes.",
+      "reading a stage or state word — draft, in review, delivered, on hold — as the state of THE WORK rather than as a word in the document's subject matter. A design review deck that discusses a product's launch stage is not itself at that stage."
+    ],
+    "never_alone": [
+      "An employing organization's name alone. Every document a person touches at work names their employer somewhere, and read as proof that would swallow the whole corpus — including career.employment-records' agreements and payslips, which name the same organization and are NOT this row's.",
+      "A project or activity token alone. It is the most portable token in this product: research, code, business_operations, law_practice, creative, construction_property, engineering and government all declare project, and a bare token cannot say which of them it belongs to.",
+      "A stage or state word alone ('draft', 'final', 'v2', 'in review'). It is a universal document habit, and creative, research and engineering all bind stage; a state word says how far something got and never what kind of thing it is.",
+      "A text_document, presentation or spreadsheet source_type alone. It is the ordinary shape of every professional document in the product and carries no career signal of any kind.",
+      "A 4-digit year alone, in a filename or a body. year is a UNIVERSAL field derived from a file's own creation_date, so a year token is available to every row in the release and distinguishes none of them.",
+      "A 'Prepared by' or 'Prepared for' line alone. It is already career's context term and it is exactly as consistent with career.consulting-client-engagement's commissioned work as with this row's in-house work — it names a direction, not a side.",
+      "A design_creative source_type or a .psd / .ai / .indd extension alone. The layered file is career.portfolio-work-samples' tempting false file too; it says a piece of work exists and never who it was made inside."
+    ]
+  },
+  "proposed_context_terms": [
+    "workstream",
+    "work in progress",
+    "draft for review",
+    "next steps",
+    "project status",
+    "handover"
+  ],
+  "work_types": [
+    "status report",
+    "project plan",
+    "meeting notes",
+    "kickoff deck",
+    "project one-pager",
+    "design review deck",
+    "requirements document",
+    "handover note",
+    "analysis workbook",
+    "interim deliverable deck",
+    "final report",
+    "working draft"
+  ],
+  "grouping_reasons": [
+    "one project or activity across the documents it produced — a plan, a deck, a workbook and the status notes that track it. 00 lists 'one course, project, application, recruiting process, photo event, or submission packet' among the single organizing reasons a coherent group may have, and a project is the second word in that list.",
+    "one reporting cycle inside one project: a status report, the meeting notes behind it and the deck it was presented from, which are 'content-incoherent but purpose-coherent' in 00's exact sense. The evidence is a manifest or explicit language, never the download session.",
+    "one deliverable across its source file, its exports and its revisions — the universal version_family and duplicate_family facts, not a career fact.",
+    "one document that belongs BOTH to the project that produced it and to a showcase that later reuses it. 'A file may validly belong to more than one accepted group'; multi-membership, never a copied fact.",
+    "one employer across every project done inside it, which is the level 107 puts at the head of this template and the one 00:57 will leave unbuilt in a single-employer corpus."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "HELD AS PROSE AND NOT AS A DIMENSION LIST, exactly as career's six sibling rows hold theirs: _CONTRACT.md rule 8 lets a template branch only on a field the entry's own schema declares, and `year` is UNIVERSAL — derived from creation_date, declared by no schema and reachable by all — so it could never appear in a list checked against career's declarations however many keys career gains. The executable recipe is the P10 record: `def.employer-project-record` in src/tree_design/library/wave2_commerce.json, where the order is a list of ROLES and the applicability row binds each role to its key. WHAT THIS ROW RECOMMENDS, in 107's own words: 'Employer → year → project or activity → stage', typical depth 3–5. The employer is first because a status report or a deck is unintelligible without knowing which organization it was made inside — career.json's own argument for company-first, applied to the work rather than to the job. The year is second because 00 amendment 22 ratified this as one of the two trees it is bound on, and because a project that ran across two years reads as two years of work rather than one long one. The project or activity is third because it is the thing a person actually looks for. The stage is the leaf because it is a state of the work and not a kind of thing, so it divides last or not at all. NOT TIME-FIRST: a year above the employer would scatter one job across calendar years, which is the year-first mistake 00 warns about; 107 puts the employer first and this row keeps it there.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "design_creative",
+      "calendar",
+      "ocr",
+      "archive"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ai",
+      ".psd",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Atlas Redesign - status - week 14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a recurring project token and a series token",
+        "page header repeats an organization name in a template footer position",
+        "body contains a 'Next steps' heading over a short list",
+        "five sibling files share the leading project token and differ only in the series token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "year",
+        "employer",
+        "project",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a stage fact: the document reports on work, it does not state where the work got to",
+        "a client fact from the organization in the footer - a footer names who made the document, not who commissioned it",
+        "a job_title fact from a signature block",
+        "a year from the series token, which is a week and not a date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Beacon Rollout kickoff.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "title slide carries a project token and an organization logo placement",
+        "slide master matches the organization's internal deck template used by sibling files",
+        "an agenda slide lists workstreams",
+        "no external recipient organization appears anywhere in the deck"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "year",
+        "employer",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an employer fact from the slide master alone, which is a template and not an authorship statement",
+        "a client fact: the absence of an external recipient is not evidence of one",
+        "a stage fact from the word 'kickoff' in the filename - it names the meeting, not the state of the work"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Handover note - Atlas Redesign.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "body names an incoming and an outgoing owner by first name only",
+        "a 'Current state' heading is followed by a short status word",
+        "the project token matches four sibling files",
+        "an organization mail domain appears in a contact line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "year",
+        "employer",
+        "project",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a person-named level of any kind: 00 section 3.8 forbids authorship as a destination and a handover names two people",
+        "an employment-records fact - a handover is work product, not a term of the job",
+        "an employer fact from the mail domain alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scope of work - external.docx",
+      "source_type": "text_document",
+      "observations": [
+        "body names two organizations in a 'between' construction",
+        "a signature block carries two organizations",
+        "no recurring project token appears in sibling filenames",
+        "career's context term 'scope of work' is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an employer fact: two organizations in a 'between' construction is the commissioned shape and career.consulting-client-engagement's, not this row's",
+        "a project fact from a document that names no recurring project",
+        "this row's activation at all - THE TEMPTING FALSE FILE, kept here so the discrimination is written down rather than assumed"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.employment-records",
+      "signal": "Both name ONE employer of record and both are files of a job actually held, so an employer name supports either. The discriminating evidence is what the document IS: employment-records holds the TERMS of the job — an executed agreement, onboarding forms, benefits and leave administration, a performance review of the PERSON, an equity grant, a separation record — and this row holds the OUTPUT of the job, which names a project or activity and a state of the work. 60 M12 gives both the same employer key, which is why the collision cannot be resolved by the organization at all. Fixtures: Offer letter countersigned.pdf (theirs), Atlas Redesign - status - week 14.docx (this row's).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Both are professional work product organised by project and stage — 107's shape appears on both sides. The discriminating evidence is the ROLE of the second organization, which is 00:44's own rule ('An application essay can mention the author’s current school and the university to which the essay is addressed. Those are not the same field.') applied to work: a commissioned document names a COMMISSIONER in a recipient position, usually with a second mail domain and a 'between' construction in an engagement letter or statement of work, while in-house work names one organization in an authorship position only. facts/fields.py gives client role_split=('our_firm',) and ap.career.employment-records' own exclusion calls our_firm 'the authorship-side identity that is never a destination', citing 60 M12, so the holder's own side of that split is never a folder level and the employer is. Fixtures: Scope of work - external.docx (theirs), Beacon Rollout kickoff.pptx (this row's).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "One deliverable can be both: the work as it was produced inside a job, and the same work reused in a showcase. The discriminating evidence is 00's curation shape — a showcase token above a repeating caption-spread structure whose captions name DIFFERENT pieces — against this row's single-project shape, where the sibling files share one project token. A file may validly belong to both accepted groups; what must never happen is the showcase copying this row's employer or project fact onto a sparse file. Fixture: Portfolio_2026.pdf (theirs), Beacon Rollout kickoff.pptx (this row's).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Both bind project and both are work done inside an organization, so a project token plus an organization name supports either. The discriminating evidence is WHOSE record it is: business_operations holds the organization's own operating record — an organization key, a record period, a supplier, an issuing body — and this row holds an EMPLOYEE's own files about the work they did. 00:97 forbids 'an author or organization merely as a collector', and the test is whether the holder is the organization or a person inside it. Fixture: a delivery-plan PDF in a company's shared drive export (theirs), the same plan in one person's own corpus with no organizational record around it (this row's).",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The honest majority outcome and this row's must-consider residual, because its central question — work product of a job held, or one of the four neighbours above — is exactly 00's definition: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' A document that names one organization and one project and gives no evidence of WHICH side of career it sits on belongs here rather than in an invented folder. Fixtures: Scope of work - external.docx, Weekly update.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A single work document with no sibling series, no recurring project token and no organization in an authorship position is an independent file. It is understood and it is not part of anything; 00's own remedy for that state is a broad home rather than a narrow one, and this row's levels would all be empty for it.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "An OCR'd screenshot of a project board or a status dashboard reads as this row on its terms alone and is exactly what 107 tells the product to leave broad, under its own heading 'Uncertainty stays broad and visible': 'An isolated screenshot can remain under Screenshots or Review and Unsorted; it should not acquire an invented trip, project, or person.' The word 'project' is in that sentence, which is why this residual is named on this row in particular.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected deck or a design file in a format the extractors do not open yields no text to carry a project token or an organization name. The standing residual for a file the product cannot read, named here so the row's own failure mode is written down.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's own phrase, and it applies here for the reason it applies to career.consulting-client-engagement rather than the reason it applies to career.employment-records: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records', and work product carries an employer's material — unreleased plans, internal analyses, named colleagues in meeting notes. It is not the holder's own sensitive personal record, which is why the P10 recipe's floor is baseline and its policy is sp.holder-own-record@1 rather than a stricter one; a handling CLASS is P7's and is not set here.",
+  "open_question": "THE NAME AND THE WORDS ON THIS ROW ARE OWED THE OWNER. `career.current-work` is a new member of a CLOSED vocabulary — the set of situations a P10 applicability row may cite — and `00` amendment 42 offered it as 'career.current-work (or your name)'. `name` and `one_line` are compiled into the situation menu a cloud judge is shown (`00` amendment 1 of 14 Sep: the judge names the situation 'from the schema's own list with each situation's name and one line of what it is'), so both strings cross the internet and neither is ratified. The four labels the P10 row authors — 'Where I work', 'Work year', 'Project or activity', 'How far the work got' — are owed the same word; 'Work year' deliberately does not reuse `Year`, because `00` amendment 35a carves that one string out for `ap.career.recruiting` alone and says a second row wanting the same licence has to come back to the owner."
+}

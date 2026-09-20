@@ -848,7 +848,11 @@ def test_the_labels_the_fix_had_to_preserve_are_all_still_there():
                 if isinstance(rows, list)
                 for row in rows
                 for binding in row.get("role_bindings", ())]
-    assert len(bindings) == 505
+    # 509 since `00` amendment 42: `ap.career.current-work` authors FOUR new
+    # bindings and renames none, which is what amendment 31's second condition
+    # permits of an addition -- the tuple may grow, a label may not be renamed,
+    # dropped or reordered, and the echo check below is what holds the four to it.
+    assert len(bindings) == 509
     echoes = sorted({binding["label"] for binding in bindings
                      if binding["label"] == binding["field_ref"]})
     assert not echoes, (

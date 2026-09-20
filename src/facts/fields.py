@@ -688,6 +688,16 @@ ROLE_FIELDS: tuple[str, ...] = tuple(row.field_key for row in _ROLES_3_8)
 #:   `60` drops nothing — contrast B1, which drops by name. `00` is the higher authority.
 #: * `career` gains `job_title` under `60` §8.1, which reverses §5's unsourced dagger:
 #:   `00`:70 makes `role` a level of its own Career template.
+#: * `career` gains `project` and `stage` under `00` amendment 41, which `107`'s
+#:   Current work — *Employer → year → project or activity → stage* — needs and which
+#:   no schema in the release declared alongside `employer`. Both keys already exist
+#:   (`project` is declared at `research` and referenced by seven schemas, `stage` by
+#:   three), so this REFERENCES two existing keys at one more schema and mints
+#:   nothing. It takes career to EIGHT destination-eligible keys, over `00`:48's "three
+#:   to six": the owner ruled a NAMED EXEMPTION rather than a wider band, because
+#:   `107` asks a single schema to hold both a job search and the work itself, and
+#:   `tests/p6/test_p6_vocabulary_adoption.py::CEILING_EXEMPTIONS` is where that is
+#:   recorded and held to exactly one schema.
 DOMAIN_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType({
     # §3.11's six sentences. `research` gains `institution` (`60` H9, per `48` §2:
     # nonprofit's row warned that without a funder role its strongest node has no key
@@ -698,9 +708,10 @@ DOMAIN_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType({
     "finance": tuple(row.field_key for row in _FINANCE),
     "photos": tuple(row.field_key for row in _PHOTOS),
     "code": ("project", "repository", "programming_language", "artifact_type"),
-    # `60` §5, the remaining fourteen. J-3 gives career BOTH type keys.
+    # `60` §5, the remaining fourteen. J-3 gives career BOTH type keys, and `00`
+    # amendment 41 adds the two `107`'s Current work needs.
     "career": ("employer", "target_employer", "recruiting_cycle", "work_type",
-               "record_type", "job_title"),
+               "record_type", "job_title", "project", "stage"),
     "business_operations": ("organization", "record_period", "project", "client",
                             "supplier", "record_type", "issuing_body"),
     "law_practice": ("project", "work_type", "client", "record_period", "our_firm",

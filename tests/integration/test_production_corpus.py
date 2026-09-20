@@ -160,8 +160,12 @@ def test_the_shipped_library_assembles_into_one_release_the_loader_accepts():
     catalogue = load_shipped_catalogue(read_packaged_library_file)
 
     assert len(catalogue.fragments) == 22
-    assert len(catalogue.definitions) == 63
-    assert len(catalogue.applicabilities) == 208
+    # 64 and 209 since `00` amendment 42: `def.employer-project-record` and the one
+    # row that cites it. The definition is new rather than a third order on
+    # `def.career-search-and-tenure`, because `folder_levels_for` reads the DEFAULT
+    # order and only that, so every row on one definition builds in one order.
+    assert len(catalogue.definitions) == 64
+    assert len(catalogue.applicabilities) == 209
     assert catalogue.release_id
 
 

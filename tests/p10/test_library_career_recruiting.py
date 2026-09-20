@@ -281,8 +281,15 @@ def test_the_release_still_reports_208_situations_and_only_recruiting_moved(
               for row in shipped_situations(before_catalogue)}
     after = {(row.schema, row.name): row for row in shipped_situations(shipped)}
 
-    assert len(after) == 208
-    assert set(before) == set(after), "the set of (schema, situation) rows moved"
+    # 209 since `00` amendment 42 added `career.current-work`, which this test's
+    # before-SHA predates and whose file it swaps out -- so the added row is in
+    # `after` only. It is named as the one permitted ADDITION rather than the set
+    # equality being dropped: what amendment 31 forbids is a replacement that
+    # widens or narrows the menu silently, and an addition named by id is neither.
+    assert len(after) == 209
+    assert set(after) - set(before) == {("career", "career.current-work")}, sorted(
+        set(after) - set(before))
+    assert set(before) - set(after) == set(), "a situation left the menu"
 
     changed = {key for key in before if before[key] != after[key]}
     assert changed == {("career", SITUATION)}, (
