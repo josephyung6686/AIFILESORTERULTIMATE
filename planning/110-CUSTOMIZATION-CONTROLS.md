@@ -276,8 +276,12 @@ fix — a level key independent of its parent — is a schema migration of
 
 `plan_versions.state` admits `'superseded'` (`schema.py:32`) and **nothing
 writes it** — no `UPDATE ... state='superseded'` exists in `tree_design`.
-`--apply` reads `frozen_plans(conn)` and unions the nodes of EVERY frozen
-version (`cli.py:25052-25053`). So: freeze, change a control, freeze again,
+`--apply` reads `frozen_plans(conn)` and unions the nodes of every frozen
+version IT IS GIVEN (`cli.py`) -- **but see `109`: `frozen_plans` returns ONE
+freeze batch, the latest by `created_at`, so this paragraph's mechanism does
+not hold and the sentence below it is withdrawn.** The real defect of this
+shape is inside ONE version, because `freeze()` is the only reader of the
+decision list that does not take `_current`; it is measured and closed in `109`. So: freeze, change a control, freeze again,
 `--apply-everything` — and both trees are live at once. The owner's own database
 already holds two frozen plans (`109` A4's usage note on `measure.py`). This is
 not a diff question; it is which plan governs, and it is Decision 5.

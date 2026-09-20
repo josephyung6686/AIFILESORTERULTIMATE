@@ -926,3 +926,93 @@ careful as the thing it measures, and an unbounded pattern is not.
 wave 2, and it is the half amendment 33 warns has no measurement between it and
 the producer if the producer is wrong. The producer is now measured. The level is
 not yet built.
+
+### THE `--apply` DEFECT: THE MECHANISM IN `110` §3.3 IS WRONG, AND SO WAS THIS FILE
+
+**WITHDRAWN — the paragraph earlier in this file that said "the data-loss shape
+is one `file_id` with two different destinations ACROSS THE CHOSEN PLANS" names
+the right shape and the wrong door.** `110` §3.3's premise — that `--apply`
+unions the nodes of every frozen version — does not hold, and both documents
+read `cli.py`'s union without reading its input.
+
+```
+freeze.latest_freeze   SELECT MAX(created_at) FROM move_plans
+                       WHERE superseded_by IS NULL
+freeze.frozen_plans    SELECT payload FROM move_plans WHERE created_at = ?
+```
+
+**One freeze batch, never two.** The clock (`cli.py`) is
+`datetime.now(timezone.utc).isoformat()`, so two invocations cannot share a
+`created_at`; `freeze.py`'s own docstring says re-freezing leaves the earlier
+plans in place but *"no longer the approved set"*; and
+`tests/apply/test_freeze.py:309` has pinned exactly this since it was written —
+freeze twice and `frozen_plans` returns the second proposal only. So freeze →
+change a control → freeze again → `--apply-everything` applies **batch 2 alone**,
+and `plan_versions.state='superseded'` going unwritten is a consequence of the
+`created_at` design rather than a gap in it.
+
+**THE SAME SHAPE REACHES THE DISK THROUGH A DIFFERENT DOOR, AND THAT ONE IS
+REAL.** `apply_run.freeze.freeze` writes one plan per decision it is handed and
+is **the only reader of that decision list that does not first take
+`placement.versions._current`**. `_current`'s docstring says what the raw list
+can hold: *"a subject decided twice in one pass — a group member placed by its
+packet and then resolved again as shared material is the shape that does it."*
+`carry_onto` and `scoped_general_demand` take `_current` for that reason. `freeze`
+does not. So **one file gets two destinations inside ONE plan version**, which is
+why looking across versions found nothing.
+
+**WHAT IT DID BEFORE THE GUARD, measured:**
+
+```
+exit 0 — and the SAME file printed twice on one screen:
+    PHYS 1401 syllabus.txt  -> .../Coursework/PHYS 1401 syllabus.txt      (moved)
+    PHYS 1401 syllabus.txt  "The drive or folder this move needs is not
+                             available right now. Reconnect it and try again."
+```
+
+The drive was never disconnected. `already_applied` keys on `plan_id`, so a
+second PLAN for one file is not an already-applied plan and nothing caught it —
+the run moved files and told the person a falsehood about why one did not move.
+That is worse than the defect that was briefed.
+
+**CLOSED** by a guard inside the moving arm: a file approved for two places stops
+the run, names the file, both destinations and the version, and moves nothing. It
+picks no governor, writes no `superseded`, adds no `--force` — Decision 5 is
+untouched. It prints no pasteable command, because choosing between two approved
+destinations is not something the product can do yet, and `84` §6 forbids
+printing a line that is not true. The refusal is gated on the moving arm alone:
+an earlier version refused `--undo` as well, which would strand a person whose
+files had already moved.
+
+**STILL OPEN, and named rather than fixed:** the root cause is that `freeze()`
+does not take `_current`; making it do so drops the withdrawn row, which is a
+decision about which plan governs and therefore Decision 5. And a second freeze
+that writes NO plans leaves `latest_freeze` pointing at batch 1, so `--apply`
+runs the plan the person believed they had replaced — a stale-plan-governs shape,
+different from this one, not closed here.
+
+### AMENDMENT 32 IS MERGED AND ITS PREMISE DOES NOT HOLD ON TODAY'S P9
+
+The owner ratified "once per accepted GROUP" on the premise that a group is a
+course-term packet and that a role is constant across one. **The code's own
+docstring says a group is something else:** `_grouped_by_branch` produces *"one
+draft per (branch, schema)"*, and *"a branch is a LIFE ... a life with two kinds
+needs two drafts, both wearing the life's name."* So an accepted group is
+(life × kind), and one answer would settle every academic file in Education at
+once — every course, every term.
+
+**AND ON AN OFFLINE CORPUS THE CHANGE IS INERT, measured.** The same two-life
+corpus, run against the shipped tree and against the merged change:
+
+```
+before   20 --answer lines, 3 keys   situation:academic · situation:career
+                                     situation:default:academic
+after    20 --answer lines, 3 keys   identical, and no `/` key at all
+```
+
+The per-group ask loops need either a two-kind life branch from the deterministic
+pass — a fixture nobody has built, in the code's own words — or site G, which does
+not run under `offline`. So the new path is pinned at unit level and its effect on
+a real run is **unmeasured**. It is merged because it preserves the old keys, the
+coverage arithmetic and the printed question, all tested; not because it has been
+shown to do what amendment 32 wanted.
