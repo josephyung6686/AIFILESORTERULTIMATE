@@ -1142,6 +1142,13 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
     schemas the product recognises." `60` §5 gives twenty of them a field set, and
     the three that keep none are §3.15's out-of-scope safety domains.
 
+    361 -> 362 (20 Sep 2026): `00` amendment 42 mints `career.current-work`, the
+    situation `107`'s Current work template had none of -- *Employer -> year ->
+    project or activity -> stage*. It lands on `career`, a schema the corpus already
+    names, so the schema count is untouched at 23. Unlike the three rows below it is
+    not a gap the answer key measured; it is a ruling, and the row exists because a
+    P10 recipe may only cite a situation `src/recognition/` compiled.
+
     360 -> 361 (15 Sep 2026): `00` amendment 6 and `104` §18.69 ratify
     `nonprofit.volunteering-and-club-life`, the member the owner asked for -- a
     person's own record of belonging to clubs and volunteering, beside the
@@ -1163,7 +1170,7 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
         corpus_schemas.add(row["schema_id"])
         total += 1
 
-    assert total == 361
+    assert total == 362
     assert len(corpus_schemas) == 23
     assert len(SCHEMA_IDS) == 23
     assert set(SCHEMA_IDS) == corpus_schemas
