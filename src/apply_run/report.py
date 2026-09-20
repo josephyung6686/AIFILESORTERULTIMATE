@@ -249,10 +249,21 @@ def freeze_lines(proposal: FrozenProposal, *,
     # concluded there was nothing on the table then had four files moved under a
     # plan the screen had called replaced.
     #
-    # WHICH PLAN GOVERNS IS NOT DECIDED HERE. That is `110` §5 Decision 5 and
-    # the owner's, unruled. Nothing below supersedes, hides or deletes the
-    # earlier batch, and no gesture for choosing between the two is invented.
-    # `84` §6 is the whole of what is fixed: the screen says what is the case.
+    # WHICH PLAN GOVERNS IS NOT DECIDED HERE, and now it does not have to be.
+    # `110` §5 Decision 5 was unruled when this was written; `00` amendment 38
+    # ruled it, and `apply_run.freeze.freeze` is where a freeze that approved
+    # plans of its own marks the versions it replaced `'superseded'`. Nothing
+    # below supersedes, hides or deletes anything, and no gesture for choosing
+    # between the two is invented -- reporting which plan governs is still not
+    # choosing which plan governs. `84` §6 is the whole of what is fixed here:
+    # the screen says what is the case.
+    #
+    # AND THE CONDITION BELOW IS NOW THE SAME CONDITION THE FREEZE MARKS ON.
+    # `and total` was arrived at from the screen -- a freeze that approved
+    # nothing has not replaced anything, so it may not say it has -- and
+    # amendment 38's `if plans` was arrived at from the database. They agree
+    # because they are one fact, which is what makes this sentence safe to
+    # print: it is now true of the `plan_versions` row as well as of the clock.
     if proposal.replaces is not None and total:
         lines.append(_wrap(
             f"This replaces the {proposal.replaces.count} file(s) you froze on "
