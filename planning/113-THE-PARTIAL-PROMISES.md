@@ -181,7 +181,7 @@ What exists and runs:
   and used by `grouping/pipeline.py:509` and `cli.py:14479` (`accepted_memberships_of`).
 - `src/tree_design/vocabulary.py:367-378` — §6.9's `shared-branch`,
   `primary-home`, `reference-or-alias`, `mandatory-review`, with a writer at
-  `tree_design/store.py:407`.
+  `tree_design/store.py:408`.
 
 What did not exist: **any reader that put one of those rows on a person's screen.**
 `grep -c "membership\|group_id\|groups" src/review_surface/trail.py` returned
@@ -248,7 +248,7 @@ binding for each role, skipping a role the row does not bind.
 
 Two facts about that join govern everything below.
 
-**(a) Only the default order is ever read.** `templates.py:428` names it *"The one
+**(a) Only the default order is ever read.** `templates.py:427` names it *"The one
 order the recipe RECOMMENDS. **Not the one it imposes**"*, and `templates.py:386`
 refuses a definition with two defaults because *"a definition RECOMMENDS exactly
 one and **the end user picks per branch (§5.3, §5.8)**; … **the branch binding
@@ -285,8 +285,9 @@ dimension unbound (`ap.business_operations.procurement-sourcing`, missing
 
 And, for completeness, the other `107` table rows:
 
-| Coursework | Institution → program → term → course → work type | `school → term → subject → work_type` | **PREFERENCE** — no `program` field exists |
+| `107` template | `107`'s stated order | shipped levels | verdict |
 | --- | --- | --- | --- |
+| Coursework | Institution → program → term → course → work type | `school → term → subject → work_type` | **PREFERENCE** — no `program` field exists |
 | Teaching | Institution → term → course → teaching function | `term → subject → work_type` | **PREFERENCE** — §1.6, the memo already flagged it |
 | Projects | Project → stage or artifact class | `project → artifact_type → stage` | **AGREES** |
 | Property | Property → function → project or year | `record_type` alone; `institution → record_type` | **COVERAGE GAP** — `property` is bound on 13 wave-2 rows, none of them in the Home and Property life |
@@ -369,7 +370,7 @@ default order indeed cannot serve both — but a definition already carries seve
 orders, and `def.career-search-and-tenure` already ships `ord.cycle-kind-employer-role`
 beside its default. What is missing is not a dimension: **it is a reader for the
 order the row or the person chose.** The smallest shape is a chosen-order id on
-the applicability row or the branch binding, which `templates.py:386` says the
+the applicability row or the branch binding, which `templates.py:384-390` says the
 design already expects (*"the branch binding records the chosen id"*), and
 `folder_levels_for` preferring it over `default_order`.
 
