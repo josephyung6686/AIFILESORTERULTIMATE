@@ -212,12 +212,13 @@
     },
     {
       "applicability_id": "ap.academic.teaching",
-      "applicability_version": 1,
+      "applicability_version": 2,
       "template_id": "def.subject-work-record.third-party",
       "template_version": 1,
       "uses_schema": "academic",
       "purpose_profile_ref": null,
       "allowed_fields": [
+        "school",
         "term",
         "subject",
         "work_type"
@@ -226,6 +227,11 @@
         "recognition:academic.teaching"
       ],
       "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "School I taught at"
+        },
         {
           "role_ref": "cycle_period",
           "field_ref": "term",
@@ -242,12 +248,18 @@
           "label": "Kind of teaching material"
         }
       ],
-      "exclusions": [],
+      "exclusions": [
+        "a student's name as a folder level: 107 line 120, 'client, patient, employee, and candidate names should not be generated as folder levels by default', and 107's Teaching branch marks Student Administration 'protected; no student-name folders'",
+        "the teaching function's own children (Lessons/Week 01, Week 02) as a level: 107 draws them beneath the function and they are the person's to add, not a dimension this row binds"
+      ],
       "provenance": [
         "row:academic.teaching",
         "memo:planning/domains/nodes/academic.teaching.research.md",
         "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
-        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers",
+        "00 amendment 31 (20 Sep 2026): v1 shipped no institution level though def.subject-work-record.third-party already declares holder_institution at order_index 0; v2 REPLACES v1 under the amendment's three conditions rather than adding beside it, because a second row for one recognition signal makes folder_levels_for, life_of and template_id_for_situation refuse while shipped_situations silently keeps serving v1's labels",
+        "111-LIBRARY-COVERAGE.md and the drafted row it measured, src/tree_design/library/drafts/academic_teaching_institution.json, whose three carried-forward bindings (term, subject, work_type) are unchanged from v1 here — only holder_institution/school is new",
+        "107 branch-template table: Teaching -- Institution -> term -> course -> teaching function, typical depth 3-5"
       ],
       "privacy_floor": null,
       "life": "Teaching"
