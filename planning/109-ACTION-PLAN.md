@@ -1215,3 +1215,59 @@ approved set.
 **One thing to verify rather than assume:** a freeze that writes FEWER plans than
 before is the case that sentence was written for and it is TRUE there — batch 1's
 extra files really are no longer approved. The fix must keep that working.
+
+### THE ZERO-PLAN RE-FREEZE — REPRODUCED end to end, and worse than predicted
+
+Predicted above, then reproduced, which is the order this file now insists on.
+Every step of the mechanism held: nothing writes `superseded_by`; a second freeze
+writing no rows leaves `MAX(created_at)` where it was; `frozen_plans` returned
+batch 1; and **`--apply-everything` moved 3 of batch 1's 4 files onto disk** (the
+fourth was the passport, refused by the protection gate). The chain reaches the
+disk. It is not a string defect.
+
+**AND THE SCREEN WAS WORSE THAN THIS FILE SAID.** Beyond printing both sentences,
+the apply line was SUPPRESSED — `if total:` guarded it — so there was no command
+on the screen at all:
+
+```
+BEFORE
+  This replaces the 4 file(s) you froze on 2026-09-02T00:00:00Z. Anything from
+  that plan you had already filed stays filed and can still be taken back.
+
+Nothing was frozen: no placement in this run is ready to move.
+```
+
+The gesture was **armed and invisible**: a plan the person was told had been
+replaced was still the approved set, and nothing on the screen named it or the
+command that acts on it.
+
+```
+AFTER
+Nothing was frozen: no placement in this run is ready to move.
+
+  So this run replaced nothing, and the 4 file(s) you froze on
+  2026-09-02T00:00:00Z are still the approved plan. Anything from it you had
+  already filed stays filed and can still be taken back, and this line still
+  acts on that plan rather than on anything listed below:
+    agent-plan ~/Documents --apply-everything
+```
+
+**THE ROOT CAUSE IS AN ORDERING, NOT A FALSEHOOD IN `_previous`.** `_previous`
+reads the approved set BEFORE the loop, so `replaces` truthfully means "what was
+approved when this freeze began" — it cannot know what the loop will write.
+`freeze_lines` rendered that fact as the CLAIM "replaced", unconditionally, and
+printed it above the count that contradicts it. The fix is the condition and the
+order; the `Replaced` record is kept, because dropping it would silently omit a
+plan still in force.
+
+**A DOCSTRING THIS FILE CITED AS EVIDENCE WAS ITSELF THE BUG'S REASONING.**
+`freeze.py`'s module docstring said re-freezing leaves the earlier plans "simply
+no longer the approved set" — quoted here earlier as proof that one batch
+governs. That sentence is TRUE of a freeze that writes plans and FALSE of one
+that writes none, and it is the reading that produced this defect. Corrected in
+the same commit. **A comment is evidence of what someone believed, not of what
+the code does**, and this file has now been caught trusting one twice in a day.
+
+Decision 5 is untouched: no `superseded_by` write, no `plan_versions.state`, no
+flag, nothing hidden. **Reporting which plan governs is not choosing which plan
+governs**, and the screen now reports it.
