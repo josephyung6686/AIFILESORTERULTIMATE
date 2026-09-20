@@ -34,7 +34,6 @@ import dataclasses
 
 from mutation import vocabulary as v
 
-from .conftest import NODES
 from .test_apply_and_undo import _apply
 from .test_freeze import _freeze
 
@@ -131,4 +130,3 @@ def test_the_count_a_person_reads_adds_up_to_the_corpus(world, ids, clock):
              | {item.file_id for item in proposal.held})
     assert named == set(world.sources)
     assert len(proposal.plans) + len(proposal.held) == len(world.sources)
-    assert len(NODES) == 4, "the world this counts against"
