@@ -127,8 +127,11 @@ The 163 decliners, by the situation their own fact carries:
 ```
 
 **93 of the 163 sit under a kind whose canonical situations make `work_type` a
-required folder level.** That is the stake: up to 93 files whose destination folder
-cannot be built, on a field whose definition tells the model nothing.
+required folder level.** That is the stake: up to 93 files whose `Kind of work`
+level stays **blank and owed** — the file rests at the parent instead of reaching
+its own folder — on a field whose definition tells the model nothing. (`108` §9
+reports the same shape from the other side: `Kind of work` blank on 60 of the
+coursework sheet's 79 rows.)
 
 ### CONTRADICTION FOUND while measuring this
 
@@ -266,6 +269,13 @@ FORMAT the pattern does not parse, not a floor.
 This is TRUTH-shaped, needs no owner input, and is worth more than the year floor.
 It is named here and not built, because this document changes no code.
 
+**WHERE the fix belongs is NOT determined here, and the next agent should not
+assume `year_of`.** `year_facts`' own docstring says `creation_date` is written by
+the model at site A, so the stored value may be a PDF metadata string carried
+through verbatim — in which case the defect is that nothing normalises it, and
+patching the regex would paper over a missing normaliser. Read what writes
+`creation_date` before touching either.
+
 ---
 
 ## 3. The 25 over-protected files — DIAGNOSIS ONLY
@@ -329,8 +339,13 @@ local_model_situation            6       279
 user  (the person)               0        14
 ```
 
-All 25 over-protected rows carry `handling_class = sensitive_personal`. All 17
-`safety_domain` rows carry `privacy_class = ordinary`.
+All 25 over-protected rows carry `handling_class = sensitive_personal`.
+
+**NOT CHASED, and flagged so nobody reads past it:** all 17 `safety_domain` rows
+carry `protected = 1` together with `privacy_class = ordinary`. That is either a
+meaning of `privacy_class` this document does not know, or a real inconsistency in
+the record. It does not change any count above — the join is on `protected` — but
+it should be understood before anyone edits that rule.
 
 **Two-sided cost of each narrowing, against the later key (`answerkey2`, 14 Sep):**
 
@@ -387,6 +402,14 @@ ruling into a person's gesture, which is amendment 24's whole point.
 
 Option 1 must be refused on its own numbers: one file gained, sixteen protected
 files sent to the cloud.
+
+**One comparison the owner may want, offered hedged.** `104` §18 records the
+regrade after the 13 Sep ruling as *"over-protected 13 (rules' `safety_domain` 9,
+site G 4)"*. Today the same split reads **rules 1, model 19**. If those two are
+comparable — different run, different key, so they may not be — then the
+deterministic fix of 13 Sep worked as intended and the model's share grew, which
+would be the expected shape after amendment 7(c) put a local model on the gate.
+Offered as a check for the owner, not asserted as a trend.
 
 ---
 
@@ -451,16 +474,53 @@ report (`NOT_SHOWN`), and `apply_run/approval.py`'s own docstring is explicit:
 is not approved by this run — and it is sound. It says nothing about whether a
 person read anything.
 
+### The GESTURE path already knows how to do this, and it was not used that way
+
+This is the half the first draft of this document missed, and it changes the size
+of the fix.
+
+`review_gestures.py` does **not** mint a presentation at gesture time. It calls
+`last_presentation_ref(conn, surface=…, subject_ref=…)` and joins the gesture to
+**the screen that was already recorded** (`:406`), and it passes an empty ref
+rather than short-circuiting when no screen was ever shown, so P13's own §8.7
+refusal is what the person meets. That is precisely the "was this digest printed
+before?" link the measurement needs, and it is already built — for gestures.
+
+**But on this database it fired in the same breath anyway.** Joining the two
+`review_actions` rows to their presentations:
+
+```
+group_plan/accept_bulk   ref matched   rendered_at == acted_at   same session
+   2026-09-15T04:00:39.617024+00:00  ==  2026-09-15T04:00:39.617024+00:00
+group_plan/accept_bulk   ref matched   rendered_at == acted_at   same session
+   2026-09-18T20:24:15.752510+00:00  ==  2026-09-18T20:24:15.752510+00:00
+```
+
+Identical to the microsecond, both times. And `frozen_trees.created_at` carries
+those **same two timestamps** — so present → accept → freeze happened at one
+instant on both occasions.
+
+The `canvas` surface tells the other half of the story: 16 presentations recorded
+across three sittings, and **not one gesture ever taken against any of them**. The
+prior-invocation path exists and is untested here, rather than proven.
+
 ### "A control that has never said no" — measured
 
 ```
 group_acceptance   22 rows   acceptance='accepted'  decided_by='user'  review_state='user-accepted'
                              DECLINED: 0     EDITED: 0
 review_actions      2 rows   both accept_bulk   (2 gestures produced all 22 acceptances)
+review_approvals    0 rows   (3 freezes, 0 move plans -- nothing passed `_withheld`)
 ```
 
 Twenty-two groups accepted, zero declined, zero corrected, by two bulk gestures.
 That is the competitor's sentence, on this product's own database.
+
+**Stated precisely, because "every approval was same-breath" would be vacuous with
+zero approval rows:** the freeze path has never written an approval here — three
+freezes produced no move plans, so nothing reached `_withheld`. The only
+approval-shaped rows are the 22 acceptances, and both gestures that produced them
+were same-breath by measurement.
 
 ### The smallest honest measurement
 
@@ -472,22 +532,23 @@ Three records, no new table, no new screen.
 `decided_at` already exist and already sit in the schema; today they are the same
 value. Cost: one parameter. This alone makes every future row honest.
 
-**(b) Record whether the approved state had been printed before.**
-`presented_state_ref` is already a digest of the displayed state, and
-`review_surface/store.presentation_exists` already looks one up by that digest. A
-freeze whose digest first appears in this same process is a **same-breath
-approval**; a freeze whose digest was printed in an **earlier invocation** is a
-considered one. This needs no clock and no trust in one — it is the measurement
-that survives a person who leaves the terminal open.
+**(b) Make the freeze look up a prior presentation the way a gesture already does.**
+This is not new machinery; it is `review_gestures.py`'s own pattern
+(`last_presentation_ref` + `presentation_exists`) applied on the freeze path
+instead of minting a fresh row. A freeze whose digest first appears in this same
+process is a **same-breath approval**; one whose digest was printed in an
+**earlier invocation** is a considered one. This needs no clock and no trust in
+one — it is the measurement that survives a person who leaves the terminal open.
 
 **(c) Count the verdicts per corpus.** Approvals, declines, and edits made between
 the first print and the approval. *"A control that has never said no"* is exactly
 `count(verdict != approved) == 0`, and it is one query.
 
 **What it would show, today, on this database:** three freezes, zero approval
-rows, twenty-two acceptances and zero declines, every approval same-breath. The
-number the competitor's post-mortem warns about is not "under three seconds" here;
-it is zero.
+rows, twenty-two acceptances, zero declines, and both acceptance gestures
+timestamped identically to the screen they answered. The number the competitor's
+post-mortem warns about is not "under three seconds" here; it is zero, twice,
+measured.
 
 **Where it is shown:** one line, past tense, in the freeze's own summary, as a
 fact and not a warning. *"Approved 3 folders. This plan was first printed by this
@@ -540,11 +601,22 @@ Reported because the brief asked for the diagnosis even where it contradicts.
 
 4. **Item 1's premise cannot be checked on this database, for a reason that
    outranks item 1.** No file carries a situation id: all 231 active `situation`
-   facts hold a bare **kind**, and twelve of the thirteen distinct values are not
-   names in the shipped release. So `106` Phase 2(b)'s change has reached no stored
-   fact, and `108` §5's stated reason for not re-claiming 97.7 % describes a state
-   this database is not in. The 93-of-163 figure above is measured at the kind
-   grain instead, and is stated as such.
+   facts hold a bare **kind**, twelve of the thirteen distinct values are not names
+   in the shipped release, and all 259 `situation_alternative` rows are bare too.
+   So `108` §5's stated reason for not re-claiming 97.7 % — *"where it is already a
+   situation id"* — describes a state this database is not in. The 93-of-163 figure
+   above is measured at the kind grain instead, and is stated as such.
+
+   **Whether this is staleness or a defect is NOT determined, and the dates do not
+   settle it.** `106` Phase 2(b) merged 17 Sep 23:59 EDT (`c562f834`). Most of the
+   corpus's situation facts were written before that, which would make this simple
+   staleness — **but 39 of them were written on 18 Sep at 05:24 UTC, after the
+   merge, with origin `llm_interpretation`, and they are bare kinds too.** That is
+   consistent with two different stories: the 18 Sep run was launched from a
+   worktree at an older commit, or Phase 2(b) is merged and does not write a
+   situation id. Distinguishing them needs the lead's run log, not this document.
+   **Do not read this as "Phase 2(b) is broken"; read it as "nobody has shown that
+   it reached a fact."**
 
 5. **A found defect larger than the question that found it.** `year_of` cannot read
    a PDF `D:` timestamp, so amendment 22's `year` folder level would be blank on 43
