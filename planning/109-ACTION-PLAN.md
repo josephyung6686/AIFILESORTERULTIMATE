@@ -1611,3 +1611,238 @@ minted. `tests/integration/test_the_tree_diff_reaches_the_person.py` carries it 
    model-decided placement, so **"carried over unchanged" means the node still
    exists, not that the verdict was re-validated.** The arithmetic is true; the
    word is stronger than what was checked.
+
+### `107`'s THIRTEEN BRANCH TEMPLATES, MEASURED — and the probe that answered three rows wrong
+
+`107` §Branch templates is a table of thirteen rows, each naming a default split
+order the product promises. The earlier reading of it reported six BUILT, five
+PARTIAL and three UNVERIFIED. **That is fourteen verdicts over a thirteen-row
+table**, and enumerating the names settles which count is wrong: six BUILT
+(Coursework, Teaching, Career applications, Projects, Taxes, Current work) plus
+three UNVERIFIED (Travel, Reference, Residual) is nine, and the remainder is
+Family records, Property, Health, Photos — **four**, not five. There is no
+missing fifth PARTIAL row to find.
+
+**WHY THE THREE WERE UNVERIFIED, AND IT IS ONE MISTAKE AND NOT THREE.** The probe
+searched `facts/fields.py` for the words `107` uses for a level — `trip`, `topic`,
+`residual_state` — and found nothing. **None of the three is a field key.**
+Neither are `program`, `rendition` or `person`, the other three words `107` uses
+for a level, measured against the live vocabulary: 59 field rows, and none of the
+six words is among them. The library does not spell `107`'s words as KEYS; it
+spells them as LABELS on generic keys, and the label is the half a key-only probe
+cannot see:
+
+| `107` says | the library binds | and labels it | on |
+| --- | --- | --- | --- |
+| trip | `event` | `"Trip"` | `ap.travel.trip-photos` |
+| topic | `project` | `"Topic"` | `ap.research.reading-library` |
+| function | `record_type` | `"What it is for"` | the Travel draft |
+| rendition | `media_type` | `"Photos or videos"` | `ap.photos.social-media-export` |
+| residual state | — not a field at all — | a residual TEMPLATE NAME | `tree_design/residuals.py` |
+
+So a key-only probe returns nothing for a row that is fully built, and the
+correct response to nothing is to read what the row DOES bind. This is `110`'s
+fourth-wrong-place pattern in a new costume: *"it read what a function was FOR
+and not what it does when called"* — here, what a column was NAMED and not what
+the library binds under it.
+
+#### The thirteen, as `folder_levels_for` answers over the 209 shipped situations
+
+Every order below is `folder_levels_for`'s answer, field keys as bound, read off
+a run over the whole release. Verdicts: **BUILT** — some shipped situation builds
+`107`'s order; **PARTIAL** — some levels build and named ones do not;
+**DELIVERED ELSEWHERE** — the row is real and no library row answers it;
+**ABSENT** — nothing delivers it.
+
+| `107` template | `107` promises | the library delivers | verdict |
+| --- | --- | --- | --- |
+| Current work | Employer → year → project or activity → stage | `career.current-work`: `employer → year → project → stage` | **BUILT** |
+| Career applications | Year → organization and role → application stage | `career.recruiting`: `year → target_employer → job_title → recruiting_cycle → work_type` | **BUILT**, caveat below |
+| Coursework | Institution → program → term → course → work type | `academic.coursework`: `school → term → subject → work_type` | **PARTIAL** — `program` missing |
+| Teaching | Institution → term → course → teaching function | `academic.teaching`: `school → term → subject → work_type` | **BUILT** |
+| Family records | Person → context → year or cycle → record type | `academic.k12-schooling`: `school → term → work_type` | **PARTIAL** — person missing |
+| Projects | Project → stage or artifact class | `research.thesis-dissertation`: `project → artifact_type → stage` | **BUILT** |
+| Taxes | Tax year → record class | `finance.tax-filings`: `tax_year → record_type` | **BUILT** |
+| Property | Property → function → project or year | `finance.household-property`: `record_type` alone | **PARTIAL** — property and project-or-year missing |
+| Health | Person → year or durable category → record type | `finance.insurance-healthcare`: `institution → record_type` | **PARTIAL** — person and year-or-category missing |
+| Travel | Year → trip → function | `travel.trip-photos`: `event("Trip") → location` | **PARTIAL** — year and function missing |
+| Photos | Year → event → rendition | `photos.social-media-export`: `capture_year → event → media_type` | **BUILT**, caveat below |
+| Reference | Status or topic → subtype | `research.reading-library`: `project("Topic") → artifact_type("Kind of reading")` | **BUILT** |
+| Residual | Residual state → optional broad subtype | nine residual TEMPLATE NAMES under `98 Review and Unsorted` | **DELIVERED ELSEWHERE** |
+
+**NO ROW IS ABSENT.** Every one of `107`'s thirteen is reachable today in some
+measure, which is the census's headline and is asserted rather than counted by
+eye.
+
+#### The three that were unverified, each with what settled it
+
+**REFERENCE — BUILT.** `research.reading-library` binds
+`subject_anchor → project` labelled `"Topic"` and `artifact_kind → artifact_type`
+labelled `"Kind of reading"`: `107`'s *"Status or topic → subtype"* at `107`'s own
+depth of 2. The *"Status or"* half of that alternative is answered on the residual
+side — `Reading Inbox` and `Review Later` are two of the nine names below.
+**One caveat, recorded rather than buried:** the row sits in the `research` schema
+and the Education life, so a person with no research corpus is not offered it.
+That is a coverage question for the owner, not a gap in the row.
+
+**TRAVEL — PARTIAL, and the level thought absent is the one that is built.** Two
+Travel-life situations ship. `travel.trip-photos` builds `event → location`,
+labelled `"Trip"` and `"Where we went"` — **the trip level `107` asks for, built
+today**. `travel.bookings-confirmations` builds `record_type → institution`,
+`"Kind of booking"` and `"Who I booked with"` — the function level, above its
+context, which `113` §3.3 already records as design principle 1 inverted. What is
+missing is the year and, on the photos row, the function. `year` is bound on
+NEITHER travel row and neither is `capture_year`; `travel.trip-photos` is a
+`photos`-schema row and does not bind the `capture_time` role at all, so this is
+an unbound role and not a bound-but-unbuilt one.
+
+`drafts/health_travel.json`'s `ap.travel.trip-records` closes it exactly:
+`year("Year") → event("Trip") → record_type("What it is for")`. It is wired to
+nothing and **gated twice, not once.**
+
+1. The ratification gate, quoted from
+   `tests/p10/test_library_health_travel.py::test_the_names_are_not_in_the_shipped_menu_until_the_owner_ratifies`:
+   *"DELETE THIS TEST when the owner ratifies the names and the lead appends the
+   draft to `src/tree_design/library/` and its name to
+   `production.LIBRARY_FILES`. Until then it is the check that no drafted name
+   can reach the cloud menu `cli.py` builds."*
+2. **The blocker under it.** The same file's
+   `test_the_dependencies_are_exactly_the_ones_the_draft_declares` asserts the
+   gap by name: `{"travel.trip-records": {"event not referenced at finance"}}`.
+   And the draft binds `year` a THIRD time, where `00` amendment 22 licenses two
+   and `tests/p10/test_library_year_is_bound_nowhere_else.py` pins those two by
+   name over the shipped release. **Ratifying the names does not ship the row**,
+   and the day the draft is appended to `LIBRARY_FILES` the year census goes red
+   unless amendment 22 is widened in the same motion. Named here so the two are
+   read together.
+
+**RESIDUAL — DELIVERED ELSEWHERE, and the framing that called it a library row
+was wrong.** `107` §Residual structure is answered by
+`src/tree_design/residuals.py` over the nine `RESIDUAL_TEMPLATE_NAMES` of `00`
+§7.3 (`src/tree_design/vocabulary.py`:286), projected into the frozen tree by
+`project_residual_nodes` (`residuals.py`:193) under `98 Review and Unsorted`
+(`vocabulary.py`:301), enabled one at a time by the person. **No situation, no
+applicability row, no schema.** The mechanical proof rather than the argument:
+`production.read_packaged_library_file("residuals.json")` raises —
+*"'residuals.json' is not part of the packaged library release"* — so nothing
+that reads the template library can reach the residual library at all. They are
+two libraries in one directory.
+
+**AND `107`'s SECOND RESIDUAL LEVEL IS AUTHORED AND UNREACHABLE — a defect, named
+and not fixed.** `107` promises *"Residual state → optional broad subtype"* at
+depth 1–2. Level one is the template name and is built. Level two is
+`optional_shallow_subfolders`, and measured over `residuals.json`: **exactly one
+of the nine authors any** — `Reference Clips`, with six (`Recipes`, `Products`,
+`Quotes`, `Inspiration`, `Articles`, `Code Snippets`). `ResidualTemplate` carries
+the slot (`residuals.py`:55, populated at `:176`) and **nothing in `src/` reads it
+after construction** — the only other occurrences are two empty-tuple
+constructions in `cli.py` (`:5495`, `:5509`) and one fixture. Beside it,
+`RESIDUAL_MAX_DEPTH = 0` (`cli.py`:5461) with the comment *"Zero means the home is
+flat"*, and `_residual_library()` builds all ten homes at depth 0. So `107`'s
+optional broad subtype is a catalogue slot with an author, a reader that only
+stores it, and a depth ceiling of zero.
+
+One thing that is **not** a gap: `107` §Residual structure names SEVEN states and
+`00` §7.3 ships NINE, and only `One-Off Images` and `Unsupported or Encrypted`
+appear in both. Two ratified vocabularies, not a shortfall — closed vocabulary is
+the owner's, and neither list is the other's census.
+
+#### The four PARTIAL rows, re-verified — all four hold, two with sharper reasons
+
+**FAMILY RECORDS and HEALTH — the missing person level is UNBUILDABLE, not
+unbound.** Both `107` rows open with a person. Measured over `FIELD_ROWS`: every
+person-naming key is live and `destination_eligible=False` — `people`,
+`subject_of_record`, `account_holder`, `authored_by`. A level is built from a
+destination-eligible key, so no row anywhere in the release can build one. That
+is `107` line 120 implemented (*"client, patient, employee, and candidate names
+should not be generated as folder levels by default"*), and it means the person
+level is not a row that forgot to bind an available key. `client` is
+destination-eligible and is not the exception it looks like:
+`test_library_year_is_bound_nowhere_else.py` already settles that it is the
+counterparty of the `our_firm` split.
+
+Health additionally holds at one row in the whole life, and it is an insurance
+row: `institution` is labelled `"Health plan"`, which is not one of `107`'s three
+dimensions. `medical` remains field-less with zero shipped situations; the draft
+above carries two `medical.*` rows behind the same gate.
+
+**PROPERTY — the missing level is a DECLARATION, not a missing key.** `property`
+is a real, destination-eligible field key, declared at `construction_property`
+and nowhere else. `construction_property` is a Career-life schema, so the
+thirteen rows that build a property level are all somebody's job and none is the
+person's home. The Home and Property life ships `finance.household-property`
+(`record_type` alone) and `finance.hoa-residents-association`
+(`institution → record_type`), neither binding `property`. **This is a different
+repair from Coursework's**: extending an existing field to one more schema, which
+`109` above already classifies — *"not minting new closed vocabulary … It is
+still the owner's, and it is no longer a phase."*
+
+**PHOTOS — overturned, PARTIAL → BUILT.** One of the nine `photos` rows,
+`photos.social-media-export`, builds all three of `107`'s levels:
+`capture_year("Year I posted them") → event("Occasion") →
+media_type("Photos or videos")`. The other eight stop at two. `113` §3.2 already
+recorded this row as AGREES; what changes is the row-level verdict, under the
+test this census uses — *a shipped situation builds that shape*, the same test
+`test_107s_current_work_is_a_shipped_situation` applies. **The caveat is recorded
+in the census table rather than hidden**: `media_type` is labelled `"Photos or
+videos"` and `107`'s rendition column is HEIC/JPG/RAW/PNG/MOV/edited exports, so
+the LEVEL is built and the vocabulary inside it is coarser than `107`'s. A reader
+who weighs the vocabulary above the level reads this row as PARTIAL, and that
+reading is legitimate; the census picks the level because that is the test the
+other twelve rows are measured by.
+
+#### Two verdicts from the earlier reading move
+
+**COURSEWORK — overturned, BUILT → PARTIAL.** `academic.coursework` builds
+`school("My school") → term("Semester") → subject("Course") → work_type("Kind of
+work")`, which is four of `107`'s five. `program` is missing and there is no
+field key for it — the vocabulary has 59 rows and `program` is not one, so the
+level cannot be bound to anything. `113` §3.2 recorded the same measurement and
+classified it a PREFERENCE; under this census's definition (*some levels, name
+which are missing*) it is PARTIAL. The two are not in conflict — one says whose
+decision it is, the other says what is built.
+
+**CAREER APPLICATIONS stays BUILT, with the caveat stated.** `career.recruiting`
+builds `year("Year") → target_employer("Company I applied to") → job_title("Job I
+went for") → recruiting_cycle("My search") → work_type("What I sent them")`.
+`107` asks `Year → organization and role → application stage` at depth 3–4; this
+is depth 5, spelling *"organization and role"* as two levels and *"application
+stage"* as `recruiting_cycle` plus `work_type`. **The `stage` key exists in the
+vocabulary and is not bound here.** The order is `107`'s and the arity is not.
+`113` §3.2's *"PREFERENCE — right dimensions, inverted order"* is stale: `00`
+amendments 33 and 35 put the year first.
+
+Two other `113` §3.2 verdicts are stale for the same reason and are corrected by
+this census rather than by argument: **Current work** is no longer a DEFECT —
+`ap.career.employment-records` is not the row, `career.current-work` is, under
+amendments 41 and 42 — and **Teaching** now binds `school`, so *"§1.6, the memo
+already flagged it"* has been answered.
+
+#### What keeps it honest
+
+`tests/p10/test_library_107_thirteen_templates.py` — nine tests, the census
+pinned by name AND by exact field order, never by count, for
+`test_library_year_is_bound_nowhere_else.py`'s reason. Its tripwire asserts that
+`107`'s six non-key words are still absent from `FIELD_ROWS`, with the failure
+message saying what red means there: *re-measure the table*, not *something
+broke*. Travel's PARTIAL is asserted against the shipped catalogue, so the day
+the draft lands the census goes red and forces the row to flip rather than
+drifting. Residual's verdict is asserted three ways — no residual situation ships,
+`residuals.json` is refused by the packaged loader, and the optional subtype is
+authored on exactly one of the nine.
+
+`tests/p10/test_library_107_thirteen_templates.py` — 9 passed. `tests/p10/` —
+875 passed, 2 xfailed.
+
+#### What this measurement did NOT settle
+
+* **Whether `107`'s Reference row is reachable by a non-researcher.** The row is
+  built, in the `research` schema, under the Education life. Whether a person
+  with no research corpus is offered it depends on `cli.signals_for_branch` and
+  the judge's kind, which this census did not run. **What would settle it:** a
+  run over a corpus with saved articles and manuals and no academic material,
+  reading which situations the branch menu offers.
+* **Whether `media_type` is `107`'s rendition.** The level is built; the closed
+  vocabulary inside it was not enumerated here, and it is the owner's either way.
+  **What would settle it:** the owner reading `media_type`'s members against
+  `107`'s rendition column and saying whether one is the other.
