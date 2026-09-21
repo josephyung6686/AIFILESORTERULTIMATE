@@ -2048,12 +2048,17 @@ the first is a frequency list — this project has none, and inventing one here
 would be exactly the hardcoding the owner ruled against on 20 Sep. Naming the
 measurement that is missing is more useful than guessing at it.
 
-### `00`:30's instruction for code is emitted and lands on nothing
+### CLOSED (`87baf2ea`) — a refusal that blamed the recogniser for files it never saw
+
+*(This section is about the REFUSAL. It began as an attempt to test `00`:30's
+structural-evidence instruction and found something else on the way; the `00`:30
+verdict is the last section of this entry, measured properly on loose files.)*
 
 `00`:30 says code files *"should rely heavily on local structural evidence,
 including repository roots and package files"*. The machinery exists:
 `extractors/structured_text.STRUCTURAL_MARKER_KINDS` carries §2.4's four classes
-and `readers/text_documents._markers_for` produces them by filename stem.
+and `readers/text_documents._markers_for` produces them by filename stem — so the
+plan was to point the product at a repository and watch them arrive.
 
 Measured on a six-file repository — `README.md`, `package.json`,
 `pyproject.toml`, `Makefile`, `index.js`, a notebook with kernel metadata — the
