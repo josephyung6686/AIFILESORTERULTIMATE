@@ -318,7 +318,7 @@ def test_propertys_missing_level_is_a_declaration_and_not_a_missing_key(built):
 
 
 def test_travels_year_is_bound_on_no_travel_row(shipped):
-    """Travel's OTHER missing level, and why it is not `07`'s year problem.
+    """Travel's OTHER missing level, and why it is not `107`'s year problem.
 
     `00` amendment 22 binds `year` in exactly two rows and nowhere else --
     `test_library_year_is_bound_nowhere_else.py` is that sentence. So Travel's
@@ -360,10 +360,11 @@ def test_the_travel_draft_would_close_the_row_and_is_gated_twice(shipped):
     above will ask what ratification costs and the answer is not "one signature".
     The draft's own `travel.trip-records` binds `event` at the `finance` schema,
     which does not reference it -- `test_the_dependencies_are_exactly_the_ones_
-    the_draft_declares` asserts that gap by name. And the draft binds `year` a
-    THIRD time, which `00` amendment 22 licenses on two rows and no more. So
-    ratifying the names does not ship the row, and this census says so rather
-    than implying that Travel is one decision away.
+    the_draft_declares` asserts that gap by name. And the draft binds `year` three
+    MORE times -- taking the release from two bindings to FIVE -- where `00`
+    amendment 22 licenses two and no more. So ratifying the names does not ship
+    the row, and this census says so rather than implying that Travel is one
+    decision away.
     """
     draft = json.loads((LIBRARY / TRAVEL_DRAFT).read_text(encoding="utf-8"))
     trip = next(row for row in draft["applicabilities"]
@@ -376,9 +377,10 @@ def test_the_travel_draft_would_close_the_row_and_is_gated_twice(shipped):
     # Blocker one: `event` is not referenced at the schema the row files under.
     assert "event" not in DOMAIN_FIELDS["finance"]
 
-    # Blocker two: the draft binds `year` on three rows and amendment 22
-    # licenses two. Counted over the DRAFT, so the shipped census next door
-    # stays the authority on what is bound in the release.
+    # Blocker two: the draft binds `year` on three rows, which would take the
+    # release from two bindings to FIVE where amendment 22 licenses two.
+    # Counted over the DRAFT and over the release separately, so the shipped
+    # census next door stays the authority on what is bound today.
     drafted_years = [row["applicability_id"] for row in draft["applicabilities"]
                      for binding in row["role_bindings"]
                      if binding["field_ref"] == "year"]
@@ -443,23 +445,78 @@ def test_residual_is_not_a_library_row_at_all(shipped, built):
         "One-Off Images", "Unsupported or Encrypted"}
 
 
-def test_the_named_situation_is_not_the_only_reading(built):
-    """The way round the census: name a situation whose shape a sibling also
-    builds, then let the named one drift while the census keeps passing.
+#: Every OTHER shipped situation that builds the same field order as the row the
+#: census names, measured over the release. Several rows reaching one shape is
+#: the library doing its job and is recorded rather than forbidden -- but it is
+#: recorded, because a shape reached by eight rows and a shape reached by one are
+#: different claims about `107`, and only one of them survives a row being
+#: retired.
+SIBLING_SHAPES = {
+    "Career applications": (),
+    "Coursework": ("academic.teaching",),
+    "Current work": (),
+    "Family records": (),
+    "Health": ("finance.cap-table-equity", "finance.crypto-assets",
+               "finance.hoa-residents-association", "finance.insurance-personal",
+               "finance.receipts-expenses", "finance.student-financial-aid",
+               "finance.subscriptions-utilities"),
+    "Photos": (),
+    "Projects": ("research.dataset-analysis",),
+    "Property": ("finance.vehicle-records", "logistics.driver-compliance"),
+    "Reference": ("code.notebooks-experiments", "creative.printmaking-editions",
+                  "creative.short-form-writing", "research.ethics-compliance"),
+    "Taxes": (),
+    "Teaching": ("academic.coursework",),
+    "Travel": (),
+}
 
-    Closed by measuring how many shipped situations build each pinned order.
-    Where more than one does, that is recorded rather than forbidden -- `107`
-    asks for a tree and several rows reaching the same shape is the library
-    doing its job. What is forbidden is the census claiming a shape is reached
-    ONLY by a row that no longer reaches it, which the assertion above already
-    catches, and this one prints the siblings so a failure there is diagnosable
-    in one read.
+
+def test_how_many_rows_reach_each_107_shape(built):
+    """The way round the census: name a situation whose shape a sibling also
+    builds, then let the named one drift while a levels-only reader assumes the
+    row is still there. Closed by pinning the siblings rather than counting them.
+
+    **AND IT MEASURES THE ONE SENTENCE `107` WRITES ABOUT TWO OF ITS OWN ROWS.**
+    `107` §What "perfect" means: *"Coursework and teaching are visibly different
+    even when they mention the same institution and course vocabulary."* They
+    are each other's ONLY sibling here -- `school -> term -> subject ->
+    work_type`, the same four keys in the same order -- so the whole of that
+    sentence is carried by the LABELS and by nothing else: "My school" against
+    "School I taught at", "Semester" against "Semester I taught", "Course"
+    against "Course I taught", "Kind of work" against "Kind of teaching
+    material". A build that normalised those labels would satisfy every
+    field-order assertion in this file and break `107`'s sentence, so the labels
+    are asserted here and not left to the census above.
+
+    Health's seven siblings are the other end of the same measurement and are
+    the reason its PARTIAL is a coverage verdict: `institution -> record_type`
+    is the generic `finance` shape, and the Health row reaches `107`'s depth by
+    being an ordinary financial record rather than a health one.
     """
     for template, (verdict, situation, order) in sorted(THIRTEEN.items()):
         if verdict == DELIVERED_ELSEWHERE:
             continue
-        siblings = sorted(name for name, shape in built.items()
-                          if shape == order and name != situation)
-        assert situation not in siblings
-        if verdict == BUILT:
-            assert built[situation] == order, (template, siblings)
+        siblings = tuple(sorted(name for name, shape in built.items()
+                                if shape == order and name != situation))
+        assert siblings == SIBLING_SHAPES[template], (
+            f"107's {template} row is built by {situation} and by "
+            f"{siblings}; this census recorded {SIBLING_SHAPES[template]}. A "
+            "changed sibling set is not a failure -- it is the library gaining "
+            "or losing a second way to reach one of 107's shapes")
+
+    # `107`'s own sentence about the two that share a shape, carried by labels.
+    labels = {}
+    for situation in ("academic.coursework", "academic.teaching"):
+        catalogue = load_shipped_catalogue(read_packaged_library_file)
+        labels[situation] = tuple(level.label for level in
+                                  folder_levels_for(catalogue, situation))
+    assert labels["academic.coursework"] == (
+        "My school", "Semester", "Course", "Kind of work")
+    assert labels["academic.teaching"] == (
+        "School I taught at", "Semester I taught", "Course I taught",
+        "Kind of teaching material")
+    assert not set(labels["academic.coursework"]) & set(
+        labels["academic.teaching"]), (
+        "Coursework and Teaching build the same four keys in the same order, so "
+        "107's 'visibly different' is carried entirely by these labels and a "
+        "shared one is that sentence half-broken: " + str(labels))

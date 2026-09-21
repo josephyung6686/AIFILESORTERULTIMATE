@@ -1709,8 +1709,9 @@ nothing and **gated twice, not once.**
 2. **The blocker under it.** The same file's
    `test_the_dependencies_are_exactly_the_ones_the_draft_declares` asserts the
    gap by name: `{"travel.trip-records": {"event not referenced at finance"}}`.
-   And the draft binds `year` a THIRD time, where `00` amendment 22 licenses two
-   and `tests/p10/test_library_year_is_bound_nowhere_else.py` pins those two by
+   And the draft binds `year` three MORE times — taking the release from two
+   bindings to **five** — where `00` amendment 22 licenses two and
+   `tests/p10/test_library_year_is_bound_nowhere_else.py` pins those two by
    name over the shipped release. **Ratifying the names does not ship the row**,
    and the day the draft is appended to `LIBRARY_FILES` the year census goes red
    unless amendment 22 is widened in the same motion. Named here so the two are
@@ -1830,6 +1831,23 @@ the draft lands the census goes red and forces the row to flip rather than
 drifting. Residual's verdict is asserted three ways — no residual situation ships,
 `residuals.json` is refused by the packaged loader, and the optional subtype is
 authored on exactly one of the nine.
+
+**AND THE SIBLING SETS ARE PINNED, WHICH CAUGHT THE ONE SENTENCE `107` WRITES
+ABOUT TWO OF ITS OWN ROWS.** A shape reached by eight rows and a shape reached by
+one are different claims, and only one of them survives a row being retired, so
+the census records for each pinned row every OTHER situation that builds the same
+order. Two results are worth the register's ink. **Coursework and Teaching are
+each other's only sibling** — `school → term → subject → work_type`, the same
+four keys in the same order — so `107`'s *"Coursework and teaching are visibly
+different even when they mention the same institution and course vocabulary"* is
+carried by the LABELS and by nothing else ("My school" against "School I taught
+at", "Course" against "Course I taught"). A build that normalised those labels
+would satisfy every field-order assertion in the file and break `107`'s sentence;
+the labels are therefore asserted, and asserted disjoint. **Health has seven
+siblings**, all `finance` rows — `institution → record_type` is the generic
+financial shape, so the one row in the Health life reaches `107`'s depth by being
+an ordinary financial record rather than a health one, which is what makes its
+PARTIAL a coverage verdict rather than an order one.
 
 `tests/p10/test_library_107_thirteen_templates.py` — 9 passed. `tests/p10/` —
 875 passed, 2 xfailed.
