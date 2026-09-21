@@ -37,7 +37,7 @@ from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
 from grouping.acceptance import group_state_as_of
-from grouping.store import memberships_for_group
+from grouping.store import current_group, memberships_for_group
 from grouping.vocabulary import ACCEPTED, EXCLUDED, NOT_FLAGGED
 
 from tree_design.vocabulary import (
@@ -97,6 +97,14 @@ class AcceptedGroup:
     plan_version: str
     state: str
     memberships: tuple
+    #: THE NAME THE PERSON FILED THIS GROUP UNDER, read from P9's own row beside
+    #: the state and the members rather than minted anywhere downstream.
+    #: `naming.engine_proposal` writes it and `cli` already prints a group by it
+    #: on three screens; P11's sentences about a group print the same string, so
+    #: a person meets one spelling of their group everywhere. `None` where the
+    #: draft carries none -- which is a fact about the group, and the caller says
+    #: what to do about it rather than being handed `group_id` wearing a label.
+    display_label: str | None = None
 
 
 def accepted_group_as_of(conn: sqlite3.Connection, *, group_id: str,
@@ -124,6 +132,7 @@ def accepted_group_as_of(conn: sqlite3.Connection, *, group_id: str,
         )
     return AcceptedGroup(
         group_id=group_id, plan_version=plan_version, state=state,
+        display_label=current_group(conn, group_id).display_label,
         # Not every live row. `Membership.decision` has three values and
         # `memberships_for_group` returns all of them, because an `excluded` row
         # is a record P9 keeps on purpose -- §8.7 stores a withdrawn membership

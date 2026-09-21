@@ -244,6 +244,18 @@ by TWO of the file's values, so the predecessor printed the same id twice for th
 same reason. De-duplicating the list without also changing `suppressed_node_count`
 would make "and N further destinations" false, which is why it was left alone.
 
+**Recaptured again the same day because the no-model sentence no longer picks a
+model for the person.** It said `ollama pull qwen3:8b`, which is the model one
+laptop happened to hold; the owner's standing instruction of 20 Sep is that this
+is for general use and has to suit every machine, and a person on hardware that
+cannot run an 8B model was being told to pull one. The sentence now shows the
+command's shape with the name as an example, the register `readers/
+model_routing.py` already uses. THREE LINES MOVED AND NOTHING ELSE: lines 7-9 of
+the captured screen, which are the same sentence rewrapped -- 232 lines before
+and 232 after, and all fourteen captured tables identical row for row. This is
+the ONLY screen in the capture that names a model, because it is the only one
+that fires when the device has none.
+
 **AND THE PROBE IS A FOURTH DOOR THE CAPTURE HAS TO CLOSE.** Since
 `cli._discover_local_models` asks the loopback endpoint what is installed when no
 model is named, a capture taken on a machine with ollama RUNNING records a

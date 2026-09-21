@@ -792,20 +792,29 @@ def test_a_named_model_is_never_second_guessed_by_a_probe(monkeypatch):
         "spend a request finding out")
 
 
-def test_finding_nothing_leaves_the_old_sentence_exactly_as_it_was(monkeypatch):
-    """The refusal when there is GENUINELY no model stays exactly as true as it
-    was. A person with no model installed is told what to install, in the words
-    they were told before."""
-    _, unchanged = _route_with(monkeypatch, _found())
+def test_finding_nothing_reaches_the_refusal_and_names_no_particular_model(
+        monkeypatch):
+    """The refusal when there is GENUINELY no model. It is pinned byte for byte
+    because the probe must not divert it -- a device with nothing installed gets
+    this sentence and not the "this device has one to offer" banner.
 
-    assert unchanged == (
+    IT USED TO SAY `ollama pull qwen3:8b`, AND THIS TEST HELD IT THERE. It was
+    named "leaves the old sentence exactly as it was", which made a virtue of a
+    model id one laptop happened to hold: the owner's standing instruction of
+    20 Sep is that this is for general use and must suit every machine. A person
+    told to pull an 8B model on a machine that cannot run one has been given the
+    product's choice, not a way to make their own. The name is now an example of
+    the command's shape, which is true wherever it is read."""
+    _, refusal = _route_with(monkeypatch, _found())
+
+    assert refusal == (
         "No model was consulted: neither DEEPSEEK_API_KEY nor "
         "GRAPH_AGENT_LOCAL_MODEL\nis set, so this run used only what it could "
         "read and decide on this device.\nFiles that needed a judgement are "
         "named below and say so. To enable one,\neither install a local model "
-        "(`ollama pull qwen3:8b`) and set\nGRAPH_AGENT_LOCAL_MODEL to its id, "
-        "which sends nothing anywhere, or copy\n`.env.example` to `.env` and "
-        "put a key in it.\n")
+        "(`ollama pull <model>`, for example `qwen3:8b`)\nand set "
+        "GRAPH_AGENT_LOCAL_MODEL to its id, which sends nothing anywhere, "
+        "or\ncopy `.env.example` to `.env` and put a key in it.\n")
 
 
 def test_the_coverage_line_no_longer_claims_to_know_what_is_on_the_device():

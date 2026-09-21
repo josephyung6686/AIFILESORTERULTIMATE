@@ -427,8 +427,15 @@ def test_a_member_placed_by_its_group_says_the_model_decided_and_names_the_group
         assert body["decided_by"] == v.DECIDED_BY_MODEL
         assert body["group_support"]["group_id"] == GROUP_ID
         assert body["group_plan_id"] == plan.group_plan_id
-        # The person is told which question was answered about their file.
-        assert GROUP_ID in body["explanation"]
+        # The person is told which question was answered about their file --
+        # IN THE NAME THEY FILED IT UNDER. This read `GROUP_ID in
+        # body["explanation"]` and passed on `g-packet`, which is the key the
+        # row above joins on and which nobody owns; on the measured corpus the
+        # same assertion would have passed on
+        # `plan_0:academic:Coursework:d76647d2fe3c`. The name and the key are
+        # different claims, and only the first is the one this test means.
+        assert "PHYS1401 packet" in body["explanation"], body["explanation"]
+        assert GROUP_ID not in body["explanation"], body["explanation"]
 
 
 def test_a_member_the_grouping_flagged_never_claims_the_groups_support(

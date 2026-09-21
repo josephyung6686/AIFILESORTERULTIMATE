@@ -3324,14 +3324,27 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
         # who is told only about the cloud one is told the product needs a paid
         # account to think at all. `00`:189-193's second mode is a model on their
         # own machine, and it costs nothing and sends nothing.
+        # AN EXAMPLE OF THE COMMAND, NOT THE PRODUCT'S CHOICE OF MODEL. This
+        # read `ollama pull qwen3:8b`, which is what one laptop happened to hold
+        # -- `readers/model_ollama.py`'s own probe says so in as many words:
+        # "another holds something else, and most hold nothing at all". This is
+        # the branch for a device that holds NOTHING, so the sentence cannot
+        # send them to `ollama list` the way `model_routing` does; what it can
+        # do is show the shape of the command and let the name be an example,
+        # which is the register `model_routing` already uses ("for example
+        # `qwen3:8b`"). A person on a machine that cannot run an 8B model was
+        # being told to pull one, and a run that names one model is not the
+        # general-use product this is meant to be. `<model>` is the placeholder
+        # form the `--explain <question>` line already uses.
         print(_wrapped(
             f"No model was consulted: neither {CREDENTIAL_NAME} nor "
             f"{LOCAL_MODEL_NAME} is set, so this run used only what it could read "
             f"and decide on this device. Files that needed a judgement are named "
             f"below and say so. To enable one, either install a local model "
-            f"(`ollama pull qwen3:8b`) and set {LOCAL_MODEL_NAME} to its id, which "
-            f"sends nothing anywhere, or copy `.env.example` to `.env` and put a "
-            f"key in it.", indent=""), file=out)
+            f"(`ollama pull <model>`, for example `qwen3:8b`) and set "
+            f"{LOCAL_MODEL_NAME} to its id, which sends nothing anywhere, or "
+            f"copy `.env.example` to `.env` and put a key in it.", indent=""),
+            file=out)
         return None
     cloud: TierRouting | None = None
     if value(CREDENTIAL_NAME):

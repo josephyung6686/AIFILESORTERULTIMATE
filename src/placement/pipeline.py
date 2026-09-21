@@ -1467,6 +1467,13 @@ class GroupAnswer:
     which is what happens to a member that contradicts the answer, because it is
     the same situation reached from P9's evidence rather than from this file's.
 
+    `display_label` is P9's own NAME for the group, copied for the same reason as
+    the two above: it is what `cli` already prints a group by, and P11's sentences
+    about a group have to spell it the way the person's other screens do. The id
+    stays the id -- `GroupSupport.group_id` is untouched and a replay still joins
+    on it -- and only the prose reads this. `None` where the draft carries no
+    name, which the sentence says by naming nothing rather than by falling back.
+
     A member the group's DOSSIER never carried gets no `GroupAnswer` at all rather
     than a third flag on this one (`104` §18.2 gap 2). The model was not shown
     that file, so the answer is not an answer about it, and there is nothing here
@@ -1487,6 +1494,7 @@ class GroupAnswer:
     node_id: str
     membership: str
     sits_apart: bool = False
+    display_label: str | None = None
 
 
 #: The sentence a contradicting member's dossier carries beside the group's folder
@@ -2404,6 +2412,11 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                              gate_refused=gate_refused,
                              refinements=refinements,
                              group_support=group_support,
+                             # P9's own name for the group, carried the way
+                             # `label_of` carries a folder's: read once in
+                             # `place_group`, never re-derived per member.
+                             group_name=(None if group_answer is None
+                                         else group_answer.display_label),
                              disagreed_with_group=(
                                  group_answer.group_id
                                  if contradicts_the_group
@@ -2493,6 +2506,7 @@ def _explain(entry, assessment, retrieval, *, label_of: Mapping[str, str],
              gate_refused: bool = False,
              refinements: frozenset[str] = frozenset(),
              group_support=None,
+             group_name: str | None = None,
              disagreed_with_group: str | None = None,
              flagged_out_of_group: str | None = None,
              unsupported_levels: tuple[str, ...] = ()) -> str:
@@ -2552,22 +2566,41 @@ def _explain(entry, assessment, retrieval, *, label_of: Mapping[str, str],
         # deeper inside it. Said in their words, not "refinement" -- `84` §6.
         parts.append("inside the folder this file is already in, so nothing "
                      "leaves the arrangement you have")
+    #: THE GROUP, IN THE WORDS IT WAS FILED UNDER. The three clauses below name
+    #: ONE group between them -- this file's own -- so one name serves all three,
+    #: and it is P9's `display_label`, which is what `cli`'s accepted-groups card
+    #: and closing screens already print a group by. `group_id` is the key a
+    #: replay joins on: this corpus's read `plan_0:academic:Coursework:d76647d2fe3c`
+    #: and `group:term:47da2b92c89e...:strongly-identified-file`, and a person
+    #: looking at their own folders cannot act on either (`84` §6). The flags
+    #: still arrive as ids because that is what the caller has to decide WHICH
+    #: clause fires; only what is printed moved.
+    #:
+    #: A GROUP THE PLAN NEVER NAMED IS NOT SPELLED WITH ITS KEY. `cli` falls back
+    #: to `display_label or group_id` on its own three screens, and that fallback
+    #: is the defect being fixed here; a label invented in this function would be
+    #: a product decision taken in a sentence. So the clause says less instead:
+    #: "its group" and "the group" are true of every group there is, they leave
+    #: the rest of the sentence standing, and they claim nothing.
+    the_group = f"the {group_name} group" if group_name else "its group"
+    of_the_group = (f"{group_name}, which this file belongs to" if group_name
+                    else "the group this file belongs to")
+    the_group_in_passing = f" ({group_name})" if group_name else ""
     if flagged_out_of_group is not None:
         # P9's finding, said in the person's words. Not "outlier_flag": `84` §6.
         parts.append(
-            f"this file was set apart from the {flagged_out_of_group} group when "
+            f"this file was set apart from {the_group} when "
             f"the group was formed, so it was judged on its own with the folder "
             f"that group went to offered and the disagreement on the record")
     elif disagreed_with_group is not None:
         parts.append(
-            f"this file's own stated values rule out the folder its group "
-            f"({disagreed_with_group}) was placed in, so it was judged on its "
+            f"this file's own stated values rule out the folder its group"
+            f"{the_group_in_passing} was placed in, so it was judged on its "
             f"own with that folder offered and the disagreement on the record")
     if model_decided and group_support is not None:
         parts.append(
             f"chosen by the hierarchical destination judge for the whole of "
-            f"{group_support.group_id}, which this file belongs to, and "
-            f"validated by P8")
+            f"{of_the_group}, and validated by P8")
     elif model_decided:
         # The user is entitled to know a model was involved: §6.11 says a direct
         # and a context-supported placement "should not demand the same level of
@@ -4304,6 +4337,15 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
     # ROW OF ANY KIND -- including the superseding one -- and the three supersede
     # columns on that table would be columns no writer could ever reach.
     group_plan_id = f"{inputs.plan_version}:{group_id}:{observed_at}"
+    #: ONCE FOR THE GROUP, NOT ONCE PER MEMBER, and off the read that already
+    #: happened. `accepted_group_as_of` is P11's single door to P9 -- `104`'s
+    #: "read, never reconstructed", which this module is held to by
+    #: `test_p9_is_reached_only_through_its_two_reads_and_its_vocabulary` -- so
+    #: the name travels on `AcceptedGroup` beside the state and the members,
+    #: and this module still calls nothing of P9's. A lookup inside
+    #: `place_file_steps` would be one query per member for an answer that cannot
+    #: differ between them, and a second door besides.
+    group_name = accepted.display_label
     memberships = tuple(m for m in accepted.memberships
                         if m.file_id not in skip_file_ids)
 
@@ -4354,7 +4396,8 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
                           else GroupAnswer(
                               group_id=group_id, node_id=answered,
                               membership=membership.decision,
-                              sits_apart=membership.outlier_flag != NOT_FLAGGED)),
+                              sits_apart=membership.outlier_flag != NOT_FLAGGED,
+                              display_label=group_name)),
             component_version=component_version, observed_at=observed_at)
 
     asked = ((membership.file_id, _member(membership))
