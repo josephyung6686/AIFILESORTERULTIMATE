@@ -2001,11 +2001,31 @@ research rows compiled as terms. The longest is **77 words**, beginning
 `'proposed for r6, not design: …'`; others begin `'proposal note:'` and
 `'precondition:'`.
 
-**This changes no outcome.** A 77-word term cannot match a contiguous run, so it
-also cannot un-match anything; removing it would not file or unfile one file. It
-is compiler hygiene — `_terms` wants a shape gate — and the real term lists
-buried inside those notes are unratified vocabulary, so splitting them out is the
-owner's. Recorded here so it is not rediscovered as a finding.
+**This changes no outcome, and the project got there first.** Verified in the
+authored source once the lead found it: **247** terms run past twelve words, the
+longest **105**, opening `'RECORDED AS VALUES, NOT AS A ROW — electrical
+installation certificate, …'`. But `Detector.__init__` already says so, in a
+comment the lead had not read:
+
+> *"1,616 of the 9,647 authored entries are six words or longer and 32 are twenty
+> or longer, because several rows used `work_types` and `proposed_context_terms`
+> as a notes field -- one `government` entry is a 77-word editorial aside. They
+> compile, they can never match, and with a fixed window they would have widened
+> every scan in the corpus by a factor of eighty for nothing."*
+
+So it is KNOWN, MITIGATED and DOCUMENTED: the index is keyed on the TOKENISED
+term and the scan is prefix-limited rather than fixed-window, which is what makes
+a 105-word note cost nothing per file.
+
+**The compiler shape gate proposed above is therefore withdrawn**, and it would
+have done harm: the index keys on `_tokens(term)`, so `attorney-in-fact` matches
+text reading "attorney in fact", and a gate refusing terms that do not survive
+tokenisation would have deleted every hyphenated term in the library. Reading the
+consumer before writing the producer is what caught it.
+
+The real term lists buried inside those notes stay unratified vocabulary, and one
+of them says so in its own words -- `RECORDED AS VALUES, NOT AS A ROW` -- so
+splitting them out would add terms the author explicitly declined.
 
 ### Named and not chased
 
