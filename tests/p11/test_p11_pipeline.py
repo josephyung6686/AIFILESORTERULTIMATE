@@ -3758,3 +3758,109 @@ def test_a_groups_answer_in_another_situations_branch_does_not_carry_a_member(
     assert decision.outcome == v.PLACE
     assert decision.destination.node_id == "n-paper", decision
     assert not decision.group_support, decision
+
+
+#: THE GROUP KEY A MEASURED CORPUS ACTUALLY CARRIES (`cli.py:12043` builds it as
+#: `f"{PLAN_VERSION}:{group_category}:{label}:{digest}"`), beside the name the
+#: closing screens already print for it. The two are a pair on purpose: every
+#: assertion below wants the second on the screen and the first off it.
+AN_OPAQUE_GROUP_KEY = "plan_0:academic:Coursework:d76647d2fe3c"
+THE_NAME_THAT_GROUP_READS_BY = "Coursework"
+
+
+def test_the_disagreeing_members_sentence_names_the_group_the_person_knows(
+        two_situations):
+    """`84` §6, the third clause of this class. A member whose own values rule
+    out its group's folder is told so, and the group is named by the label P9
+    gave it -- not by `plan_0:academic:Coursework:d76647d2fe3c`, which is the
+    spelling a replay joins on and which nobody owns."""
+    from placement.pipeline import GroupAnswer
+
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.research",
+                       the_situation_each_branch_carries=TWO_SITUATIONS),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        group_answer=GroupAnswer(group_id=AN_OPAQUE_GROUP_KEY,
+                                 node_id="n-course", membership="member",
+                                 display_label=THE_NAME_THAT_GROUP_READS_BY))
+
+    assert (f"its group ({THE_NAME_THAT_GROUP_READS_BY}) was placed in"
+            in decision.explanation), decision.explanation
+    assert AN_OPAQUE_GROUP_KEY not in decision.explanation, decision.explanation
+
+
+def test_the_set_apart_sentence_names_the_group_the_person_knows(
+        two_situations):
+    """The outlier's half of the same clause. P9 flagged this file, so it was
+    judged on its own -- and the group it was set apart FROM is named the way
+    the accepted-groups screen names it."""
+    from placement.pipeline import GroupAnswer
+
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.coursework",
+                       the_situation_each_branch_carries={
+                           "research": "academic.research"}),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        group_answer=GroupAnswer(group_id=AN_OPAQUE_GROUP_KEY,
+                                 node_id="n-course", membership="member",
+                                 sits_apart=True,
+                                 display_label=THE_NAME_THAT_GROUP_READS_BY))
+
+    assert (f"set apart from the {THE_NAME_THAT_GROUP_READS_BY} group"
+            in decision.explanation), decision.explanation
+    assert AN_OPAQUE_GROUP_KEY not in decision.explanation, decision.explanation
+
+
+def test_the_group_supported_sentence_names_the_group_the_person_knows(
+        two_situations):
+    """The clause every member carried BY its group's answer reads. It is the
+    one that says a model decided for the whole group, so the whole group is
+    what it has to name in words the person can find."""
+    from placement.pipeline import GroupAnswer
+
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.coursework",
+                       the_situation_each_branch_carries={
+                           "research": "academic.research"}),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        group_answer=GroupAnswer(group_id=AN_OPAQUE_GROUP_KEY,
+                                 node_id="n-course", membership="member",
+                                 display_label=THE_NAME_THAT_GROUP_READS_BY))
+
+    assert decision.group_support is not None, decision
+    assert (f"for the whole of {THE_NAME_THAT_GROUP_READS_BY}, which this file "
+            f"belongs to" in decision.explanation), decision.explanation
+    assert AN_OPAQUE_GROUP_KEY not in decision.explanation, decision.explanation
+
+
+def test_a_group_the_plan_never_named_is_not_spelled_with_its_key(
+        two_situations):
+    """`cli.py` falls back to `display_label or group_id` on three screens; here
+    the id is the defect being fixed, so the sentence drops the name instead of
+    printing one nobody owns -- and it stays a sentence a person can read."""
+    from placement.pipeline import GroupAnswer
+
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.coursework",
+                       the_situation_each_branch_carries={
+                           "research": "academic.research"}),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        group_answer=GroupAnswer(group_id=AN_OPAQUE_GROUP_KEY,
+                                 node_id="n-course", membership="member",
+                                 display_label=None))
+
+    assert ("for the whole of the group this file belongs to"
+            in decision.explanation), decision.explanation
+    assert AN_OPAQUE_GROUP_KEY not in decision.explanation, decision.explanation

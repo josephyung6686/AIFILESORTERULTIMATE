@@ -219,6 +219,12 @@ def test_p9_is_reached_only_through_its_two_reads_and_its_vocabulary():
     assert reached["groups.py"] == {
         "grouping.acceptance", "grouping.acceptance.group_state_as_of",
         "grouping.store", "grouping.store.memberships_for_group",
+        # P9's own NAME for the group, read beside its state and its members so
+        # P11's sentences about a group spell it the way the person's screens
+        # already do. A third read of the same store through the same door --
+        # `pipeline.py` below still calls nothing, which is what this test is
+        # for; `place_group` takes the name off `AcceptedGroup`.
+        "grouping.store.current_group",
         "grouping.vocabulary", "grouping.vocabulary.ACCEPTED",
         # P9's word for a membership it has withdrawn. `memberships_for_group`
         # returns every live row and `Membership.decision` says which of them are
