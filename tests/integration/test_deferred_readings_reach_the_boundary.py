@@ -105,7 +105,15 @@ def test_the_readings_the_run_holds_are_the_librarys_own_verbatim():
 
 
 def test_every_schema_a_situation_can_name_carries_readings():
-    """1,999 readings over 317 rows, and no schema a person can reach is empty.
+    """2,004 readings over 318 rows, and no schema a person can reach is empty.
+
+    317 -> 318, 1,999 -> 2,004 (20 Sep 2026): `00` amendment 42 mints
+    `career.current-work`, the situation `107`'s Current work template had none
+    of, and it carries one `needs_llm` entry of five readings like the siblings
+    it was written beside. It lands on `career`, a schema that already carries
+    readings: eight rows now -- the schema-wide `career` row of four, and seven
+    situations of which this is one. So the second half of this test is unmoved:
+    what is new is a row, not an empty schema.
 
     316 -> 317, 1,994 -> 1,999 (15 Sep 2026): `00` amendment 6 and `104` §18.69
     ratify `nonprofit.volunteering-and-club-life`, which carries one `needs_llm`
@@ -126,7 +134,7 @@ def test_every_schema_a_situation_can_name_carries_readings():
     readings = sum(len(entry["readings"])
                    for schema in manifest.values()
                    for entry in schema.get("needs_llm", ()))
-    assert (rows, readings) == (317, 1999)
+    assert (rows, readings) == (318, 2004)
 
     rules = _rules()
     for schema_id in sorted(rules.schemas):
