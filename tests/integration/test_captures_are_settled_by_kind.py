@@ -82,9 +82,41 @@ CAPTURE_AUDIO = "REC0032.mp3"
 OCR_JPEG = "IMG_5502.jpg"
 TEXT_PDF = "Draft 7.pdf"
 
+#: A TEXT-LESS CAPTURE WHOSE OWN NAME SAYS `photos`, which is the case the note
+#: above called "the right answer" and measured at five of the owner's fifty.
+#: Measured again on 21 Sep 2026 against the names DEVICES CHOOSE THEMSELVES, and
+#: the ratio inverts: of ten default names -- macOS, Android, Pixel, Nikon, Photo
+#: Booth, Image Capture, iOS panorama -- six carry a `photos` term and four do not.
+#:
+#: The pair below is the whole argument and it is one file under two names Apple
+#: shipped four years apart. `Screen Shot 2026-…png` is the pre-Mojave default and
+#: is recognised; `Screenshot 2026-…png` is the default since Mojave closed up the
+#: space, and it abstains. Nothing about the picture differs -- these are written
+#: from the same bytes -- so a person who upgraded their laptop watched their
+#: screenshots stop being recognised, and no part of the product could tell them
+#: why.
+#:
+#: WHY IT IS A DEFECT AND NOT A TRADE-OFF. The term that breaks the rule is
+#: `photos`' OWN authored term, and the capture rule's answer is `photos` too. Two
+#: signals that agree cancel each other: the filename says picture, the file kind
+#: says picture, and the file comes back unrecognised. `file_kind_never_alone` is a
+#: rule about a kind ACTIVATING A SCHEMA ALONE, and here the kind is not alone --
+#: the name is saying the same word.
+CAPTURE_NAMED_PNG = "Screenshot 2026-09-21 at 10.14.32.png"
+CAPTURE_SPACED_PNG = "Screen Shot 2026-09-21 at 10.14.32.png"
+#: The negative twin, and the one that keeps this from widening anything. A
+#: text-less image whose name carries a term of ANOTHER schema is not this case:
+#: `passport` is `identity`'s and a photographed passport must go on being held,
+#: not filed as a holiday snap. Its terms raise a schema the capture rule does not
+#: answer, so the rule stays out of it and the ordinary arity gate decides.
+CAPTURE_OTHER_SCHEMA = "passport.jpg"
+
 CORPUS: tuple[tuple[str, str, str, tuple[str, str, str] | None], ...] = (
     (CAPTURE_JPEG, ".jpg", "image/jpeg", None),
     (CAPTURE_AUDIO, ".mp3", "audio/mpeg", None),
+    (CAPTURE_NAMED_PNG, ".png", "image/png", None),
+    (CAPTURE_SPACED_PNG, ".png", "image/png", None),
+    (CAPTURE_OTHER_SCHEMA, ".jpg", "image/jpeg", None),
     (OCR_JPEG, ".jpg", "image/jpeg",
      ("ocr", "ocr.apple_vision", "handed over at the counter this morning")),
     (TEXT_PDF, ".pdf", "application/pdf",
@@ -223,6 +255,77 @@ def test_a_text_less_picture_and_a_text_less_recording_are_recognised_as_capture
         assert outcome.evidence_refs, filename
 
 
+def test_a_capture_that_says_it_is_one_in_its_own_name_is_still_a_capture(
+        corpus, detector):
+    """The filename agreeing with the file kind must not cancel the file kind.
+
+    **THE MEASUREMENT (21 Sep 2026, synthetic corpus, no personal data).** Ten
+    images written from two byte strings and named the way DEVICES name them --
+    `IMG_4471.jpg`, `DSC_0031.jpg`, `PXL_20260921_101432.jpg`, three macOS and
+    Android screenshots, Photo Booth, Image Capture, an iOS panorama. Four were
+    recognised. Six abstained `no_corroboration`, and every one of the six matched
+    a term the `photos` schema itself authored: `screenshot`, `photo`, `scan`,
+    `panorama`.
+
+    The two files below are the same picture under the two names Apple has
+    shipped. `Screen Shot …` is recognised because "screen shot" is not an
+    authored term; `Screenshot …` is not, because it is one. That is the whole of
+    the difference, and no sentence the product can print would explain it to the
+    person whose laptop renamed their screenshots for them.
+
+    SABOTAGE: restore `_capture` to being reachable only when `matches` is empty.
+    `CAPTURE_NAMED_PNG` goes back to `no_corroboration` and this goes red while
+    the spaced twin beside it still passes -- which is the defect, stated.
+    """
+    conn, by_name = corpus
+
+    for filename in (CAPTURE_NAMED_PNG, CAPTURE_SPACED_PNG):
+        file_id, content_hash = by_name[filename]
+        outcome = detector.explain(conn, file_id, content_hash)
+        assert isinstance(outcome, Recognition), (filename, outcome)
+        assert outcome.schema_id == CAPTURE_SCHEMA, (filename, outcome)
+        assert settled_by_file_kind(outcome), (
+            f"{filename} was recognised, but not on its kind -- so the rule under "
+            "test is not the one that answered")
+        assert outcome.evidence_refs, filename
+
+
+def test_a_text_less_image_naming_ANOTHER_schema_is_not_swept_into_captures(
+        corpus, detector):
+    """The half that keeps the line above from widening anything at all.
+
+    A photographed passport is text-less and is an image, so the only thing
+    standing between it and `photos` is that its name raises `identity` -- a
+    schema the capture rule does not answer for. The rule stays out of it, the
+    ordinary arity gate decides, and precaution goes on holding the file.
+
+    This is the asymmetry that makes the change safe to make without asking:
+    `photos` is the ONLY schema whose term can reach the capture branch, and
+    `photos` is the schema the branch was already going to answer. Nothing else
+    moves, and no file that was held stops being held.
+
+    SABOTAGE: widen the branch to fire whenever the arity gate fails, rather than
+    only where the terms raise `photos` itself. This goes red, and a photographed
+    passport is filed as a picture.
+    """
+    conn, by_name = corpus
+    file_id, content_hash = by_name[CAPTURE_OTHER_SCHEMA]
+
+    outcome = detector.explain(conn, file_id, content_hash)
+
+    assert not settled_by_file_kind(outcome), (
+        f"{CAPTURE_OTHER_SCHEMA} was filed as an ordinary picture on its kind, "
+        f"and its own name says otherwise: {outcome}")
+    assert not (isinstance(outcome, Recognition)
+                and outcome.schema_id == CAPTURE_SCHEMA), outcome
+    # AND IT IS STILL HELD. The assertion above says the capture rule kept out;
+    # this one says what kept the file safe, which is the part a person cares
+    # about and the part a future widening would silently take away.
+    record = detector(conn, file_id, content_hash)
+    assert record is not None and record.protected, (
+        f"a photographed passport came back unprotected: {record}")
+
+
 def test_the_rule_reaches_no_file_that_has_text_in_it(corpus, detector):
     """`file_kind_never_alone` STILL MEANS WHAT IT MEANS, and this is the half of
     the change that says so.
@@ -329,9 +432,23 @@ def test_site_g_counts_the_captures_on_their_own_line_and_asks_nobody(corpus,
 
     situation = _ask(conn, roster, detector)
 
-    assert situation.settled_by_kind == 2, situation
+    # FOUR, AND THE ARITHMETIC IS THE CORPUS'S. The two original captures, plus
+    # the screenshot pair added on 21 Sep -- both text-less pictures, both named
+    # in `photos`' own words. The number is written out rather than counted from
+    # `CORPUS` on purpose: a count derived from the corpus would go on agreeing
+    # with itself if the rule stopped firing.
+    assert situation.settled_by_kind == 4, situation
+    # `CAPTURE_OTHER_SCHEMA` IS ASKED HERE AND IS HELD IN A REAL RUN, and the
+    # difference is this helper rather than the product. `held_not_asked` reads
+    # the classification STORE (`store.current(...).protected`), and `_ask` never
+    # writes one -- in `cli.main` the gate records the detector's verdict before
+    # this pass runs. The test that the photographed passport is protected is
+    # `test_a_text_less_image_naming_ANOTHER_schema_is_not_swept_into_captures`,
+    # which asks the detector directly; what this line says is only that the
+    # capture rule did not swallow it.
     assert _dossier_subjects(conn) == {by_name[OCR_JPEG][0],
-                                       by_name[TEXT_PDF][0]}, (
+                                       by_name[TEXT_PDF][0],
+                                       by_name[CAPTURE_OTHER_SCHEMA][0]}, (
         "a capture was assembled for a model, or a file with words in it was not")
     # ASKED, and not turned away at some earlier door. Without this line the
     # assertion above would still pass on a run that built the two dossiers and
@@ -344,7 +461,7 @@ def test_site_g_counts_the_captures_on_their_own_line_and_asks_nobody(corpus,
     # that answered and named no situation it could cite -- the file a person has
     # to answer for -- and asserting it here would put run 21's defect into a
     # test, which is a screen saying a model had read a file it never saw.
-    assert situation.no_answer_returned == 2, situation
+    assert situation.no_answer_returned == 3, situation
     assert situation.declined == 0, situation
     assert situation.no_route == 0, situation
 

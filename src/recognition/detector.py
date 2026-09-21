@@ -1267,6 +1267,40 @@ class Detector:
                     self._corroborating(conn, file_id, content_hash)):
                 best = 2
 
+        # THE KIND STILL ANSWERS WHEN THE ONLY SCHEMA THE TERMS RAISED IS THE ONE
+        # THE KIND WOULD HAVE ANSWERED. `_capture` is asked above only where there
+        # is no term at all, and that left a text-less picture whose own NAME says
+        # `photos` worse off than one that says nothing: the filename and the file
+        # kind both say picture, and the two agreeing cancelled each other.
+        #
+        # Measured 21 Sep 2026 over ten images written from two byte strings and
+        # named the way DEVICES name them. Four were recognised; six abstained,
+        # and every one of the six had matched a term `photos` itself authored --
+        # `screenshot`, `photo`, `scan`, `panorama`. The pair that states it is one
+        # picture under the two names Apple has shipped: `Screen Shot 2026-…png`,
+        # the pre-Mojave default, is recognised, and `Screenshot 2026-…png`, the
+        # default since, is not. A person who upgraded their laptop watched their
+        # screenshots stop being recognised over a closed-up space.
+        #
+        # `file_kind_never_alone` IS UNTOUCHED, and the condition is what says so.
+        # That rule forbids a KIND from activating a schema ALONE; here the kind is
+        # not alone, the name is saying the same word, and the schema they both
+        # name is one schema. So this asks for `leaders` to be exactly `photos` --
+        # not `photos` among others, which is a tie and stays one, and not any
+        # other schema, which is the passport below.
+        #
+        # AND IT WIDENS NOTHING. `photos` is the only schema a term can raise here
+        # and the only one `_capture` answers, so no file that was held stops being
+        # held: a text-less image whose name says `passport` raises `identity`,
+        # never reaches this line, and goes on being held by `_precaution`. That
+        # asymmetry is the whole reason this is a defect to close rather than a
+        # design question to ask -- there are not two readings to choose between.
+        if best < 2 and leaders == [CAPTURE_SCHEMA]:
+            capture = self._capture(conn, file_id, content_hash,
+                                    source_types=source_types)
+            if capture is not None:
+                return capture
+
         if best < 2:
             schema_id = leaders[0]
             # `leaders` is SORTED, so `leaders[0]` is the alphabetically first of
