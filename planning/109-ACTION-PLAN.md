@@ -2603,3 +2603,64 @@ was RIGHT to: that file is compiled output. The authored source is
 `planning/domains/nodes/*.json`, which is not protected. So vocabulary work is:
 edit the row, recompile with the one command above, and let the boundary test
 verify. The path was open the whole time and this entry said it was shut.
+
+## THE REAL CORPUS, CLOUD ROUTE — 91%, and the code "gap" is a ruling
+
+Run over 34 of the owner's own files with `--enable-cloud`. **Aggregates only**:
+no filename, folder name or course code is recorded here or was printed. 128
+seconds, 98 model calls.
+
+| | offline | cloud |
+| --- | --- | --- |
+| recognised by the rules | 13 | 13 |
+| named by the judge | 0 | **18** |
+| **not named at all** | **21** | **3** |
+| | **38%** | **91%** |
+
+Validity first: 34 indexed, 29 yielded text. What the judge named:
+
+```
+  10  academic.coursework          2  code.dotfiles-environment
+   4  code.notebooks-experiments   1  academic.teaching
+                                   1  research.dataset-analysis
+```
+
+The three unnamed are, by extension only, two `.pdf` and one `.zip` — plausibly
+among the five files that yielded no text at all. An archive is read as a
+manifest without extraction by design.
+
+**AND THE EARLIER NUMBER WAS FLATTERED BY ITS CORPUS.** The nineteen-file
+synthetic corpus gave 12 of 19 (63%) offline; the owner's real files give 13 of
+34 (38%) on the same code. Files the lead wrote were stuffed, unconsciously, with
+words the library knows. Every offline figure quoted from that corpus overstates
+the product, and the 91% above is the first accuracy number in this entry taken
+on material nobody authored for the test.
+
+### The `code` vocabulary work: proposed, then withdrawn on reading the record
+
+`code` carries 41 terms against `academic`'s 248, and 8 of the 21 files unnamed
+offline were `.py`, `.ipynb` or `.code-workspace`. That looked like the highest
+-value vocabulary target and the lead was about to author terms for it.
+
+**Two of the five `code` rows carry `refuse_node: true`,** and their
+`never_alone` entries say exactly why:
+
+* `code.scratch-prototypes` — *"A source-code extension alone (.py, .js, .ts,
+  .sql, .sh)."*
+* `code.software-project` — *"A package manifest inside an excluded directory.
+  This is the tempting false file for exactly this row."*
+
+So a bare source extension activating `code` is not an oversight in the
+vocabulary; it is a thing the research considered and **ruled out**, for the
+reason that a real software project is excluded as a project root anyway.
+`compile.py`'s own docstring names the failure the lead was walking into:
+*"Compiling its terms would resurrect a node an adjudication killed."*
+
+**Withdrawn.** And the cloud run makes it moot in the same breath: the judge
+named six of those code files by itself — four `code.notebooks-experiments`, two
+`code.dotfiles-environment` — with no vocabulary change at all.
+
+**What this leaves for the offline path**, which is the DEFAULT posture and where
+38% is the honest figure: not vocabulary. The gap between 38% and 91% is the
+judge, and offline the judge is a local model — which is where the gate finding
+above lives.
