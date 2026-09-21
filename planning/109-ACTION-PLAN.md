@@ -2126,6 +2126,30 @@ arrangement is not evidence, and 21 Sep's "11,304 passed, 0 failed" was one.
 
 Fixed in `8065524a`. Neither fix touches `src/`.
 
+**A FOURTH, found by the next full run and the same shape again.**
+`test_a_silent_file_is_asked_and_filed_under_one_situation` has a module-scoped
+`answered` fixture that runs a third `cli.main` against `run`'s database with
+`--answer situation:research=…`. That answer RESOLVES the open situation and
+places files — which is exactly the state
+`test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open` exists
+to assert is absent. Seeds 2 and 3 fail; seed 1 and definition order pass.
+
+**Proven pre-existing in a detached worktree at `29b85d8c`**, this session's
+starting commit, where it fails on the same two seeds. And the failing test
+passes ALONE on seed 2 — which is the check that separates an ordering fault
+from a seeding one, and worth writing down because the two look identical in a
+run log. Fixed the same way, on its own `Connection.backup` copy.
+
+**So the family is: a fixture that WRITES into a database its read-only siblings
+share.** It arises honestly — a `cli.main` run is the most expensive thing in the
+suite, so sharing one is right — and the discipline that makes it safe is one
+line: *a fixture that writes takes a copy.* A scan for the shape (`scope="module"`
+plus more than one `cli.main`) finds seven modules; the rest were swept under
+several seeds rather than waited for.
+
+Pinning the seed would hide this family, not fix it. Random ordering is what
+found all four.
+
 ### THE OWNER'S — `00`:30's instruction for code is built on one side only
 
 `00`:30, in its own words: *"Code-related files should **rely heavily on local
