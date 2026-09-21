@@ -2226,15 +2226,31 @@ says *"19 of them had nothing to read — no text came out of them"*. All ninete
 including the plain `.txt` files that extract fine offline. Extraction produced
 nothing, so the counts describe a broken run and say nothing about the model.
 
-**The cause was almost certainly the measurer.** While the run was in flight I
-queried its database with the `sqlite3` CLI to watch it progress; that read
-returned `SQLITE_IOERR` at the time and I read past it. Opening a database
-another process is writing under WAL is not a free observation.
+**THE CAUSE, AND THE FIRST DIAGNOSIS OF IT WAS WRONG.** I recorded here that the
+measurer had broken the run by querying its database with the `sqlite3` CLI
+mid-write. That was a guess from a coincidence — my read had returned
+`SQLITE_IOERR` around the same time — and it is **false**.
 
-**Two rules out of it.** Do not touch a run's database while it runs — watch the
-process, or the output file, or nothing. And a model run needs the per-file
-wall-clock ceiling `tools/groundtruth/_one_run.py` already implements and this
-probe did not: without it a stuck call has no bound and nobody is at the screen.
+The second attempt carried a validity gate, which caught the same breakage and
+printed what the first attempt had buried: a multiprocessing `freeze_support()`
+refusal. P5's extraction pool SPAWNS workers, a spawned worker re-imports
+`__main__`, and the probe was a script file with no `if __name__ == "__main__":`
+guard — so every worker re-ran the whole probe, multiprocessing refused, every
+extraction died, and `cli.main` still returned 0 with a plausible report in which
+nothing had been read. Adding the guard fixes it: the same corpus offline then
+reports `16 of 19 yielded text` in two seconds.
+
+The earlier ad-hoc runs in this entry were `python3 -c` invocations, where there
+is no file for a child to re-import, which is why they extracted normally and
+this one did not. **A probe that drives `cli.main` from a FILE needs the main
+guard**, and that is the rule, not the one about databases.
+
+**What still stands from the first write-up:** the validity gate itself. A run
+that exits 0, writes a full report and read nothing is indistinguishable from a
+real one at the level of counts. Asking "did any text come out of this corpus"
+BEFORE reading a single number is what turned two wasted runs into a diagnosis.
+A long unattended model run also still wants the per-file wall-clock ceiling
+`tools/groundtruth/_one_run.py` implements and these probes did not.
 
 The question is still open and still worth answering, because the seven files the
 rules cannot settle are design-bound — the arity rule and `00`'s requirement to
