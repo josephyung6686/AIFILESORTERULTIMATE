@@ -1886,9 +1886,17 @@ never the spec.
 The figure carried into this session was "3 of 15 filed offline". It was from a
 run no longer on disk, and it is **wrong**. Measured: of nineteen text files,
 **eleven were recognised**, six abstained `no_corroboration`, two `ambiguous`.
-`no_evidence` was **zero** — extraction is not the bottleneck, which was the
-prior hypothesis and is now dead. Recorded so the next session starts from a
-number rather than from anyone's recollection.
+`no_evidence` was **zero**. Recorded so the next session starts from a number
+rather than from anyone's recollection.
+
+**AND THE LIMIT OF THAT NUMBER, stated here rather than discovered later.** This
+corpus is fifteen text files, a `.py`, a `.csv` and two images. Every one of them
+is trivially extractable, so "`no_evidence` is zero" is a fact about
+TEXT-BEARING files and is **not** evidence that extraction is sound generally.
+The owner's corpus is 222 PDFs, 40 JPEGs and 16 MP3s; a scanned PDF with no OCR
+and an untranscribed recording both land in `no_evidence`, and nothing measured
+here touches them. What it does kill is the idea that extraction is what stops
+the files this corpus is made of.
 
 ### CLOSED — a picture whose own name says photo was not a photo
 
