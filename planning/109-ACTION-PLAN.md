@@ -2239,3 +2239,22 @@ probe did not: without it a stuck call has no bound and nobody is at the screen.
 The question is still open and still worth answering, because the seven files the
 rules cannot settle are design-bound — the arity rule and `00`'s requirement to
 abstain on a tie — and the design's own answer for them is to ask a model.
+
+### The confirmation number
+
+```
+11309 passed, 20 skipped, 34 xfailed in 1271.73s (0:21:11)
+```
+
+Zero failed, zero errors, and the output scanned for a traceback before the count
+line was read — which is the discipline the thrown-away model run above bought.
+
+Twelve commits stand behind it: one recognition fix, two screen fixes, four test
+isolation fixes and the register entries. Five tests were added and each of the
+three product fixes was watched failing first.
+
+**Read it against the run that opened this entry, not against the session before.**
+That one said `3 failed, 11303 passed`, and the one before it `11304 passed, 0
+failed` — a number that was a property of the seed. This one is green because
+four modules no longer depend on the order they run in, which was checked by
+forcing the orders rather than by drawing seeds.
