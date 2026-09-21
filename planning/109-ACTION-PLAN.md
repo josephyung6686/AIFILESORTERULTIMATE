@@ -2211,3 +2211,31 @@ one was ever wired.
 **What it would buy:** `code` is the schema a developer's folder is most made of,
 and it is currently one of the weakest in the library. Nothing here should be
 built before the owner picks one of the two, because both are authorship.
+
+### NOT MEASURED — what a local model does to this corpus
+
+Attempted and **thrown away**, recorded so it is not mistaken for a result and
+not repeated the same way.
+
+The run named `qwen2.5:3b` over the same nineteen files and came back after 627
+seconds saying `2 Photos and captures`, `1 Academic`, `16 nothing named these
+yet` — worse than the 12 of 19 the rules manage alone, which would be a striking
+finding if it were one. It is not. The same output carries
+`sqlite3.OperationalError: disk I/O error` out of `open_database`, and the report
+says *"19 of them had nothing to read — no text came out of them"*. All nineteen,
+including the plain `.txt` files that extract fine offline. Extraction produced
+nothing, so the counts describe a broken run and say nothing about the model.
+
+**The cause was almost certainly the measurer.** While the run was in flight I
+queried its database with the `sqlite3` CLI to watch it progress; that read
+returned `SQLITE_IOERR` at the time and I read past it. Opening a database
+another process is writing under WAL is not a free observation.
+
+**Two rules out of it.** Do not touch a run's database while it runs — watch the
+process, or the output file, or nothing. And a model run needs the per-file
+wall-clock ceiling `tools/groundtruth/_one_run.py` already implements and this
+probe did not: without it a stuck call has no bound and nobody is at the screen.
+
+The question is still open and still worth answering, because the seven files the
+rules cannot settle are design-bound — the arity rule and `00`'s requirement to
+abstain on a tie — and the design's own answer for them is to ask a model.
