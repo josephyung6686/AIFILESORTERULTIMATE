@@ -2009,3 +2009,67 @@ owner's. Recorded here so it is not rediscovered as a finding.
 * `12_recipe.txt` → `creative` on `finish`, `stock`; `08_nda.txt` →
   `business_operations` on `shall`. Ordinary English carrying schema weight.
 * `construction_property` offers a **22-option** menu for two files.
+
+### The mechanism under both the ties and the false positives
+
+Every abstention on the nineteen-file corpus, with the exact terms that produced
+it. This is the useful form of "the vocabulary is thin", because it names what is
+actually doing the work:
+
+| file | reason | the terms, and who owns them |
+| --- | --- | --- |
+| a one-line note | no_corroboration | `curriculum`→academic, `term`→construction_property, `review`→creative |
+| ordinary prose | no_corroboration | `before`→**law_practice** |
+| meeting notes | no_corroboration | `check in`→finance/construction/retail, `catch up`→business_ops, `round`→creative, `notes`→academic |
+| a cover letter | ambiguous | `dear`→**clinical_practice**, `cover`→clinical_practice+creative, `billing`→creative |
+| `script.py` | no_corroboration | `script`→**code AND creative**, one each, tie |
+| a csv of sales | no_corroboration | `units`→academic AND law_practice |
+
+Two different failures, and they need different remedies:
+
+* **Ordinary English authored as a sole-owned term** — `before` is
+  `law_practice`'s, `dear` is `clinical_practice`'s. These do not tie; they WIN,
+  and they are what put a recipe and a README into `creative` (`finish`, `stock`,
+  `install`, `layout`). An over-recognition is worse than an abstention because
+  the file is filed somewhere nobody will look for it.
+* **A word two schemas both authored** — 411 of 8,481 terms have more than one
+  owner. `script` belongs to `code` (a script) and `creative` (a screenplay), so
+  a Python file called `script.py` is structurally unrecognisable: one term each,
+  a tie, and `00` requires abstention. `code` has ten sole-owned single words, so
+  it has little else to win on.
+
+**Both are vocabulary authoring and therefore the owner's.** What would settle
+the first is a frequency list — this project has none, and inventing one here
+would be exactly the hardcoding the owner ruled against on 20 Sep. Naming the
+measurement that is missing is more useful than guessing at it.
+
+### `00`:30's instruction for code is emitted and lands on nothing
+
+`00`:30 says code files *"should rely heavily on local structural evidence,
+including repository roots and package files"*. The machinery exists:
+`extractors/structured_text.STRUCTURAL_MARKER_KINDS` carries §2.4's four classes
+and `readers/text_documents._markers_for` produces them by filename stem.
+
+Measured on a six-file repository — `README.md`, `package.json`,
+`pyproject.toml`, `Makefile`, `index.js`, a notebook with kernel metadata — the
+run indexed **zero files**. Every path was excluded `software project root
+descendant`, subject `package.json`, and all six verdicts are in
+`exclusion_verdicts`.
+
+**That exclusion is right** and nobody should want their repository reorganised.
+**The screen is not.** The run refused with:
+
+> the folder was read and nothing in it said what kind of material it is: no
+> file carries a kind-of-file word one situation owns, and the recogniser raised
+> nothing about any of them.
+
+Nothing was read, and the recogniser was never asked. `_print_set_aside` exists
+precisely so a refused run still says what it skipped — its own comment reads
+*"a refused run that never said what it had skipped is the silent omission the
+standing rule forbids"* — but it sits at `cli.py:20953` and this refusal fires at
+`cli.py:19410`. **The earliest refusal is upstream of the block that exists to
+make refusals honest.** So the six set-aside files are recorded in the database
+and named on no screen, and the sentence the person gets blames the recogniser.
+
+Mine to fix, and small: the empty roster is a different case from a vote that
+named nothing, and it should say so.
