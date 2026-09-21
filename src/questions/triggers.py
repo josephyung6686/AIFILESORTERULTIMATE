@@ -298,6 +298,7 @@ def _nesting_label(choice: NestingChoice) -> str:
 def question_for_situation(*, branch_label: str, situations: Iterable[str],
                            file_count: int,
                            unjudged_menu_of: str | None = None,
+                           unjudged_menu_named_by: str | None = None,
                            scope_label: str | None = None) -> StructuralQuestion:
     """§13's third consequence: the person says which of their lives a branch is.
 
@@ -351,12 +352,37 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
     else:
         kind = unjudged_menu_of
         they, them, are = (("it", "it", "is") if one else ("they", "them", "are"))
+        # WHICH OF THE TWO VOTES NAMED THIS KIND, because `cli`'s chooser takes
+        # two and this sentence used to describe one of them whichever had won.
+        # The anchors are asked first -- a `work_type` FACT whose term exactly one
+        # schema owns -- and the recogniser's raised candidates only where those
+        # tie. "A fact outranks a reading" is the rule, and it is not what was
+        # wrong.
+        #
+        # Measured 21 Sep 2026 over a nineteen-file synthetic corpus: the run
+        # offered `career`'s situations "because career is the kind this folder's
+        # own evidence names most often". `career` was recognised on ZERO of the
+        # nineteen. It won the ANCHOR vote 2-1, on `meeting notes` and `cover
+        # letter`, while `academic` won the reading vote 9-2 and was recognised
+        # twice. The sentence was reporting a tally that had not decided, about a
+        # kind the census printed four lines above showed on no file at all.
+        #
+        # `None` KEEPS THE OLD WORDS on purpose: a caller that has not been taught
+        # to say which vote it took should not be made to claim one.
+        because = {
+            "facts": (f"because more of these files carry a kind-of-file word "
+                      f"{kind} owns than any other kind's"),
+            "readings": (f"because {kind} is the kind this folder's own readings "
+                         "raised most often"),
+        }.get(unjudged_menu_named_by,
+              f"because {kind} is the kind this folder's own evidence names most "
+              "often")
         evidence = (
             f"{file_count} {files} {sit} under {branch_label}, and nobody has said "
             f"what {they} {are}: no answer of yours covers {them}, and no model has "
-            f"judged {them}. The situations offered are {kind}'s, because {kind} is "
-            "the kind this folder's own evidence names most often -- not because "
-            f"anything read {'this file' if one else 'these files'} as {kind}.")
+            f"judged {them}. The situations offered are {kind}'s, {because} -- not "
+            f"because anything read {'this file' if one else 'these files'} as "
+            f"{kind}.")
         unlocks = (
             f"Answer here only if {'this file is' if one else 'these files are all'} "
             f"one of the situations offered: it decides which folders {branch_label} "

@@ -19355,7 +19355,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         catalogue, pass_of=lambda: template_cell[0],
         situation_of=_the_situation_this_file_is_under)
 
-    def _the_corpus_names_a_schema(roster) -> str:
+    #: WHICH OF THE CHOOSER'S TWO VOTES NAMED THE DEFAULT BRANCH -- `facts` for
+    #: the anchors, `readings` for the recogniser's candidates -- so the question
+    #: that offers that kind's menu can say which evidence it is reporting rather
+    #: than always naming the second. A cell because the chooser runs inside
+    #: `_the_branches` and the question is built two functions over, both of them
+    #: nested here. `None` until a vote has been taken, and a question built
+    #: before one keeps the older wording.
+    named_by_cell: list[str | None] = [None]
+
+    def _the_corpus_names_a_schema(roster, run_id: str) -> str:
         """WHICH KIND OF LIFE THIS FOLDER IS, from the folder's own evidence.
 
         `00` Amendments of 2026-09-11 item 2: with no `--situation` typed, the
@@ -19389,6 +19398,46 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         be acted on, and the vote does not count it. `identity` is the live case:
         the recogniser raised it twice on the six files the byte pin uses.
         """
+        # NOTHING TO VOTE ON IS NOT A VOTE THAT NAMED NOTHING, and until this
+        # branch existed the two printed the same sentence. A folder whose every
+        # file was set aside never reached the recogniser at all, so a refusal
+        # saying "the recogniser raised nothing about any of them" names the one
+        # part of the run that was never asked -- and sends the person off to
+        # rename their files when what they need is to scan somewhere else.
+        #
+        # Measured 21 Sep 2026 on a six-file repository -- `README.md`,
+        # `package.json`, `pyproject.toml`, `Makefile`, `index.js`, a notebook.
+        # Zero files indexed, six `software project root descendant` verdicts in
+        # `exclusion_verdicts`, and a screen that blamed the recogniser and named
+        # none of them.
+        #
+        # `_print_set_aside` IS THE RIGHT PLACE FOR THIS AND CANNOT REACH IT. It
+        # is deliberately placed before the stages that can refuse, on its own
+        # argument that "a refused run that never said what it had skipped is the
+        # silent omission the standing rule forbids" -- but this refusal is
+        # raised fifteen hundred lines upstream of it, so it is the earliest
+        # refusal in the run and outruns the guard. The names still come from
+        # `_print_set_aside` on every run that gets that far; what is said here is
+        # the count and the rule, which is what makes the refusal true.
+        if not roster:
+            by_rule = scan_run_summary(conn, run_id)["paths_excluded_by_rule"]
+            if by_rule:
+                total = sum(by_rule.values())
+                rules = ", ".join(
+                    f"{count} by `{rule}`"
+                    for rule, count in sorted(by_rule.items()))
+                raise NotConfigured(
+                    f"nothing in this folder was read. All {total} of its paths "
+                    f"were set aside before anything was opened -- {rules} -- so "
+                    "no file reached the recogniser and nothing was moved. A "
+                    "software project, a system folder and an application bundle "
+                    "are each left whole on purpose. If the material you want "
+                    "organised is inside one of them, scan it somewhere that is "
+                    "not one.")
+            raise NotConfigured(
+                "there is nothing in this folder to organise: it holds no files "
+                "this product can index. Nothing was moved.")
+
         anchors: dict[str, int] = {}
         raised: dict[str, int] = {}
         for file_id, content_hash in roster:
@@ -19403,9 +19452,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     conn, file_id, content_hash).candidates:
                 if _situations_of(schema_id):
                     raised[schema_id] = raised.get(schema_id, 0) + 1
-        for votes in (anchors, raised):
+        # THE ORDER IS THE MEASUREMENT'S, and the NAME of the vote that won now
+        # travels with its answer. The screen used to describe `raised` whichever
+        # of the two had decided -- see `named_by_cell` above and
+        # `questions.triggers.question_for_situation`, where the sentence is.
+        for basis, votes in (("facts", anchors), ("readings", raised)):
             leader = _the_one_with_the_most(votes)
             if leader is not None:
+                named_by_cell[0] = basis
                 return leader
         raise NotConfigured(
             "the folder was read and nothing in it said what kind of material "
@@ -19431,7 +19485,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             default_label, default_situation = said().label, said().situation
             default_schema = said().schema
         else:
-            default_schema = _the_corpus_names_a_schema(roster)
+            default_schema = _the_corpus_names_a_schema(roster, run_id)
             # THE LIBRARY'S OWN NAME FOR THE KIND when the person named none --
             # the owner's ruling of 18 Sep, *"the names and folder and stuff all
             # human readable and not machine readable"*. This used to be the raw
@@ -19613,7 +19667,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # `schemas[0]` -- and the question says so instead of claiming
                 # the files' facts fit it.
                 unjudged_menu_of=(branch.schemas[0] if branch.is_default
-                                  else None))
+                                  else None),
+                # AND WHICH OF THE TWO VOTES NAMED IT. A fact and a reading are
+                # different evidence, and until this was carried the question
+                # named the reading vote on runs the anchors had decided.
+                unjudged_menu_named_by=(named_by_cell[0] if branch.is_default
+                                        else None))
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = branch.file_ids
             asked.append(question)

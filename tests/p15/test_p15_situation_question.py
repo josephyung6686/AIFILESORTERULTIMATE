@@ -104,6 +104,53 @@ def test_the_unjudged_defaults_question_says_nobody_has_said_what_these_are():
     assert chosen == set(PRIYAS_TWO_LIVES)
 
 
+def test_the_unjudged_question_says_which_of_the_two_votes_named_the_kind():
+    """`cli._the_corpus_names_a_schema` VOTES TWICE and this sentence reported one.
+
+    The default branch's kind is chosen by anchors first -- a `work_type` fact
+    whose term exactly one schema owns -- and only where those tie by the
+    recogniser's raised candidates. "A fact outranks a reading" is the rule and it
+    is not in question here. What was wrong is that the screen described the
+    READING vote whichever one had decided.
+
+    **Measured 21 Sep 2026 on a nineteen-file synthetic corpus.** The run said
+    *"the situations offered are career's, because career is the kind this
+    folder's own evidence names most often"*. There was no career material in it
+    and `career` was recognised on ZERO files: it took the anchor vote 2-1 on
+    `meeting notes` and `cover letter`, while `academic` took the reading vote
+    9-2 and was recognised twice. Both tallies are in the product; only one of
+    them decided; the person was told about the other.
+
+    A fact and a reading are different evidence and the screen may not spell them
+    the same.
+
+    SABOTAGE: drop the keyword from `structural_question`'s sentence choice. The
+    two calls below produce identical text and the first assertion goes red.
+    """
+    facts = a_situation_question(branch_label="Downloads", file_count=9,
+                                 unjudged_menu_of="career",
+                                 unjudged_menu_named_by="facts")
+    readings = a_situation_question(branch_label="Downloads", file_count=9,
+                                    unjudged_menu_of="career",
+                                    unjudged_menu_named_by="readings")
+
+    assert facts.evidence_context != readings.evidence_context, (
+        "the two votes are reported in the same words, so the screen still says "
+        "the same thing however the kind was chosen")
+    # A FACT: a word on the file that one situation owns. Not a count of readings.
+    assert "kind-of-file word" in facts.evidence_context, facts.evidence_context
+    assert "names most often" not in facts.evidence_context, facts.evidence_context
+    # A READING: what the recogniser raised, which is what the old sentence meant.
+    assert "raised" in readings.evidence_context, readings.evidence_context
+
+    for question in (facts, readings):
+        # UNCHANGED, because this is a change to one clause and not to the
+        # question. `00` amendment 25's own three assertions still hold.
+        assert "nobody has said what they are" in question.evidence_context
+        assert "career" in question.evidence_context
+        assert "fit" not in question.evidence_context
+
+
 def test_one_situation_is_not_an_ambiguity_and_asks_nothing():
     """The negative twin, and the shape `question_for_nesting` already uses.
 
