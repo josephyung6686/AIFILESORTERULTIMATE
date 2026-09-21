@@ -418,6 +418,18 @@ def _diff(before: list[str], after: list[str]) -> list[str]:
 if __name__ == "__main__":
     if sys.argv[1:] != ["capture"]:
         sys.exit("usage: capture")
+    # THE CAPTURE MUST SEE THE SAME WORLD THE SUITE DOES, and since the local
+    # model discovery of 20 Sep it did not. `tests/conftest.py` neutralises
+    # `cli._discover_local_models` for every test; a script run as `__main__`
+    # loads no conftest, so on a machine with ollama running this captured an
+    # eleven-line "this device has N models installed" banner that pytest never
+    # prints -- a fixture that passes on the laptop it was taken on and fails on
+    # every other. An agent hit exactly that, discarded the capture and worked
+    # around it with a closed loopback port; the door is shut here instead.
+    #
+    # Replaced rather than pointed at a dead port, so the capture does not
+    # depend on which ports happen to be closed either.
+    cli._discover_local_models = lambda _endpoint: ()
     import tempfile
     with tempfile.TemporaryDirectory() as scratch:
         FIXTURE.parent.mkdir(exist_ok=True)
