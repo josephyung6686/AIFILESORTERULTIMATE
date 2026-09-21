@@ -494,8 +494,34 @@ def test_a_hold_the_person_has_already_lifted_is_not_a_hold_on_the_next_run(
     live row in `ask_the_situation`. The block reappears over a file the person
     already released, and the file is skipped instead of asked.
     """
-    database, _report, _stub = _run("declined", _decline, tmp_path_factory,
-                                    monkeypatch)
+    shared, _report, _stub = _run("declined", _decline, tmp_path_factory,
+                                  monkeypatch)
+    # ITS OWN COPY, AND THIS IS THE ONLY TEST HERE THAT NEEDS ONE. `_RUNS` hands
+    # the same database to four tests because a `cli.main` run is the most
+    # expensive thing in this suite -- and every other one of them opens it
+    # `mode=ro`. This one WRITES: the person's lift, and then a second scan over
+    # the same rows, which is the whole point of it ("TWO RUNS OVER ONE
+    # DATABASE" above).
+    #
+    # Sharing a MUTATED database is what made this module's result a property of
+    # the order it ran in. Measured 21 Sep 2026: under the suite's random
+    # ordering, four seeds in five put this test before
+    # `test_a_decline_leaves_the_hold_exactly_as_the_rules_wrote_it` and
+    # `test_a_held_file_is_never_offered_a_cloud_target`, and both went red on
+    # `superseded_by is None` -- reading the `user_confirmed` row THIS test
+    # wrote. In definition order it runs last and they pass, so the suite was
+    # green by arrangement rather than by isolation.
+    #
+    # A COPY RATHER THAN A SECOND RUN: the run is what costs, and this needs the
+    # run's rows and not its process. `Connection.backup` rather than a file copy
+    # because a WAL database is more than one file on disk.
+    database = tmp_path_factory.mktemp("lifted") / "plan.sqlite"
+    _source = sqlite3.connect(f"file:{shared}?mode=ro", uri=True)
+    _copy = sqlite3.connect(str(database))
+    with _copy:
+        _source.backup(_copy)
+    _copy.close()
+    _source.close()
     conn = sqlite3.connect(str(database))
     conn.row_factory = sqlite3.Row
     held = _held_file(conn)
@@ -516,8 +542,9 @@ def test_a_hold_the_person_has_already_lifted_is_not_a_hold_on_the_next_run(
     conn.commit()
     conn.close()
 
-    # The same corpus, the same database, scanned again.
-    root = Path(database).parent
+    # The same corpus, the same database, scanned again. The corpus is the
+    # shared run's -- nothing writes to it -- and the database is this test's own.
+    root = Path(shared).parent
     with StubOllama(answer=_dispatching(_decline)) as stub:
         monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
         monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)

@@ -18,6 +18,9 @@ from llm_harness.vocabulary import A_FACT, C_PLACEMENT  # noqa: E402
 from llm_harness.wire_handles import wire_handle  # noqa: E402
 
 from tools.promptbench.__main__ import run_site  # noqa: E402
+import pytest  # noqa: E402
+
+from llm_harness import dossier as _dossier  # noqa: E402
 from tools.promptbench.clients import CallMeta  # noqa: E402
 from tools.promptbench.dossiers import BENCH_HANDLE_KEY  # noqa: E402
 
@@ -62,6 +65,37 @@ def _fake_a_client(payload: bytes) -> tuple[bytes, CallMeta]:
         model_id="fake", locality="local", latency_seconds=0.01,
         prompt_tokens=10, completion_tokens=5, num_ctx=8192,
         prompt_bytes=len(payload), settings={"fake": True})
+
+
+@pytest.fixture(autouse=True)
+def _the_glossary_swap_is_put_back():
+    """THE BENCH'S SWAP IS PROCESS-WIDE, AND A SUITE GOES ON RUNNING AFTER IT.
+
+    `promptbench.site_a.use_glossary` assigns `dossier.GLOSSARY_FILE` and never
+    restores it. That is right for the TOOL -- a script that benches one glossary
+    and exits -- and wrong inside this suite, because the site-A bench runs two
+    candidates and the SECOND one wins. Without this fixture every test that runs
+    afterwards in the same process reads
+    `field_glossary_proposal_2026-09-06.json` where the shipped file belongs.
+
+    **Measured 21 Sep 2026.** Ordering `tests/tools/` before `tests/p8/` fails
+    `test_p8_glossary_is_not_a_value_table.py::
+    test_every_meaning_is_the_library_s_sentence_byte_for_byte` deterministically,
+    with the proposal's sentence for `school` in place of the ratified one. Under
+    the suite's random ordering it happens on most seeds, and it was one of three
+    failures that made a green suite a property of the seed rather than of the
+    code.
+
+    THE CACHE IS CLEARED AS WELL AS THE PATH RESTORED. `_meanings` is memoised on
+    the path it last read, so putting the path back with a warm cache is the same
+    leak wearing the right filename -- which is why `use_glossary` clears it too.
+    """
+    original = _dossier.GLOSSARY_FILE
+    try:
+        yield
+    finally:
+        _dossier.GLOSSARY_FILE = original
+        _dossier._meanings.cache_clear()
 
 
 def test_run_site_c_writes_one_record_per_call_and_a_summary(tmp_path):
