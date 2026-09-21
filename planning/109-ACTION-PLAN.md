@@ -2144,8 +2144,12 @@ run log. Fixed the same way, on its own `Connection.backup` copy.
 share.** It arises honestly — a `cli.main` run is the most expensive thing in the
 suite, so sharing one is right — and the discipline that makes it safe is one
 line: *a fixture that writes takes a copy.* A scan for the shape (`scope="module"`
-plus more than one `cli.main`) finds seven modules; the rest were swept under
-several seeds rather than waited for.
+plus more than one `cli.main`) finds seven modules, and the other six were swept
+under three seeds each rather than waited for: `test_seam_census`,
+`test_the_sort_is_frozen_and_applied_on_a_copy`,
+`test_the_question_at_the_end_and_the_sort`, `test_the_judge_names_the_situation`,
+`test_the_gist` and `p7/test_p7_file_released` are all clean. **The family is
+contained: four found, four fixed.**
 
 Pinning the seed would hide this family, not fix it. Random ordering is what
 found all four.
