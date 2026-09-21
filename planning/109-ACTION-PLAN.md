@@ -2474,3 +2474,61 @@ nothing. A hypothesis worth testing and NOT asserted here: `qwen3` is a reasonin
 model and its thinking tokens may fight the gate's constrained JSON schema. What
 would settle it is a rerun under `_one_run.py`'s ceiling, or the cloud gate the
 deployment is configured for.
+
+## 19 OF 19 — the cloud route, measured end to end
+
+The owner, 21 Sep: *"we need 19 of 19."* Measured on the nineteen-file synthetic
+corpus with `--enable-cloud` and the deployment's own configured models
+(`deepseek-chat`, `deepseek-v4-flash`). Validity checked first: 19 indexed,
+**16 yielded text**, so the counts mean something.
+
+```
+recognised by the rules : 12
+named by the judge      :  7
+NOT NAMED AT ALL        :  0
+                          19 of 19 named
+```
+
+**`00` amendment 5 is satisfied on this corpus.** No abstention survives to the
+end of the run.
+
+**THE JUDGE DID NOT ONLY FILL GAPS — IT CORRECTED THE RULES.**
+
+| file | the rules | the cloud judge |
+| --- | --- | --- |
+| `05_one_term.txt` | no_corroboration | `academic.coursework` |
+| `06_tie.txt` | ambiguous (a tie built to be one) | `academic.coursework` |
+| `07_plain.txt` | no_corroboration | `business_operations.project-delivery` |
+| `11_meeting_notes.txt` | no_corroboration | `business_operations.project-delivery` |
+| `14_cover_letter.txt` | ambiguous | **`career.recruiting`** |
+| `16_script.py` | tie, `code` vs `creative` | **`code.notebooks-experiments`** |
+| `17_table.csv` | tie, `academic` vs `law_practice` | `business_operations.market-research` |
+| `13_readme.md` | `creative` — WRONG | **`code`** |
+| `08_nda.txt` | `business_operations` | **`legal`** |
+| `09_lease.txt` | `construction_property` | **`legal`** |
+
+The README landing in `creative` is one of the vocabulary defects recorded above
+as needing the owner's ratification. **The cloud judge fixed it without any
+vocabulary change at all**, which reprices that whole finding: a term list good
+enough for the rules to abstain honestly, plus a judge that reads, beats a term
+list argued into correctness.
+
+**THE GATE DID NOT RUN ON THIS ROUTE, and that is by design.** `H_restricted_kind`
+is a LOCAL call; with no local model named there were zero gate dossiers, and site
+G ran in the cloud for 23 calls (two per file: the kind, then the situation). So
+the ten wrong holds recorded above are a property of the LOCAL gate model and
+touch the cloud path not at all.
+
+**What the three routes cost, same corpus, same files:**
+
+| route | files asked | named at the end |
+| --- | --- | --- |
+| offline, no model | 0 | 12 of 19 |
+| local `qwen2.5:3b` | 1 | 12 of 19 |
+| local `qwen3:8b` (stalled, partial) | 22 calls | not completed |
+| **cloud `deepseek`** | **10** | **19 of 19** |
+
+**One anomaly, recorded and not chased:** `12_recipe.txt`'s situation answer came
+back `none_of_these`, which is the GATE's vocabulary and not a situation. The file
+is named anyway (the rules had it as `creative`), so it costs nothing here, but a
+situation site answering in the gate's words is worth a look.
