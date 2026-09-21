@@ -2125,3 +2125,56 @@ I just shipped" was root-causing all three. A green run that is a property of th
 arrangement is not evidence, and 21 Sep's "11,304 passed, 0 failed" was one.
 
 Fixed in `8065524a`. Neither fix touches `src/`.
+
+### THE OWNER'S — `00`:30's instruction for code is built on one side only
+
+`00`:30, in its own words: *"Code-related files should **rely heavily on local
+structural evidence, including repository roots and package files**, rather than
+forcing semantic analysis to infer a project from arbitrary code text."*
+
+**The producer side is built and works.** `extractors/structured_text`
+carries §2.4's four classes as `STRUCTURAL_MARKER_KINDS` and
+`readers/text_documents._markers_for` emits them. Measured on three loose files
+(outside a project root, so nothing is excluded):
+
+```
+metadata:field=README file        README.md
+metadata:field=notebook metadata  nbformat: 4
+metadata:field=notebook metadata  kernelspec: Python 3
+metadata:field=notebook metadata  language_info: python
+```
+
+**The consumer side is not.** Same three files, same run:
+
+| file | outcome | schemas raised |
+| --- | --- | --- |
+| `README.md` | no_corroboration | construction_property, creative |
+| `analysis.ipynb` | **no_evidence** | none |
+| `notes.txt` | no_corroboration | academic, creative, law_practice |
+
+A Jupyter notebook carrying `kernelspec: Python 3`, `language_info: python` and
+an `import` statement raised **nothing at all**, and a README raised
+`construction_property`. The four indicators `00` names are in the evidence table
+and the `code` schema authors no term that matches any of them — its whole
+vocabulary is 41 terms, ten of them sole-owned single words.
+
+It is worse than a gap. The detector *deliberately refuses* the one observation
+that did say "notebook": `_matches` skips `metadata:field=language`, and its
+comment records why — the reader fills that slot with `Jupyter notebook`, `code`
+ships `notebook` as a work type, and every `.ipynb` in existence carried a `code`
+term before a word of it was read. That refusal is right. It also means the
+honest signal and the dishonest one were the same slot, and only the dishonest
+one was ever wired.
+
+**Two ways to close it, and both are the owner's, not mine.**
+
+1. *Vocabulary* — author terms on `code` that the marker VALUES actually spell
+   (`nbformat`, `kernelspec`, `package.json`). Ratification.
+2. *A rule* — let a marker KIND raise `code`, since §2.4's four classes are a
+   closed set and the kind, unlike the value, is the product's own word. That is
+   a new recognition signal and therefore a design change, and it would want
+   `00`:30 quoted beside it.
+
+**What it would buy:** `code` is the schema a developer's folder is most made of,
+and it is currently one of the weakest in the library. Nothing here should be
+built before the owner picks one of the two, because both are authorship.
