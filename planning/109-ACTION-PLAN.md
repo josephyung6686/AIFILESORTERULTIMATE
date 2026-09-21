@@ -2416,3 +2416,61 @@ record rather than an open invitation to rebuild this.** What `00`:30 would need
 is a signal that distinguishes a project from a document written in a language —
 a repository root reaching the recogniser as CONTEXT rather than as an exclusion,
 which is a P3 question and not a P7 one. That is the owner's to want or not.
+
+### What the gate actually answered, and a cause I named too fast
+
+Read out of the local-model run's own `llm_response` rows — the model's words,
+not a summary of them. The vocabulary it is shown, in order, is `receipt`,
+`order_confirmation`, `boarding_pass_or_ticket`,
+`own_account_or_message_screenshot`, `bank_or_card_notification`,
+`identity_document`, `medical_record`, `financial_statement_or_tax_return`,
+`credentials_or_password_vault`, `legal_document_naming_the_person`,
+`none_of_these`.
+
+| answer | position | files |
+| --- | --- | --- |
+| `none_of_these` | **10 (last)** | 5 |
+| `receipt` | 0 | 3 |
+| `own_account_or_message_screenshot` | 3 | 3 |
+| `financial_statement_or_tax_return` | 7 | 2 |
+| `legal_document_naming_the_person` | 9 | 2 |
+
+**A CAUSE NAMED TOO FAST, AND WITHDRAWN.** On the first four responses read, three
+said `receipt` — the first member — and the lead recorded first-option bias. Over
+all fifteen it does not hold: the answers spread across positions 0, 3, 7, 9 and
+10, and the single commonest answer is the LAST member. The hypothesis was stated
+on four points and died at fifteen. This is the fourth cause named too quickly in
+one session and the register carries all four on purpose.
+
+**What the answers actually look like**, which is more mixed than "the gate is
+broken":
+
+* **Defensible.** The NDA and the lease as `legal_document_naming_the_person`; the
+  sales csv as `financial_statement_or_tax_return` (it carries revenue columns);
+  `06_tie.txt` likewise, since its invented text contains `balance` and
+  `collateral`.
+* **Plainly wrong.** A tomato soup recipe, lecture notes about sorting, and a
+  Python script all as `receipt` — the script citing the span `"[1]"`. A README
+  and a cover letter as `own_account_or_message_screenshot`.
+* **Right.** Five files got `none_of_these`.
+
+So a 3B model asked a ten-way judgement over short excerpts is wrong about a third
+of the time, and each wrong answer costs a file its place at the judge. The
+deployment's configured gate is the CLOUD one; the local model is the fallback.
+
+### `qwen3:8b` on the gate — STARTED, STALLED, STOPPED
+
+Run for 68 minutes with `llama-server` idle at **0.3% CPU** and 67 seconds of
+total model CPU. Stopped by hand.
+
+**That signature is already in this repo.** `tools/groundtruth/_one_run.py`
+records it: *"r19 spent twenty-six of its last minutes on one call to a server
+sitting at 0.4% CPU before the lead stopped it by hand."* The ceiling that module
+implements exists for exactly this, and the ad-hoc probe used here does not have
+one — which the lead had already written down as a rule and then did not follow.
+
+**No conclusion about 8B is drawn from this**, because a stalled run measures
+nothing. A hypothesis worth testing and NOT asserted here: `qwen3` is a reasoning
+model and its thinking tokens may fight the gate's constrained JSON schema. What
+would settle it is a rerun under `_one_run.py`'s ceiling, or the cloud gate the
+deployment is configured for.
