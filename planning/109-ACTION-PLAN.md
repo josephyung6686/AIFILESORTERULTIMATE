@@ -2274,3 +2274,43 @@ That one said `3 failed, 11303 passed`, and the one before it `11304 passed, 0
 failed` — a number that was a property of the seed. This one is green because
 four modules no longer depend on the order they run in, which was checked by
 forcing the orders rather than by drawing seeds.
+
+### MEASURED — all three recognition channels, same corpus, same answer
+
+The question the entry opened with: the rules settle 12 of 19 and the other seven
+are design-bound — five fail `never_alone`'s arity and two are ties where `00`
+REQUIRES abstention. The design's answer for those is to ask a model. **So the
+models were asked.** Three channels, one corpus, and each run's validity checked
+before its counts were read.
+
+| channel | recognised | what it cost |
+| --- | --- | --- |
+| rules alone | **12 of 19** | 2s |
+| + local LLM (`qwen2.5:3b`) | **12 of 19** | 379s |
+| + encoder (`minilm`) | **12 of 19** | 10s |
+
+**Identical. Not one of the seven moved.**
+
+**The local LLM does not do recognition at all, and this is the answer to a
+question the owner has asked more than once.** On this path a model answers FACT
+questions (site A) and SITUATION questions (site G) — never "which schema is this
+file". That is the deterministic detector's job and nothing else's. Measured:
+naming `qwen2.5:3b` asked a model about **1 file of 19**; the other eighteen were
+held (14) or sat under a branch whose situation nobody had named (4). Offline
+those same files read `no_destination_this_mode_permits`. So the model is not
+failing to recognise — **it is barely being consulted, and never about this.**
+
+**The encoder DOES do recognition, it ran, and it settled nothing.** Verified
+rather than assumed: `vector_embeddings` holds exactly seven rows, and they are
+exactly the seven files the rules abstained on — the one-term note, the tie, the
+plain prose, the meeting notes, the cover letter, `script.py` and the csv. The
+composed recogniser speaks only where the rules stop, it spoke about precisely
+those seven, and every proposal fell below `SemanticFloors`.
+
+**What this settles.** The ceiling on this corpus is 12 of 19 across every
+channel the product has. The gap is not machinery, not the model and not
+extraction — **it is vocabulary**, which is the owner's authorship and is the
+three findings recorded above: ordinary English authored as sole-owned terms,
+411 terms with two owners, and `00`:30's structural evidence for `code` with no
+term on the consuming side. Nothing built here would move the number. Ratifying
+vocabulary would.
