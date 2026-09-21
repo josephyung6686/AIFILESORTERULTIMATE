@@ -1864,3 +1864,140 @@ PARTIAL a coverage verdict rather than an order one.
   vocabulary inside it was not enumerated here, and it is the owner's either way.
   **What would settle it:** the owner reading `media_type`'s members against
   `107`'s rendition column and saying whether one is the other.
+
+---
+
+## 21 Sep 2026 — Recognition, diagnosed on a corpus that is nobody's
+
+The owner asked to diagnose and solve recognition. Everything below was measured
+on a **synthetic corpus written for the purpose** — nineteen text files and,
+separately, twenty-two images written from two byte strings. No personal data
+was read: `.groundtruth/` stayed shut, and the classifier refused a copy of one
+of its databases, which was the right refusal. The corpus is in the session
+scratchpad and is reproducible from this document.
+
+This matters beyond privacy. A synthetic corpus lets **one variable move at a
+time**, which the owner's corpus can never do, and it is the owner's standing
+instruction of 20 Sep read literally: the corpus is the measuring instrument and
+never the spec.
+
+### The baseline nobody could see
+
+The figure carried into this session was "3 of 15 filed offline". It was from a
+run no longer on disk, and it is **wrong**. Measured: of nineteen text files,
+**eleven were recognised**, six abstained `no_corroboration`, two `ambiguous`.
+`no_evidence` was **zero** — extraction is not the bottleneck, which was the
+prior hypothesis and is now dead. Recorded so the next session starts from a
+number rather than from anyone's recollection.
+
+### CLOSED — a picture whose own name says photo was not a photo
+
+`96c954a7`. `Detector._capture` was reachable only where a file carried no
+authored term at all. A text-less picture whose FILENAME says `photos` therefore
+came off **worse than one that says nothing**: the name and the file kind both
+said picture, and the two agreeing cancelled each other.
+
+Measured over ten images named the way DEVICES name them — macOS, Android,
+Pixel, Nikon, Photo Booth, Image Capture, iOS panorama. Four recognised; six
+abstained, and every one of the six had matched a term `photos` itself authored:
+`screenshot`, `photo`, `scan`, `panorama`. The pair that states it is one
+picture under the two names Apple has shipped:
+
+| filename | source | before | after |
+| --- | --- | --- | --- |
+| `Screen Shot 2026-…png` | macOS pre-Mojave | photos | photos |
+| `Screenshot 2026-…png` | macOS since Mojave | **no_corroboration** | photos |
+
+Apple closed up the space in 2018. A person who upgraded their laptop watched
+their screenshots stop being recognised, and no screen the product prints could
+have told them why. After: nine of ten, and the holdout raises OTHER schemas
+(`cover`, `grid`) so the narrow rule correctly stays out of it.
+
+**The note in the capture test called this "the right answer"** and measured it
+at five of the owner's fifty. That ratio is a property of a corpus of
+`IMG_*.jpg`. On a machine where screenshots are the most numerous image it
+inverts. This is the clearest case yet of the owner's 20 Sep instruction.
+
+`file_kind_never_alone` is untouched: it forbids a KIND from activating a schema
+ALONE, and here the kind is not alone. The condition is `leaders == [photos]`.
+
+**It widens nothing, verified rather than argued.** Nine text-less JPEGs named
+for safety material, the detector run with the fix reverted and again with it
+in: exactly one line moved, the ordinary `photo.jpg`. Six protected before, six
+after — passport, HKID, vaccination card, codicil, diagnosis, prescription all
+unchanged.
+
+### OPEN — the default branch is named by one tally and explained by another
+
+On the nineteen-file corpus the run said:
+
+> The situations offered are **career**'s, because career is the kind this
+> folder's own evidence names most often.
+
+There is no career material in that corpus. `career` was **recognised on zero
+files**. The sentence is produced by `questions/triggers.py:358`; the value comes
+from `cli._the_corpus_names_a_schema`, which votes **twice, in order** — anchors
+first, and only if those tie, the recogniser's raised candidates:
+
+| schema | anchor facts | raised | recognised |
+| --- | --- | --- | --- |
+| **career** | **2** (`meeting notes`, `cover letter`) | 2 | **0** |
+| academic | 1 (`syllabus`) | **9** | 2 |
+| construction_property | 1 (`invoice`) | 3 | 1 |
+
+`career` wins the ANCHOR vote and returns before the reading vote is consulted.
+That is the documented rule — "a fact outranks a reading" — and the rule is not
+in question here. **The sentence is.** It describes the reading vote in the case
+where the anchor vote decided, so the person is told the folder's evidence
+mostly names career when what happened is that two work-type facts did.
+
+**Two things to settle, and they are different sizes.**
+
+1. *The sentence* (mine, small): say which tally decided. A fact and a reading
+   are different evidence and the screen should not spell them the same.
+2. *The order* (the owner's): two anchor facts outranking nine raised readings
+   produced a visibly wrong default on this corpus. The order's own docstring
+   justifies itself with a corpus where the detector recognised NOTHING, so the
+   measurement behind it does not cover the case where readings are rich.
+
+Also visible and the owner's: `WORK_TYPE_OWNER['meeting notes']` is `career`,
+and `WORK_TYPE_OWNER['invoice']` is `construction_property`.
+
+### OPEN — the vocabulary is half taxonomy labels, and that is authoring
+
+Structural census of the shipped release: 23 schemas, 8,481 distinct terms.
+
+* **4,096 terms (48%) are three words or more.** `_terms_in` matches a
+  contiguous token run, so a five-word term needs five consecutive tokens.
+* `government` is **75%** terms of five words or more; `legal` 42%, `hr` 40%.
+* Terms like `'risk, issue, or continuity record'` and
+  `'draft or redline under review'` are **descriptions of a kind of document**,
+  not words a document contains.
+* `legal` has **six** sole-owned single words — `attorney-in-fact`, `codicil`,
+  `executor`, `grantor`, `settlor`, `testator` — all estate law. A lease, an NDA
+  or an employment contract contains none of them. `medical` has eleven.
+
+With `never_alone` requiring TWO distinct terms, this is what the six
+`no_corroboration` files are made of. **It is vocabulary authoring and therefore
+ratification, not a defect to fix here.**
+
+### RECORDED, NOT FIXED — prose compiled as terms
+
+`recognition/compile.py::_terms` applies no shape rule, so editorial notes in the
+research rows compiled as terms. The longest is **77 words**, beginning
+`'proposed for r6, not design: …'`; others begin `'proposal note:'` and
+`'precondition:'`.
+
+**This changes no outcome.** A 77-word term cannot match a contiguous run, so it
+also cannot un-match anything; removing it would not file or unfile one file. It
+is compiler hygiene — `_terms` wants a shape gate — and the real term lists
+buried inside those notes are unratified vocabulary, so splitting them out is the
+owner's. Recorded here so it is not rediscovered as a finding.
+
+### Named and not chased
+
+* `13_readme.md` → `creative` on `install`, `layout`. A README is the most
+  common file in a developer's folder and `code` has ten sole-owned single words.
+* `12_recipe.txt` → `creative` on `finish`, `stock`; `08_nda.txt` →
+  `business_operations` on `shall`. Ordinary English carrying schema weight.
+* `construction_property` offers a **22-option** menu for two files.
