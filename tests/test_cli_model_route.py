@@ -17,7 +17,9 @@ from llm_harness.vocabulary import A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_T
 from readers.model_deepseek import CLOUD, CREDENTIAL_NAME, PROVIDER
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    DISCOVERY_BYTES_CEILING,
     LOCAL,
+    discover_local_models,
     MODEL_NAME as LOCAL_MODEL_NAME,
     PROVIDER as LOCAL_PROVIDER,
 )
@@ -708,17 +710,16 @@ def test_only_the_gates_word_or_the_persons_opens_the_cloud():
 # screen and is not used. `test_a_discovered_model_is_named_on_the_screen_and_is
 # _not_used` is that ruling, asserted.
 #
-# `_discover_local_models` IS THE REAL FUNCTION, imported inside each test that
-# wants it rather than reached through `cli`, because `tests/conftest.py` replaces
-# `cli`'s attribute for the whole suite -- the same argument `_no_ambient_key`
-# makes above, applied to a model server instead of a key: a suite whose screens
-# depend on whether the developer happens to be running ollama passes on one
-# machine and fails on the next. The tests below that end in `_for_real` hold the
-# original function and talk to a real endpoint; every other test here injects an
-# answer.
-#: Captured at import, which is before any fixture runs, so this is the function
-#: itself and not the suite-wide stub standing in its place.
-_REAL_DISCOVERY = cli._discover_local_models
+# `discover_local_models` IS THE REAL FUNCTION, reached WHERE IT LIVES rather than
+# through `cli._discover_local_models`, the alias `tests/conftest.py` replaces for
+# the whole suite -- the same argument `_no_ambient_key` makes above, applied to a
+# model server instead of a key: a suite whose screens depend on whether the
+# developer happens to be running ollama passes on one machine and fails on the
+# next. The tests below that end in `_for_real` hold the original function and talk
+# to a real endpoint; every other test here injects an answer.
+#: The provider's own attribute, which the suite-wide neutralisation does not
+#: touch: it replaces `cli`'s name for the function, never the function.
+_REAL_DISCOVERY = discover_local_models
 
 
 def _found(*names: str):
@@ -953,7 +954,7 @@ def test_a_listing_is_read_off_the_wire_and_a_broken_one_is_not_a_failure_for_re
                    + b'{"name": "x"},' * 200_000
                    + b'{"name": "x"}]}')
         assert json.loads(body[0])["models"][0] == {"name": "x"}
-        assert len(body[0]) > cli.LOCAL_DISCOVERY_BYTES_CEILING
+        assert len(body[0]) > DISCOVERY_BYTES_CEILING
         assert _REAL_DISCOVERY(endpoint) == ()
     finally:
         server.shutdown()

@@ -387,8 +387,15 @@ from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
     DEFAULT_BASE_URL as LOCAL_DEFAULT_BASE_URL,
     LOCAL,
-    LOOPBACK_HOSTS as LOCAL_LOOPBACK_HOSTS,
     MODEL_NAME as LOCAL_MODEL_NAME,
+    # THE TRANSPORT IS THE PROVIDER'S; THE ENDPOINT IS THIS FILE'S. The probe
+    # that asks a loopback server what it has opens a socket, and a socket may
+    # only be opened under `readers/model_` -- so the function lives there and
+    # this file hands it the endpoint it read, exactly as it hands `ollama_invoke`
+    # one. The private alias is the name `tests/conftest.py` neutralises for the
+    # whole suite, so a run's screens never depend on whether the machine it
+    # happens to be on has a model server up.
+    discover_local_models as _discover_local_models,
 )
 from readers.model_routing import (
     FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting,
@@ -3189,124 +3196,6 @@ class UsageMailbox:
         return held
 
 
-#: WHERE OLLAMA LISTS WHAT IS PULLED. ollama's own endpoint; the reply names
-#: every model installed on the device and nothing else. It generates nothing, so
-#: asking it costs no tokens, loads no weights and sends nothing anywhere.
-LOCAL_DISCOVERY_PATH: str = "/api/tags"
-
-#: THE WHOLE COST OF ASKING, and it is spent only when no model was NAMED. A file
-#: organiser that cannot run because a model server is absent is worse than one
-#: that says so, so an ordinary run must not wait on a server that may not be
-#: there: a loopback listing answers in milliseconds, and past this the run
-#: carries on exactly as it did before anything asked.
-LOCAL_DISCOVERY_SECONDS: float = 1.5
-
-#: WHAT A LISTING MAY WEIGH. The reply is a few hundred bytes per model, and a
-#: read with no bound is an unbounded wait whatever the timeout says -- a socket
-#: that keeps dribbling bytes never trips a connect-or-first-byte deadline. The
-#: ceiling is far above any real listing and far below a denial of service.
-LOCAL_DISCOVERY_BYTES_CEILING: int = 1 << 20
-
-
-def _discover_local_models(base_url: str) -> tuple[str, ...]:
-    """What is installed on this device, ASKED rather than assumed.
-
-    **The defect this closes, measured on the owner's machine on 20 Sep 2026.**
-    `ollama` was running with three models pulled, and the screen said "there is
-    no model on this device to fall back to". The sentence was false, and it was
-    false because nothing ever looked: the composition root read
-    `GRAPH_AGENT_LOCAL_MODEL`, found it unset, and concluded the device had
-    nothing. A person with a working model was told they had none because they
-    did not know an environment variable's name. `84` §6 -- what the screen tells
-    a person has to be true -- is the whole of the argument for asking.
-
-    **IT IS NOT THE CONSENT QUESTION, and nothing here touches that.** Opt-in
-    exists because content LEAVING THE DEVICE needs permission; that is
-    `--enable-cloud`, per folder, and it is untouched. A model on this device
-    sends nothing off it, so the consent argument does not reach this, and what
-    was left was a person kept from their own hardware by a spelling.
-
-    **HERE AND NOT IN `readers/`, because `model_ollama` says why**: *"a module
-    that reaches for its own configuration can acquire configuration nobody chose
-    to give it."* This file is already the place that reads the environment and
-    injects the endpoint and the model id; discovering a THIRD thing about the
-    deployment is the same job in the same place, and a transport that went
-    looking for its own targets would be the thing that comment forbids.
-
-    **LOOPBACK OR IT DOES NOT HAPPEN.** `model_ollama.LOOPBACK_HOSTS` is the line
-    between a local claim and a cloud call wearing a local target, and it binds
-    the PROBE exactly as it binds the call: a question sent to another host is a
-    request that left the device, whatever it was asking about, and it would
-    leave under no consent at all because nobody thinks of a probe as a send. A
-    non-loopback endpoint returns nothing WITHOUT CONNECTING -- the refusal is
-    checked before the socket, not after it.
-
-    **IT CANNOT FAIL THE RUN, and that is why the guard is as wide as it is.** No
-    ollama, a refused connection, a timeout, a proxy answering with HTML, a JSON
-    body of the wrong shape: every one of them is an ordinary state of an
-    ordinary machine, and every one of them means the same thing here -- nothing
-    was found. Narrowing this to the exceptions `urllib` is documented to raise
-    would trade a true sentence on a screen for a traceback in a file organiser,
-    which is the trade `model_route` already refuses for a misspelled model name.
-    `BaseException` is deliberately NOT caught: an interrupt is the person
-    stopping the run, and it is theirs to have.
-
-    **It names nothing.** The ids come back from the device; no model name, port
-    or machine's list is written here. `qwen3:8b` is what one laptop happens to
-    hold, another holds something else, and most hold nothing at all.
-    """
-    from urllib.parse import urlsplit
-    from urllib.request import HTTPRedirectHandler, build_opener
-
-    class _StaysOnLoopback(HTTPRedirectHandler):
-        """AND A REDIRECT IS A CLOUD CALL WEARING A LOCAL TARGET.
-
-        The host check below runs on the endpoint this deployment named, and
-        `urlopen` follows redirects by default -- so a server on loopback
-        answering `302 https://somewhere.else/` would have this making a request
-        to another host under a check that had already passed. Nothing of the
-        person's would be in it (the probe is a bodiless GET), but the connection
-        itself is the thing `LOOPBACK_HOSTS` exists to prevent, and it would be
-        made by the one call nobody thinks of as a send.
-
-        Returning `None` is `urllib`'s own way to decline: the redirect becomes an
-        `HTTPError`, which the guard below reads as "nothing was found" -- the
-        same answer as no server at all, which is the right one.
-        """
-
-        def redirect_request(self, *args, **kwargs):  # noqa: D102
-            return None
-
-    endpoint = (base_url or "").strip().rstrip("/")
-    if not endpoint:
-        return ()
-    try:
-        host = (urlsplit(endpoint).hostname or "").lower()
-    except ValueError:
-        # An endpoint a host cannot even be parsed out of is one nothing should
-        # be sent to, which is the same answer as a non-loopback host.
-        return ()
-    if host not in LOCAL_LOOPBACK_HOSTS:
-        return ()
-    try:
-        with build_opener(_StaysOnLoopback).open(
-                endpoint + LOCAL_DISCOVERY_PATH,
-                timeout=LOCAL_DISCOVERY_SECONDS) as reply:
-            listed = json.loads(reply.read(LOCAL_DISCOVERY_BYTES_CEILING))
-    except Exception:
-        return ()
-    models = listed.get("models") if isinstance(listed, dict) else None
-    if not isinstance(models, list):
-        return ()
-    # Sorted and de-duplicated, so the screen reads the same twice running: the
-    # listing's own order is whatever the server felt like, and a person checking
-    # today's sentence against the one they read yesterday should not have to.
-    return tuple(sorted({
-        entry["name"].strip() for entry in models
-        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
-        and entry["name"].strip()}))
-
-
 def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
     """The sentence a person with a model and no `GRAPH_AGENT_LOCAL_MODEL` earns.
 
@@ -3362,12 +3251,16 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     two half-true ones.
 
     **AND WHEN NO LOCAL MODEL IS NAMED IT ASKS THE DEVICE, since 20 Sep 2026.**
-    `_discover_local_models` argues the defect at length; the part that belongs
-    here is WHY THE ASKING IS IN THIS FUNCTION. This is the composition root: it
-    already reads the environment for the model id and the endpoint and injects
-    both, because `model_ollama` refuses to read its own configuration. Finding
-    out what the endpoint HAS is that same reading, and a `readers/` module that
-    went looking for its own targets would be exactly what that refusal forbids.
+    `model_ollama.discover_local_models` argues the defect at length; the part
+    that belongs here is WHICH HALF OF THE ASKING IS THIS FUNCTION'S. The
+    ENDPOINT is: this is the composition root, it already reads the environment
+    for the model id and the base url and injects both, because `model_ollama`
+    refuses to read its own configuration. The SOCKET is not: a network module
+    may be imported only under `readers/model_`, and the probe that shipped in
+    this file on 20 Sep was a second door out of the process
+    (`tests/integration/test_single_egress.py` rule C). So the endpoint is read
+    here and passed in, and the request is made there -- which is what the two
+    rules together have always said, once both of them are read.
 
     **`discover` IS INJECTED FOR THE SAME REASON THE VOLUME PROBE IS**: a test
     must be able to supply an answer without a server, and the suite's screens

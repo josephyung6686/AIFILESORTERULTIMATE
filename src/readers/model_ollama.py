@@ -169,6 +169,24 @@ CHAT_PATH: str = "/api/chat"
 #: names the model and carries no prompt returns when the weights are resident.
 GENERATE_PATH: str = "/api/generate"
 
+#: WHERE OLLAMA LISTS WHAT IS PULLED. ollama's own endpoint; the reply names
+#: every model installed on the device and nothing else. It generates nothing, so
+#: asking it costs no tokens, loads no weights and sends nothing anywhere.
+TAGS_PATH: str = "/api/tags"
+
+#: THE WHOLE COST OF ASKING, and the composition root spends it only when no
+#: model was NAMED. A file organiser that cannot run because a model server is
+#: absent is worse than one that says so, so an ordinary run must not wait on a
+#: server that may not be there: a loopback listing answers in milliseconds, and
+#: past this the run carries on exactly as it did before anything asked.
+DISCOVERY_SECONDS: float = 1.5
+
+#: WHAT A LISTING MAY WEIGH. The reply is a few hundred bytes per model, and a
+#: read with no bound is an unbounded wait whatever the timeout says -- a socket
+#: that keeps dribbling bytes never trips a connect-or-first-byte deadline. The
+#: ceiling is far above any real listing and far below a denial of service.
+DISCOVERY_BYTES_CEILING: int = 1 << 20
+
 #: The hosts a `locality="local"` claim survives. `Gate.release` is TOLD the
 #: locality and cannot measure it; here is where it is a fact, so here is where
 #: anything else refuses. A person running ollama on another PORT is ordinary and
@@ -809,6 +827,109 @@ def _require_loopback(base_url: str | None) -> str:
             f"authorized by a policy that says it cannot happen. The PORT is "
             f"yours; the host is the claim. Loopback is {sorted(LOOPBACK_HOSTS)}.")
     return endpoint
+
+
+def discover_local_models(base_url: str) -> tuple[str, ...]:
+    """What is installed on this device, ASKED rather than assumed.
+
+    **The defect this closes, measured on the owner's machine on 20 Sep 2026.**
+    `ollama` was running with three models pulled, and the screen said "there is
+    no model on this device to fall back to". The sentence was false, and it was
+    false because nothing ever looked: the composition root read
+    `GRAPH_AGENT_LOCAL_MODEL`, found it unset, and concluded the device had
+    nothing. A person with a working model was told they had none because they
+    did not know an environment variable's name. `84` §6 -- what the screen tells
+    a person has to be true -- is the whole of the argument for asking.
+
+    **IT IS NOT THE CONSENT QUESTION, and nothing here touches that.** Opt-in
+    exists because content LEAVING THE DEVICE needs permission; that is
+    `--enable-cloud`, per folder, and it is untouched. A model on this device
+    sends nothing off it, so the consent argument does not reach this, and what
+    was left was a person kept from their own hardware by a spelling.
+
+    **HERE, BECAUSE HERE IS WHERE A SOCKET MAY LIVE -- and the endpoint still
+    arrives from the root.** This first shipped inside `cli.py`, on the strength
+    of the comment above `MODEL_NAME`: *"a module that reaches for its own
+    configuration can acquire configuration nobody chose to give it."* That
+    comment forbids a `readers/` module READING ITS OWN CONFIGURATION, and this
+    function reads none -- `base_url` is a parameter, handed in by the
+    composition root exactly as it is handed to `ollama_invoke`. What was
+    weighed against it and never checked is the other rule: a network module may
+    be imported only under `readers/model_`
+    (`tests/integration/test_single_egress.py` rule C), and a composition root
+    that opened an HTTP connection was a second door out of the process. The two
+    rules never collided. The transport belongs here; the configuration belongs
+    there; this function is the first while taking the second as an argument.
+
+    **LOOPBACK OR IT DOES NOT HAPPEN, AND BY THE CALL'S OWN LINE.**
+    `_require_loopback` is what `ollama_invoke` asks before it sends a byte, and
+    the probe asks that same function rather than keeping a second copy of the
+    rule: a question sent to another host is a request that left the device,
+    whatever it was asking about, and it would leave under no consent at all
+    because nobody thinks of a probe as a send. A non-loopback endpoint returns
+    nothing WITHOUT CONNECTING -- the refusal is checked before the socket, not
+    after it. Where the call raises, the probe answers `()`: what a probe failed
+    to find out is never worth a traceback.
+
+    **IT CANNOT FAIL THE RUN, and that is why the guard is as wide as it is.** No
+    ollama, a refused connection, a timeout, a proxy answering with HTML, a JSON
+    body of the wrong shape: every one of them is an ordinary state of an
+    ordinary machine, and every one of them means the same thing here -- nothing
+    was found. Narrowing this to the exceptions `urllib` is documented to raise
+    would trade a true sentence on a screen for a traceback in a file organiser,
+    which is the trade `model_route` already refuses for a misspelled model name.
+    `BaseException` is deliberately NOT caught: an interrupt is the person
+    stopping the run, and it is theirs to have.
+
+    **It names nothing.** The ids come back from the device; no model name, port
+    or machine's list is written here. `qwen3:8b` is what one laptop happens to
+    hold, another holds something else, and most hold nothing at all.
+    """
+    from urllib.request import HTTPRedirectHandler, build_opener
+
+    class _StaysOnLoopback(HTTPRedirectHandler):
+        """AND A REDIRECT IS A CLOUD CALL WEARING A LOCAL TARGET.
+
+        The host check above runs on the endpoint this deployment named, and
+        `urlopen` follows redirects by default -- so a server on loopback
+        answering `302 https://somewhere.else/` would have this making a request
+        to another host under a check that had already passed. Nothing of the
+        person's would be in it (the probe is a bodiless GET), but the connection
+        itself is the thing `LOOPBACK_HOSTS` exists to prevent, and it would be
+        made by the one call nobody thinks of as a send.
+
+        Returning `None` is `urllib`'s own way to decline: the redirect becomes an
+        `HTTPError`, which the guard below reads as "nothing was found" -- the
+        same answer as no server at all, which is the right one.
+        """
+
+        def redirect_request(self, *args, **kwargs):  # noqa: D102
+            return None
+
+    try:
+        endpoint = _require_loopback(base_url)
+    except (TargetIsNotThisTransport, ValueError):
+        # No endpoint, an endpoint a host cannot be parsed out of, and a host
+        # that is not loopback: three states, one answer, and no socket opened
+        # to reach it. `ollama_invoke` raises on all three because a CALL that
+        # cannot happen has to say so; a probe that cannot happen found nothing.
+        return ()
+    try:
+        with build_opener(_StaysOnLoopback).open(
+                endpoint + TAGS_PATH, timeout=DISCOVERY_SECONDS) as reply:
+            listed = json.loads(reply.read(DISCOVERY_BYTES_CEILING))
+    except Exception:
+        return ()
+    models = listed.get("models") if isinstance(listed, dict) else None
+    if not isinstance(models, list):
+        return ()
+    # Sorted and de-duplicated, so the screen reads the same twice running: the
+    # listing's own order is whatever the server felt like, and a person checking
+    # today's sentence against the one they read yesterday should not have to.
+    return tuple(sorted({
+        entry["name"].strip() for entry in models
+        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
+        and entry["name"].strip()}))
 
 
 def _require_target(model_target: "ModelTarget") -> None:
