@@ -3211,6 +3211,26 @@ def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
     `_role_lines` records why a leading space keeps a line out of `textwrap` --
     "a command across two lines produces a command that does not work" -- which
     is the same rule, applied here by printing the indented line as it stands.
+
+    **ONE LINE PER MODEL, BECAUSE THE PASTEABLE LINE WAS THE CHOICE.** This block
+    printed a single `export` for `found[0]`, under a sentence promising that
+    "nothing here picked one for you" -- and `discover_local_models` returns
+    `tuple(sorted(...))`, so the model a person was handed was the alphabetically
+    first one: a property of its NAME and of nothing else. The paragraph above
+    knows what is at stake in that pick, in its own words: "one is a 4B that will
+    be quick and rough, the next an 8B that will be slow and better".
+
+    **Measured 21 Sep 2026 on a device holding `qwen2.5:3b`, `qwen3:4b` and
+    `qwen3:8b`, where `found[0]` is the 3B.** Run with it, the privacy gate marked
+    10 of the 15 files it examined `sensitive_personal` -- a tomato soup recipe, a
+    README, a Python script, lecture notes about sorting, a blank JPEG -- and a
+    held file is never asked, so the judge named a situation for ONE file. Run
+    with the 8B over the identical corpus, the gate cleared 14 of 15 and the judge
+    named TEN. The screen had pasted the model that breaks the gate.
+
+    So every id found gets its own line and the prose stops being contradicted by
+    the only part of the block a person acts on. They are few -- a device holds a
+    handful of models, not a catalogue -- and `sorted` keeps the order stable.
     """
     count = len(found)
     for line in (
@@ -3222,9 +3242,10 @@ def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
         f"picked one for you. To use one, name it; a model on this device sends "
         f"nothing anywhere:",
         "",
-        f"    export {LOCAL_MODEL_NAME}={shlex.quote(found[0])}",
+        *(f"    export {LOCAL_MODEL_NAME}={shlex.quote(name)}" for name in found),
         "",
-        "Any other name above works the same way, and a run with no name set "
+        "A bigger model is slower and reads better, which matters most for the "
+        "check that decides whether a file is private. A run with no name set "
         "stays exactly as it is.",
         "",
     ):

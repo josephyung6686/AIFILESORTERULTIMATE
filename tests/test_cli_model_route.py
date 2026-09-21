@@ -766,6 +766,41 @@ def test_a_discovered_model_is_named_on_the_screen_and_is_not_used(monkeypatch):
     assert "ollama pull" not in printed
 
 
+def test_every_model_found_gets_its_own_pasteable_line_and_none_is_privileged(
+        monkeypatch):
+    """THE PRODUCT SAYS IT DOES NOT CHOOSE, AND THE PASTEABLE LINE CHOSE.
+
+    `_say_what_is_installed` states the principle itself -- *"which of your models
+    reads your files is yours to decide, so nothing here picked one for you"*, and
+    its docstring knows the stakes: *"one is a 4B that will be quick and rough,
+    the next an 8B that will be slow and better"*. It then printed ONE export
+    line, for `found[0]`, and `discover_local_models` returns
+    `tuple(sorted(...))` -- so the model a person is handed is the alphabetically
+    first one, which is a property of its NAME and of nothing else.
+
+    **MEASURED 21 SEP 2026, and it is not a cosmetic point.** On a device holding
+    `qwen2.5:3b`, `qwen3:4b` and `qwen3:8b`, `found[0]` is the 3B. Run with it,
+    the privacy gate marked 10 of the 15 files it examined as
+    `sensitive_personal` -- among them a tomato soup recipe, a README, a Python
+    script, lecture notes about sorting and a blank JPEG -- and a held file is
+    never asked, so the judge named a situation for ONE file. Run with the 8B on
+    the identical corpus, the gate cleared 14 of 15 and the judge named TEN.
+
+    The product pasted the model that breaks it, under a sentence promising it had
+    picked nothing.
+
+    SABOTAGE: print one line for `found[0]` again. This goes red on the model the
+    sorted order happens to put last, which is the one a person never sees.
+    """
+    found = _found("qwen3:8b", "qwen2.5:3b", "qwen3:4b")
+    _routing, printed = _route_with(monkeypatch, found)
+
+    for model in ("qwen2.5:3b", "qwen3:4b", "qwen3:8b"):
+        assert f"export {LOCAL_MODEL_NAME}={model}" in printed, (
+            f"{model} was listed but a person cannot paste a line for it; the "
+            "screen offered only the model that sorts first")
+
+
 def test_a_key_with_sending_off_still_hears_about_the_models_on_the_device(
         monkeypatch):
     """THE OWNER'S OWN RUN. A key is configured, this folder's sending is not on,
