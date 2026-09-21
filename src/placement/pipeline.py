@@ -2396,6 +2396,10 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             destination_disposition=entry.disposition,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_explain(entry, assessment, retrieval,
+                             # The walk above already read every node's name; the
+                             # clause that prints ruled-out folders gets it
+                             # rather than an id. Same object `_Context` holds.
+                             label_of=label_of,
                              model_decided=chosen_node_id is not None,
                              gate_refused=gate_refused,
                              refinements=refinements,
@@ -2484,7 +2488,8 @@ def _facts_of(retrieval, node_id: str) -> tuple:
     return ()
 
 
-def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
+def _explain(entry, assessment, retrieval, *, label_of: Mapping[str, str],
+             model_decided: bool = False,
              gate_refused: bool = False,
              refinements: frozenset[str] = frozenset(),
              group_support=None,
@@ -2584,7 +2589,20 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
         # the tree on a corpus like `planning/58-SCALE-STRESS.md` §2's, which is
         # the failure that document records for §5.9's warnings under its own
         # heading -- "the warning list outgrows the tree it describes".
-        named = [node for conflict in retrieval.conflicts
+        #: NAMED MEANS NAMED. `suppressed_node_ids` is the record's spelling and
+        #: a replay joins on it; this is the screen, and until `label_of` was
+        #: passed in there was nothing here that spelled a folder any other way
+        #: -- so the line that answers "why not that one?" for a file the product
+        #: PLACED read `ruled out node_15c628e6_19`, which nobody owns and nobody
+        #: can act on (`84` §6). The map is `place_file_steps`'s single walk of
+        #: the tree, the same object `_Context.label_of` holds, so this sentence
+        #: and the plan spell a folder identically; a comprehension of its own
+        #: here would be the O(files x nodes) shape `planning/58-SCALE-STRESS.md`
+        #: §2 measured AND a second reading of `display_label` free to disagree
+        #: with the first. A node with no name is said to have no name, because
+        #: falling back to the id is the defect being fixed.
+        named = [label_of.get(node) or "a folder this plan has not named"
+                 for conflict in retrieval.conflicts
                  for node in conflict.suppressed_node_ids]
         total = sum(conflict.suppressed_node_count
                     for conflict in retrieval.conflicts)

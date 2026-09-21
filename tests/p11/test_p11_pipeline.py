@@ -317,6 +317,29 @@ def test_the_skeletons_margin_is_measured_and_never_vacuous(skeleton):
                               for node in conflict.suppressed_node_ids}
 
 
+def test_the_ruled_out_clause_names_the_folder_it_ruled_out(skeleton):
+    """The sentence a placed file carries says which folder, in the person's words.
+
+    `conflicts_considered` above is the record and its `suppressed_node_ids` are
+    ids because a replay joins on them. `explanation` is the SCREEN, and the
+    clause built from the same field was reading `ruled out n-course-alt` --
+    the database's spelling of a folder, on the line that answers "why not that
+    one?" for a file the product DID place. `84` §6: a line the person cannot act
+    on is not a true thing to tell them, and nobody owns a folder called
+    `n-course-alt`.
+
+    The whole clause is asserted, not the label alone: the destination's own name
+    opens the same sentence, so `"PHYS1402" in explanation` could pass on a
+    sentence that never named what it ruled out. And the id is asserted absent
+    beside it, which an empty clause would satisfy on its own -- which is why the
+    name comes first.
+    """
+    decision = _place(skeleton)
+    assert decision.outcome == v.PLACE
+    assert "ruled out PHYS1402 on conflicting evidence" in decision.explanation
+    assert "n-course-alt" not in decision.explanation
+
+
 def test_the_direct_fact_alone_clears_the_threshold_and_places(skeleton):
     """`104` §18.2 GAP 13, AND THIS TEST USED TO ASSERT THE DEFECT.
 

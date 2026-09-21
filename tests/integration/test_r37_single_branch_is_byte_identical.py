@@ -219,6 +219,43 @@ runs of this corpus, identical. And a reading script that calls
 is -- `cli` reads its files in a spawned pool, an unguarded script has every
 worker die re-importing it, and what comes back is a silently degraded extraction
 (6 text units for 18, 24 evidence rows for 43) that reads like a real diff.
+
+**Recaptured on 20 Sep 2026 because the "ruled out ..." clause now NAMES the
+folders it ruled out, and the diff was read before it was taken.** `_explain`
+built that clause by joining `ConflictConsidered.suppressed_node_ids` straight
+into prose, and those are ids -- so the most-read line of the report, the one
+that answers "why not that folder?" about a file the product DID place, spelled a
+destination the way the database does and not the way the person does (`84` §6).
+`place_file_steps` already holds `label_of`, so the clause reads the same map the
+plan does.
+
+The recapture differs from its predecessor in EXACTLY FOUR FIELDS, all of them
+`placement_decisions.payload.explanation`: `ruled out Spring2026, Spring2026` for
+`ruled out <node:...term:Spring2026>, <node:...term:Spring2026>` on the two
+`BUSIB 4300 Problem Set 4.txt` rows, and `Fall2024, Fall2024` for the same shape
+on the two `PHYS 1401 syllabus.txt` rows. **The screen is identical line for line
+-- 232 lines before and after -- and thirteen of the fourteen captured tables are
+identical row for row**, `conflicts_considered` among them: the RECORD still
+carries the ids, because a replay joins on them, and only the sentence changed.
+No placement moved, no count did, and no conflict gained or lost a node.
+
+The doubled name is not the recapture's doing: each of these nodes is suppressed
+by TWO of the file's values, so the predecessor printed the same id twice for the
+same reason. De-duplicating the list without also changing `suppressed_node_count`
+would make "and N further destinations" false, which is why it was left alone.
+
+**AND THE PROBE IS A FOURTH DOOR THE CAPTURE HAS TO CLOSE.** Since
+`cli._discover_local_models` asks the loopback endpoint what is installed when no
+model is named, a capture taken on a machine with ollama RUNNING records a
+different eleven-line banner from the one pytest records -- `tests/conftest.py`'s
+`_no_ambient_model_server` replaces that function for the suite, and the `capture`
+entry point does not. Unsetting `OLLAMA_BASE_URL`, which the entry above says to
+do, makes this WORSE rather than better: the default endpoint is the very one the
+developer's server answers on. This capture was taken with
+`GRAPH_AGENT_NO_DOTENV=1 OLLAMA_BASE_URL=http://127.0.0.1:1` and
+`GRAPH_AGENT_LOCAL_MODEL` unset -- a loopback port nothing listens on, which is
+the "no server" the suite reproduces by patching. Capture that way until the
+entry point closes the door itself.
 """
 from __future__ import annotations
 
