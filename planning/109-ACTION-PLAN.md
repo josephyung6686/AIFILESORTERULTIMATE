@@ -2314,3 +2314,63 @@ three findings recorded above: ordinary English authored as sole-owned terms,
 411 terms with two owners, and `00`:30's structural evidence for `code` with no
 term on the consuming side. Nothing built here would move the number. Ratifying
 vocabulary would.
+
+### THE BLOCKER TO "NO ABSTENTIONS" IS THE GATE, NOT THE RECOGNISER
+
+The owner, 21 Sep: **"we need 19 of 19."** That is `00` amendment 5 of 15 Sep
+restated — *"there should be no abstentions, make sure of that … a decline is no
+longer a correct abstention at these two sites; it is a failure to judge."*
+
+**19 of 19 was never the deterministic detector's to deliver.** `00` REQUIRES it
+to abstain where two readings are both supported, and two of the nineteen files
+are ties built to be ties. The nineteenth file is named by the JUDGE. So the
+question is not why the rules stop at 12 — it is why the judge is not asked about
+the other seven.
+
+**Measured on the local-model run (`qwen2.5:3b`), from its own database:**
+
+| call site | dossiers built |
+| --- | --- |
+| `H_restricted_kind` (the gate) | 15 |
+| `G_situation_sensitivity` (the judge) | 5 |
+| `A_fact` | 1 |
+
+| basis | protected | files |
+| --- | --- | --- |
+| `local_model_gate` | **1** | **10** |
+| `local_model_gate` | 0 | 4 |
+| `safety_domain` (deterministic) | 1 | 4 |
+
+**The gate held ten of the fifteen files it examined**, and the four
+`safety_domain` holds beside them are the deterministic rules working correctly
+(a bank statement, an immunisation record, a will, an invoice). The ten are:
+
+    06_tie.txt  08_nda.txt  09_lease.txt  12_recipe.txt  13_readme.md
+    14_cover_letter.txt  15_lecture_notes.txt  16_script.py  17_table.csv
+    18_photo.jpg
+
+**A tomato soup recipe was classified `sensitive_personal`.** So was a software
+README, a Python script, a sales csv, lecture notes about sorting algorithms, and
+a 160-byte blank JPEG. Every file in this corpus is invented; none of it is
+anybody's personal material.
+
+**It is not a parse failure and not a code default.**
+`restricted_kind_named_by_verdict` returns `None` unless the model NAMES one of
+the ten kinds, and the verdicts read `accept_direct` with citations attached for
+all ten. The model positively asserted a restricted kind and cited evidence for
+it. It abstained on only five.
+
+**And a held file is never asked** (the owner's ruling of 13 Sep: a protected
+record is filed by the person). So the gate's ten holds remove ten files from the
+judge before the judge exists, which is why one file of nineteen was asked and
+why the census with a model is byte-identical to the census without one.
+
+**THE CHAIN TO 19 OF 19, in order.** (1) the gate clears an ordinary file;
+(2) its branch's situation is known — four files were `branch_unsettled`, a
+second and smaller blocker; (3) the judge names a kind, with no decline allowed.
+Step 1 is where nine tenths of the loss is.
+
+**Three levers, and none of them is the recogniser.** A larger local gate model
+(this device carries `qwen3:8b`; measured next); the cloud gate, which is what
+the deployment is configured for and which this session's sandbox refuses to
+let the lead call; or the gate's prompt, which is the owner's ratified text.
