@@ -2374,3 +2374,45 @@ Step 1 is where nine tenths of the loss is.
 (this device carries `qwen3:8b`; measured next); the cloud gate, which is what
 the deployment is configured for and which this session's sandbox refuses to
 let the lead call; or the gate's prompt, which is the owner's ratified text.
+
+### TRIED AND REVERTED — `00`:30's structural evidence cannot be read off notebook metadata
+
+Built, tested, measured, and **thrown away**, because the suite caught a defect in
+it that the product had already paid to fix once.
+
+The rule: two or more DISTINCT §2.4 structural markers raise `code`. It worked on
+its own terms — `analysis.ipynb`, which returned `no_evidence`, became
+`Recognition(code)` on `nbformat`, `kernelspec` and `language_info`, and a lone
+`README.md` still activated nothing, so `never_alone` held.
+
+**Then `tests/recognition/test_recognition_serialisation_is_not_evidence.py` went
+red on two tests, and both were right.**
+
+* `test_a_notebook_saying_only_a_course_code_is_not_a_code_project` — a notebook
+  whose entire content is `PYTHON 1006 Spring 2026` became a code project again.
+  That is the defect `_matches` already documents in its own comment: the four
+  `Python 1006` notebooks of the owner's corpus, *"the only files that run
+  placed"*, were placed on exactly this arithmetic, and the cure was to refuse
+  `metadata:field=language` as evidence.
+* `test_narrowing_this_does_not_cost_the_honest_code_case` — real Python source
+  became a recognition on its container's terms rather than its own.
+
+**THE LESSON, and it is about the instruction rather than the implementation.** A
+notebook's `kernelspec` says what language the file is WRITTEN IN. It does not say
+what the file is ABOUT, and coursework is written in Python too. Notebook metadata
+is the same class of signal as `metadata:field=language` — the reader's word for
+the format, not the document's word about itself — and the detector refuses that
+slot for a measured reason. Feeding the same fact in through a different door is
+the same defect wearing a different locator.
+
+The other three marker classes do not rescue it. A folder holding `package.json`
+or a repository marker is a PROJECT ROOT and P3 leaves it whole, so those markers
+never reach the recogniser at all; and a lone `README.md` is one signal, which
+`never_alone` correctly refuses. Narrowed to the classes that are safe, the rule
+fires essentially never.
+
+**So `00`:30's sentence stands unimplemented, and the honest reason is now on the
+record rather than an open invitation to rebuild this.** What `00`:30 would need
+is a signal that distinguishes a project from a document written in a language —
+a repository root reaching the recogniser as CONTEXT rather than as an exclusion,
+which is a P3 question and not a P7 one. That is the owner's to want or not.
