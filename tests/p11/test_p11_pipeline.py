@@ -414,8 +414,16 @@ def test_a_file_with_two_supported_homes_is_told_it_has_two_homes(skeleton):
                       evidence=_evidence(group_ids=("g-shared",)))
     assert decision.outcome == v.ABSTAIN
     assert decision.abstention_reason == v.MULTIPLE_SUPPORTED_HOMES
-    assert "n-course" in decision.explanation
-    assert "n-course-shared" in decision.explanation
+    # THE NAMES THE PERSON GAVE THESE FOLDERS, not the ids this run minted for
+    # them. `n-course` is `PHYS1401` and `n-course-shared` is `Shared Course
+    # Materials`, and the second is the assertion that discriminates: `PHYS1401`
+    # is also this file's own `subject` fact and could reach a sentence for the
+    # wrong reason, while nothing but the tree's own label produces the other.
+    assert "PHYS1401" in decision.explanation
+    assert "Shared Course Materials" in decision.explanation
+    # And no id is in it at all -- `n-course` is a prefix of `n-course-shared`,
+    # so one assertion covers both.
+    assert "n-course" not in decision.explanation
     assert "more than one" in decision.explanation
     # The old sentence is false about this file and must be gone: two legal
     # destinations DID clear §6.10's support condition.

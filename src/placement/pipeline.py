@@ -1892,6 +1892,9 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,
                        privacy=privacy, retrieval=retrieval,
                        assessment=assessment, graphs=graphs,
+                       # The walk above already read every node's name; the
+                       # sentences that print folders get it rather than an id.
+                       label_of=label_of,
                        automatic_move_permitted=automatic_move_permitted,
                        group_plan_id=group_plan_id, returned_from=returned_from,
                        component_version=component_version,
@@ -2443,6 +2446,18 @@ class _Context:
     retrieval: object
     assessment: object
     graphs: dict
+    #: NODE -> THE NAME THE PERSON READS FOR IT, which every other field here
+    #: carries only the id of. `_abstention_explanation` writes folders into a
+    #: sentence, and until this field existed the only spelling it had for one
+    #: was `assessment.scored[n].node_id` -- so `multiple_supported_homes` put
+    #: `node_15c628e6_17` on the screen of somebody looking at their own folders
+    #: (`84` §6: a line they cannot act on is not a true thing to tell them).
+    #:
+    #: Carried rather than rebuilt: `place_file_steps` already walks the tree
+    #: once into `label_of`, and a second walk here would be the O(files x nodes)
+    #: shape `planning/58-SCALE-STRESS.md` §2 measured -- and a second reading of
+    #: the same field that could disagree with the first.
+    label_of: Mapping[str, str]
     automatic_move_permitted: bool
     group_plan_id: str | None
     returned_from: str | None
@@ -2660,7 +2675,23 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
     evidence failure.
     """
     if reason == MULTIPLE_SUPPORTED_HOMES:
-        homes = _supported_homes(context)
+        # NAMED THE WAY THE REST OF THIS REPORT NAMES THEM. The homes are node
+        # ids -- `node_15c628e6_17` on a 15-file run with a local model, printed
+        # under "Waiting for you to choose where these go" beside lines reading
+        # "Coursework" and "Fall2025". `84` §6: what the screen tells a person
+        # has to be true, and a destination they cannot find is not a
+        # destination. The name is the tree's own `display_label`, carried on
+        # `_Context.label_of`, so this sentence and the plan spell a folder
+        # identically or not at all.
+        #
+        # `or` rather than a default, because a node this plan never named must
+        # not be given one here. P10 `_require`s `Node.display_label`, so no
+        # frozen tree reaches this arm with a nameless node -- but the sentence
+        # must not print an id if one ever did, and saying that a folder has no
+        # name is true where inventing one is not.
+        homes = tuple(context.label_of.get(node_id)
+                      or "a folder this plan has not named"
+                      for node_id in _supported_homes(context))
         return (
             f"{', '.join(homes)} each match this file well enough on their own, "
             "and nothing in the evidence separates them, so it has more than "
