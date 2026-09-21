@@ -1935,7 +1935,7 @@ in: exactly one line moved, the ordinary `photo.jpg`. Six protected before, six
 after — passport, HKID, vaccination card, codicil, diagnosis, prescription all
 unchanged.
 
-### OPEN — the default branch is named by one tally and explained by another
+### CLOSED (`87baf2ea`) — the default branch was named by one tally and explained by another
 
 On the nineteen-file corpus the run said:
 
@@ -1959,14 +1959,19 @@ in question here. **The sentence is.** It describes the reading vote in the case
 where the anchor vote decided, so the person is told the folder's evidence
 mostly names career when what happened is that two work-type facts did.
 
-**Two things to settle, and they are different sizes.**
+**Two things to settle, and they were different sizes.**
 
-1. *The sentence* (mine, small): say which tally decided. A fact and a reading
-   are different evidence and the screen should not spell them the same.
-2. *The order* (the owner's): two anchor facts outranking nine raised readings
-   produced a visibly wrong default on this corpus. The order's own docstring
-   justifies itself with a corpus where the detector recognised NOTHING, so the
-   measurement behind it does not cover the case where readings are rich.
+1. *The sentence* — **done**. Which vote won now travels with its answer, so the
+   screen reads "more of these files carry a kind-of-file word `career` owns"
+   where a fact decided and "`career` is the kind this folder's own readings
+   raised most often" where a reading did. A caller that names no vote keeps the
+   old words: one that has not been taught to say which tally it took should not
+   be made to claim one.
+2. *The order* — **still the owner's**. Two anchor facts outranking nine raised
+   readings produced a visibly wrong default on this corpus. The order's own
+   docstring justifies itself with a corpus where the detector recognised
+   NOTHING, so the measurement behind it does not cover the case where readings
+   are rich. Nothing here changes the rule.
 
 Also visible and the owner's: `WORK_TYPE_OWNER['meeting notes']` is `career`,
 and `WORK_TYPE_OWNER['invoice']` is `construction_property`.
@@ -2071,5 +2076,52 @@ standing rule forbids"* — but it sits at `cli.py:20953` and this refusal fires
 make refusals honest.** So the six set-aside files are recorded in the database
 and named on no screen, and the sentence the person gets blames the recogniser.
 
-Mine to fix, and small: the empty roster is a different case from a vote that
-named nothing, and it should say so.
+**CLOSED (`87baf2ea`).** The empty roster is a different case from a vote that
+named nothing, and it now says so itself — the count and the rule, in the
+refusal, where `_print_set_aside` cannot reach. A folder that holds no files at
+all says that instead, and a folder that WAS read and named nothing keeps the
+sentence it already had, which is the negative twin in the test.
+
+### The suite was green by arrangement — three failures were the order it ran in
+
+The full run after the capture fix came back **3 failed / 11,303 passed**. Two of
+the three were in HOLD tests, which is the area the capture fix touches, so they
+had to be treated as a regression until excluded. **None of them was.** All three
+are test isolation, and each reproduces deterministically by forcing an order
+rather than by hunting a seed.
+
+**The capture fix is excluded by construction**, not by assertion. The held file
+is `Passport syllabus.txt`: `_capture` requires `source_types <=
+TEXTLESS_SOURCE_TYPES` and the file carries `text_document`, and the new branch
+requires `leaders == [photos]` while its leaders are `identity` and `academic`.
+Neither condition is reachable. The glossary test never runs the detector at all.
+
+| failure | cause |
+| --- | --- |
+| `test_a_decline_leaves_the_hold_exactly_as_the_rules_wrote_it` | a sibling mutates the shared run |
+| `test_a_held_file_is_never_offered_a_cloud_target` | the same |
+| `test_every_meaning_is_the_library_s_sentence_byte_for_byte` | a global the promptbench never restores |
+
+**The holds.** `test_site_g_lifts_the_hold` shares one `cli.main` run across four
+tests through a module-level `_RUNS` cache, because a run is the most expensive
+thing in the suite. Three open it `mode=ro`. The fourth WRITES — the person's
+lift, then a second scan — which is the whole point of it. Four seeds in five put
+the writer first, and the two tests asserting `superseded_by is None` read the
+`user_confirmed` row it had just written. In DEFINITION order the writer runs
+last, which is the only reason the suite was ever green.
+
+**The glossary.** `tools/promptbench/site_a.use_glossary` assigns
+`dossier.GLOSSARY_FILE` process-wide and never restores it — right for the tool,
+a script that benches one glossary and exits; wrong inside a suite that goes on
+running. The bench runs two candidates and the SECOND wins, so every later test
+read `field_glossary_proposal_2026-09-06.json` where the shipped file belongs.
+Ordering `tests/tools/` before `tests/p8/` fails it every time.
+
+**Why this is worth its own entry.** A suite whose result depends on the seed
+cannot answer the question a suite exists to answer. It nearly cost this session
+its own fix: two of the three failures landed in exactly the area the change
+touched, and the only thing that separated "pre-existing flake" from "regression
+I just shipped" was root-causing all three. A green run that is a property of the
+arrangement is not evidence, and 21 Sep's "11,304 passed, 0 failed" was one.
+
+Fixed in `8065524a`. Neither fix touches `src/`.
