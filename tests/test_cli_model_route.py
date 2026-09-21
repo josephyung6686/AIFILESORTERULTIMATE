@@ -691,3 +691,270 @@ def test_only_the_gates_word_or_the_persons_opens_the_cloud():
     second corpus; its word is recorded and asked under, and opens no door."""
     assert cli.CLOUD_CLEARING_BASES == (cli.LOCAL_MODEL_GATE, "user")
     assert cli.LOCAL_MODEL_SITUATION not in cli.CLOUD_CLEARING_BASES
+
+
+# --- asking the device what it has, instead of assuming it has nothing --------
+#
+# THE DEFECT, MEASURED ON THE OWNER'S MACHINE, 20 Sep 2026. `ollama` was running
+# with three models pulled, and the screen said "there is no model on this device
+# to fall back to". The sentence was false, and the reason it was false is that
+# nothing ever looked: `model_route` read `GRAPH_AGENT_LOCAL_MODEL` and, finding
+# it unset, concluded the device had nothing. A person with a working model was
+# told they had none because they did not know an environment variable's name.
+#
+# `84` §6 -- what the screen tells a person has to be true -- is the whole of it.
+# The fix is to ASK, and the fix is not to CHOOSE: which of a person's models
+# reads their files is their decision, so a discovered model is named on the
+# screen and is not used. `test_a_discovered_model_is_named_on_the_screen_and_is
+# _not_used` is that ruling, asserted.
+#
+# `_discover_local_models` IS THE REAL FUNCTION, imported inside each test that
+# wants it rather than reached through `cli`, because `tests/conftest.py` replaces
+# `cli`'s attribute for the whole suite -- the same argument `_no_ambient_key`
+# makes above, applied to a model server instead of a key: a suite whose screens
+# depend on whether the developer happens to be running ollama passes on one
+# machine and fails on the next. The tests below that end in `_for_real` hold the
+# original function and talk to a real endpoint; every other test here injects an
+# answer.
+#: Captured at import, which is before any fixture runs, so this is the function
+#: itself and not the suite-wide stub standing in its place.
+_REAL_DISCOVERY = cli._discover_local_models
+
+
+def _found(*names: str):
+    """A discovery that answers without a server, and records that it was asked."""
+    calls: list[str] = []
+
+    def discover(base_url: str) -> tuple[str, ...]:
+        calls.append(base_url)
+        return names
+
+    discover.calls = calls  # type: ignore[attr-defined]
+    return discover
+
+
+def _route_with(monkeypatch, discover, env=None):
+    for name, value in (env or {}).items():
+        monkeypatch.setenv(name, value)
+    out = io.StringIO()
+    return cli.model_route(out=out, discover=discover), out.getvalue()
+
+
+def test_with_no_name_set_the_device_is_asked_what_it_has(monkeypatch):
+    """The whole defect in one assertion: nothing ever looked, and now it does."""
+    discover = _found("qwen3:8b", "qwen2.5:3b")
+    _route_with(monkeypatch, discover)
+
+    assert discover.calls, (
+        "no name was set, so the one thing that could have found a model on this "
+        "device is asking the device -- and it was not asked")
+
+
+def test_a_discovered_model_is_named_on_the_screen_and_is_not_used(monkeypatch):
+    """NAMED, NOT CHOSEN. The conservative half of the ruling: the run still does
+    not use a model it was not told to use, because which of a person's models
+    reads their files is theirs to decide. What changes is that the screen stops
+    telling them there is nothing there."""
+    routing, printed = _route_with(monkeypatch, _found("qwen3:8b", "qwen2.5:3b"))
+
+    assert routing is None, "a discovered model is named, never silently used"
+    assert "qwen3:8b" in printed and "qwen2.5:3b" in printed
+    assert LOCAL_MODEL_NAME in printed
+    # The false half of the old sentence, gone: a device with two models is not
+    # told to go and install one.
+    assert "ollama pull" not in printed
+
+
+def test_a_key_with_sending_off_still_hears_about_the_models_on_the_device(
+        monkeypatch):
+    """THE OWNER'S OWN RUN. A key is configured, this folder's sending is not on,
+    and three models sit idle on the device -- the run where the false sentence
+    was read. `model_route` returned the cloud route here and said nothing at all
+    about local, so the only sentence the person got was the false one."""
+    routing, printed = _route_with(monkeypatch, _found("qwen3:4b"), dict(ENV))
+
+    assert routing is not None
+    assert "qwen3:4b" in printed
+    assert LOCAL_MODEL_NAME in printed
+
+
+def test_a_named_model_is_never_second_guessed_by_a_probe(monkeypatch):
+    """It must not slow an ordinary run: one request at most, and only when no
+    model was named. A deployment that named its model has already answered the
+    question the probe asks."""
+    discover = _found("qwen3:8b")
+    routing, _ = _route_with(monkeypatch, discover, dict(LOCAL_ENV))
+
+    assert routing is not None
+    assert not discover.calls, (
+        "a model was named, so there was nothing to discover and no reason to "
+        "spend a request finding out")
+
+
+def test_finding_nothing_leaves_the_old_sentence_exactly_as_it_was(monkeypatch):
+    """The refusal when there is GENUINELY no model stays exactly as true as it
+    was. A person with no model installed is told what to install, in the words
+    they were told before."""
+    _, unchanged = _route_with(monkeypatch, _found())
+
+    assert unchanged == (
+        "No model was consulted: neither DEEPSEEK_API_KEY nor "
+        "GRAPH_AGENT_LOCAL_MODEL\nis set, so this run used only what it could "
+        "read and decide on this device.\nFiles that needed a judgement are "
+        "named below and say so. To enable one,\neither install a local model "
+        "(`ollama pull qwen3:8b`) and set\nGRAPH_AGENT_LOCAL_MODEL to its id, "
+        "which sends nothing anywhere, or copy\n`.env.example` to `.env` and "
+        "put a key in it.\n")
+
+
+def test_the_coverage_line_no_longer_claims_to_know_what_is_on_the_device():
+    """The sentence the owner read. It said "there is no model on this device to
+    fall back to" -- a claim about the DEVICE, made by code that had only ever
+    looked at an environment variable. What was actually checked is whether a
+    model was NAMED, and that is what it may say. The cloud half is untouched:
+    sending still needs this folder's consent."""
+    sentence = cli.COVERAGE_SENTENCE[cli.NOT_RUN_NO_DESTINATION]
+
+    assert "there is no model on this device to fall back to" not in sentence
+    # What WAS checked, and all that may be claimed from it.
+    assert "named" in sentence
+    # The cloud half, unchanged: sending still needs this folder's consent.
+    assert "this folder's sending turned on" in sentence
+
+
+def test_a_discovery_that_cannot_reach_anything_is_not_a_failed_run_for_real():
+    """A file organiser that cannot run because a model server is absent is worse
+    than one that says so. REAL: a port nothing is listening on, no injection."""
+    assert _REAL_DISCOVERY("http://127.0.0.1:1") == ()
+
+
+def test_discovery_talks_to_loopback_or_it_does_not_happen_for_real():
+    """`model_ollama.LOOPBACK_HOSTS` is the line between a local claim and a cloud
+    call wearing a local target, and it holds for the PROBE as much as for the
+    call. REAL: no connection is attempted at all."""
+    assert _REAL_DISCOVERY("http://example.com:11434") == ()
+    assert _REAL_DISCOVERY("https://api.deepseek.com") == ()
+    assert _REAL_DISCOVERY("") == ()
+
+
+def test_what_is_actually_installed_on_this_machine_for_real():
+    """REAL, and skipped where there is no server: the half of this proof that no
+    injection can give. The names are whatever this machine has -- nothing here
+    knows or asserts which, because `qwen3:8b` is what one laptop happens to hold
+    and the next holds something else."""
+    found = _REAL_DISCOVERY(cli.LOCAL_DEFAULT_BASE_URL)
+    if not found:
+        pytest.skip("no local model server is listening; the injected half stands")
+    assert all(isinstance(name, str) and name for name in found)
+
+
+def _a_server_on_loopback(handle):
+    """A real HTTP server on a real loopback port, for the two things no
+    injection can prove: that a redirect is not followed, and that a listing is
+    read off the wire. Torn down by the caller."""
+    import http.server
+    import threading
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            handle(self)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, f"http://127.0.0.1:{server.server_port}"
+
+
+def test_a_redirect_is_declined_rather_than_followed_for_real():
+    """A REDIRECT IS A CLOUD CALL WEARING A LOCAL TARGET, and this is what makes
+    the host check mean anything. The named endpoint really is loopback, so the
+    check passes -- and then the server answers `302` somewhere else. `urlopen`
+    follows redirects by default, so without the guard the probe would make a
+    request to a host nothing had checked, as the one call nobody thinks of as a
+    send.
+
+    **BOTH SERVERS ARE ON LOOPBACK, and that is what makes this decisive rather
+    than decorative.** A test that redirected to a real outside host would pass
+    with the guard REMOVED -- `example.com` answers with HTML, the parse fails,
+    and the empty tuple comes back for the wrong reason. Here the redirect target
+    is a second local server serving a perfectly good listing: follow it and the
+    names come back, decline it and they cannot. The assertion is that the second
+    server was never asked at all.
+    """
+    followed: list[str] = []
+
+    def a_real_listing(request):
+        followed.append(request.path)
+        body = json.dumps({"models": [{"name": "followed:1b"}]}).encode()
+        request.send_response(200)
+        request.send_header("Content-Length", str(len(body)))
+        request.end_headers()
+        request.wfile.write(body)
+
+    target, target_endpoint = _a_server_on_loopback(a_real_listing)
+    asked: list[str] = []
+
+    def redirect_there(request):
+        asked.append(request.path)
+        request.send_response(302)
+        request.send_header("Location", target_endpoint + "/api/tags")
+        request.end_headers()
+
+    server, endpoint = _a_server_on_loopback(redirect_there)
+    try:
+        assert _REAL_DISCOVERY(endpoint) == ()
+    finally:
+        for stopping in (server, target):
+            stopping.shutdown()
+            stopping.server_close()
+    assert asked, "the named endpoint was never asked, so nothing was proven"
+    assert not followed, (
+        "the redirect was followed: a request reached a host the loopback check "
+        "never saw, which is the whole thing that check exists to prevent")
+
+
+def test_a_listing_is_read_off_the_wire_and_a_broken_one_is_not_a_failure_for_real():
+    """REAL, and on a port this test owns rather than on whatever this laptop
+    happens to be running. The four bodies are the four ways a real endpoint
+    answers: a listing, a listing of the wrong shape, something that is not JSON
+    at all, and a body far past the ceiling. None of them may raise."""
+    body: list[bytes] = [b""]
+
+    def answer(request):
+        request.send_response(200)
+        request.send_header("Content-Length", str(len(body[0])))
+        request.end_headers()
+        request.wfile.write(body[0])
+
+    server, endpoint = _a_server_on_loopback(answer)
+    try:
+        body[0] = json.dumps({"models": [
+            {"name": "second:1b"}, {"name": "first:2b"}, {"name": "second:1b"},
+            {"name": "   "}, {"nothing": "useful"}, "not even an object"]}).encode()
+        # Sorted and de-duplicated, and the entries with no usable name dropped.
+        assert _REAL_DISCOVERY(endpoint) == ("first:2b", "second:1b")
+
+        body[0] = json.dumps({"models": "not a list"}).encode()
+        assert _REAL_DISCOVERY(endpoint) == ()
+
+        body[0] = b"<html>a proxy said hello</html>"
+        assert _REAL_DISCOVERY(endpoint) == ()
+
+        # VALID JSON, and that is what makes the assertion decisive. A body with
+        # a trailing comma would fail to parse whether the ceiling existed or
+        # not, and the empty tuple would come back for the wrong reason -- the
+        # same trap the redirect test above had to be rewritten to escape. This
+        # parses cleanly to one name if it is read whole, so an empty tuple can
+        # only mean the read stopped at the ceiling.
+        body[0] = (b'{"models": ['
+                   + b'{"name": "x"},' * 200_000
+                   + b'{"name": "x"}]}')
+        assert json.loads(body[0])["models"][0] == {"name": "x"}
+        assert len(body[0]) > cli.LOCAL_DISCOVERY_BYTES_CEILING
+        assert _REAL_DISCOVERY(endpoint) == ()
+    finally:
+        server.shutdown()
+        server.server_close()

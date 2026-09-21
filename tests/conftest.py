@@ -44,6 +44,35 @@ os.environ.pop("OLLAMA_BASE_URL", None)
 _ROOT: Path = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def _no_ambient_model_server(monkeypatch):
+    """AND NO TEST MAY DISCOVER THE DEVELOPER'S OWN OLLAMA, added 20 Sep 2026.
+
+    The two lines above stop an exported name and a `.env` reaching a run. Since
+    `model_route` also ASKS the loopback endpoint what is installed when no name
+    is set, there is a third way the developer's machine can reach a test, and it
+    is one no environment variable can close: the fact that ollama is running.
+
+    What it would do is make the SCREEN machine-dependent. `model_route` prints a
+    different sentence when it finds models, so
+    `tests/integration/test_r37_single_branch_is_byte_identical.py` -- a fixture
+    of the exact bytes a run prints -- would pass on a laptop with no model
+    server and fail on the same laptop an hour later with one running. That is
+    the failure mode `84` §4 records for corpora and `_no_ambient_key` records
+    for credentials, arriving by a third door.
+
+    **A test that wants the real function calls it directly**, holding the
+    reference rather than reaching through `cli`: this replaces the module's
+    attribute and not the function, so `tests/test_cli_model_route.py`'s
+    `_for_real` tests still talk to a real endpoint. A test about the SCREEN
+    injects an answer through `model_route(discover=...)`, which is the seam that
+    exists for it and which this fixture does not touch.
+    """
+    import cli
+
+    monkeypatch.setattr(cli, "_discover_local_models", lambda _endpoint: ())
+
+
 def _databases_in_the_working_directory() -> frozenset[str]:
     return frozenset(path.name for path in _ROOT.glob("*.sqlite*"))
 

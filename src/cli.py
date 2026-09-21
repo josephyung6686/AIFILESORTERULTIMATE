@@ -385,7 +385,9 @@ from readers import model_deepseek
 from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    DEFAULT_BASE_URL as LOCAL_DEFAULT_BASE_URL,
     LOCAL,
+    LOOPBACK_HOSTS as LOCAL_LOOPBACK_HOSTS,
     MODEL_NAME as LOCAL_MODEL_NAME,
 )
 from readers.model_routing import (
@@ -3187,7 +3189,161 @@ class UsageMailbox:
         return held
 
 
-def model_route(*, out, on_usage=None) -> TierRouting | None:
+#: WHERE OLLAMA LISTS WHAT IS PULLED. ollama's own endpoint; the reply names
+#: every model installed on the device and nothing else. It generates nothing, so
+#: asking it costs no tokens, loads no weights and sends nothing anywhere.
+LOCAL_DISCOVERY_PATH: str = "/api/tags"
+
+#: THE WHOLE COST OF ASKING, and it is spent only when no model was NAMED. A file
+#: organiser that cannot run because a model server is absent is worse than one
+#: that says so, so an ordinary run must not wait on a server that may not be
+#: there: a loopback listing answers in milliseconds, and past this the run
+#: carries on exactly as it did before anything asked.
+LOCAL_DISCOVERY_SECONDS: float = 1.5
+
+#: WHAT A LISTING MAY WEIGH. The reply is a few hundred bytes per model, and a
+#: read with no bound is an unbounded wait whatever the timeout says -- a socket
+#: that keeps dribbling bytes never trips a connect-or-first-byte deadline. The
+#: ceiling is far above any real listing and far below a denial of service.
+LOCAL_DISCOVERY_BYTES_CEILING: int = 1 << 20
+
+
+def _discover_local_models(base_url: str) -> tuple[str, ...]:
+    """What is installed on this device, ASKED rather than assumed.
+
+    **The defect this closes, measured on the owner's machine on 20 Sep 2026.**
+    `ollama` was running with three models pulled, and the screen said "there is
+    no model on this device to fall back to". The sentence was false, and it was
+    false because nothing ever looked: the composition root read
+    `GRAPH_AGENT_LOCAL_MODEL`, found it unset, and concluded the device had
+    nothing. A person with a working model was told they had none because they
+    did not know an environment variable's name. `84` §6 -- what the screen tells
+    a person has to be true -- is the whole of the argument for asking.
+
+    **IT IS NOT THE CONSENT QUESTION, and nothing here touches that.** Opt-in
+    exists because content LEAVING THE DEVICE needs permission; that is
+    `--enable-cloud`, per folder, and it is untouched. A model on this device
+    sends nothing off it, so the consent argument does not reach this, and what
+    was left was a person kept from their own hardware by a spelling.
+
+    **HERE AND NOT IN `readers/`, because `model_ollama` says why**: *"a module
+    that reaches for its own configuration can acquire configuration nobody chose
+    to give it."* This file is already the place that reads the environment and
+    injects the endpoint and the model id; discovering a THIRD thing about the
+    deployment is the same job in the same place, and a transport that went
+    looking for its own targets would be the thing that comment forbids.
+
+    **LOOPBACK OR IT DOES NOT HAPPEN.** `model_ollama.LOOPBACK_HOSTS` is the line
+    between a local claim and a cloud call wearing a local target, and it binds
+    the PROBE exactly as it binds the call: a question sent to another host is a
+    request that left the device, whatever it was asking about, and it would
+    leave under no consent at all because nobody thinks of a probe as a send. A
+    non-loopback endpoint returns nothing WITHOUT CONNECTING -- the refusal is
+    checked before the socket, not after it.
+
+    **IT CANNOT FAIL THE RUN, and that is why the guard is as wide as it is.** No
+    ollama, a refused connection, a timeout, a proxy answering with HTML, a JSON
+    body of the wrong shape: every one of them is an ordinary state of an
+    ordinary machine, and every one of them means the same thing here -- nothing
+    was found. Narrowing this to the exceptions `urllib` is documented to raise
+    would trade a true sentence on a screen for a traceback in a file organiser,
+    which is the trade `model_route` already refuses for a misspelled model name.
+    `BaseException` is deliberately NOT caught: an interrupt is the person
+    stopping the run, and it is theirs to have.
+
+    **It names nothing.** The ids come back from the device; no model name, port
+    or machine's list is written here. `qwen3:8b` is what one laptop happens to
+    hold, another holds something else, and most hold nothing at all.
+    """
+    from urllib.parse import urlsplit
+    from urllib.request import HTTPRedirectHandler, build_opener
+
+    class _StaysOnLoopback(HTTPRedirectHandler):
+        """AND A REDIRECT IS A CLOUD CALL WEARING A LOCAL TARGET.
+
+        The host check below runs on the endpoint this deployment named, and
+        `urlopen` follows redirects by default -- so a server on loopback
+        answering `302 https://somewhere.else/` would have this making a request
+        to another host under a check that had already passed. Nothing of the
+        person's would be in it (the probe is a bodiless GET), but the connection
+        itself is the thing `LOOPBACK_HOSTS` exists to prevent, and it would be
+        made by the one call nobody thinks of as a send.
+
+        Returning `None` is `urllib`'s own way to decline: the redirect becomes an
+        `HTTPError`, which the guard below reads as "nothing was found" -- the
+        same answer as no server at all, which is the right one.
+        """
+
+        def redirect_request(self, *args, **kwargs):  # noqa: D102
+            return None
+
+    endpoint = (base_url or "").strip().rstrip("/")
+    if not endpoint:
+        return ()
+    try:
+        host = (urlsplit(endpoint).hostname or "").lower()
+    except ValueError:
+        # An endpoint a host cannot even be parsed out of is one nothing should
+        # be sent to, which is the same answer as a non-loopback host.
+        return ()
+    if host not in LOCAL_LOOPBACK_HOSTS:
+        return ()
+    try:
+        with build_opener(_StaysOnLoopback).open(
+                endpoint + LOCAL_DISCOVERY_PATH,
+                timeout=LOCAL_DISCOVERY_SECONDS) as reply:
+            listed = json.loads(reply.read(LOCAL_DISCOVERY_BYTES_CEILING))
+    except Exception:
+        return ()
+    models = listed.get("models") if isinstance(listed, dict) else None
+    if not isinstance(models, list):
+        return ()
+    # Sorted and de-duplicated, so the screen reads the same twice running: the
+    # listing's own order is whatever the server felt like, and a person checking
+    # today's sentence against the one they read yesterday should not have to.
+    return tuple(sorted({
+        entry["name"].strip() for entry in models
+        if isinstance(entry, dict) and isinstance(entry.get("name"), str)
+        and entry["name"].strip()}))
+
+
+def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
+    """The sentence a person with a model and no `GRAPH_AGENT_LOCAL_MODEL` earns.
+
+    **It names what was found and it does not choose.** The conservative half of
+    the 20 Sep ruling: a discovered model is reported, never used. Which of a
+    person's models reads their files is their decision -- one is a 4B that will
+    be quick and rough, the next an 8B that will be slow and better -- and
+    picking for them would be this product deciding something nobody told it.
+
+    **`84` §6 makes the last line pasteable, so it is quoted and it is not
+    wrapped.** The id comes off a device and its shape is not this file's to
+    assume: `_turn_off_line` quotes its path for the same reason. And
+    `_role_lines` records why a leading space keeps a line out of `textwrap` --
+    "a command across two lines produces a command that does not work" -- which
+    is the same rule, applied here by printing the indented line as it stands.
+    """
+    count = len(found)
+    for line in (
+        "",
+        f"This device already has {count} model{'' if count == 1 else 's'} "
+        f"installed at {endpoint} -- {', '.join(found)} -- and "
+        f"{LOCAL_MODEL_NAME} is not set, so none of them was asked. Which of "
+        f"your models reads your files is yours to decide, so nothing here "
+        f"picked one for you. To use one, name it; a model on this device sends "
+        f"nothing anywhere:",
+        "",
+        f"    export {LOCAL_MODEL_NAME}={shlex.quote(found[0])}",
+        "",
+        "Any other name above works the same way, and a run with no name set "
+        "stays exactly as it is.",
+        "",
+    ):
+        print(line if line.startswith(" ") else _wrapped(line, indent=""),
+              file=out)
+
+
+def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -3204,6 +3360,26 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
     question about this folder's consent, which this function does not read;
     `announce_cloud_posture` holds both halves and says one true thing rather than
     two half-true ones.
+
+    **AND WHEN NO LOCAL MODEL IS NAMED IT ASKS THE DEVICE, since 20 Sep 2026.**
+    `_discover_local_models` argues the defect at length; the part that belongs
+    here is WHY THE ASKING IS IN THIS FUNCTION. This is the composition root: it
+    already reads the environment for the model id and the endpoint and injects
+    both, because `model_ollama` refuses to read its own configuration. Finding
+    out what the endpoint HAS is that same reading, and a `readers/` module that
+    went looking for its own targets would be exactly what that refusal forbids.
+
+    **`discover` IS INJECTED FOR THE SAME REASON THE VOLUME PROBE IS**: a test
+    must be able to supply an answer without a server, and the suite's screens
+    must not depend on whether the developer happens to be running ollama.
+    Resolved at CALL TIME rather than bound as a default, so `tests/conftest.py`
+    can neutralise the whole suite by replacing the module's attribute -- a
+    default argument would have frozen the original at import and left every
+    end-to-end fixture reading a different screen on a machine with a model.
+
+    **Nothing found changes nothing.** Every failure a probe can have collapses
+    to an empty tuple, and an empty tuple prints the sentence this function has
+    always printed, word for word.
     """
     from os import environ
 
@@ -3227,7 +3403,30 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
         return (environ.get(name) or supplied.get(name) or "").strip()
 
     local_model = value(LOCAL_MODEL_NAME)
+    # ONE REQUEST AT MOST, AND ONLY WHEN NOTHING WAS NAMED. A deployment that
+    # named its model has already answered the question the probe asks, so an
+    # ordinary configured run spends nothing here and waits for nothing.
+    local_endpoint = value(LOCAL_BASE_URL_NAME) or LOCAL_DEFAULT_BASE_URL
+    installed: tuple[str, ...] = ()
+    if not local_model:
+        installed = (discover or _discover_local_models)(local_endpoint)
     if not value(CREDENTIAL_NAME) and not local_model:
+        if installed:
+            # THE DEFECT, CLOSED. A person with models pulled and no name set
+            # used to be told the product had nothing and be sent to `ollama
+            # pull` -- advice to install what they already had. They are now told
+            # what is there and how to name one, and the run still does not pick.
+            print(_wrapped(
+                "No model was consulted, and this device has one to offer.",
+                indent=""), file=out)
+            _say_what_is_installed(installed, local_endpoint, out=out)
+            print(_wrapped(
+                f"This run used only what it could read and decide on this "
+                f"device; files that needed a judgement are named below and say "
+                f"so. A key in `.env` under {CREDENTIAL_NAME} is the other way "
+                f"to have a model, and it is the one that sends.", indent=""),
+                file=out)
+            return None
         # BOTH NAMES, because there are now two ways to have a model and a person
         # who is told only about the cloud one is told the product needs a paid
         # account to think at all. `00`:189-193's second mode is a model on their
@@ -3262,9 +3461,22 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             # refuse a scan that needs no model to do most of its work.
             print(f"\nNo cloud model was consulted, and here is what it needed:\n"
                   f"  {refusal}", file=out)
-            if not local_model:
-                return None
+            # NOT A `return` ANY MORE, and the value returned is unchanged. `cloud`
+            # is still `None` here, and the block below returns it -- so a run with
+            # a broken key and no local name gets exactly the route it always got.
+            # What it no longer gets is silence about the machine in front of it: a
+            # person whose key is misspelled and whose device has three models
+            # pulled was told at length what the cloud needed and nothing at all
+            # about the models they already had.
     if not local_model:
+        if installed:
+            # THE OWNER'S OWN RUN, 20 Sep 2026: a key configured, this folder's
+            # sending not turned on, and three models sitting idle on the device.
+            # This branch returned in silence, so the only thing the person was
+            # ever told about local was the coverage line's claim that there was
+            # nothing here -- a claim made by code that had read an environment
+            # variable and looked at nothing else.
+            _say_what_is_installed(installed, local_endpoint, out=out)
         return cloud
     try:
         if cloud is not None:
@@ -13017,10 +13229,27 @@ COVERAGE_SENTENCE: Mapping[str, str] = MappingProxyType({
     NOT_RUN_NO_MODEL:
         "no model is configured for this run, so nothing could be asked about "
         "them. What this device could read and decide on its own still stands.",
+    # THE SECOND CLAUSE SAID SOMETHING THE CODE HAD NEVER CHECKED, until 20 Sep
+    # 2026. "there is no model on this device to fall back to" is a statement
+    # about the DEVICE, and the only thing the run had looked at was whether an
+    # environment variable was set -- so on the owner's own machine, with ollama
+    # running and three models pulled, this line was simply false. `84` §6: what
+    # the screen tells a person has to be true. What was actually checked is
+    # whether a local model was NAMED, and that is what this may say.
+    #
+    # The deployment-level half -- what IS installed, and the line that names one
+    # -- is printed once at the top of the run by `model_route`, where the comment
+    # at the `model_route` call site already rules it belongs: "a sentence about
+    # the deployment -- rather than left to infer it from thirty file-level
+    # sentences at the bottom that each read as a statement about one of their
+    # files". Threading a discovered list into this per-file map would have put
+    # the same deployment sentence on every one of those lines.
+    #
+    # The cloud half is untouched. Sending still needs this folder's consent.
     NOT_RUN_NO_DESTINATION:
         "no model this run may use has a destination for the fact question -- a "
-        "cloud model needs this folder's sending turned on, and there is no "
-        "model on this device to fall back to.",
+        "cloud model needs this folder's sending turned on, and no model on this "
+        "device was named for this run to fall back to.",
     NOT_RUN_NO_HANDLE_KEY:
         "this run has no wire handle key, and every identifier that reaches a "
         "model is digested under one. There is no un-keyed form to fall back to.",
