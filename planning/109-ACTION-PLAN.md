@@ -2532,3 +2532,54 @@ touch the cloud path not at all.
 back `none_of_these`, which is the GATE's vocabulary and not a situation. The file
 is named anyway (the rules had it as `creative`), so it costs nothing here, but a
 situation site answering in the gate's words is worth a look.
+
+
+## WITHDRAWN — "the recognition library cannot be rebuilt from its sources"
+
+**That claim, made twice in this entry and once to the owner, is FALSE.** It is
+withdrawn here in full.
+
+**What the lead got wrong, and how.** The claim rested on `proposed_context_terms`
+and `file_kinds` appearing in no authored source. The grep behind it was
+`grep -l 'proposed_context_terms' planning/domains/*.json` — a NON-RECURSIVE glob
+that never looked inside `planning/domains/nodes/`. A recursive grep had been
+started first, timed out into the background, and its absence was replaced by the
+non-recursive fallback whose empty result was then read as proof. An empty result
+from the wrong search is not evidence of absence.
+
+**What is actually true**, verified by the lead rather than taken on report:
+
+```
+node rows in planning/domains/nodes/        : 362   (= compiled_rows 362)
+rows carrying `proposed_context_terms`      : 291
+rows carrying `file_kinds`                  : 362
+```
+
+And the rebuild, run and compared byte for byte:
+
+```
+PYTHONPATH=src python3 -m recognition.compile planning/domains/nodes > <tmp>
+cmp src/recognition/library/recognition.json <tmp>   ->  identical
+```
+
+**Three corrections follow.**
+
+1. **The compiler's input is `planning/domains/nodes/`** — one file per row, 362
+   of them — not the 16 supercategory files with an `entries` key, which are an
+   older surface.
+2. **`compile_rules` is not dead code.** It is BUILD-time code.
+   `test_composition_root.py` asserts only that it is unreachable from the
+   RUNTIME composition root, which is the boundary `compile.py`'s own docstring
+   states. `tests/recognition/test_recognition_boundaries.py:115` is a live guard
+   asserting the shipped file equals this function's output.
+3. **The terms were authored, not generated.** Each `nodes/<id>.json` has a
+   companion `<id>.research.md` arguing for its terms, written by the R1b
+   dispatch; `academic.coursework.research.md` says so in its own words. First
+   compiled in `c80941c6`, whose message states the count.
+
+**WHAT THIS UNBLOCKS, and it is the important part.** The sandbox refused edits to
+`src/recognition/library/recognition.json` as a protected shared resource, and it
+was RIGHT to: that file is compiled output. The authored source is
+`planning/domains/nodes/*.json`, which is not protected. So vocabulary work is:
+edit the row, recompile with the one command above, and let the boundary test
+verify. The path was open the whole time and this entry said it was shut.
