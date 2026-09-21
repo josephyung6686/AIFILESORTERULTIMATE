@@ -367,9 +367,36 @@ RESEARCH_ANSWER = "research.thesis-dissertation"
 
 
 @pytest.fixture(scope="module")
-def answered(run):
-    """A third `cli.main`, answering the question the second run printed."""
-    corpus, database, _report = run
+def answered(run, tmp_path_factory):
+    """A third `cli.main`, answering the question the second run printed.
+
+    **ON ITS OWN COPY OF THE DATABASE, and that is not a detail.** This run
+    ANSWERS the open situation, so it places files that `run`'s own tests assert
+    are not placed -- `test_and_its_folders_are_not_chosen_at_all_while_the
+    _situation_is_open` is the whole point of the state this fixture leaves
+    behind. `run` is module-scoped and hands the same database to both sets, so
+    writing into it makes this module's result a property of the order it ran in.
+
+    Measured 21 Sep 2026 at `29b85d8c`, before any change of this session's: the
+    module passes sorted and on seed 1, and fails on seeds 2 and 3 with
+    `Cover letter Gamma.txt` placed under `Applications` -- placed by THIS
+    fixture, read by a test that runs before it only because the ordering said
+    so. The failing test passes alone on the same seed, which is what tells order
+    from seed.
+
+    `Connection.backup` rather than a file copy, because a WAL database is more
+    than one file on disk; a copy rather than a fourth run, because the runs are
+    what cost and this needs their rows, not their processes. The corpus is
+    shared unchanged -- nothing writes to it.
+    """
+    corpus, shared, _report = run
+    database = tmp_path_factory.mktemp("answered") / "plan.sqlite"
+    source = sqlite3.connect(f"file:{shared}?mode=ro", uri=True)
+    copy = sqlite3.connect(str(database))
+    with copy:
+        source.backup(copy)
+    copy.close()
+    source.close()
     out = io.StringIO()
     with pytest.MonkeyPatch.context() as patch, StubOllama(answer=_answer) as stub:
         patch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
