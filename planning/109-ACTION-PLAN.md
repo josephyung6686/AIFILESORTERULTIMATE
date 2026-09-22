@@ -2836,3 +2836,63 @@ product asked to send more than its own privacy ceiling allows and had no
 deterministic fallback, and two because the model reached past its evidence and
 was correctly stopped. None of the four is missing a field. The entry above
 should be read with its last paragraph struck.
+
+#### Correction to the entry immediately above, made the same session
+
+That entry says of the two refused files: **"The refusal is not the defect; the
+request is."** That is not supported, and I wrote it from the docstring of
+`model_placement.releasable_excerpts` without reading the predicate it delegates
+to. `model_facts.may_be_released` says in its own comment that the whole-unit arm
+**is gone**:
+
+> a whole unit is no longer refused [here] ... and in `items.check_item` (a whole
+> unit longer than the stored ceiling is the whole document the gate refuses)
+
+and its span-less branch returns `True` in as many words: *"the two span-less
+shapes — the cell or field with no unit at its path, and the whole unit — both
+release now; the unit is bounded by the ceiling."*
+
+**So a whole text unit is a legitimate thing to request, and the only thing the
+gate refuses is one LONGER THAN THE STORED CEILING.** `items.check_item` takes
+that ceiling from P1's stored `model.max_dossier_tokens_per_call` — never the
+request's echo of it — and "withholds any reading longer than the ceiling". The
+two files' units are 4753 and 7442 characters against a stored 4000. **Nothing
+here is behaving incorrectly.** The product declined to send a document longer
+than the ceiling the owner set, which is the rule doing its job.
+
+`narrow_span` in the denial is the remedy a caller MAY take, not a finding that
+the caller was wrong to ask. Reading it as an accusation was the same error as
+the five before it: a plausible reading of a docstring, promoted to a defect
+without opening the function it names.
+
+**What is actually true about those two files, and all that is:** their text is
+longer than the dossier ceiling, so no dossier could carry it whole; no narrowed
+excerpt was offered in its place; and the rules alone had nothing to place them
+on, where two siblings in the same position did and went home through R-74's arm.
+
+**And the repair is NOT available to me after all.** The previous entry lists
+"P11's site-C dossier should request a bounded span" as an ordinary repair on the
+grounds that it "sends strictly LESS". That is false and it is the exact
+reformulation the standing rule forbids: today those two files send **zero**
+bytes, because the gate refuses. Narrowing would send up to the ceiling where
+nothing goes now. It stays inside a ceiling the owner ratified, so it is not a
+policy change — but it is more of those files off the device than today, and
+WHICH 4000 characters get chosen is a judgement about the person's material. That
+is the owner's to make.
+
+**Three things owed to the owner, then, not two and a repair:**
+
+1. A site-C reason code for "the tree has no such level" (`placement_validation`
+   already records this as owed; this entry adds a measurement behind it).
+2. A §6.10 abstention reason for "the model answered and the answer was rejected
+   as ungrounded", so the screen stops telling the person their evidence was thin
+   when the model was the thing that was caught.
+3. A decision on whether a document longer than the dossier ceiling should be
+   narrowed to an excerpt for site C, and if so, chosen how. Two of the owner's
+   34 files turn on it.
+
+**The lesson, which is the sixth time this entry has recorded it.** Every wrong
+claim in this session came from reasoning over a record or a docstring instead of
+opening the function that decides. The measurements have all held; the stories
+told about them are what keep failing. `may_be_released` is nineteen lines long
+and settles the whole question.
