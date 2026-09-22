@@ -2744,3 +2744,95 @@ then `--apply` are the gestures that do.
 **Recognition 91%, filing 85% of what it should file, 4 real misses.** The next
 question is not which schema those four are — it is which FIELD each one is
 missing, which is P6's and P11's ground rather than P7's.
+
+### WITHDRAWN: "which FIELD each one is missing" — none of them is missing a field
+
+The entry above closes by naming the next question: *"which FIELD each one is
+missing, which is P6's and P11's ground rather than P7's."* **That was wrong, and
+wrong the same way the other five withdrawals in this entry were wrong** — a
+plausible model of the pipeline, written down without reading what the run had
+already recorded about those four files. The run records all four causes, and not
+one of them is a field.
+
+Read off `gt_cloud`'s `llm_refusal`, `llm_verdict` and `placement_decisions`
+(live rows, output whitelisted to closed-set vocabulary):
+
+```
+P11        P11 reason                 P8 outcome    P8 reason code                  n
+place      --                         accept_direct --                             14
+place      --                         accept_ctx    --                              6
+place      --                         (never asked) --                              2
+abstain    situation_unanswered       (never asked) --                              8   protected
+abstain    privacy_blocked            (never asked) --                              2
+abstain    no_supported_destination   reject        SLOT_FILLED_WITHOUT_EVIDENCE     2
+```
+
+**Two causes, both upstream of any field.**
+
+**1. Two files: §8.4 refused to send the dossier, and the refusal was right.**
+All four `whole_document_requested` refusals in the run are at `pre-call:
+C_placement`, and the validator's own words are that a span covering the whole of
+a 4753-character (and a 7442-character) text unit is longer than the stored
+4000-character ceiling. §8.4: the engine "should not send full documents where a
+short heading or OCR excerpt is enough". **P11 asked for the whole document; P7
+said no.** The remedy the validator itself names is `narrow_span`.
+
+Two other files hit the identical refusal and placed anyway, through R-74's arm —
+the gate refuses, the file falls back to the placement the rules can defend. The
+two that abstained had nothing the rules alone could place on (`weak`, support
+0.0) where the two that survived did (`accept_direct`, 0.6). **The refusal is not
+the defect; the request is.** The requester is asking for a whole text unit where
+the ceiling, and the ruling behind it, ask for an excerpt.
+
+**2. Two files: the model overreached, P8 caught it, and the person is told
+something false about it.** Both verdicts are `reject` /
+`SLOT_FILLED_WITHOUT_EVIDENCE`, from two different arms of
+`placement_validation`: one file marked its single level `context`, which
+`_unverified_context_level` refuses because the group a context level names must
+be one the person accepted the file into; the other marked its level `direct` and
+was still refused, by `_invented_dimension`'s fallback or by
+`_level_the_node_does_not_have`.
+
+**That outcome is correct and its recorded reason is not.**
+`_REASON_TO_ABSTENTION` maps three site-C codes — `BELOW_SUPPORT_THRESHOLD`,
+`INSUFFICIENT_MARGIN`, `GENERIC_HUB_ONLY`. `SLOT_FILLED_WITHOUT_EVIDENCE` is not
+among them, so `transcribe` falls through to its default and the file is recorded
+`no_supported_destination`: *"no legal destination cleared §6.10's conditions"*.
+Of these two files that sentence is simply untrue. A destination cleared — the
+same node seven of their siblings went home to — and what failed was the model
+filling a level the evidence did not hold. The person is told their evidence was
+thin when the model was caught reaching.
+
+This is exactly the shape `_abstention_explanation` already exists for: *"what
+the person is told, which is not always what the machine recorded."* It names
+three abstentions whose default sentence lies; this is a fourth, and it lies
+about a file the product handled correctly.
+
+**NOT FIXED HERE, AND DELIBERATELY.** There is no truthful member of
+§6.10's closed `ABSTENTION_REASONS` to map it to — `low_margin`,
+`multiple_supported_homes`, `conflicting_facts` and `generic_hub_only` are each
+false about these files, and `no_model_judgement` is reserved, in its own words,
+for a call that did not happen or could not be judged. This one happened and was
+judged. **A truthful word is a closed-vocabulary addition and those are the
+owner's alone**, so it is reported as owed rather than taken — which is the
+posture `placement_validation` already takes about the missing fifth site-C code,
+in the same file, for the same reason:
+
+> Minting a fifth C code is a closed-vocabulary addition and a spec-level act;
+> it is reported as owed rather than taken here.
+
+**Two items owed to the owner, then, and one ordinary repair available now:**
+
+* OWED: a site-C reason code for "the tree has no such level" (already recorded
+  by `placement_validation`, restated here with a measurement behind it).
+* OWED: a §6.10 abstention reason for "the model answered and the answer was
+  rejected as ungrounded", so the screen stops saying the evidence was thin.
+* AVAILABLE: P11's site-C dossier should request a bounded span rather than a
+  whole text unit. That sends strictly LESS than it does today, so it widens
+  nothing, and it is the remedy §8.4's own refusal names.
+
+**The corrected sentence.** Four ordinary files have no home: two because the
+product asked to send more than its own privacy ceiling allows and had no
+deterministic fallback, and two because the model reached past its evidence and
+was correctly stopped. None of the four is missing a field. The entry above
+should be read with its last paragraph struck.
