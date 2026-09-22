@@ -2707,3 +2707,40 @@ look better, which is the trade `00`:52 exists to refuse.
 the lead's: releasing one by hand, or — for the two that are genuinely thin
 (4 and 21 observations, one with no text extracted at all) — better extraction,
 which is P5's question and not recognition's.
+
+### NAMING IS NOT FILING — the end-to-end number on the owner's own files
+
+The owner, 22 Sep: *"how close are we to succeeding."* Everything above measures
+RECOGNITION — which schema a file is. The product's job is FILING. They are not
+the same number and this entry had been quoting the flattering one.
+
+From the same cloud run over 34 real files, `placement_decisions` (live rows,
+`subject_ref` parsed as `file:<id>:<hash>`):
+
+```
+total files              : 34
+PLACED (has a home)      : 22  (64%)
+  of which protected     :  0
+not placed               : 12
+  protected, by design   :  8
+  ordinary, no home      :  4
+```
+
+**Three things this says.**
+
+1. **Of the 26 files the product SHOULD file, it files 22 — 85%.** That is the
+   honest success rate, and it is the first one in this entry measured end to end
+   on material nobody wrote for the test.
+2. **No protected file was auto-placed.** `00`:52's holds and the owner's 13 Sep
+   ruling hold all the way through placement, not just at the gate.
+3. **Four ordinary files have no home**, and they are the real remaining gap.
+   They are not the three unnamed above — a file can be NAMED and still have
+   nowhere to go, because placement needs the situation AND the fields AND a
+   template with a destination. Naming 31 bought 22 homes.
+
+`move_plans` is 0 and that is correct: a plain run moves nothing, and `--freeze`
+then `--apply` are the gestures that do.
+
+**Recognition 91%, filing 85% of what it should file, 4 real misses.** The next
+question is not which schema those four are — it is which FIELD each one is
+missing, which is P6's and P11's ground rather than P7's.
