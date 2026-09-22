@@ -2664,3 +2664,46 @@ named six of those code files by itself — four `code.notebooks-experiments`, t
 38% is the honest figure: not vocabulary. The gap between 38% and 91% is the
 judge, and offline the judge is a local model — which is where the gate finding
 above lives.
+
+### "MAKE IT 100%" — root-caused, and the last three are a boundary, not a defect
+
+The owner, 21 Sep: *"ok make it like 100%."* The three files the cloud run left
+unnamed were diagnosed by shape only — extension, size bucket, observation count,
+source types. No name, path or excerpt was read or printed.
+
+| ext | size | obs | protected | asked | source types | recogniser |
+| --- | --- | --- | --- | --- | --- | --- |
+| `.zip` | ≥1MB | 37 | **yes** | **NO** | archive, filesystem | ambiguous |
+| `.pdf` | <1MB | 21 | **yes** | **NO** | filesystem, text_document | ambiguous |
+| `.pdf` | <10KB | 4 | **yes** | **NO** | filesystem | no_corroboration |
+
+**All three are the same cause: they are HELD, and a held file is never asked.**
+And what holds them is `safety_domain` — all 8 protected records in the run carry
+that basis, which is the DETERMINISTIC rule for `00`:52's four domains, not any
+model's opinion. Of those 8 the rules still named 5 on their own.
+
+**Naming the last three would mean putting protected material to a model, and the
+owner ruled that out on 13 Sep with a measurement behind it.**
+`cli.ask_the_situation` carries the number: a held file used to go to the local
+judge to lift its own hold, and the judge was *"right 17 times, wrong 42 and
+silent 10"*. The ruling is that a protected record is filed by the person.
+
+**So the honest accounting is not 91%.** It is:
+
+```
+named ............................ 31
+held, for the person to file ......  3
+unaccounted for ...................  0
+                                    34 of 34
+```
+
+100% of what the design permits, and the product already carries the gesture that
+resolves the rest: `--show-protected`, then `--release FILE_ID` makes one ordinary
+and the next run names it. A "100%" that named all 34 automatically would be this
+product having quietly reversed the owner's own privacy ruling to make a number
+look better, which is the trade `00`:52 exists to refuse.
+
+**What would legitimately move the remaining three**, in the owner's hands and not
+the lead's: releasing one by hand, or — for the two that are genuinely thin
+(4 and 21 observations, one with no text extracted at all) — better extraction,
+which is P5's question and not recognition's.
