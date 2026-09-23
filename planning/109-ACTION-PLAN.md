@@ -2896,3 +2896,69 @@ claim in this session came from reasoning over a record or a docstring instead o
 opening the function that decides. The measurements have all held; the stories
 told about them are what keep failing. `may_be_released` is nineteen lines long
 and settles the whole question.
+
+### THE OFFLINE RUN: 88% named, and filing NOT MEASURED — it stopped to ask
+
+`qwen3:8b` as gate and judge, the owner's 34 real files, `operation_mode: offline`
+recorded in the run's own identity rows, nothing sent anywhere. 7,674 seconds.
+Valid: 34 indexed, 29 yielded text — the same 29 as the cloud run.
+
+```
+                        cloud        offline 8B
+named                   31 (91%)     30 (88%)      [rules 13 both]
+protected holds          8            9
+  safety_domain          8            8
+  local_model_gate       0            1
+placed                  22            0
+groups formed           10            0
+graph edges (P9)       197            0
+```
+
+**`placed: 0` IS NOT A FILING RESULT AND MUST NOT BE REPORTED AS ONE.** The
+offline run never reached placement. It did not fail on the way: extraction is
+identical, it wrote MORE facts than the cloud run (126 against 92, across 11
+field keys against 10), P7 classified 65 against 60, and P8 issued 95 model calls
+against 98. Everything through P8 is comparable or better. Then P9 creates zero
+edges and the whole tail is dark.
+
+**The cause is `cli.py`'s own documented arm, not a defect:**
+
+```python
+if not of_the_run:
+    # THE QUESTION, PRINTED, AND THE RUN ENDS HERE.
+    print(f"\n{_what_these_folders_are(asked_of_the_person)}", file=out)
+    if not any(branch.situation is not None
+               for branch in partition_cell[0].branches[1:]):
+        return None
+```
+
+`00` amendment 25: the unjudged default has no folders beneath it. Nothing was
+settled for the run and no other branch carried a situation of its own, so the
+product printed its one narrow question and stopped. **Both runs asked and
+neither was answered** — `structural_answers` is 0 in both, 6 questions cloud and
+2 offline. The cloud run built a tree regardless because a branch of its own had
+a situation; the offline run had none.
+
+So the honest offline line is **88% named, privacy judgement 30 of 31 against the
+owner's hand labels, filing not yet measured.** A person answering one question
+is what stands between this run and a filing number, and that is the next
+experiment: answer it, re-run, compare to 22.
+
+**A hypothesis and explicitly not a finding.** The 8B hedged far more than the
+cloud did — `situation_alternative` 53 rows over 10 files, against 26 over 19 —
+and a branch whose situation never settles is what this arm fires on. Whether the
+hedging CAUSED the unsettled branch is unmeasured, and the two-line experiment
+above decides it.
+
+**A lesson about the instrument, which cost an hour.** `run_corpus.py` discards
+the product's report unread, because an earlier version leaked a course code
+through wrapped prose. The report is where this run printed the question that
+explains its own ending. **The privacy-safe probe destroyed the diagnostic**, and
+an hour went into rediscovering from event counts what one printed line said.
+The fix is not to echo the report: it is to read `structural_questions` and the
+P9/P10/P11 event counts FIRST, which is where a run says what it did.
+
+**Site A on the local model, measured over the whole run:** 21 calls, 17
+answered, 4 `NoAnswerFromModel` — "something came back over HTTP 200 and it is
+not an answer to the dossier". A 19% failure rate at roughly eight minutes an
+attempt, and the run carries on past each, which is `104` R-173 working.
