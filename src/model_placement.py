@@ -53,10 +53,7 @@ from llm_harness.records import EvidenceItem, PromptDefinition
 # import direction is safe and stays that way -- `model_facts` reaches `privacy`,
 # `facts` and `llm_harness` and never this module -- and the alternative is two
 # spellings of a rule the owner has now divided by the destination.
-from model_facts import (
-    DOSSIER_CEILING_KEY, may_be_released, mint_opening_excerpts,
-    opening_excerpt_bound)
-from database_agent.budget import get_ceiling
+from model_facts import may_be_released
 from privacy.items import Excerpt, sensitive_observation_keys
 from privacy.release import (
     MalformedRequest, ModelCallRequest, ModelTarget, Target)
@@ -261,11 +258,6 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
     # Cached per file, because the lookup walks every extraction run for a file
     # and a corpus asks about the same file once per candidate.
     signalled: dict[str, frozenset[str]] = {}
-    # Every reading this call resolved, per file, whether or not it may travel as
-    # itself: the excerpt producer below asks its own refusals and needs the
-    # over-ceiling ones, which are exactly the readings the loop offers and the door
-    # then withholds.
-    resolved: dict[str, list] = {}
     for ref in evidence_refs:
         row = conn.execute(
             "SELECT observation_id FROM evidence WHERE observation_key = ? "
@@ -278,7 +270,6 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
         if observation.file_id not in signalled:
             signalled[observation.file_id] = sensitive_observation_keys(
                 conn, observation.file_id)
-        resolved.setdefault(observation.file_id, []).append(observation)
         # THE OTHER FOUR REFUSALS, ASKED THROUGH SITE A'S OWN PREDICATE (`104`
         # R-159). The always-local zone, P5's signal, the empty value and the two
         # whole-unit tests were retyped here when this module was written, and the
@@ -294,52 +285,6 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
             observation_key=observation.observation_key,
             span=where.text_span,
             reason="a reading of this file the destination may rest on"))
-
-    # **AND THE OPENING OF ANYTHING NO CALL COULD CARRY (`104` R-164 at site C).**
-    # Everything above decides whether a reading MAY leave the device. Nothing above
-    # asks whether it FITS, and the door does: `items.check_item` withholds any
-    # reading longer than the stored ceiling, which is §8.4's "should not send full
-    # documents where a short heading or OCR excerpt is enough" enforced where it can
-    # be measured. So an over-ceiling unit passed every refusal here, was offered
-    # whole, and was denied `whole_document_requested` at the gate -- and the file's
-    # placement call carried no text at all.
-    #
-    # MEASURED, 22 Sep 2026, on the owner's own corpus. 199 files: 15
-    # `whole_document_requested` and 9 `dossier_over_budget`, all at
-    # `pre-call:C_placement`, 24 files of the 69 that went unfiled. On the 34-file
-    # corpus the same refusal took 2 of the 4 misses, on units of 4,753 and 7,442
-    # characters against a stored 4,000.
-    #
-    # **THE PRODUCER IS SITE A'S, UNCHANGED, AND THAT IS THE POINT.** `104` R-159:
-    # "The five refusals are one question -- may this reading leave the device -- and
-    # one question does not get two answers because two sites ask it." The same
-    # sentence governs what may be CUT. `mint_opening_excerpts` asks its four
-    # refusals before anything is cut, mints nothing for a reading the call can
-    # already carry, and records the excerpt so `resolve.materialise` can resolve it
-    # at the door -- an excerpt that existed only in this process would be
-    # `UnresolvableSpan` there, which is what `p8_seam` recorded at site B.
-    #
-    # **THE LIMIT IS THE CALL'S OWN COUNT OF READINGS, and it is not a number chosen
-    # here.** `opening_excerpt_bound` is `ceiling // limit`; site A's limit is
-    # `FACT_CALL_MAX_RELEASED_OBSERVATIONS` and the gate's is
-    # `GATE_MAX_RELEASED_OBSERVATIONS`, each argued from what its own call asks.
-    # Site C publishes no such count, and inventing an eighteenth would be the
-    # invented length R-159 forbids. The bound function's own sentence supplies the
-    # answer instead -- "a call may carry `limit` readings under `ceiling`
-    # characters" -- and the readings this call carries is what it was handed.
-    ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
-    bound = opening_excerpt_bound(
-        conn, limit=sum(len(readings) for readings in resolved.values()),
-        ceiling=ceiling)
-    for file_id, observations in resolved.items():
-        for excerpt in mint_opening_excerpts(
-                conn, observations, sensitive=signalled[file_id],
-                locality=locality, bound=bound,
-                ceiling=None if ceiling is None else int(ceiling)):
-            offered.append(Excerpt(
-                observation_key=excerpt.observation_key,
-                span=excerpt.location.text_span,
-                reason="the opening of a reading too long for one call to carry"))
     return tuple(offered)
 
 
