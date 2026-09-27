@@ -968,6 +968,40 @@ def test_the_five_row_academic_recipe_composes_once_the_signal_is_read(corpus):
         "My school", "Semester", "Course", "Kind of work"]
 
 
+def test_a_second_situation_on_the_same_template_does_not_erase_coursework(corpus):
+    """Lab notebooks share coursework's template and name its roles differently.
+
+    Handing both rows to one composition is a C4 refusal, and that refusal
+    used to be the only outcome, so a branch that also holds lab notebooks
+    lost the course folders. Each row is its own recipe. C4 still refuses a
+    composition that is handed both; this test asks the router, which must
+    not hand both.
+    """
+    from tree_design.routing import BranchContext, route_branch
+    from tree_design.vocabulary import C4
+
+    groups = accepted_groups_for(corpus)
+    report = route_branch(
+        corpus.conn, launch_catalogue(),
+        BranchContext(
+            branch_node_id="n_probe",
+            domains=("academic", "research"),
+            accepted_groups=groups,
+            member_file_ids=frozenset(
+                member.file_id for group in groups for member in group.members),
+            handling_classes=frozenset({ORDINARY_CLASS}),
+            detection_signals=COURSEWORK_SIGNALS | {
+                "recognition:research.lab-notebook-protocols"}),
+        limits=limits(), privacy_rank=lambda floor: 0,
+        satisfies_purpose_profile=lambda ref, groups: True,
+        rank_candidates=lambda candidates: list(candidates))
+    resolved = {dimension.field_ref
+                for candidate in report.candidates
+                for dimension in candidate.resolved_dimensions}
+    assert "subject" in resolved
+    assert C4 not in {conflict.gate for conflict in report.conflicts}
+
+
 def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     """§5.8's verdict is a claim about a count, so the count has to be real.
 

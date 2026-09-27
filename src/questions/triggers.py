@@ -34,6 +34,7 @@ from dataclasses import dataclass
 
 from privacy.vocabulary import check_handling_class
 
+from facts.domains import SCHEMA_IDS
 from questions.records import QuestionOption, StructuralQuestion
 from questions.registry import (
     HOME_KIND, NESTING_KIND, READING_KIND, ROLE_KIND, SITUATION_KIND, kind_of,
@@ -47,6 +48,29 @@ from questions.vocabulary import (
 #: material this is; skipping is recorded separately as an answer STATE, because
 #: a person who declines has told the product something and must not be asked
 #: again next run.
+#: WHICH DOMAINS A FIRST RUN OFFERS, AND WHICH IT HOLDS. Both are read off
+#: `SCHEMA_IDS` by position, which its own docstring is what makes legal: *"The
+#: live ten keep their order and their positions -- §3.11's six plus §3.15's
+#: four -- and the thirteen professional schemas are appended alphabetically."*
+#: `tests/test_first_run_menu.py` pins both cuts against that tuple, so an order
+#: that moved is a red test and not a silently different menu.
+#:
+#: THEY LIVE HERE AND NOT IN `facts.domains`, where they were authored. A first
+#: run's menu is a screen policy, and `facts` is the home of one closed domain
+#: vocabulary: a second collection there naming `finance` is a second home for
+#: the domain name, which
+#: `tests/p6/test_p6_no_invention.py::
+#: test_oq5_finance_has_a_schema_and_p6_neither_activates_nor_suppresses_it`
+#: refuses, and a new collection in `facts` is red until it is written down.
+#:
+#: A first run proposes from §3.11's six. A later domain is not a choice on that
+#: screen unless the files already named it.
+LAUNCH_SCHEMA_IDS: tuple[str, ...] = SCHEMA_IDS[:6]
+#: Holds, not a sorting menu: §3.15's four, immediately after the six. Identity,
+#: medical and legal are the field-less safety domains; finance is held with
+#: them. A file of one of these is not offered a situation to file it under.
+HOLD_SCHEMA_IDS: tuple[str, ...] = SCHEMA_IDS[6:10]
+
 NOT_ABOUT_ME = QuestionOption("not_mine", "It is not about me")
 
 #: The promise §12 requires every question to make. This deployment can keep it
@@ -80,6 +104,43 @@ def _schema_words(schema_id: str) -> str:
     template library owns, and a wrong friendly name is worse than a plain one.
     """
     return schema_id.replace("_", " ")
+
+
+def words_of_a_situation(situation: str) -> str:
+    """The situation's own last word, as a person reads it.
+
+    `academic.coursework` is the answer key. The screen says Coursework. The
+    word is the id's own tail, hyphens and underscores read as spaces, so this
+    is not a second name for the situation. `academic.k12-schooling` reads
+    `K12 schooling`.
+    """
+    tail = situation.rsplit(".", 1)[-1].replace("-", " ").replace("_", " ")
+    return tail[:1].upper() + tail[1:] if tail else situation
+
+
+def situations_a_first_run_may_offer(
+        situations: Iterable[str], *,
+        named_by_the_files: Iterable[str],
+        schema_of,
+) -> tuple[str, ...]:
+    """Which situations a first run may put under the outline.
+
+    The six launch lives are always a choice. Finance, identity, medical, and
+    legal are holds: they are never a choice, including when the files are of
+    that kind. Every other domain stays on disk and is offered only when
+    `named_by_the_files` already contains it. `schema_of` is the library's own
+    read (`schema_for_situation`), because seven situation names do not start
+    with the domain that owns them.
+    """
+    named = frozenset(named_by_the_files)
+    kept: list[str] = []
+    for situation in situations:
+        domain = schema_of(situation)
+        if not domain or domain in HOLD_SCHEMA_IDS:
+            continue
+        if domain in LAUNCH_SCHEMA_IDS or domain in named:
+            kept.append(situation)
+    return tuple(dict.fromkeys(kept))
 
 
 def question_for_tied_reading(*, subject_value: str, tied_schema_ids: Iterable[str],
@@ -313,10 +374,10 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
     So this asks per BRANCH, where the ambiguity actually is, and only when two
     situations the shipped library carries both fire on that branch's evidence.
 
-    **The labels are the library's own names, verbatim.** Not a friendlier phrasing
-    of them: `_schema_words` already records why this module does not invent
-    vocabulary the template library owns, and `--list-situations` prints these exact
-    strings, so they are what the person has already been shown.
+    **The option id is the library's own name, verbatim.** That is what
+    `--answer` records and what `--list-situations` prints. The label beside it
+    is `words_of_a_situation`: the id's own last word, so the screen is not a
+    column of schema ids. It is not a second name authored here.
 
     **`unjudged_menu_of` IS THE UNTYPED RUN'S DEFAULT BRANCH** (`00` amendment
     25). Its files are the ones nothing judged -- no answer of the person's
@@ -408,7 +469,7 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
         will_not_do=WILL_NOT_DO,
         scope=f"{SCOPE_BRANCH}:{key}",
         handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
-        options=tuple(QuestionOption(situation, situation,
+        options=tuple(QuestionOption(situation, words_of_a_situation(situation),
                                      selects_situation=situation)
                       for situation in offered),
         evidence_refs=(f"{SCOPE_BRANCH}:{key}",))

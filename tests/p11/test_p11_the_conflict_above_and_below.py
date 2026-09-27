@@ -149,6 +149,53 @@ def test_a_conflicting_value_one_level_up_rules_the_child_out_and_says_where(
     assert ("n-2025", "n-2025") in conflict.found_on
 
 
+def test_an_existing_folders_own_files_do_not_rule_out_the_folder_inside_it(
+        p11_conn):
+    """A pile's loose files are not a claim about the folders inside it.
+
+    The pile expects `work_type = resume` because the files sitting directly
+    in it agree. A lecture in a course folder inside that pile states
+    `work_type = lecture`, which is what the lecture child expects. Filing
+    the lecture there does not file it as a resume, so the pile's value
+    rules the pile out and leaves the course and the lecture standing.
+
+    A proposed ancestor is the other case, and the test above this one still
+    pins it: Spring 2025 rules out the homework child for a Spring 2026 file,
+    because that term was composed for the branch.
+    """
+    tree = _tree((
+        _node(node_id="n-pile", display_label="Inbox", parent_node_id=None,
+              ordinal=0, associated_group_ids=(), dimension_role=None,
+              dimension=None, node_type="existing",
+              existing_path="/Inbox",
+              expected_values=(ExpectedValue(field="work_type", value="resume"),),
+              refinement_disposition="shallow-by-choice",
+              refinement_reason="The top of this branch is flat by design."),
+        _node(node_id="n-course", display_label="Course",
+              parent_node_id="n-pile", ordinal=1,
+              associated_group_ids=("g-course",), dimension_role=None,
+              dimension=None, node_type="existing",
+              existing_path="/Inbox/Course", expected_values=(),
+              refinement_disposition="shallow-by-choice",
+              refinement_reason="The folder the person made."),
+        _node(node_id="n-lecture", display_label="lecture",
+              parent_node_id="n-course", ordinal=2, associated_group_ids=(),
+              dimension_role=None, dimension=None,
+              expected_values=(ExpectedValue(field="work_type",
+                                             value="lecture"),)),
+    ))
+    result = _retrieve(
+        p11_conn, tree=tree, facts=(_fact("work_type", "lecture"),),
+        group_ids=("g-course",))
+    chosen = {candidate.node_id for candidate in result.candidates}
+    ruled_out = {node_id for conflict in result.conflicts
+                 for node_id in conflict.suppressed_node_ids}
+    assert "n-lecture" in chosen
+    assert "n-course" in chosen
+    assert "n-lecture" not in ruled_out
+    assert "n-course" not in ruled_out
+
+
 def test_a_conflict_below_a_reached_node_is_named_and_leaves_it_standing(
         p11_conn):
     """Down is what EXPLAINS; only up SUPPRESSES.

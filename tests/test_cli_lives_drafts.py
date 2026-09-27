@@ -101,3 +101,56 @@ def test_the_drafts_label_is_the_branchs_folder_name(monkeypatch):
 
     assert [(label, category) for _b, category, label, _k in buckets] == [
         ("Career", "career")]
+
+
+def test_a_situation_name_resolves_to_its_domain_and_is_not_the_category(monkeypatch):
+    """`applications.undergraduate-packet` is not one of the 23 domains.
+
+    SABOTAGE: write `schemas[0]` straight into the category. The packet's
+    name becomes `group_category` and `Group` raises `MalformedGroupRecord`
+    on the first folder whose situation is one of the seven the prefix gets
+    wrong. The domain is `college_applications`, asked of the library."""
+    packet = _branch("Education", "Education",
+                     ("applications.undergraduate-packet",), ("p1"), default=True)
+    monkeypatch.setattr(cli, "memberships_for_group", _members({"g": ["p1"]}))
+
+    buckets = cli._grouped_by_branch(
+        None, [_result("g")], branch_for=lambda f: packet, default=packet,
+        schema_of_file=lambda f: None,
+        domain_of=lambda kind: ("college_applications"
+                                if kind == "applications.undergraduate-packet"
+                                else None))
+
+    categories = [category for _b, category, _label, _k in buckets]
+    assert categories == ["college_applications"]
+    assert "applications" not in categories
+    assert "applications.undergraduate-packet" not in categories
+
+
+def test_a_situation_name_with_no_library_row_is_not_drafted(monkeypatch):
+    """No resolver and a name that is not a domain: no draft, rather than
+    the situation name or the folder's label."""
+    packet = _branch("Fall intake", None,
+                     ("applications.undergraduate-packet",), ("p1"), default=True)
+    monkeypatch.setattr(cli, "memberships_for_group", _members({"g": ["p1"]}))
+
+    buckets = cli._grouped_by_branch(
+        None, [_result("g")], branch_for=lambda f: packet, default=packet,
+        schema_of_file=lambda f: None)
+
+    assert buckets == []
+
+
+def test_an_empty_kind_list_is_not_drafted_under_the_folder_name(monkeypatch):
+    """The label fallback. `Fall intake` is what the folder is called. It is
+    not a domain, and it must not become `group_category`."""
+    default = _branch("Fall intake", None, (), ("a",), default=True)
+    monkeypatch.setattr(cli, "memberships_for_group", _members({"g": ["a"]}))
+
+    buckets = cli._grouped_by_branch(
+        None, [_result("g")], branch_for=lambda f: default, default=default,
+        schema_of_file=lambda f: None)
+
+    assert buckets == []
+    assert "Fall intake" not in {
+        category for _b, category, _label, _k in buckets}

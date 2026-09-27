@@ -13,7 +13,7 @@ would measure this machine; these assertions measure which thread did what and i
 what order, which is the thing that can be wrong. Five properties, one per test:
 
 1. Every cloud call of one batch is on the wire at the same moment. The stub blocks
-   each arrival until the lane is as wide as `cli.EXTRACTION_WORKERS`, so a pass
+   each arrival until the lane is as wide as `cli.CLOUD_CALLS_AT_ONCE`, so a pass
    that sent them one at a time cannot finish the batch and says so.
 2. The gate is asked for every call in a batch BEFORE the first of them is queued.
    Rule three of the build: nothing about the privacy decision moved, and the
@@ -52,7 +52,7 @@ local, and the widest lane a run can open is one -- measured as `at_once` and
 worth keeping in view here of all files: the gate is a per-file LOCAL loop in front
 of the batch, so seven files are seven serial local calls and then one cloud batch
 of seven. That is `104` §18.15's own shape -- the local lane serial, the cloud lane
-as wide as `cli.EXTRACTION_WORKERS` -- and the width measured below is the cloud
+as wide as `cli.CLOUD_CALLS_AT_ONCE` -- and the width measured below is the cloud
 half of it.
 """
 from __future__ import annotations
@@ -121,11 +121,11 @@ ENV = {
 DOSSIER_FOLLOWS = "The dossier follows."
 
 
-#: The seven weeks, in walk order. One ordinary file per worker the run already
-#: spawns and no more, so a full batch is exactly the corpus: what the lane can
-#: hold and what the pass has to send are the same number, and the high-water mark
-#: below is an equality rather than an inequality.
-WEEKS = ("one", "two", "three", "four", "five", "six", "seven")
+#: One ordinary file per cloud call the run may hold open, and no more, so a
+#: full batch is exactly the corpus: what the lane can hold and what the pass
+#: has to send are the same number, and the high-water mark below is an
+#: equality rather than an inequality.
+WEEKS = tuple(str(n) for n in range(1, cli.CLOUD_CALLS_AT_ONCE + 1))
 
 
 def _corpus_bodies() -> dict[str, str]:
@@ -400,7 +400,7 @@ def test_every_cloud_call_of_a_batch_is_on_the_wire_at_the_same_moment(
         corpus, monkeypatch, releases):
     """`104` §18.15. Measured on r19 (§18.22): 223 dossiers in nine hours with
     every call one after another, site A's cloud share 47%. Here the stub holds
-    each of site A's calls until `cli.EXTRACTION_WORKERS` of them are in flight
+    each of site A's calls until `cli.CLOUD_CALLS_AT_ONCE` of them are in flight
     together, and the pass finishes -- which a serial pass could not do. The
     high-water mark is the measurement and it is the lane's whole width.
 
@@ -410,20 +410,20 @@ def test_every_cloud_call_of_a_batch_is_on_the_wire_at_the_same_moment(
     log reads as seven releases and then seven sends -- not one release, one send,
     seven times over.
     """
-    lane = _Lane(expected=cli.EXTRACTION_WORKERS, witness=releases.so_far)
+    lane = _Lane(expected=cli.CLOUD_CALLS_AT_ONCE, witness=releases.so_far)
     monkeypatch.setattr(model_routing, "deepseek_invoke", lane.factory)
 
     report = _run(corpus, "--enable-cloud")
 
-    assert lane.calls_at(cli.A_FACT) == cli.EXTRACTION_WORKERS, (
+    assert lane.calls_at(cli.A_FACT) == cli.CLOUD_CALLS_AT_ONCE, (
         f"the corpus is one file per worker and every one of them should have "
         f"reached the model: {report}")
-    assert lane.at_once == cli.EXTRACTION_WORKERS, (
-        f"{lane.at_once} of {cli.EXTRACTION_WORKERS} calls were ever in flight "
+    assert lane.at_once == cli.CLOUD_CALLS_AT_ONCE, (
+        f"{lane.at_once} of {cli.CLOUD_CALLS_AT_ONCE} calls were ever in flight "
         f"together; r19's number was 1 and this build exists to change it")
     # The pass says so on the screen, in the sentence that already says where the
     # calls went. `104` §18.15 rule six: no new counter in the prose.
-    assert f"up to {cli.EXTRACTION_WORKERS} at a time" in report, report
+    assert f"up to {cli.CLOUD_CALLS_AT_ONCE} at a time" in report, report
     # THE GATE, ASKED FOR EVERY ONE OF THEM BEFORE THE FIRST BYTE LEFT. The count
     # of decided releases is read as each call enters the stub, and it is the same
     # number for all seven: not one release was minted while a call was in the air,
@@ -432,9 +432,9 @@ def test_every_cloud_call_of_a_batch_is_on_the_wire_at_the_same_moment(
     assert len(set(lane.releases_when_sent)) == 1, (
         f"a release was minted while bytes were already on the wire: "
         f"{lane.releases_when_sent}")
-    assert lane.releases_when_sent[0] >= cli.EXTRACTION_WORKERS, (
+    assert lane.releases_when_sent[0] >= cli.CLOUD_CALLS_AT_ONCE, (
         f"only {lane.releases_when_sent[0]} releases had been decided when the "
-        f"first call left, and the batch is {cli.EXTRACTION_WORKERS} calls")
+        f"first call left, and the batch is {cli.CLOUD_CALLS_AT_ONCE} calls")
 
 
 def test_two_local_sends_never_overlap_but_a_local_send_runs_beside_the_cloud():
@@ -461,7 +461,7 @@ def test_two_local_sends_never_overlap_but_a_local_send_runs_beside_the_cloud():
     walk = [("cloud-a", CLOUD_LOCALITY), ("cloud-b", CLOUD_LOCALITY),
             ("local-a", LOCAL_LOCALITY), ("cloud-c", CLOUD_LOCALITY),
             ("cloud-d", CLOUD_LOCALITY), ("local-b", LOCAL_LOCALITY)]
-    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    lane = CallLane(width=cli.CLOUD_CALLS_AT_ONCE)
     answered = list(in_walk_order(
         ((key, _one_send(key, locality, watcher)) for key, locality in walk),
         lane=lane))
@@ -492,7 +492,7 @@ def test_a_local_send_with_nothing_to_be_beside_is_settled_at_once():
     prepared: list[str] = []
     walk = [("local-a", LOCAL_LOCALITY), ("local-b", LOCAL_LOCALITY),
             ("local-c", LOCAL_LOCALITY)]
-    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    lane = CallLane(width=cli.CLOUD_CALLS_AT_ONCE)
     answered = list(in_walk_order(
         ((key, _one_send(key, locality, watcher, prepared=prepared))
          for key, locality in walk),
@@ -549,7 +549,7 @@ def test_the_slow_local_call_is_still_charged_to_the_file_that_made_it():
                 ticks[0] += seconds
         return moved
 
-    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    lane = CallLane(width=cli.CLOUD_CALLS_AT_ONCE)
     answered = list(in_walk_order(
         ((key, _one_send(key, locality, watcher,
                          opens_turn=ceiling.open_turn,
@@ -587,12 +587,12 @@ def test_rows_are_written_in_walk_order_when_the_provider_answers_backwards(
     written after the resume, one per answered call -- still come out in the roster
     order the `llm_dossier` rows were written in before any of them was sent.
     """
-    lane = _Lane(expected=cli.EXTRACTION_WORKERS, reverse=True)
+    lane = _Lane(expected=cli.CLOUD_CALLS_AT_ONCE, reverse=True)
     monkeypatch.setattr(model_routing, "deepseek_invoke", lane.factory)
 
     report = _run(corpus, "--enable-cloud")
 
-    assert lane.at_once == cli.EXTRACTION_WORKERS, report
+    assert lane.at_once == cli.CLOUD_CALLS_AT_ONCE, report
     assert lane.returns[:2] != lane.arrivals[:2], (
         f"the stub was asked to answer backwards and did not: "
         f"{lane.arrivals} then {lane.returns}")
@@ -622,12 +622,12 @@ def test_one_call_that_does_not_come_back_leaves_the_others_alone(
     writes one `llm_call_failure` row of class `client_raised`, and the other six
     are answered and recorded.
     """
-    lane = _Lane(expected=cli.EXTRACTION_WORKERS, fail_on=FAILING_WORD)
+    lane = _Lane(expected=cli.CLOUD_CALLS_AT_ONCE, fail_on=FAILING_WORD)
     monkeypatch.setattr(model_routing, "deepseek_invoke", lane.factory)
 
     report = _run(corpus, "--enable-cloud")
 
-    assert lane.at_once == cli.EXTRACTION_WORKERS, report
+    assert lane.at_once == cli.CLOUD_CALLS_AT_ONCE, report
     failures = _rows(
         corpus,
         "SELECT f.failure_class AS failure_class FROM llm_call_failure f "
@@ -640,7 +640,7 @@ def test_one_call_that_does_not_come_back_leaves_the_others_alone(
         "SELECT count(*) AS n FROM llm_response r "
         "JOIN llm_dossier d ON d.dossier_id = r.dossier_id "
         "WHERE d.call_site = ?", cli.A_FACT)[0]["n"]
-    assert answered == cli.EXTRACTION_WORKERS - 1, (
+    assert answered == cli.CLOUD_CALLS_AT_ONCE - 1, (
         f"{answered} of the other six calls were recorded; one failure does not "
         f"stop the batch: {report}")
     # AND THE RUN ITSELF FINISHED. `104` R-O: the person gets the report the run
@@ -665,19 +665,19 @@ def test_the_placement_pass_holds_its_cloud_calls_open_together_too(
     `run_corpus`.** A group plan's calls are one per GROUP, and the multi-home
     branch puts a question to the person; neither is a lane's worth of waiting.
     """
-    lane = _Lane(expected=cli.EXTRACTION_WORKERS, at_site=cli.C_PLACEMENT)
+    lane = _Lane(expected=cli.CLOUD_CALLS_AT_ONCE, at_site=cli.C_PLACEMENT)
     monkeypatch.setattr(model_routing, "deepseek_invoke", lane.factory)
 
     report = _run(corpus, "--enable-cloud")
 
-    assert lane.calls_at(cli.C_PLACEMENT) == cli.EXTRACTION_WORKERS, (
+    assert lane.calls_at(cli.C_PLACEMENT) == cli.CLOUD_CALLS_AT_ONCE, (
         f"one placement call per file is what site C makes: {report}")
-    assert lane.at_once == cli.EXTRACTION_WORKERS, (
-        f"{lane.at_once} of {cli.EXTRACTION_WORKERS} placement calls were ever in "
+    assert lane.at_once == cli.CLOUD_CALLS_AT_ONCE, (
+        f"{lane.at_once} of {cli.CLOUD_CALLS_AT_ONCE} placement calls were ever in "
         f"flight together")
     # And the pass says so, on the sentence that already counts what it decided.
     # `104` §18.15 rule six: no new counter in the prose.
-    assert f"checked {cli.EXTRACTION_WORKERS} at a time" in report, report
+    assert f"checked {cli.CLOUD_CALLS_AT_ONCE} at a time" in report, report
 
 
 # --- the driver's own instrument ----------------------------------------------
@@ -755,7 +755,7 @@ def test_the_same_question_twice_in_one_batch_is_one_call():
     watcher = _Overlaps()
     walk = [("first", b"the same question"), ("twin", b"the same question"),
             ("other", b"a different question")]
-    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    lane = CallLane(width=cli.CLOUD_CALLS_AT_ONCE)
     answered = list(in_walk_order(
         ((key, _one_send(key, CLOUD_LOCALITY, watcher, asks=asks))
          for key, asks in walk), lane=lane))
@@ -785,7 +785,7 @@ def test_a_call_that_failed_is_not_handed_to_its_twin():
     """
     watcher = _Overlaps()
     outage = TimeoutError("the provider did not answer")
-    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    lane = CallLane(width=cli.CLOUD_CALLS_AT_ONCE)
     answered = list(in_walk_order(
         [("first", _one_send("first", CLOUD_LOCALITY, watcher,
                              asks=b"the same question", fails=outage)),

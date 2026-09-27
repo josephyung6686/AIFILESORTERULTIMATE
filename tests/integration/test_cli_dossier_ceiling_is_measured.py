@@ -611,3 +611,79 @@ def test_an_item_with_no_live_row_reserves_nothing(conn):
         conn, [SimpleNamespace(evidence_ref="no-such-observation")]) == 0
     # An item with no ref at all is not an item the request builder asks about.
     assert cli.released_wire_bytes(conn, [SimpleNamespace(evidence_ref=None)]) == 0
+
+
+def test_a_reading_the_ceiling_cannot_carry_does_not_spend_the_room_behind_it(
+        conn, tmp_path):
+    """A whole document committed as a citation must not crowd out what fits.
+
+    Measured on the pinned folder: a placement call handed the gate a dossier
+    of 18,149 characters against a ceiling of 4,000. The citation of the whole
+    unit was already committed, the remainder went to nothing, and the opening
+    the file's own cover is in never reached the model. The gate names that a
+    caller defect. The long reading is skipped and the short one behind it is
+    kept, which is the room the opening needs.
+    """
+    from types import SimpleNamespace
+
+    from evidence_shape.store import record_observation
+
+    short = _one_stored_reading(conn, tmp_path, "University Writing")
+    long = Observation(
+        file_id=short.file_id, content_hash=short.content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", raw_value="x" * 5000,
+        location=Location("body", (Segment("page", 2),), TextSpan(0, 5000)),
+        occurrence_count=1, observed_at="2026-09-05T00:00:00Z",
+        reliability="possible", run_id=short.run_id)
+    record_observation(conn, long)
+    items = [SimpleNamespace(evidence_ref=long.observation_key),
+             SimpleNamespace(evidence_ref=short.observation_key)]
+
+    kept = cli.items_the_ceiling_can_carry(conn, items, ceiling=1000)
+
+    assert [item.evidence_ref for item in kept] == [short.observation_key]
+    assert cli.released_wire_bytes(conn, kept) <= 1000
+
+
+def test_a_folder_fragment_the_cloud_cannot_make_relative_is_not_asked_for(
+        conn, tmp_path):
+    """`104` §18.7 raises when a path sits under none of the scanned folders.
+
+    That raise ends the run. A relative fragment is not under the corpus, and
+    a placement call that asked for one died once the whole document in front
+    of it was no longer sent. The fragment is not asked for. A path under the
+    scanned folder is kept, and a local call keeps both.
+    """
+    from types import SimpleNamespace
+
+    from evidence_shape.store import record_observation
+
+    base = _one_stored_reading(conn, tmp_path, "kept")
+
+    def path_observation(raw: str, page: int):
+        observation = Observation(
+            file_id=base.file_id, content_hash=base.content_hash,
+            extractor_name="filesystem", extractor_version="1.0.0",
+            source_type="text_document", raw_value=raw,
+            location=Location("path", (Segment("page", page),), None),
+            occurrence_count=1, observed_at="2026-09-05T00:00:00Z",
+            reliability="possible", run_id=base.run_id)
+        record_observation(conn, observation)
+        return observation
+
+    under = path_observation(str(tmp_path / "Courses"), 1)
+    fragment = path_observation("notes", 2)
+    items = [SimpleNamespace(evidence_ref=under.observation_key, location="path"),
+             SimpleNamespace(evidence_ref=fragment.observation_key, location="path"),
+             SimpleNamespace(evidence_ref=base.observation_key, location="heading")]
+
+    kept = cli.items_whose_path_the_cloud_can_relativise(
+        conn, items, roots=(tmp_path,), locality="cloud")
+    assert [item.evidence_ref for item in kept] == [
+        under.observation_key, base.observation_key]
+
+    local = cli.items_whose_path_the_cloud_can_relativise(
+        conn, items, roots=(tmp_path,), locality="local")
+    assert [item.evidence_ref for item in local] == [
+        item.evidence_ref for item in items]

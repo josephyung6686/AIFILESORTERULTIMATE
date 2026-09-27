@@ -273,19 +273,29 @@ def _retrieve_by_full_scan(conn, *, subject, plan_version, limits, facts,
         entry_facts: list[MatchingFact] = []
         entry_groups: list[str] = []
         contradicted = False
+        # A node that names a field this file never speaks about is not a
+        # fact match, and it is not offered through the branch group either.
+        # A file that states nothing keeps the group: membership is then the
+        # only evidence. A different value on a field the file does state
+        # stays a contradiction, handled below.
+        stated_pairs = set(by_field)
+        missing_silent = any(
+            field not in stated_fields and (field, value) not in stated_pairs
+            for field, value in entry.expected_values)
         for field, value in entry.expected_values:
             fact = by_field.get((field, value))
-            if fact is not None:
+            if fact is not None and not missing_silent:
                 channels.append(DIRECT_FACT)
                 entry_facts.append(fact)
-            elif field in stated_fields:
+            elif field in stated_fields and (field, value) not in stated_pairs:
                 contradicted = True
                 held = next(f for f in usable if f.field == field)
                 suppressed_by_value.setdefault(
                     (field, held.value), []).append(entry.node_id)
         if contradicted:
             continue
-        overlap = wanted_groups & set(entry.accepted_group_ids)
+        overlap = set() if missing_silent and usable else (
+            wanted_groups & set(entry.accepted_group_ids))
         if overlap:
             channels.append(ACCEPTED_GROUP)
             entry_groups.extend(sorted(overlap))

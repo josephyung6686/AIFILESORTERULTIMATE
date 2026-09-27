@@ -990,6 +990,29 @@ def test_r15_membership_of_the_node_id_list_no_longer_grounds_a_value():
     assert verdict.outcome == REJECT
 
 
+def test_a_heading_states_the_vocabulary_term_in_its_own_capital():
+    """A heading says Lecture. The folder's term is lecture. That is the same word.
+
+    Measured on a real placement: the model named work_type lecture against a
+    heading "Lecture 2: Variables and Data Types" and the validator rejected the
+    answer, because the comparison kept the heading's capital. The file then
+    stayed unplaced. Copying the whole heading into the value was accepted on
+    another run. The term is what the folder expects, and the heading states it.
+    """
+    stated = _with_payload_fields(
+        _also_saying(_c_direct_pair(), "Lecture 2: Variables and Data Types"),
+        per_dimension_support=[
+            {"dimension": "work_type", "value": "lecture", "support": "direct"},
+        ])
+    assert _validate_c(stated)[0][0].reasons == ()
+    unstated = _with_payload_fields(
+        _c_direct_pair(),
+        per_dimension_support=[
+            {"dimension": "work_type", "value": "lecture", "support": "direct"},
+        ])
+    assert _validate_c(unstated)[0][0].reasons == (SLOT_FILLED_WITHOUT_EVIDENCE,)
+
+
 def test_r15_a_date_the_file_states_is_not_invented_and_one_it_does_not_is():
     stated = _with_payload_fields(
         _also_saying(_c_direct_pair(), "Spring 2026"),

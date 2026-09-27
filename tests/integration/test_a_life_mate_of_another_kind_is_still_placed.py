@@ -160,7 +160,9 @@ def test_the_judge_named_the_packet_another_kind_of_the_same_life(typed):
     packet was never named: site G was asked and named the packet's kind."""
     kinds = typed["cloud"].kind_calls()
     assert len(kinds) == len(ROOT_FILES) + len(PACKET_FILES), typed["said"]
-    assert f"Which of these is {KIND}?" not in typed["said"], typed["said"]
+    # Found by the KEY, not the heading: `114` §7 made the heading the folder
+    # word, so a negative on the domain in the sentence would pass vacuously.
+    assert f"--answer situation:{KIND}=" not in typed["said"], typed["said"]
 
 
 def test_the_packet_is_still_placed_somewhere(typed):

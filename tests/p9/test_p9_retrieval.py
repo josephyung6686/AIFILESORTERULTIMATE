@@ -467,6 +467,42 @@ def test_the_seed_is_never_its_own_neighbour(corpus, tmp_path):
     assert seed_file not in {n.file_id for n in result.neighbors}
 
 
+def test_a_shared_fact_is_kept_when_a_busy_folder_fills_the_cap(corpus, tmp_path):
+    """A course the files name is the anchor. A scan folder is not.
+
+    With no channel weights — the run that has no semantic model — every
+    neighbour used to tie, and the cap kept whoever sorts first by content.
+    On a folder that holds dozens of unrelated files, the two that state the
+    same course never reach the graph, the only edges left are the folder,
+    and that hub stops the group. The default channel order is the ranking
+    those missing weights were already described as.
+    """
+    seed_file = _file(corpus, tmp_path, "seed.pdf", folder="Downloads")
+    decoys = [
+        _file(corpus, tmp_path, f"a{index}.pdf", folder="Downloads")
+        for index in range(6)
+    ]
+    mate = _file(corpus, tmp_path, "zzzz-mate.pdf", folder="Downloads")
+    _fact(corpus, seed_file, field_key="subject", value="Course Title",
+          run_id="run-seed")
+    _fact(corpus, mate, field_key="subject", value="Course Title",
+          run_id="run-mate")
+    mate_hash = _hash(corpus, mate)
+    assert any(_hash(corpus, decoy) < mate_hash for decoy in decoys)
+    limits = _limits(corpus)
+    limits = limits.__class__(**{
+        **limits.__dict__, "max_retrieved_neighbors": 1})
+    result = retrieve_neighbors(
+        corpus, seed=_seed(corpus, seed_file, value="Course Title"),
+        limits=limits,
+        knowledge=RetrievalKnowledge(
+            document_compatible=None, channel_weights={}, similarity=None,
+            similarity_threshold=None, embedding_identity=None, domain=None),
+        embeddings_enabled=False,
+    )
+    assert mate in _files(result, SHARED_VALIDATED_FACT)
+
+
 def test_the_neighbourhood_is_capped_and_the_drop_is_recorded(corpus, tmp_path):
     corpus.execute(
         "UPDATE budget_ceilings SET value = 2 WHERE key = ?",

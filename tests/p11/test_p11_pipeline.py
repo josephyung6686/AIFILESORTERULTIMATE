@@ -393,6 +393,80 @@ def test_an_accepted_group_alone_still_does_not_clear_the_threshold(skeleton):
     assert decision.two_condition.meets_threshold is False
 
 
+def test_a_model_choice_with_no_support_confirms_the_folder_the_file_is_in(
+        skeleton, monkeypatch):
+    """No support elsewhere. Naming the folder the file is already in confirms it.
+
+    The same ranking that sets every candidate aside. The model names the
+    folder the file sits in. That is the placement. A different folder with
+    no support is still not one, and gap 2 covers that side.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(
+        pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: _verdict()))
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(
+            skeleton,
+            fields_that_cannot_anchor_a_move=frozenset({"subject"}),
+            their_own_folder_made_for_what_it_holds={"f1": "n-review-later"},
+            the_folder_each_file_is_in={"f1": "n-course"},
+            chosen_node_of=lambda _verdict: "n-course"),
+        evidence=_evidence())
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+
+
+def test_a_folder_that_expects_nothing_is_not_confirmed_on_no_support(
+        skeleton, monkeypatch):
+    """No support, and the folder the file sits in expects nothing.
+
+    Naming that folder does not file the file. A scan root was already
+    refused. An empty folder under a life is the same guess: nothing in the
+    plan says what the folder is for, and a choice with no support does not
+    supply it.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(
+        pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: _verdict()))
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(
+            skeleton,
+            fields_that_cannot_anchor_a_move=frozenset({"subject"}),
+            their_own_folder_made_for_what_it_holds={"f1": "n-review-later"},
+            the_folder_each_file_is_in={"f1": "n-course-shared"},
+            chosen_node_of=lambda _verdict: "n-course-shared"),
+        evidence=_evidence())
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+
+
+def test_an_empty_life_is_not_a_second_home_for_a_file_already_in_a_folder(
+        skeleton, monkeypatch):
+    """A folder that expects nothing does not take a file out of where it sits.
+
+    The model names Shared Course Materials, which carries no expected value.
+    The file is already in a folder the person made. That choice is recorded
+    as the reason and the file stays.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(
+        pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: _verdict()))
+    decision = _place(
+        skeleton,
+        evidence=_evidence(**AMBIGUOUS),
+        inputs=_model_inputs(
+            skeleton,
+            the_folder_each_file_is_in={"f1": "n-review-later"},
+            chosen_node_of=lambda _verdict: "n-course-shared"))
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+
+
 def test_a_mathematical_looking_file_never_produces_math_stuff(skeleton):
     decision = _place(skeleton,
                       evidence=_evidence(facts=(), semantic_neighbours=()))
@@ -2748,9 +2822,9 @@ def test_gap2_a_file_whose_every_candidate_was_ranked_below_still_reaches_the_mo
 
     `subject` is declared un-anchoring here and the file's own folder is one the
     person made for what it holds, so `_a_folder_made_for_this_keeps_it` sets the
-    only candidate aside. Nothing about the OFFLINE path moves: `model_decides` is
-    what opens this door, and `test_gap2_an_offline_run_still_abstains_...` below
-    is the other side of it.
+    only candidate aside. The model is still asked. A choice with no support
+    does not file the file. The offline path is unchanged, and
+    `test_gap2_an_offline_run_still_abstains_...` below is that side of it.
     """
     seen = _asked(monkeypatch)
     decision = _place(
@@ -2764,13 +2838,8 @@ def test_gap2_a_file_whose_every_candidate_was_ranked_below_still_reaches_the_mo
 
     assert list(seen["allowed"]) == ["n-course"]
     assert "n-course" in _items_of(seen, "candidate")
-    assert decision.outcome == v.PLACE
-    assert decision.destination.node_id == "n-course"
-    # A folder the rules ranked below is never `scored[0]`, so the placement
-    # cannot be `auto_eligible` and the reason the rules gave is in the record a
-    # person reads.
-    assert decision.review_policy != v.AUTO_ELIGIBLE
-    assert "ranked this folder below the others" in decision.explanation
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
 
 
 def test_gap2_an_offline_run_still_abstains_when_every_candidate_was_ranked_below(

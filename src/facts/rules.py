@@ -102,6 +102,11 @@ class Rule:
     #: A canonicaliser that raises propagates: a broken injection must not arrive as
     #: a silent absence of facts (§8.6).
     canonical: Callable[[str], str] | None = None
+    #: A match that is the inside of a quotation is something the file prints,
+    #: not the file naming itself. `print("Hello 1006")` cleared the context
+    #: check because the comment beside it said assignment and exam, and a
+    #: course folder was proposed for a string a program emits.
+    string_literal_is_not_a_claim: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.pattern, re.Pattern):
@@ -113,6 +118,21 @@ class Rule:
                 "point is that a pattern match alone is not a fact")
         if not self.field_key:
             raise MalformedRule("a rule names the field it fills")
+
+
+_OPENING_QUOTES = "\"'\u201c\u2018"
+
+
+def inside_a_quotation(before: str, raw: str, start: int) -> bool:
+    """True when the match is the contents of a quoted string.
+
+    The quote sits on the character before the match: inside the reading when
+    the reading is wider than the identifier, and at the end of the preceding
+    context when the reading is the identifier alone.
+    """
+    if start > 0:
+        return raw[start - 1] in _OPENING_QUOTES
+    return bool(before) and before[-1] in _OPENING_QUOTES
 
 
 def context_check(before: str, after: str, terms: Iterable[str]) -> bool:
@@ -213,6 +233,9 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     observation, rule.field_key,
                     tool_producer_strings=screen.tool_producer_strings,
                     metadata_property_names=screen.metadata_property_names):
+                continue
+            if (rule.string_literal_is_not_a_claim
+                    and inside_a_quotation(before, observation.raw_value, match.start())):
                 continue
             if not context_check(before, after, rule.required_context_terms):
                 write_unresolved(

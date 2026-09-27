@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import dataclasses
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from types import MappingProxyType
@@ -547,6 +547,105 @@ def _refinements_of(their_own_folder: str | None,
             seen.add(walker)
             walker = parent_of.get(walker)
     return frozenset(inside)
+
+
+def shelf_inside_the_folder_the_file_already_sits_in(
+        group_node: str, home: str | None,
+        parent_of: Mapping[str, str | None],
+        existing: Collection[str]) -> str:
+    """The folder a grouped file is classified inside.
+
+    The group's branch is the packet's answer. A file that already sits in a
+    folder the person made — one nested inside the scan, not the pile at the
+    top — is classified there, so the packet does not pull it out into a
+    second home. A file in that pile still follows the group. A file already
+    inside the group's branch stays inside it.
+    """
+    if home is None or parent_of.get(home) not in existing:
+        return group_node
+    seen: set[str] = set()
+    walker: str | None = home
+    while walker is not None and walker not in seen:
+        if walker == group_node:
+            return group_node
+        seen.add(walker)
+        walker = parent_of.get(walker)
+    return home
+
+
+def _shelf_the_facts_support(
+        scored, *, home: str | None,
+        parent_of: Mapping[str, str | None], threshold: float,
+        expects) -> str | None:
+    """The one folder inside this file's own folder that the facts already support.
+
+    A lookalike outside that folder is not a second home for a file the person
+    has already filed. Two shelves inside the folder are still a choice, and
+    this names neither of them.
+    """
+    if home is None:
+        return None
+    inside: list[str] = []
+    for item in scored:
+        if item.semantic_only or item.support_score < threshold:
+            continue
+        if item.node_id == home:
+            continue
+        if not _choice_stays_in(item.node_id, home, parent_of):
+            continue
+        if expects(item.node_id):
+            inside.append(item.node_id)
+    if len(inside) == 1:
+        return inside[0]
+    return None
+
+
+def _choice_stays_in(chosen: str | None, home: str | None,
+                     parent_of: Mapping[str, str | None]) -> bool:
+    """True when the chosen folder is the one the file already sits in.
+
+    A child of that folder counts: moving deeper inside the arrangement the
+    person made is still that arrangement. A life outside it does not.
+    """
+    if chosen is None or home is None:
+        return False
+    seen: set[str] = set()
+    walker: str | None = chosen
+    while walker is not None and walker not in seen:
+        if walker == home:
+            return True
+        seen.add(walker)
+        walker = parent_of.get(walker)
+    return False
+
+
+def ids_inside_a_folder_the_person_made(
+        ranked: Sequence[str], aside: Sequence[str], *,
+        home: str | None, parent_of: Mapping[str, str | None],
+        existing: Collection[str],
+        children_of: Mapping[str, Sequence[str]],
+) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    """The shortlist cut down to the folder this file already sits in.
+
+    None means leave the shortlist alone: the file is in the pile at the top
+    of the scan, or nothing offered sits inside the folder the person made.
+    A life branch outside that folder is not a destination for this file.
+    """
+    if home is None or parent_of.get(home) not in existing:
+        return None
+    allowed = {home}
+    pending = [home]
+    while pending:
+        current = pending.pop()
+        for child in children_of.get(current, ()):
+            if child not in allowed:
+                allowed.add(child)
+                pending.append(child)
+    kept = tuple(node_id for node_id in ranked if node_id in allowed)
+    kept_aside = tuple(node_id for node_id in aside if node_id in allowed)
+    if not kept and not kept_aside:
+        return None
+    return kept, kept_aside
 
 
 def _root_of(node_id: str, parent_of: Mapping[str, str | None]) -> str:
@@ -1895,7 +1994,10 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     assessment = assess(
         retrieval, graphs, policy=inputs.policy,
         their_own_folder_node_ids=frozenset(their_own_folders),
-        refinements=refinements)
+        refinements=refinements,
+        empty_expectation_node_ids=frozenset(
+            node.node_id for node in inputs.tree.nodes
+            if not node.expected_values))
 
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,
                        privacy=privacy, retrieval=retrieval,
@@ -1939,6 +2041,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     # validator -- runs INSIDE `run_call`; P11 supplies authorities and reads a
     # verdict, and re-checks none of Site C's fifteen.
     chosen_node_id: str | None = None
+    ruled_shelf = False
     #: The model's own answer, when there was one. Hoisted out of the branch for
     #: `104` R-75: `two_condition` below has to be able to read `requires_review`
     #: off it, and inside the branch there was nowhere for the record to see it.
@@ -1992,7 +2095,13 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 "answer checked against the index; reaching here means the tree "
                 "changed underneath the plan, and P11 places nothing on that"
             )
-        chosen_node_id = group_answer.node_id
+        # The group's branch, unless this file already sits in a folder the
+        # person made outside that branch. Classifying it "within the branch"
+        # then means within the folder it is already in.
+        chosen_node_id = shelf_inside_the_folder_the_file_already_sits_in(
+            group_answer.node_id,
+            (inputs.the_folder_each_file_is_in or {}).get(subject.file_id),
+            parent_of, their_own_folders)
         # **AND THEN WHICH SHELF INSIDE IT** (`104` §18.2 gap 14's second finding).
         # `00`:112 is two sentences and only the first was built: *"First confirm
         # the shared parent branch ... then CLASSIFY MEMBERS WITHIN THAT BRANCH:
@@ -2015,7 +2124,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         # spends `inputs.call_dependencies.scan_budget` unchanged -- the group's
         # `GROUP_BUDGET_SUFFIX` purse was `_the_groups_own_answer`'s and is not
         # this call's.
-        inside = tuple(children_of.get(group_answer.node_id, ()))
+        inside = tuple(children_of.get(chosen_node_id, ()))
         if inside:
             # The node alone here: this file's own `retrieval` and `graphs` are
             # already what step 9 writes its record from, and they were built over
@@ -2110,6 +2219,20 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             # several the corpus pass holds open at once. What the wrapper does
             # with a refusal, and what this branch does with the result, are
             # unchanged.
+            ranked_ids = tuple(item.node_id for item in assessment.scored)
+            aside_ids = tuple(item.candidate.node_id for item in set_aside)
+            narrowed = ids_inside_a_folder_the_person_made(
+                ranked_ids, aside_ids,
+                home=(inputs.the_folder_each_file_is_in or {}).get(
+                    subject.file_id),
+                parent_of=parent_of, existing=their_own_folders,
+                children_of=children_of)
+            if narrowed is not None:
+                ranked_ids, aside_ids = narrowed
+                kept_aside = set(aside_ids)
+                set_aside = tuple(
+                    item for item in set_aside
+                    if item.candidate.node_id in kept_aside)
             result = yield from _judged_or_refused_steps(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
@@ -2119,7 +2242,9 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 # and the refinement exemption, so `scored[0]` is the
                 # deterministic winner -- including the unique direct match,
                 # which is now the top-ranked candidate rather than a bypass.
-                ranked=tuple(item.node_id for item in assessment.scored),
+                # A file already sitting in a folder the person made is offered
+                # only that folder and what is inside it.
+                ranked=ranked_ids,
                 # AND THE TAIL OF THE SAME SHORTLIST (`104` §18.2 gap 2). Ranked
                 # below every contender, described exactly as a contender is, and
                 # each one carrying the sentence the rule that ranked it wrote.
@@ -2195,10 +2320,92 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                         "node; reaching here means the resolver disagreed with "
                         "the index, and P11 places nothing on a disagreement"
                     )
+                # The model was asked, including when every folder was ranked
+                # below (gap 2). A choice among scored contenders still places:
+                # a tie the evidence reaches equally is the call §6.10 exists
+                # for. A choice with no contender does not, unless it names the
+                # folder this file already sits in or a folder inside that one.
+                # Measured on the pinned folder: 85 model placements had
+                # support 0.00 and filed the file into a life it had no fact for.
+                home = (inputs.the_folder_each_file_is_in or {}).get(
+                    subject.file_id)
+                stays = _choice_stays_in(chosen_node_id, home, parent_of)
+                best = assessment.scored[0] if assessment.scored else None
+                # A choice among scored contenders still places. A choice with
+                # no support does not, measured: that filed files into a life
+                # the evidence had not reached. The exception is a folder the
+                # file already sits in that states what it is for. Confirming
+                # that is not a guess. A folder that expects nothing is not,
+                # and a scan root is the ground the picture stands on.
+                def _expects(node_id: str) -> bool:
+                    return bool(entry_for(
+                        conn, plan_version=inputs.plan_version,
+                        node_id=node_id).expected_values)
+
+                shelf = _shelf_the_facts_support(
+                    assessment.scored, home=home, parent_of=parent_of,
+                    threshold=inputs.policy.minimum_support_threshold,
+                    expects=_expects)
+                if (best is None or best.support_score == 0) and not (
+                        stays and chosen_node_id == home and home is not None
+                        and parent_of.get(home) is not None
+                        and _expects(home)):
+                    if shelf is None:
+                        return _abstention(
+                            conn, context,
+                            reason=(assessment.abstention_reason
+                                    or NO_SUPPORTED_DESTINATION))
+                    chosen_node_id = shelf
+                    ruled_shelf = True
+                # A life that expects nothing is not a second home for a file
+                # that already sits in a folder. The shelf the facts support
+                # inside that folder still is.
+                elif home is not None and not stays and not entry_for(
+                        conn, plan_version=inputs.plan_version,
+                        node_id=chosen_node_id).expected_values:
+                    if shelf is None:
+                        return _abstention(
+                            conn, context,
+                            reason=(assessment.abstention_reason
+                                    or NO_SUPPORTED_DESTINATION))
+                    chosen_node_id = shelf
+                    ruled_shelf = True
+                # A scan root that states what it holds — photographs, say —
+                # is still the ground the files were found on. A file that
+                # does not state that value is not one of them, and a weak
+                # score for sitting in the folder is not a reason to file it
+                # there.
+                chosen_entry = entry_for(
+                    conn, plan_version=inputs.plan_version,
+                    node_id=chosen_node_id)
+                stated = {
+                    (fact.field, fact.value)
+                    for fact in _facts_of(retrieval, chosen_node_id)}
+                if (chosen_entry.node_type == EXISTING
+                        and parent_of.get(chosen_node_id) is None
+                        and chosen_entry.expected_values
+                        and not set(chosen_entry.expected_values) <= stated):
+                    if shelf is None:
+                        return _abstention(
+                            conn, context,
+                            reason=(assessment.abstention_reason
+                                    or NO_SUPPORTED_DESTINATION))
+                    chosen_node_id = shelf
+                    ruled_shelf = True
 
     # Step 9.
     if chosen_node_id is None and assessment.abstention_reason is not None:
-        return _abstention(conn, context, reason=assessment.abstention_reason)
+        home = (inputs.the_folder_each_file_is_in or {}).get(subject.file_id)
+        shelf = _shelf_the_facts_support(
+            assessment.scored, home=home, parent_of=parent_of,
+            threshold=inputs.policy.minimum_support_threshold,
+            expects=lambda node_id: bool(entry_for(
+                conn, plan_version=inputs.plan_version,
+                node_id=node_id).expected_values))
+        if shelf is None:
+            return _abstention(conn, context, reason=assessment.abstention_reason)
+        chosen_node_id = shelf
+        ruled_shelf = True
 
     # **A QUESTION ABOUT WHAT THE FILE IS OUTRANKS A RULE'S GUESS ABOUT WHERE IT
     # GOES.** `104` §18.35, and it is a defect gap 12 opened rather than a new
@@ -2408,7 +2615,8 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                              # clause that prints ruled-out folders gets it
                              # rather than an id. Same object `_Context` holds.
                              label_of=label_of,
-                             model_decided=chosen_node_id is not None,
+                             model_decided=(chosen_node_id is not None
+                                            and not ruled_shelf),
                              gate_refused=gate_refused,
                              refinements=refinements,
                              group_support=group_support,
@@ -2443,8 +2651,9 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         # its own: the model decided, in the one call that took the group, and a
         # row that said `rule` about it would credit §6.10's arithmetic with a
         # judgement no arithmetic reached.
-        decided_by=DECIDED_BY_MODEL if chosen_node_id is not None
-        else DECIDED_BY_RULE,
+        decided_by=(DECIDED_BY_RULE if ruled_shelf
+                    else DECIDED_BY_MODEL if chosen_node_id is not None
+                    else DECIDED_BY_RULE),
     )
     return _write(conn, decision, inputs=inputs,
                   reason="a later placement of the same file version supersedes "

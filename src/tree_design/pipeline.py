@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import dataclasses
 import sqlite3
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
@@ -52,7 +52,7 @@ from tree_design.materialise import (
     BranchEvidence, MaterialisationRefused, materialise_branch,
     project_branch_preview,
 )
-from tree_design.node_key import branch_key
+from tree_design.node_key import branch_key, level_key
 from tree_design.profiles import build_profiles
 from tree_design.records import (
     ExpectedValue, Node, PlanVersion, derive_accepts_placement,
@@ -69,6 +69,7 @@ from tree_design.upstream import (
     AcceptedGroup, AnchorAgreement, GroupMember, ProtectedArea,
     UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders,
+    _normalised, _parent_directory_of,
     file_ids_in_directory, group_level_reader, protected_areas,
     settled_values_by_directory,
 )
@@ -949,6 +950,10 @@ def design_tree(conn: sqlite3.Connection, *,
     # because P11 reads the index this freeze projects.
     version = _apply_ignored_branches(conn, authorities, decisions,
                                       version=version, versions=versions)
+    version, absorbed = _file_a_claim_under_the_folder_the_files_already_sit_in(
+        conn, authorities, decisions, version=version, versions=versions)
+    _kinds_under_the_folders_they_sit_in(
+        conn, authorities, decisions, version=version, absorbed=absorbed)
 
     profiles = build_profiles(
         conn, plan_version_id=version, groups_by_id=by_id,
@@ -981,6 +986,370 @@ def design_tree(conn: sqlite3.Connection, *,
         tree=frozen_tree(conn, plan_version=version),
         plan_version_ids=tuple(versions), branches=tuple(branches),
         protected_areas=areas, candidates=candidates)
+
+
+def values_strong_enough_to_name_a_folder(
+        rows: Mapping[str, Mapping[str, str]]) -> dict[str, str]:
+    """Values a folder proposal may rest on.
+
+    The slot read returns every live row, including a model clue too weak
+    to establish a fact. That clue stays on the file. It does not become a
+    folder. The states are the same set a proposal already rests on.
+    """
+    # Through the declared seam, not around it: `upstream.py` is the module
+    # this package permits to name P6's records
+    # (`tests/p10/test_p10_no_invention.py::test_only_the_declared_seams_name_another_parts_records`).
+    from tree_design.upstream import PROPOSAL_ELIGIBLE_STATES
+
+    return {
+        file_id: row["canonical_value"]
+        for file_id, row in rows.items()
+        if row["canonical_value"]
+        and row["reliability_state"] in PROPOSAL_ELIGIBLE_STATES
+    }
+
+
+def kinds_a_folder_already_separated(
+        work_types: Mapping[str, str]) -> tuple[str, ...]:
+    """The kinds of work more than one file in one folder already recorded.
+
+    One file agreeing with itself is evidence about that file. It becomes a
+    folder when a second file in the same directory records the same kind.
+    The values are whatever the files said. Nothing here names a course, a
+    laptop, or a directory.
+    """
+    counts: dict[str, int] = {}
+    for value in work_types.values():
+        if value:
+            counts[value] = counts.get(value, 0) + 1
+    return tuple(sorted(value for value, count in counts.items()
+                        if not count <= 1))
+
+
+def values_that_divide_a_folder(
+        values: Mapping[str, str], files_in_folder: int) -> tuple[str, ...]:
+    """Values more than one file recorded that leave some other file in the folder.
+
+    A value every file in the folder carries separates nothing: the folder
+    already says it. The words are whatever the files recorded.
+    """
+    counts: dict[str, int] = {}
+    for value in values.values():
+        if value:
+            counts[value] = counts.get(value, 0) + 1
+    return tuple(value for value in kinds_a_folder_already_separated(values)
+                 if counts[value] < files_in_folder)
+
+
+def field_that_divides_a_folder(
+        by_field: Mapping[str, Mapping[str, str]],
+        files_in_folder: int, *,
+        kinds: Collection[str],
+        absorbed: Collection[tuple[str, str]] = (),
+) -> str | None:
+    """The one field that splits this folder, or none.
+
+    `kinds` is whatever the catalogue calls a closed vocabulary — a kind of
+    work — on this machine. Those divide ahead of an open name. A name whose
+    every dividing value was already absorbed into this folder is that
+    folder's other spelling, so it is not split back out. Two fields that
+    cover the same number of files are a tie, and a tie is not a guess.
+    """
+    absorbed_set = set(absorbed)
+    kind_of = set(kinds)
+
+    def winner(pool: list[tuple[int, str]]) -> str | None:
+        best: str | None = None
+        best_n = -1
+        tied = False
+        for covered, field in pool:
+            if covered > best_n:
+                best, best_n, tied = field, covered, False
+            elif covered == best_n:
+                tied = True
+        return None if tied else best
+
+    kind_pool: list[tuple[int, str]] = []
+    name_pool: list[tuple[int, str]] = []
+    for field, values in by_field.items():
+        dividing = values_that_divide_a_folder(values, files_in_folder)
+        if not dividing:
+            continue
+        if (field not in kind_of
+                and all((field, value) in absorbed_set for value in dividing)):
+            continue
+        covered = sum(1 for value in values.values() if value in dividing)
+        (kind_pool if field in kind_of else name_pool).append((covered, field))
+    if kind_pool:
+        return winner(kind_pool)
+    return winner(name_pool)
+
+
+def folder_a_course_already_sits_in(
+        member_directories: Sequence[str],
+        nested_folders: Mapping[str, str],
+) -> str | None:
+    """The one nested folder every file of a course already sits in.
+
+    A dump at the top of the scan is not in `nested_folders`, so a course
+    whose files are loose in Downloads keeps the spelling the fact used.
+    Two directories means the course is not one folder the person made.
+    """
+    unique = set(member_directories)
+    if len(unique) != 1:
+        return None
+    return nested_folders.get(next(iter(unique)))
+
+
+def _file_a_claim_under_the_folder_the_files_already_sit_in(
+        conn, authorities, decisions, *, version: str,
+        versions: list[str],
+) -> tuple[str, dict[str, frozenset[tuple[str, str]]]]:
+    """A fact the person already filed is that folder.
+
+    The fact may spell itself however the document spelled it, on any field
+    the proposal used. The folder they made is the home. Children of the
+    fact-named folder move under it, and the fact-named folder stops
+    accepting files, so one set of files is not offered two homes. A claim
+    with no child of its own is the same rule: the parallel folder is left
+    out, and the files stay where the person put them.
+    """
+    from tree_design.upstream import preferred_in_field
+
+    nodes = list(nodes_for_version(conn, version))
+    nested_paths = {
+        _normalised(node.existing_path)
+        for node in nodes if node.existing_path and node.parent_node_id}
+    if not nested_paths:
+        return version, {}
+    paths = {
+        row["file_id"]: _normalised(_parent_directory_of(row["current_path"]))
+        for row in conn.execute("SELECT file_id, current_path FROM files")}
+    cache: dict[str, dict[str, str]] = {}
+    # Origins, not node ids: the ignore below mints a new id for every node.
+    planned: list[tuple[str, str, str, str]] = []
+    seen: set[str] = set()
+    for node in nodes:
+        if node.node_type != PROPOSED or not node.dimension:
+            continue
+        if node.origin_node_id in seen:
+            continue
+        value = next((item.value for item in node.expected_values
+                      if item.field == node.dimension), None)
+        if not value:
+            continue
+        if node.dimension not in cache:
+            cache[node.dimension] = {
+                file_id: row["canonical_value"]
+                for file_id, row in preferred_in_field(
+                    conn, field_key=node.dimension).items()
+                if row["canonical_value"]}
+        members = [file_id for file_id, got in cache[node.dimension].items()
+                   if got == value]
+        if not members:
+            continue
+        directories: list[str] = []
+        missing = False
+        for file_id in members:
+            if file_id not in paths:
+                missing = True
+                break
+            directories.append(paths[file_id])
+        if missing:
+            continue
+        home = folder_a_course_already_sits_in(
+            directories, {path: path for path in nested_paths})
+        if home is None:
+            continue
+        seen.add(node.origin_node_id)
+        planned.append((node.origin_node_id, home, node.dimension, value,
+                        node.node_id))
+
+    # A child of a claim already planned is moved with that claim. Planning it
+    # on its own sets it aside first, and the copy then repeats a folder that
+    # no longer accepts files.
+    by_id = {node.node_id: node for node in nodes}
+    chosen_ids = {node_id for *_rest, node_id in planned}
+
+    def _under_a_planned_claim(node_id: str) -> bool:
+        parent_id = by_id[node_id].parent_node_id
+        while parent_id is not None:
+            if parent_id in chosen_ids:
+                return True
+            parent = by_id.get(parent_id)
+            if parent is None:
+                return False
+            parent_id = parent.parent_node_id
+        return False
+
+    planned = [tuple(claim) for *claim, node_id in planned
+               if not _under_a_planned_claim(node_id)]
+
+    absorbed: dict[str, set[tuple[str, str]]] = {}
+    for origin, home, field, value in planned:
+        nodes = list(nodes_for_version(conn, version))
+        by_origin = {node.origin_node_id: node for node in nodes}
+        claim_node = by_origin.get(origin)
+        existing = next(
+            (node for node in nodes
+             if node.existing_path and _normalised(node.existing_path) == home
+             and node.parent_node_id), None)
+        if (claim_node is None or existing is None
+                or claim_node.node_type != PROPOSED):
+            continue
+        absorbed.setdefault(home, set()).add((field, value))
+        children = [one for one in nodes
+                    if one.parent_node_id == claim_node.node_id]
+        # The fact-named folder and everything under it, collected before the
+        # copies exist, so the copies are not part of what gets set aside.
+        subtree = [claim_node.origin_node_id]
+        pending = [claim_node.node_id]
+        while pending:
+            parent_id = pending.pop()
+            for one in nodes:
+                if one.parent_node_id == parent_id:
+                    subtree.append(one.origin_node_id)
+                    pending.append(one.node_id)
+        already = {
+            (item.field, item.value)
+            for one in nodes if one.parent_node_id == existing.node_id
+            for item in one.expected_values}
+        for child in children:
+            claim = next((item.value for item in child.expected_values
+                          if item.field == child.dimension), child.display_label)
+            # The person's folder is the claim. The child keeps the field it
+            # was built from, and not the spelling a document used for the
+            # folder itself.
+            own = tuple(item for item in child.expected_values
+                        if item.field == child.dimension)
+            if not child.dimension or (child.dimension, claim) in already:
+                continue
+            if "/" in claim or "\\" in claim:
+                continue
+            write_node(conn, dataclasses.replace(
+                child,
+                node_id=authorities.mint_node_id(),
+                plan_version_id=version,
+                parent_node_id=existing.node_id,
+                node_type=PROPOSED,
+                dimension=None,
+                dimension_role=None,
+                accepts_placement=derive_accepts_placement(
+                    PROPOSED, protected_movement_permitted=False),
+                expected_values=own,
+                origin_node_id=level_key(
+                    existing.origin_node_id, field=child.dimension,
+                    value=claim, role=child.dimension_role or child.dimension
+                    or "level")))
+            already.add((child.dimension, claim))
+        for leaving in subtree:
+            version = _apply(conn, authorities, decisions, action=_Action(
+                review_action_id=f"ra_ignore_{leaving}",
+                surface=decisions.surface, subject_ref=leaving,
+                plan_version=version, action=IGNORE,
+                correction_scope=IGNORED_BRANCH_SCOPE,
+                presented_state_ref=f"ps_{leaving}",
+                user_id=decisions.user_id, observed_at=decisions.created_at))
+            versions.append(version)
+    return version, {home: frozenset(pairs) for home, pairs in absorbed.items()}
+
+
+def _kinds_under_the_folders_they_sit_in(
+        conn, authorities, decisions, *, version: str,
+        absorbed: Mapping[str, frozenset[tuple[str, str]]]) -> None:
+    """A value two files in one folder already share becomes a child of it.
+
+    The folder is whichever directory the scan read. The value is whichever
+    field those files recorded. A closed vocabulary — what the catalogue
+    calls a kind of work — divides ahead of an open name, and the same rule
+    applies to every such vocabulary. A top-level folder of the scan is the
+    pile the person pointed at, so it is not split; a folder inside it is
+    one they made. A name already absorbed into that folder is not split
+    back out of it.
+    """
+    from tree_design.upstream import preferred_in_field
+
+    nodes = list(nodes_for_version(conn, version))
+    nested = [node for node in nodes
+              if node.existing_path and node.parent_node_id
+              and node.node_type == EXISTING]
+    if not nested:
+        return
+    catalogue = list(conn.execute(
+        "SELECT field_key, value_kind FROM fields WHERE destination_eligible = 1"))
+    if not catalogue:
+        return
+    kind_fields = frozenset(
+        key for key, value_kind in catalogue if value_kind == "enum")
+    paths = {
+        row["file_id"]: _normalised(_parent_directory_of(row["current_path"]))
+        for row in conn.execute("SELECT file_id, current_path FROM files")}
+    preferred: dict[str, dict[str, str]] = {}
+    for field, _value_kind in catalogue:
+        preferred[field] = values_strong_enough_to_name_a_folder(
+            preferred_in_field(conn, field_key=field))
+    for existing in nested:
+        folder = _normalised(existing.existing_path)
+        file_ids = [file_id for file_id, found in paths.items()
+                    if found == folder]
+        by_field = {
+            field: {file_id: mapping[file_id]
+                    for file_id in file_ids if file_id in mapping}
+            for field, mapping in preferred.items()}
+        by_field = {field: mapping for field, mapping in by_field.items()
+                    if mapping}
+        chosen = field_that_divides_a_folder(
+            by_field, len(file_ids), kinds=kind_fields,
+            absorbed=absorbed.get(folder, ()))
+        if chosen is None:
+            continue
+        children = [node for node in nodes
+                    if node.parent_node_id == existing.node_id]
+        have = {(item.field, item.value) for child in children
+                for item in child.expected_values}
+        ordinal = len(children)
+        wrote = False
+        names_already = absorbed.get(folder, ())
+        for kind in values_that_divide_a_folder(
+                by_field[chosen], len(file_ids)):
+            if (chosen, kind) in have or "/" in kind or "\\" in kind:
+                continue
+            if chosen not in kind_fields and (chosen, kind) in names_already:
+                continue
+            members = [file_id for file_id, value
+                       in by_field[chosen].items() if value == kind]
+            node = _with_refinement(Node(
+                node_id=authorities.mint_node_id(),
+                plan_version_id=version,
+                node_type=PROPOSED,
+                display_label=kind,
+                parent_node_id=existing.node_id,
+                root_anchor=existing.root_anchor,
+                ordinal=ordinal,
+                associated_group_ids=existing.associated_group_ids,
+                explanation=(
+                    f"{len(members)} files already in this folder record "
+                    f"{chosen} = {kind!r}. The folder they sit in is the "
+                    "one the person made; this level only separates what "
+                    "those files already named."),
+                node_role=ORDINARY,
+                accepts_placement=derive_accepts_placement(
+                    PROPOSED, protected_movement_permitted=False),
+                handling_class=existing.handling_class,
+                origin_node_id=level_key(
+                    existing.origin_node_id, field=chosen,
+                    value=kind, role=chosen),
+                expected_values=(ExpectedValue(field=chosen, value=kind),),
+            ), decisions.refinement_for, file_count=len(members), was_split=False)
+            write_node(conn, node)
+            ordinal += 1
+            wrote = True
+            have.add((chosen, kind))
+        if wrote:
+            write_node(conn, _restamped(
+                existing, decisions.refinement_for,
+                file_count=len(file_ids),
+                was_split=True))
 
 
 def _apply_ignored_branches(conn, authorities, decisions, *, version: str,

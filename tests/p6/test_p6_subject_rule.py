@@ -314,6 +314,135 @@ def test_a_code_beside_the_words_a_course_is_described_with_is_a_subject(
     assert _subjects(p6_conn, file_id, content_hash) == {
         (expected, VALIDATED, RULE)}
 
+
+def test_a_cover_line_before_instructor_is_the_course_a_citation_is_not(
+        p6_conn, tmp_path):
+    """The course on the cover is this file's. A code glossed as another title is a work it cites.
+
+    The opening line is `University Writing` and the next line is `Instructor`.
+    A bibliography entry `ELTU3017: Medicine in the Humanities` still matches the
+    code rule, because `courses` sits in its URL. Both cannot be the subject.
+    The cover is the one the file names as its own course.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="essay.pdf")
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="essay.pdf", zone="filename", container_path=(),
+        run_id="run-name", start=0)
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="Essay 2 Final Draft.pdf\nA Person\nUniversity Writing\n"
+            "Instructor: Dr. Ada\nOctober 17, 2025\n",
+        run_id="run-cover", start=0)
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="ELTU3017",
+        before="The Chinese University of Hong Kong. ",
+        after=": Medicine in the Humanities. English\nLanguage Teaching Unit, "
+              "eltu.cuhk.edu.hk/courses/eltu3017/.",
+        run_id="run-cite", start=400)
+
+    cli._rule_stage(p6_conn, file_id=file_id, content_hash=content_hash)
+    by_id = {row["value_id"]: row["canonical_value"]
+             for row in values_in_field(p6_conn, "subject")}
+    live = {by_id[row["value_id"]]
+            for row in facts_for_file(p6_conn, file_id, content_hash)
+            if row["field_key"] == "subject" and row["superseded_by"] is None}
+    assert live == {"University Writing"}
+    by_kind = {row["value_id"]: row["canonical_value"]
+               for row in values_in_field(p6_conn, "work_type")}
+    live_kind = {by_kind[row["value_id"]]
+                 for row in facts_for_file(p6_conn, file_id, content_hash)
+                 if row["field_key"] == "work_type" and row["superseded_by"] is None
+                 and row["value_id"] in by_kind}
+    assert live_kind == {"essay"}
+
+
+def test_a_taught_cover_names_the_course_and_its_task_line_is_a_second_kind(
+        p6_conn, tmp_path):
+    """The cover names the course. The task line names a kind the filename also names, differently.
+
+    `University Writing` with a term line and a teacher is the course. The next
+    line is `Exercise:`. The filename says essay. Both kinds are stated, so the
+    kind is refused and the file cannot be filed as an essay.
+    """
+    file_id, content_hash = _file(
+        p6_conn, tmp_path, name="Essay 2 Prompt as Text.docx")
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="Essay 2 Prompt as Text.docx", zone="filename",
+        container_path=(), run_id="run-name", start=0)
+    opening = (
+        "University Writing – Readings in Medical Humanities\n"
+        "Fall 2025 – Dr. Sarah Wingerter\n"
+        "Exercise: Reading the Assignment Prompt as a Text\n")
+    # The same cover is stored twice, which is how this file's reading actually
+    # arrived. Two copies are one statement of the kind.
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw=opening, run_id="run-cover", start=0)
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw=opening, run_id="run-cover-again", start=0)
+
+    cli._rule_stage(p6_conn, file_id=file_id, content_hash=content_hash)
+    by_id = {row["value_id"]: row["canonical_value"]
+             for row in values_in_field(p6_conn, "subject")}
+    live_subject = {by_id[row["value_id"]]
+                    for row in facts_for_file(p6_conn, file_id, content_hash)
+                    if row["field_key"] == "subject" and row["superseded_by"] is None}
+    live_kind = {row["value_id"]
+                 for row in facts_for_file(p6_conn, file_id, content_hash)
+                 if row["field_key"] == "work_type" and row["superseded_by"] is None}
+    assert live_subject == {"University Writing"}
+    assert live_kind == set()
+    assert [row["reason"] for row in unresolved_for_file(
+        p6_conn, file_id, content_hash, field_key="work_type")] == ["below_margin"]
+
+
+def test_a_note_line_without_a_taught_cover_is_not_a_kind(p6_conn, tmp_path):
+    """A body line `Note:` does not compete with the kind the filename states.
+
+    The task line counts only on a cover that names a course and a teacher.
+    A lecture that happens to contain `Note:` stays a lecture.
+    """
+    file_id, content_hash = _file(
+        p6_conn, tmp_path, name="lecture02_variable_data-types.ipynb")
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="lecture02_variable_data-types.ipynb", zone="filename",
+        container_path=(), run_id="run-name", start=0)
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="Note: a variable holds a value\n",
+        run_id="run-body", start=0)
+
+    cli._rule_stage(p6_conn, file_id=file_id, content_hash=content_hash)
+    by_id = {row["value_id"]: row["canonical_value"]
+             for row in values_in_field(p6_conn, "work_type")}
+    live = {by_id[row["value_id"]]
+            for row in facts_for_file(p6_conn, file_id, content_hash)
+            if row["field_key"] == "work_type" and row["superseded_by"] is None}
+    assert live == {"lecture"}
+
+
+def test_a_string_a_program_prints_is_not_the_course(p6_conn, tmp_path):
+    """A code-shaped string inside quotes is something the file prints.
+
+    The comment beside it can say assignment and exam, which is enough for the
+    context check. The course is the name the file gives itself, and a program
+    that prints one is not doing that.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="lecture01.py")
+    _located(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        raw="Hello 1006",
+        before='print("',
+        after='")  # assignment exam\n')
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+
+
 @pytest.mark.parametrize("raw,before,after", TRUNCATIONS,
                          ids=[one[0] for one in TRUNCATIONS])
 def test_a_partial_identifier_is_refused_rather_than_stored(

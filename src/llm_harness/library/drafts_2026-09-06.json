@@ -1,5 +1,5 @@
 {
-  "_": "The D2 drafts of 2026-09-06: every prompt text, response schema, shaping policy and glossary proposal put to the owner in planning/105-D2-PROMPT-PACKET.md. NONE IS RATIFIED AND NONE IS WIRED. Each template_id carries `unratified` and the date so that any record written under it says so. `digests` is derived from the bytes on disk (scratch script record_manifest.py) and tools.promptbench.candidates refuses a file whose bytes no longer match. A revision is a new file and a new row, never an edit to a row whose digest a run already recorded. Rows added 2026-09-06 (evening): the v2 texts of 105 §9 item 2 and the third subject wording, each a stated delta from a v1 row that stays in place.",
+  "_": "The D2 drafts of 2026-09-06: every prompt text, response schema, shaping policy and glossary proposal put to the owner in planning/105-D2-PROMPT-PACKET.md. NONE IS RATIFIED AND NONE IS WIRED. Each template_id carries `unratified` and the date so that any record written under it says so. `digests` is derived from the bytes on disk (scratch script record_manifest.py) and tools.promptbench.candidates refuses a file whose bytes no longer match. A revision is a new file and a new row, never an edit to a row whose digest a run already recorded. Rows added 2026-09-06 (evening): the v2 texts of 105 §9 item 2 and the third subject wording, each a stated delta from a v1 row that stays in place. The LIVE GLOSSARY MOVED on 2026-09-23 and its digest here moved with it: `field_glossary.json`'s `school` and `subject` entries are now the owner's two sentences (105 section 1.2's proposed-glossary arm), so the recorded digest is the bytes in force (73743563d93f...) and not the 6 Sep incumbent's (cd48eaff1e22...). This file's rule -- a revision is a new file and a new row -- holds for every CANDIDATE here; the live glossary is not a candidate but the file `llm_harness.dossier.GLOSSARY_FILE` names, so putting ratified text in force is an edit to it by construction. What the 6 Sep bakeoff measured is still readable: the incumbent arm's sentences are quoted in 105 section 1.2 and the drafted ones sit unchanged in field_glossary_proposal_2026-09-06.json. NOTE FOR ANYONE REUSING ANSWERS: `prompt_fingerprint` does not hash the glossary, so a glossary change alone does not change it; the sentences reach the model inside the dossier, whose content address does change.",
   "status": "unratified",
   "date": "2026-09-06",
   "drafts": [
@@ -547,6 +547,18 @@
       "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
     },
     {
+      "site": "A_fact",
+      "candidate": "v6-support-a-course-the-evidence-prints",
+      "status": "ratified",
+      "template_id": "a_fact.unratified.folder-levels-v6.2026-09-25",
+      "template_file": "a_fact_template_folder_levels.v6.txt",
+      "response_schema_file": "a_fact_response_schema.json",
+      "shaping_policy_file": "a_fact_shaping_policy.v2.json",
+      "glossary_file": "field_glossary.json",
+      "note": "v6 of the A_fact text: v5, except a course code or course title sitting in a released value is supported as subject instead of declined because the two answers were close. Measured on the pinned folder before this row: 25 of 41 known coursework files had that course text inside the dossier the model was shown, and the standing verdicts were still abstentions.",
+      "ratified_by": "the owner, 25 Sep 2026, in session: keep working until the product matches the design, and use the model where the evidence already prints the course. Applied as a new row. v5 stands as written."
+    },
+    {
       "site": "G_situation_sensitivity",
       "candidate": "situation-level-v1",
       "status": "unratified",
@@ -736,7 +748,7 @@
     "e_template_shaping_policy.json": "52a59049c6c0b7e6fbf3087b5c3d14e3aa3d2f369f676b15d429532ae89d4337",
     "e_template_template.from-facts.txt": "9bed0a9be3c640d1f943354f58116112bc1f81a6ce64ea29ac47589cfa0e2ac9",
     "e_template_template.what-a-person-opens.txt": "041aadf30db8bf55d7bdfb6c4d257b874eb23486c0e5678c52d81a1ac287fd9c",
-    "field_glossary.json": "cd48eaff1e220bd08af946c5cc22559f5fe42713b82079d958bfc20abcd2f3a4",
+    "field_glossary.json": "73743563d93fcec03afd80c2fc10ca3fc2804cf9fe4bb14e7c4c5849efec0290",
     "field_glossary_proposal_2026-09-06.json": "bc9c171e95b1880584fc17185a28eeceb029de652c9ad3948878499a0d00ddcb",
     "e_template_template.what-a-person-opens-v2.txt": "54be24318b0fa488ae8f94a96e3568b7c2d1b882812cf6a0aaff7b929e93e1d6",
     "c_placement_template.eliminate-v2.txt": "9fd0c4940f6839c6fc591a6d1df74859186e72dcdc7307c2d4bc60f9151ff9ff",
@@ -775,6 +787,7 @@
     "situation_template.whole-library.v3.txt": "4efb509abf680330da30eb36373876395bba6c2d005a646eb9374350a69bc184",
     "situation_shaping_policy.v4.json": "3077c33b5997768ceceaca213ec83b9c9fa403539cd803ad9a2a3c73fa54e90e",
     "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18",
+    "a_fact_template_folder_levels.v6.txt": "56d62b1c75d42f88815a5d6a347ac4469e163cbea0947b283366e93596589300",
     "situation_level_template.v1.txt": "ca729c35e2d8da766fbdb2e3707f9c08c938d25cc397c94e31eff4b0f3113e80",
     "situation_level_shaping_policy.v1.json": "55d1ca0d8303e1c4c19d6db462c28b1e8012185292cc24eeb0a725cc0b62bdf3",
     "situation_level_template.v2.txt": "3524e9afad459f35db2c56731020276000a41087a778d4ad2742148823fe0652",

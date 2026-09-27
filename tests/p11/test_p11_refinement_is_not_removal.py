@@ -34,7 +34,11 @@ import pytest
 
 from placement import vocabulary as v
 from placement.config import PlacementLimits, SupportPolicy
-from placement.pipeline import _refinements_of, _without_kind_only_moves
+from placement.pipeline import (
+    _refinements_of, _without_kind_only_moves,
+    ids_inside_a_folder_the_person_made,
+    shelf_inside_the_folder_the_file_already_sits_in,
+)
 from placement.records import MatchingFact
 from placement.retrieval import (
     CURATED_FOLDER, Candidate, DIRECT_FACT, PRODUCED_CHANNELS, Retrieval,
@@ -356,3 +360,37 @@ def test_a_run_that_names_no_refinements_behaves_exactly_as_before():
 
     assert result.scored[0].node_id == OWN
     assert result.stays_put is True
+
+
+def test_a_file_already_in_a_folder_the_person_made_is_not_pulled_into_the_group():
+    parents = {"pile": None, "made": "pile", "life": None}
+    existing = {"pile", "made"}
+    assert shelf_inside_the_folder_the_file_already_sits_in(
+        "life", "made", parents, existing) == "made"
+
+
+def test_a_file_in_the_pile_at_the_top_of_the_scan_still_follows_the_group():
+    parents = {"pile": None, "life": None}
+    assert shelf_inside_the_folder_the_file_already_sits_in(
+        "life", "pile", parents, {"pile"}) == "life"
+
+
+def test_a_file_already_inside_the_groups_branch_stays_there():
+    parents = {"life": None, "course": "life"}
+    assert shelf_inside_the_folder_the_file_already_sits_in(
+        "life", "course", parents, {"life", "course"}) == "life"
+
+
+def test_a_shortlist_for_a_file_in_its_own_folder_drops_the_life_outside_it():
+    children = {"made": ("lecture",)}
+    parents = {"pile": None, "made": "pile"}
+    assert ids_inside_a_folder_the_person_made(
+        ("life", "made", "lecture"), ("other",),
+        home="made", parent_of=parents, existing={"pile", "made"},
+        children_of=children) == (("made", "lecture"), ())
+
+
+def test_a_shortlist_for_a_file_in_the_pile_is_left_alone():
+    assert ids_inside_a_folder_the_person_made(
+        ("life",), (), home="pile", parent_of={"pile": None},
+        existing={"pile"}, children_of={}) is None

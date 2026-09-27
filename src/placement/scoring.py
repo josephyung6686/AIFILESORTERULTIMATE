@@ -337,6 +337,17 @@ def _staying_put_wins_a_tie(
     tied = tuple(item for item in scored
                  if item.support_score == best.support_score)
     refined = tuple(item for item in tied if item.node_id in refinements)
+
+    def _with_the_ones_a_rebuild_would_drop(order: tuple[Scored, ...],
+                                            ) -> tuple[Scored, ...]:
+        # A life that expects nothing can sit below the folder while still
+        # carrying a higher score. Rebuilding the tie from score bands would
+        # omit it, and omitting it deletes a candidate. Append what the bands
+        # did not name, in the order it already had.
+        seen = {item.node_id for item in order}
+        rest = tuple(item for item in scored if item.node_id not in seen)
+        return order + rest if rest else order
+
     if len(refined) == 1:
         # Refinement, not removal. The file goes deeper inside the folder it is
         # already in, so there is no status quo left to protect -- and recording
@@ -346,7 +357,8 @@ def _staying_put_wins_a_tie(
         lower = tuple(item for item in scored
                       if item.support_score < chosen.support_score)
         others = tuple(item for item in tied if item.node_id != chosen.node_id)
-        return ((chosen,) + others + lower, chosen,
+        return (_with_the_ones_a_rebuild_would_drop(
+                    (chosen,) + others + lower), chosen,
                 (lower[0] if lower else None), False)
     staying = next((item for item in tied if item.already_there), None)
     rival_home = staying is not None and any(
@@ -360,8 +372,64 @@ def _staying_put_wins_a_tie(
     lower = tuple(item for item in scored
                   if item.support_score < staying.support_score)
     others = tuple(item for item in tied if item.node_id != staying.node_id)
-    return ((staying,) + others + lower, staying,
-            (lower[0] if lower else None), True)
+    return (_with_the_ones_a_rebuild_would_drop((staying,) + others + lower),
+            staying, (lower[0] if lower else None), True)
+
+
+def rank_an_empty_life_below_the_folder_the_file_is_in(
+        scored: tuple[Scored, ...],
+        empty_expectation_node_ids: frozenset[str],
+        *,
+        descendants: frozenset[str] = frozenset(),
+) -> tuple[Scored, ...]:
+    """Rank a life or a pile that expects nothing below the file's own folder.
+
+    A candidate whose id is in `empty_expectation_node_ids` states no expected
+    value. That is a life or a pile with no claim. When the folder the file
+    already sits in is also a candidate (`Scored.already_there`), or a
+    descendant of that folder is (`descendants`), the empty candidate ranks
+    below every one of those. It stays on the list.
+
+    A candidate that states an expected value is absent from the set and keeps
+    its place, including against another candidate that also states one. This
+    function does not order by id. The folder the file is already in keeps its
+    place even when its own id is in the set: it is the status quo, and a pile
+    with no claim does not demote the shelf the file is sitting on.
+
+    With an empty set, or with no such folder and no descendant among the
+    candidates, the tuple comes back unchanged. Callers that have not said
+    which ids expect nothing get the order they got before.
+    """
+    if not scored or not empty_expectation_node_ids:
+        return scored
+    protected = {
+        item.node_id for item in scored
+        if item.already_there or item.node_id in descendants
+    }
+    if not protected:
+        return scored
+
+    def no_claim(item: Scored) -> bool:
+        return (item.node_id in empty_expectation_node_ids
+                and item.node_id not in protected)
+
+    if not any(no_claim(item) for item in scored):
+        return scored
+    held: list[Scored] = []
+    out: list[Scored] = []
+    still = set(protected)
+    for item in scored:
+        if no_claim(item) and still:
+            held.append(item)
+            continue
+        out.append(item)
+        if item.node_id in still:
+            still.discard(item.node_id)
+            if not still and held:
+                out.extend(held)
+                held.clear()
+    out.extend(held)
+    return tuple(out)
 
 
 def _exact_margin(best: Scored, runner_up: Scored, *,
@@ -405,14 +473,35 @@ def _exact_margin(best: Scored, runner_up: Scored, *,
 
 def assess(retrieval, graphs, *, policy: SupportPolicy,
            their_own_folder_node_ids: frozenset[str] | None = None,
-           refinements: frozenset[str] = frozenset()) -> Assessment:
+           refinements: frozenset[str] = frozenset(),
+           empty_expectation_node_ids: frozenset[str] = frozenset(),
+           ) -> Assessment:
     # `score_candidates` is the one place the policy is required, and `assess`
     # calls it before reading a single threshold. A second `require_policy` here
     # would be a guard that cannot fail -- the first line already refused -- and
     # would read as a rule this function enforces when it enforces nothing.
     scored = score_candidates(retrieval, graphs, policy=policy)
+    # Before the tie, so a life that expects nothing is not the score the tie
+    # treats as best. After the tie, because the rebuild puts a tied life back
+    # above a lower-scoring folder the file is already in.
+    scored = rank_an_empty_life_below_the_folder_the_file_is_in(
+        scored, empty_expectation_node_ids, descendants=refinements)
     scored, best, runner_up, stays_put = _staying_put_wins_a_tie(
         scored, their_own_folder_node_ids, refinements)
+    scored = rank_an_empty_life_below_the_folder_the_file_is_in(
+        scored, empty_expectation_node_ids, descendants=refinements)
+    # The life can still carry a higher score than the folder it now ranks
+    # below. That score is not the rival the margin is measured against: the
+    # margin stays the distance to the next candidate that actually scores less,
+    # which is how a tie already treats a proposal it ranked after the winner.
+    if (best is not None and runner_up is not None
+            and runner_up.node_id in empty_expectation_node_ids
+            and runner_up.support_score > best.support_score):
+        runner_up = next((item for item in scored
+                          if item.node_id != best.node_id
+                          and item.support_score < best.support_score), None)
+        if best.already_there:
+            stays_put = True
 
     meets_threshold = bool(best and best.support_score >= policy.minimum_support_threshold)
     if runner_up is None:

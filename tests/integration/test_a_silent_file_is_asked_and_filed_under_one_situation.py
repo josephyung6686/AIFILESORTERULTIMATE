@@ -93,6 +93,18 @@ from test_site_h_gate import _clear  # noqa: E402
 SITUATION = "academic.coursework"
 LABEL = "Coursework"
 RESEARCH_SCHEMA = "research"
+#: The folder the files draw for each of those domains -- the word the
+#: question now uses.
+#:
+#: `114` §7, 23 Sep 2026: THE QUESTION NAMES THE PERSON'S FOLDER, NOT THE DOMAIN.
+#: The screen said "Which of these is academic?" for a life the files had already
+#: drawn as Education, because the question recorded `branch_label=schemas[0]` and
+#: had no separate word. The word is now the branch's `folder_name`; the KEY stays
+#: the domain id, which is where `_persons_answer_for` reads, so every option line
+#: below is still `--answer situation:<domain>=...`. Asserting the header and the
+#: key together is what keeps those two from drifting back into one.
+CAREER_FOLDER = "Career"
+RESEARCH_FOLDER = "Education"
 CAREER_SITUATION = "career.recruiting"
 CAREER_ANSWER = f"situation:career={CAREER_SITUATION}"
 
@@ -192,7 +204,8 @@ def run(tmp_path_factory):
         patch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
         patch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
         first = _once()
-        assert "Which of these is career?" in first, first
+        assert f"Which of these is {CAREER_FOLDER}?" in first, first
+        assert "--answer situation:career=" in first, first
         report = _once("--answer", CAREER_ANSWER)
     return corpus, database, report
 
@@ -219,7 +232,8 @@ def test_the_branch_votes_a_situation_that_is_neither_its_own_nor_the_runs(run):
         conn.close()
     assert named == {f"{APPLICATIONS}/{name}" for name in APPLICATION_FILES}
     assert SILENT not in named
-    assert "Which of these is career?" not in report, report
+    assert f"Which of these is {CAREER_FOLDER}?" not in report, report
+    assert "--answer situation:career=" not in report, report
 
 
 def test_every_file_the_judge_named_carries_that_situation_as_a_fact(run):
@@ -312,7 +326,8 @@ def test_and_the_person_is_asked_which_of_the_eight_research_situations_it_is(ru
     that builds the branch, and it offers the library's own eight names.
     """
     _corpus_, _database, report = run
-    assert f"Which of these is {RESEARCH_SCHEMA}?" in report, report
+    assert f"Which of these is {RESEARCH_FOLDER}?" in report, report
+    assert f"--answer situation:{RESEARCH_SCHEMA}=" in report, report
 
 
 def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
@@ -422,7 +437,8 @@ def test_the_answer_resolves_the_files_site_g_named(answered):
     is worse than the silent pick it replaced.
     """
     _corpus, database, report = answered
-    assert f"Which of these is {RESEARCH_SCHEMA}?" not in report, report
+    assert f"Which of these is {RESEARCH_FOLDER}?" not in report, report
+    assert f"--answer situation:{RESEARCH_SCHEMA}=" not in report, report
     log = _call_log(database)
     for name in ("Cover letter Acme.txt", "Cover letter Beta.txt"):
         offered = frozenset().union(*log.get(name, [frozenset()]))

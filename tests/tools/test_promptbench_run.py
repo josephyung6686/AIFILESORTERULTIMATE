@@ -187,7 +187,7 @@ def test_run_site_a_builds_a_p6_world_and_swaps_the_glossary(tmp_path):
     proposed = records["proposed-glossary"]["request"]
     ratified = records["ratified-glossary"]["request"]
     assert "the institution that offers this course and term" in proposed
-    assert "the person's own school" in ratified
+    assert "the institution that offers this course and term" in ratified
     # A real P6 world: the observation keys the model was shown are P4's, keyed.
     body = json.loads(proposed.split("The dossier follows.\n", 1)[1])
     assert body["folder_levels"][0]["field"] in body["allowed_vocabulary"]

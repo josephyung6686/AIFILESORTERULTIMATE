@@ -185,8 +185,18 @@ def _instantiate(candidate, case, shape: dict) -> bytes:
     if candidate.site == C_PLACEMENT:
         payload["destination"] = case.expect.get("destination", "none")
         if "citations" in claim:
+            # A WHOLE WORD OF THE RELEASED VALUE, NOT A CUT OF IT. This read
+            # `value[:8]`, which on C01 is `PHYS 140` -- half of the course code
+            # `PHYS 1401`, accepted only because `_stated_by_the_file` was a raw
+            # substring test. It is now the value-grounding token run (the
+            # predicate site A has always used), so a value that stops inside a
+            # token is refused, which is the point of that check rather than a
+            # regression in it. What this shape is here to show is that an
+            # answering payload whose value the file states is accepted, and one
+            # word of the released text says that without depending on how
+            # loosely the value is matched.
             payload["per_dimension_support"] = [
-                {"dimension": "a level", "value": case.evidence[0].value[:8],
+                {"dimension": "a level", "value": case.evidence[0].value.split()[0],
                  "support": "direct"}]
             payload["alternatives"] = []
             payload["support"], payload["next_support"] = 1, 0

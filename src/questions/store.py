@@ -86,6 +86,26 @@ def _question_of(row: sqlite3.Row) -> StructuralQuestion:
         evidence_refs=tuple(json.loads(row["evidence_refs"])))
 
 
+def the_option_they_named(conn: sqlite3.Connection, question_id: str,
+                          typed: str) -> str:
+    """The option id for the word the person typed.
+
+    The id itself is accepted, which is every answer already on record. The
+    word printed beside that id is accepted too, when exactly one option
+    wears it: the screen says Coursework, and that is what they can paste.
+    Two options with one word is not a choice they can make by that word, so
+    the typed string is returned unchanged and the recorder refuses it.
+    """
+    row = _question_row(conn, question_id)
+    if row is None:
+        return typed
+    options = _question_of(row).options
+    if typed in {option.option_id for option in options}:
+        return typed
+    matched = [option.option_id for option in options if option.label == typed]
+    return matched[0] if len(matched) == 1 else typed
+
+
 def record_answer(conn: sqlite3.Connection, answer: StructuralAnswer) -> str:
     """Record one answer, and return its id so a later edit can supersede it."""
     row = _question_row(conn, answer.question_id)

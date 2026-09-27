@@ -540,6 +540,28 @@ def _classification(state, filename: str):
 # --- scene 1: the closing question, and the person's three answers --------------
 
 
+
+#: `114` §7 and the owner's ruling of 19 Sep 2026: A DISPLAY STRING IS NOT A KEY.
+#: The situation question's heading is the branch's own folder name -- the word the
+#: person reads -- while its KEY stays the domain id, which is where
+#: `_persons_answer_for` reads and what every `--answer situation:<domain>=` line
+#: carries. The heading no longer contains the domain, so these tests find the
+#: question by its key and then check the sentences agree with each other. The
+#: wording itself is pinned once, in `tests/test_first_run_menu.py`.
+def _situation_question_word(said: str, schema: str) -> str:
+    """The folder word the situation question for `schema` is asked under."""
+    for block in said.split("Which of these is ")[1:]:
+        word, _, rest = block.partition("?")
+        if f"--answer situation:{schema}=" in rest.split("Which of these is ")[0]:
+            return word
+    raise AssertionError(
+        f"no situation question keyed {schema!r} was asked. Screen:\n{said}")
+
+
+def _situation_question_asked(said: str, schema: str) -> bool:
+    """Whether that question is on this screen at all, found by its key."""
+    return f"--answer situation:{schema}=" in said
+
 def test_the_plain_report_asks_without_naming_anybodys_protected_files(
         three_runs):
     """`00` amendment 2 of 13 Sep asked INSIDE the owner's ruling of 2 Sep
@@ -743,10 +765,12 @@ def test_the_judge_names_a_schema_with_two_situations_and_the_run_asks_which(
     BOTH OPTIONS ARE OFFERED IN THE LIBRARY'S OWN WORDS and each is typable.
     """
     said = three_runs["said"][0]
-    assert f"Which of these is {SCHEMA}?" in said, said
+    word = _situation_question_word(said, SCHEMA)
     for situation in BOTH_SITUATIONS:
         assert f"--answer situation:{SCHEMA}={situation}" in said, said
-    assert f"3 files sit under {SCHEMA}" in " ".join(said.split()), said
+    # The heading and the evidence sentence name the same folder, which is the
+    # half of `114` §7 a key-only check would not see.
+    assert f"3 files sit under {word}" in " ".join(said.split()), said
 
 
 def test_those_files_are_asked_the_schemas_own_fields_and_not_the_runs(
@@ -805,9 +829,9 @@ def test_the_answer_is_recorded_at_the_branchs_own_scope_and_the_question_stops(
     asking, which is the observable half of the same fact.
     """
     state = three_runs
-    assert f"Which of these is {SCHEMA}?" in state["said"][2], (
+    assert _situation_question_asked(state["said"][2], SCHEMA), (
         "the run before the answer should still be asking")
-    assert f"Which of these is {SCHEMA}?" not in state["said"][3], state["said"][3]
+    assert not _situation_question_asked(state["said"][3], SCHEMA), state["said"][3]
     conn = sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
@@ -862,7 +886,11 @@ def test_the_answer_reaches_the_files_the_branch_was_opened_for(three_runs):
     question that was theirs has an answer.
     """
     state = three_runs
-    pointer = f"Saying what these are is \"Which of these is {SCHEMA}?\""
+    # The pointer quotes `question.prompt`, so it carries the same folder word
+    # the heading does; asking for it by the domain would look for a sentence the
+    # product stopped printing.
+    word = _situation_question_word(state["said"][0], SCHEMA)
+    pointer = f"Saying what these are is \"Which of these is {word}?\""
     assert pointer in " ".join(state["said"][0].split()), state["said"][0]
     assert pointer not in " ".join(state["said"][3].split()), state["said"][3]
 
@@ -883,7 +911,7 @@ def test_a_typed_situation_overrides_the_judges_name_for_the_same_schema(
     of work -- with the person's label at its root.
     """
     said = three_runs["said"][0]
-    assert "Which of these is academic?" not in said, said
+    assert not _situation_question_asked(said, "academic"), said
     flat = " ".join(said.split())
     for folder in (f"{LABEL}/Spring2026/PHYS1401", f"{LABEL}/Fall2025/ECON2010"):
         assert all(crumb in said for crumb in folder.split("/")), (folder, said)
@@ -1098,9 +1126,9 @@ def test_the_screen_asks_the_branches_the_judge_opened_not_the_first_partitions(
     said = out.getvalue()
     assert code == 0, said
     assert cloud.sites()[cli.G_SITUATION_SENSITIVITY] > 0, "the judge spoke"
-    assert "Which of these is research?" in said, said
-    block = " ".join(said.split("Which of these is research?", 1)[1].split())
-    assert "1 file sits under research, and its own facts fit" in block, block
+    word = _situation_question_word(said, "research")
+    block = " ".join(said.split(f"Which of these is {word}?", 1)[1].split())
+    assert f"1 file sits under {word}, and its own facts fit" in block, block
 
 
 def test_a_file_the_judge_held_is_the_persons_question_too_and_release_works(

@@ -709,6 +709,40 @@ def project_branch_preview(
         branch_expectations=stated, folded=tuple(folded))
 
 
+#: The path a course sits on. `00`:78's tree is school, then term, then
+#: subject, and a kind of work that actually splits hangs under that path.
+#: A constant employer or a constant stage is not this path: `00`:57 still
+#: measures those and does not build them.
+_PATH_TO_A_SPLIT = frozenset({"school", "term", "subject"})
+
+
+def _kept_as_the_path_to_a_split(evidence, level, level_index: int) -> bool:
+    """One shared school, term, or subject, kept because a later level splits.
+
+    A term both files name is not a split. It is the folder the split sits
+    in: Spring 2026, then the one course, then homework beside syllabus.
+    Nothing later that splits, or a field that is not this path, stays an
+    expectation on the branch -- a level that divides nothing, as it was.
+    """
+    if level.field_ref not in _PATH_TO_A_SPLIT:
+        return False
+    if level.metadata_only or level.omitted or level.divides:
+        return False
+    if len(level.values) != 1:
+        return False
+    members = level.members_by_value.get(level.values[0])
+    if not members:
+        return False
+    # The later split has to be among THESE files. A term one file names is
+    # not the path to a course the other files named: keeping it buried the
+    # courses under a folder they are not in, and the courses were never built.
+    return any(
+        later.divides and not later.metadata_only and not later.omitted
+        and sum(1 for value in later.values
+                if later.members_by_value.get(value, ()) & members) > 1
+        for later in evidence.levels[level_index + 1:])
+
+
 def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
              mint_node_id, handling_class_for, template_context_for,
              protected_movement_permitted, out, members_out,
@@ -724,7 +758,16 @@ def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,
     if level_index >= len(evidence.levels):
         return
     level = evidence.levels[level_index]
-    if level.metadata_only or level.omitted or not level.divides:
+    # A level that does not divide is still the PATH to one that does.
+    # `00`:78's own tree is Academics / Columbia / 2026-Spring / PHYS1401, and
+    # a term every file shares is that path when the kind of work beneath it
+    # splits the files. Skipping it left the split hanging off the life
+    # (`Education / homework`) and threw away the term and the subject the
+    # files had already named. A level nothing later divides, a metadata
+    # level, and a level the person left out stay unbuilt: a folder you open
+    # to find one folder, with no split under it, is still not a folder.
+    if ((level.metadata_only or level.omitted or not level.divides)
+            and not _kept_as_the_path_to_a_split(evidence, level, level_index)):
         # §5.4: a metadata-only dimension is measured and never becomes a folder.
         # `110` §2.2 adds the person's own reason to the same branch, and adds it
         # HERE rather than anywhere new: the walk already knows how to carry a

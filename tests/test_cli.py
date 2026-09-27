@@ -1095,16 +1095,33 @@ def test_a_file_is_not_offered_a_move_into_a_duplicate_of_its_own_folder(tmp_pat
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     chosen = [dict(r) for r in conn.execute(
-        "SELECT d.subject_ref, d.outcome, n.node_type, n.existing_path "
+        "SELECT d.subject_ref, d.outcome, n.node_id, n.node_type, "
+        "n.existing_path, n.parent_node_id "
         "FROM placement_decisions d JOIN tree_nodes n ON n.node_id = d.node_id "
         "WHERE d.node_id IS NOT NULL AND d.superseded_by IS NULL")]
+    parents = {
+        row["node_id"]: row["parent_node_id"]
+        for row in conn.execute("SELECT node_id, parent_node_id FROM tree_nodes")}
+    existing = {
+        row["node_id"] for row in conn.execute(
+            "SELECT node_id FROM tree_nodes WHERE node_type = 'existing'")}
     conn.close()
+
+    def _inside_their_folder(node_id) -> bool:
+        seen: set[str] = set()
+        while node_id and node_id not in seen:
+            if node_id in existing:
+                return True
+            seen.add(node_id)
+            node_id = parents.get(node_id)
+        return False
 
     assert chosen, (
         "every file abstained; the person's own folder and the engine's "
         f"duplicate of it tied and the tie went nowhere:\n{out.getvalue()}")
-    # And what they were placed into is the person's folder, not the copy.
-    assert all(row["node_type"] == "existing" for row in chosen), chosen
+    # The person's folder, or one level deeper inside it. A proposed
+    # Coursework/CHEM1500 beside Uni/CHEM1500 is the duplicate this refuses.
+    assert all(_inside_their_folder(row["node_id"]) for row in chosen), chosen
 
 
 def test_a_file_staying_in_its_own_folder_is_not_described_as_a_move(tmp_path):

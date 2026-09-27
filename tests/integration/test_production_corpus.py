@@ -1613,20 +1613,16 @@ def test_an_uncovered_file_does_not_hang_off_the_covered_ones(conn, tmp_path):
         assert by_id[node.parent_node_id].display_label != "Spring2026"
 
 
-def test_a_level_with_one_value_is_skipped_and_the_levels_below_it_survive(
+def test_a_shared_term_is_the_path_and_the_levels_below_it_survive(
         conn, tmp_path):
-    """A level that distinguishes nothing says nothing, exactly like an empty one.
+    """One term is the folder the split sits in, and the split still exists.
 
-    V2's own words: "a level with a single child is a folder the user opens to
-    find one folder". True -- and it failed the WHOLE candidate for it, so a
-    household whose files carry one term and two subjects got NO tree at all
-    rather than a tree without the redundant term folder. That is V5's mistake in
-    a third place: a per-LEVEL fault used to reject a whole composition.
-
-    `00`:97 lists "create meaningless one-child levels" among the structural
-    faults a template must not have. Skipping the level means it does not create
-    one; rejecting the tree means the person gets nothing, which the sentence
-    never asked for.
+    V2 used to fail the WHOLE candidate when a level had one child, so a
+    household whose files carry one term and two subjects got no tree at all.
+    The term is not dropped either: it is the path those subjects sit under,
+    which is `00`:78's own shape. The subjects are still built. A field that
+    is not school, term, or subject, and a level nothing later splits, stays
+    unbuilt.
     """
     result = run_corpus_through(
         conn, tmp_path, fields=("term", "subject"),
@@ -1634,11 +1630,17 @@ def test_a_level_with_one_value_is_skipped_and_the_levels_below_it_survive(
                "Spring2026 PR20264410 Lease.pdf",
                "Spring2026 CLM88213 Insurance Claim.pdf"))
     labels = {node.display_label for node in result.tree.tree.nodes}
+    by_id = {node.node_id: node for node in result.tree.tree.nodes}
 
-    assert "Spring2026" not in labels, (
-        f"the single-term level was materialised anyway: {labels}")
+    assert "Spring2026" in labels, labels
     assert {"PR20264410", "CLM88213"} <= labels, (
-        f"one redundant level took the whole tree with it: {labels}")
+        f"the split under the shared term was lost: {labels}")
+    term = next(node for node in result.tree.tree.nodes
+                if node.display_label == "Spring2026")
+    for label in ("PR20264410", "CLM88213"):
+        node = next(n for n in result.tree.tree.nodes if n.display_label == label)
+        assert by_id[node.parent_node_id].node_id == term.node_id, (
+            f"{label} did not sit under the term every file named")
 
 
 def test_a_level_that_really_does_divide_the_files_is_kept(conn, tmp_path):

@@ -159,6 +159,36 @@ def test_two_syllabi_of_one_course_from_one_school_make_the_level(corpus,
     assert evidence.unresolved_by_field[SCHOOL] == frozenset()
 
 
+def test_an_essay_that_names_a_high_school_does_not_file_the_course_under_it(
+        corpus, tmp_path):
+    """The mentioned school is not a destination.
+
+    The essay is coursework and it names a high school. That value is the
+    essay's own, and it is not an anchor of the course. The course's folder is
+    the school the two syllabi state. An essay in no course group states the
+    same high school and grows no folder from it.
+    """
+    conn = corpus
+    first = _anchor(conn, tmp_path, "BUSIB 4300 Syllabus.pdf")
+    second = _anchor(conn, tmp_path, "BUSIB 4300 Syllabus (updated).pdf")
+    essay = _carried(conn, tmp_path, "Essay 2 Final Draft.pdf")
+    _fact(conn, essay.file_id, field_key=SCHOOL, value="Westfield Prep",
+          reliability_state="llm_supported", run_id="r-mention")
+    outside_id = _file(conn, tmp_path, "Essay outside.pdf", folder="Downloads")
+    _fact(conn, outside_id, field_key=SCHOOL, value="Westfield Prep",
+          reliability_state="llm_supported", run_id="r-outside")
+    outside = GroupMember(file_id=outside_id, content_hash=_hash(conn, outside_id),
+                          basis=CONTEXT_SUPPORTED)
+    group = _group(first, second, essay)
+
+    evidence = _level(conn, group, (first, second, essay, outside))
+
+    assert evidence.levels[0].values == (COLUMBIA,)
+    assert "Westfield Prep" not in evidence.levels[0].display_labels
+    assert outside.file_id in evidence.unresolved_by_field[SCHOOL]
+    assert essay.file_id in evidence.levels[0].members_by_value[COLUMBIA]
+
+
 def test_one_syllabus_alone_makes_no_level(corpus, tmp_path):
     """The rule's own cost, stated as a test so it is not discovered as a bug.
 

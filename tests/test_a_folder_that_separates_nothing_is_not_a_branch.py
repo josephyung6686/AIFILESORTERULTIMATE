@@ -192,6 +192,27 @@ def test_a_folder_with_no_files_but_several_subfolders_is_a_branch():
     assert "/corpus/Photos" not in got
 
 
+def test_a_chain_that_never_reaches_a_file_is_not_a_branch():
+    """An unzipped settings path holds nothing at every level.
+
+    SABOTAGE: keep a pass-through whose children are also empty. The proposal
+    becomes the empty directories on disk, and the lives the files named sit
+    under that.
+    """
+    got = folders_that_separate_nothing((
+        _folder("/corpus/Documents", files=0),
+        _folder("/corpus/Documents/Adobe", files=0, parent="/corpus/Documents"),
+        _folder("/corpus/Documents/Adobe/Premiere", files=0,
+                parent="/corpus/Documents/Adobe"),
+    ), only_file_in=lambda _p: None)
+
+    assert got == frozenset({
+        "/corpus/Documents",
+        "/corpus/Documents/Adobe",
+        "/corpus/Documents/Adobe/Premiere",
+    })
+
+
 def test_an_empty_folder_with_no_children_is_not_a_branch():
     """Nothing in it and nothing under it.
 

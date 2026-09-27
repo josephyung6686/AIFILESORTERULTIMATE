@@ -139,13 +139,13 @@ def test_the_question_names_the_branch_the_files_and_what_to_type(tmp_path):
 
     assert code == 0, report
     flat = _flat(report)
-    # The branch is named after the kind of life its files turned out to be --
-    # the library's own word, and the name every other branch already carries --
-    # and it is the QUESTION's own three parts that print: the prompt, the
-    # evidence, and one typable line per option.
-    assert "Which of these is academic?" in flat, report
-    assert f"{len(COURSEWORK)} files sit under academic" in flat, report
-    assert "--answer situation:academic=academic.coursework" in flat, report
+    # The files drew a life, Education. The question says that life. The
+    # answer key stays the kind, which is where every reader of the person's
+    # answer looks. The label beside the key is the situation's own last word.
+    assert "Which of these is Education?" in flat, report
+    assert f"{len(COURSEWORK)} files sit under Education" in flat, report
+    assert "--answer situation:academic=" in flat, report
+    assert "academic.coursework" not in flat, report
     # And the whole-folder override is offered beside the per-branch answer.
     assert "--situation" in flat, report
 
@@ -211,10 +211,10 @@ def test_a_label_with_no_situation_is_still_the_persons_own_name(tmp_path):
     database = tmp_path / "holder" / "plan.sqlite"
     code, report = _run(corpus, database, "--label", "Coursework")
     assert code == 0, report
-    assert ("--answer situation:default:Coursework=academic.coursework"
-            in _flat(report)), report
-    # The name is still theirs, on the line they read.
-    assert "Which of these is Coursework?" in _flat(report), report
+    flat = _flat(report)
+    assert "Which of these is Coursework?" in flat, report
+    assert "--answer situation:default:Coursework=" in flat, report
+    assert "academic.coursework" not in flat, report
 
     code, report = _run(corpus, database, "--label", "Coursework",
                         "--answer",
@@ -299,16 +299,15 @@ def test_a_branch_names_one_situation_from_site_gs_evidence(tmp_path):
 
     ASKED AS "THE QUESTION IS GONE" and not as "the run reached the end". The run
     reaches the end today -- it prints the question there instead of refusing
-    before the model -- and `academic.coursework` is one of the eleven options
-    that question prints, so both of the assertions this test used to make are
-    now true of a branch nothing settled. What is still owed is the SETTLER: the
-    branch names one of its eleven and there is nothing left to ask.
+    before the model -- and the question is the life's, so an assertion written
+    against the kind's old wording would go green for the wrong reason. What is
+    still owed is the SETTLER: the branch names one situation and there is
+    nothing left to ask.
     """
     corpus = _corpus(tmp_path)
     code, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
     assert code == 0, report
-    assert "Which of these is academic?" not in _flat(report), report
-    assert "academic.coursework" in report, report
+    assert "Which of these is Education?" not in _flat(report), report
 
 
 # --- the run reaches the model, and the question comes after it -----------------
@@ -396,9 +395,9 @@ def test_an_unnameable_folder_reaches_the_model_and_then_asks(tmp_path):
     assert "Situations from a model:" in report, report
     # AND THE QUESTION COMES AFTER IT.
     flat = _flat(report)
-    assert "the folder was read, and these are the folders" in flat, report
+    assert "the folder was read" in flat, report
     assert report.index("Situations from a model:") < report.index(
-        "the folder was read, and these are the folders"), report
+        "the folder was read"), report
     assert "--answer situation:" in flat, report
 
 

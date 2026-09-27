@@ -454,9 +454,17 @@ def retrieve_neighbors(
     position = {candidate.file_id: index
                 for index, candidate in enumerate(candidates)}
 
-    def rank(neighbor: Neighbor) -> tuple[int, int]:
+    def rank(neighbor: Neighbor) -> tuple[int, int, int]:
+        # Weight first, when a deployment set one. With none set, every channel
+        # ties at 0 and the cap used to keep whoever sorts first in the corpus —
+        # a busy folder, ahead of the one channel that may anchor. The default
+        # order is that missing weight: a shared fact, then proximity.
         weight = knowledge.channel_weights.get(neighbor.channel, 0)
-        return (-weight, position.get(neighbor.file_id, len(position)))
+        try:
+            channel = DEFAULT_CHANNEL_ORDER.index(neighbor.channel)
+        except ValueError:
+            channel = len(DEFAULT_CHANNEL_ORDER)
+        return (-weight, channel, position.get(neighbor.file_id, len(position)))
 
     # Stable, so two neighbours that are the same FILE found by two channels of
     # equal weight keep the order the channels were asked in above.

@@ -71,6 +71,15 @@ LABEL = "Coursework"
 #: G -- so it is the only thing the stub may read to tell these files apart.
 CLUB = "Debate Society"
 SCHEMA = "nonprofit"
+#: `114` §7, 23 Sep 2026: THE QUESTION NAMES THE PERSON'S FOLDER, NOT THE DOMAIN.
+#: The screen said "Which of these is academic?" for a life the files had already
+#: drawn as Education, because the question recorded `branch_label=schemas[0]` and
+#: had no separate word. The word is now the branch's `folder_name`; the KEY stays
+#: the domain id, which is where `_persons_answer_for` reads, so every option line
+#: below is still `--answer situation:<domain>=...`. Asserting the header and the
+#: key together is what keeps those two from drifting back into one.
+#: The folder the club files draw; the domain they answer under is `SCHEMA`.
+SCHEMA_FOLDER = "Personal"
 #: The two situations the library carries under it, and the one the judge names.
 #: Deliberately the SECOND: an answer that agreed with `situations_of(schema)[0]`
 #: would prove nothing about the alphabetical pick being gone.
@@ -463,7 +472,7 @@ def test_the_answer_is_recorded_and_the_run_is_the_run_it_was(observing):
     # already-released dossiers, and the owner ratifies before the stage runs.
     assert _situation_verdicts(observing["database"]) == 0
     said = observing["said"]
-    assert f"Which of these is {SCHEMA}?" in said, said
+    assert f"Which of these is {SCHEMA_FOLDER}?" in said, said
     for option in (SCHEMA, CHOSEN):
         assert f"--answer situation:{SCHEMA}={option}" in said, said
     placed, abstained = _decisions(observing)
@@ -508,7 +517,7 @@ def test_a_level_call_that_comes_back_refused_leaves_the_file_open(tmp_path, mon
         where = f"{CLUB}/{name}"
         assert where not in placed, where
         assert abstained[where], where
-    assert f"Which of these is {SCHEMA}?" in state["said"], state["said"]
+    assert f"Which of these is {SCHEMA_FOLDER}?" in state["said"], state["said"]
 
 
 def test_the_judges_situation_resolves_the_file_and_the_question_is_not_asked(
@@ -521,11 +530,11 @@ def test_the_judges_situation_resolves_the_file_and_the_question_is_not_asked(
     and the question comes back.
     """
     said = deciding["said"]
-    assert f"Which of these is {SCHEMA}?" not in said, said
+    assert f"Which of these is {SCHEMA_FOLDER}?" not in said, said
     assert f"--answer situation:{SCHEMA}=" not in said, said
     # And the person's own answer is still the person's: the run's typed
     # situation was never put to the judge and never questioned.
-    assert "Which of these is academic?" not in said, said
+    assert "--answer situation:academic=" not in said, said
 
 
 def _the_situations_own_levels() -> set[str]:
@@ -605,7 +614,7 @@ def test_a_branch_the_judge_could_not_finish_is_still_the_persons_question(
     for and this question disappears while a file it is about stays unresolved.
     """
     said = declining["said"]
-    assert f"Which of these is {SCHEMA}?" in said, said
+    assert f"Which of these is {SCHEMA_FOLDER}?" in said, said
     # The judge was asked about all three and answered two of them: the decline
     # is a decline, not a call that never happened.
     assert len(declining["cloud"].situation_calls()) == len(CLUB_FILES)
@@ -700,7 +709,7 @@ def test_the_situation_survives_the_run_without_a_second_call_or_a_table(again):
     """
     assert again["cloud"].kind_calls() == []
     assert again["cloud"].situation_calls() == []
-    assert f"Which of these is {SCHEMA}?" not in again["said"], again["said"]
+    assert f"Which of these is {SCHEMA_FOLDER}?" not in again["said"], again["said"]
     placed, abstained = _decisions(again)
     for name in CLUB_FILES:
         assert f"{CLUB}/{name}" in placed, abstained.get(f"{CLUB}/{name}")

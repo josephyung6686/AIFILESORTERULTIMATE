@@ -146,10 +146,12 @@ class Branch:
     #: label; a situation is never one (amendment 9).
     life: str | None
     #: Every kind its files belong to, first-seen order. PLURAL since amendment
-    #: 12: Education holds `academic.coursework` beside
-    #: `applications.undergraduate-packet`, and those are two schemas.
-    #: `cli._grouped_by_branch` drafts one group per member of this tuple. The
-    #: default branch's own kind is always first.
+    #: 12: Education holds `academic` beside `college_applications`. These are
+    #: domain ids (`facts.domains.SCHEMA_IDS`). A situation name such as
+    #: `applications.undergraduate-packet` lives on `situations`, and the
+    #: prefix before its dot is not a domain. `cli._grouped_by_branch` drafts
+    #: one group per member of this tuple, and only after that member has been
+    #: resolved to a domain. The default branch's own kind is always first.
     schemas: tuple[str, ...]
     #: The situations its files' `situation` facts carry, distinct, first-seen
     #: order. Empty on the partition that runs before the judge.

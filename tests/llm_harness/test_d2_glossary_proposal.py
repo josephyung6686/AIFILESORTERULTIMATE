@@ -31,7 +31,9 @@ def test_every_other_entry_is_byte_identical_to_the_ratified_one():
     assert set(ratified) == set(proposal)
     for key in ratified:
         if key in CHANGED:
-            assert ratified[key] != proposal[key], key
+            # Ratified 23 Sep 2026. The live file now carries the drafted
+            # meanings. The proposal file stays as the record of the draft.
+            assert ratified[key]["meaning"] == proposal[key]["meaning"], key
         else:
             assert ratified[key] == proposal[key], key
     assert _load(PROPOSAL)["owed"] == _load(RATIFIED)["owed"]

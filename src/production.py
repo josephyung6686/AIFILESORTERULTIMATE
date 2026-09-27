@@ -322,6 +322,50 @@ def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
     return schemas[0]
 
 
+def _situation_is_known(catalogue: TemplateCatalogue, situation: str) -> bool:
+    ref = f"recognition:{situation}"
+    return any(ref in row.detection_signal_refs
+               for row in catalogue.applicabilities.values())
+
+
+def domain_for_a_draft(catalogue: TemplateCatalogue, *,
+                       situation: str | None = None,
+                       situations: Sequence[str] = (),
+                       kinds: Sequence[str] = ()) -> str | None:
+    """The domain a merged draft's `group_category` may wear, or None.
+
+    Asked the way `said().schema` is asked. A situation is resolved through
+    `schema_for_situation` (`uses_schema` on the applicability row), never by
+    splitting the name: `applications.undergraduate-packet` is
+    `college_applications`, and the prefix `applications` is not a domain.
+    A kind that is already one of `SCHEMA_IDS` is that domain.
+    `Branch.schemas` stores domains; its older examples name situations, and
+    both spellings are accepted here so a draft cannot write either one raw.
+
+    None is a decision, not a missing case. It means there is no situation
+    and no domain to file under. The caller does not substitute a folder's
+    display name: that string is not a key, and `Group` raises
+    `MalformedGroupRecord` on it. Two carried situations the library puts in
+    different domains are also None. Picking one would be deciding what the
+    files are.
+    """
+    if situation:
+        return schema_for_situation(catalogue, situation)
+    carried = [schema_for_situation(catalogue, name) for name in situations]
+    distinct = set(carried)
+    if len(distinct) == 1:
+        return carried[0]
+    if len(distinct) > 1:
+        return None
+    for kind in kinds:
+        if kind in SCHEMA_IDS:
+            return kind
+    for kind in kinds:
+        if kind and _situation_is_known(catalogue, kind):
+            return schema_for_situation(catalogue, kind)
+    return None
+
+
 def situation_schema_family(catalogue: TemplateCatalogue,
                             situation: str) -> tuple[str, ...]:
     """The domains a typed situation is AMONG, per the library's own hierarchy.

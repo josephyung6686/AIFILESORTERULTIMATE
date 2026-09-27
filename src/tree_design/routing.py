@@ -597,6 +597,36 @@ def route_branch(
     for row in rows:
         by_template.setdefault((row.template_id, row.template_version), []).append(row)
 
+    def _agrees(cluster: Sequence[TemplateApplicability]) -> bool:
+        """Whether these rows can be one recipe.
+
+        One role bound to two fields, or one field given two names, is what
+        C4 refuses. `evaluate_composition` still refuses a composition that
+        is handed both. Splitting here is what keeps a second situation from
+        deleting the folders the first situation's own row would have built.
+        """
+        fields: dict[str, set[str]] = {}
+        names: dict[tuple[str, str], set[str]] = {}
+        for row in cluster:
+            for binding in row.role_bindings:
+                fields.setdefault(binding.role_ref, set()).add(binding.field_ref)
+                names.setdefault(
+                    (binding.role_ref, binding.field_ref), set()).add(binding.label)
+        return all(len(bound) == 1 for bound in fields.values()) and all(
+            len(bound) == 1 for bound in names.values())
+
+    compositions: list[list[TemplateApplicability]] = []
+    for template_rows in by_template.values():
+        clusters: list[list[TemplateApplicability]] = []
+        for row in template_rows:
+            for cluster in clusters:
+                if _agrees([*cluster, row]):
+                    cluster.append(row)
+                    break
+            else:
+                clusters.append([row])
+        compositions.extend(clusters)
+
     if not by_template:
         # TWO DIFFERENT ABSENCES, told apart by name. "This library holds
         # nothing for finance" and "this library holds eighteen finance recipes
@@ -646,7 +676,7 @@ def route_branch(
     # named by file, non-overridable, and — unlike before — it no longer
     # annihilates the candidates that do cover the rest of the branch.
     attempted: set[str] = set()
-    for template_rows in by_template.values():
+    for template_rows in compositions:
         schemas = {row.uses_schema for row in template_rows}
         covers = tuple(group for group in context.accepted_groups
                        if group.domain in schemas)

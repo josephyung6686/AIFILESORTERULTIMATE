@@ -100,8 +100,9 @@ from facts.llm_seam import (
     SITUATION_ALTERNATIVE_FIELD, SITUATION_FIELD, record_the_situation,
 )
 # `106` Phase 2: an unsettled branch reads what the judge named for its files.
-from facts.supersede import preferred_fact
-from facts.values import VALUE_ORIGINS, ensure_value, values_in_field
+from facts.supersede import preferred_fact, supersede_fact
+from facts.values import (
+    VALUE_ORIGINS, add_raw_variant, ensure_value, values_in_field)
 from facts.discount import MetadataScreen
 from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
@@ -148,6 +149,7 @@ from facts.states import (
 )
 from facts.kind import tokens as kind_tokens
 from facts.kind import KindVocabulary, compile_vocabulary, kind_facts
+from facts.kind import task_kind_on_a_taught_cover
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.seeds import ANCHOR_STATES
 from grouping.config import GroupingLimits
@@ -339,6 +341,7 @@ from questions.store import (
     live_answer_id,
     open_questions,
     record_answer,
+    the_option_they_named,
     record_question, set_aside_questions,
 )
 #: `110` §2.4 item 1. Aliased, because `run` already binds `residual_choices` to
@@ -348,7 +351,7 @@ from questions.store import residual_choices as settled_residual_areas
 from questions.triggers import (
     SUBJECT_DRAWN_FROM_THE_CORPUS,
     DestinationChoice, NestingChoice, question_for_nesting,
-    question_for_situation,
+    question_for_situation, situations_a_first_run_may_offer,
     question_for_unreadable_folder, tied_readings_and_the_files_they_reach,
 )
 from questions.vocabulary import (
@@ -362,7 +365,7 @@ from production import (
     group_level_fields_for_schema,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     life_of, life_of_kind, nearest_situations, read_packaged_library_file,
-    schema_for_situation,
+    domain_for_a_draft, schema_for_situation,
     shipped_situations, situation_schema_family, template_id_for_situation,
     # THE TWO HALVES AND NOT `run_production_corpus`, which is those two halves in
     # one call with `downstream(p1_p7)` evaluated inline as the second's
@@ -1190,7 +1193,8 @@ C_LEVELS_TEMPLATE_ID: str = (
 #: subject answered 4 -> 13 of 107. Ratified by the owner 14 Sep 2026 ("ratify
 #: 1224", read as 1 2 3 4), applied as a new row.
 A_FACT_ROW: tuple[str, str] = (
-    "a_fact.unratified.folder-levels-v5.2026-09-14", "v5-a-title-stands-as-subject")
+    "a_fact.unratified.folder-levels-v6.2026-09-25",
+    "v6-support-a-course-the-evidence-prints")
 
 
 #: `104` §17.1's THIRD WALL: THE MANIFEST ROW SITE G RUNS UNDER, `(template_id,
@@ -2991,6 +2995,24 @@ IDENTIFIER_MASK_TAIL: int = 4
 #: connection. Taking all eight cores for readers makes the thread that consumes
 #: their output compete with them for the last one.
 EXTRACTION_WORKERS: int = 7
+
+#: HOW MANY CLOUD ROUND TRIPS MAY BE OPEN AT ONCE.
+#:
+#: Not the extraction count. That one is how many processes may read files, and
+#: it stops at seven because the eighth core is the thread that writes. A cloud
+#: call does not take a core; it waits on a socket.
+#:
+#: The whole run has to finish in under ten minutes, reading included. On the
+#: pinned folder the reading itself was about half a minute with seven workers.
+#: The cloud work is three passes — situation, facts, placement — a few hundred
+#: calls together. Fourteen sockets, twice the readers, left one placement pass
+#: at about a minute and a half and would have put a first run, which also asks
+#: the other two passes, at several minutes. Four times the readers keeps those
+#: three passes a few minutes together, reading included, rather than near the
+#: ten-minute line. It stays a bound: every parked send is a reserved budget
+#: slot, so an unbounded window would reserve the whole corpus before any
+#: answer came back.
+CLOUD_CALLS_AT_ONCE: int = EXTRACTION_WORKERS * 4
 
 #: HOW FAR THE CALLER READS AHEAD, per worker. Deep enough that a worker is never
 #: idle waiting for the next submit -- one request each would leave every worker
@@ -5288,7 +5310,8 @@ SUBJECT_CONTEXT_TERMS: tuple[str, ...] = ACADEMIC_CONTEXT_TERMS + (
 SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
                     required_context_terms=SUBJECT_CONTEXT_TERMS,
                     field_key=SUBJECT_FIELD,
-                    canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())))
+                    canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())),
+                    string_literal_is_not_a_claim=True)
 
 #: `104` R-135 HAD A SECOND VOCABULARY HERE AND IT IS GONE, on the measurement.
 #: `COURSE_ANCHOR_TERMS` was a strict subset of `SUBJECT_CONTEXT_TERMS` above --
@@ -7192,6 +7215,140 @@ def evidence_activation(schema_id: str) -> ActivationSignals:
 WORK_TYPE_NAMING_ZONES = NAMING_ZONES - {"heading"}
 
 
+#: A course named on its own line, with the next line starting `Instructor`.
+#: The word is the context, and it is in the reading because the page was stored
+#: as one observation: `context_before` and `context_after` are empty, so §3.5's
+#: context check cannot see a term that sits on the next line. Two words at
+#: least, so a person's name on the line above does not become the course, and
+#: the match is taken from the opening of the reading, so a later mention of
+#: somebody's instructor does not. A cover that names the teacher on a term
+#: line (`Fall 2025 – Dr. …`) is `_TAUGHT_COVER` below, read in the same opening.
+_COVER_COURSE = re.compile(
+    r"(?m)^([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+){1,5})\nInstructor\b")
+#: The second cover shape: a course of at least two words, an optional dash
+#: subtitle, then a term line that names the teacher. `University Writing –
+#: Readings…` / `Fall 2025 – Dr. …` is the course; `University Writing` /
+#: `Instructor` is `_COVER_COURSE` above and not this one.
+#:
+#: IT LIVES HERE AND NOT IN `facts.kind`, where it was authored. A compiled
+#: pattern at module level inside `facts` is the date catalogue having moved in
+#: (`tests/p6/test_p6_no_invention.py::test_no_regex_catalogue_exists_as_a_module_constant`),
+#: and the window beside it is a chosen number in a part that receives its
+#: numbers. Both are this deployment's reading of a page, so both are the
+#: composition root's and are injected, exactly as `DATE_PATTERNS` is.
+_TAUGHT_COVER = re.compile(
+    r"(?m)^([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+){1,5})"
+    r"(?:\s*[\u2013\u2014-]\s*[^\n]*)?\n"
+    r"(?:Fall|Spring|Summer|Winter)\b[^\n]*"
+    r"\b(?:Dr|Instructor|Professor|Prof)\b")
+#: The opening both cover shapes are read in: a later page that mentions a
+#: teacher is not this file's cover.
+_COVER_OPENING = 400
+#: A cited code is glossed `: Other Title`. That gloss is the other work's name.
+_GLOSSED_CODE = re.compile(r"\A:\s*([^.]+)")
+
+
+def _cover_course_facts(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
+    """The course this file names on its cover, when a citation names another.
+
+    A bibliography line `ELTU3017: Medicine in the Humanities` is a work the
+    file cites. The line `University Writing` with `Instructor` on the next
+    line is the course the file is, and so is `University Writing` above a
+    term line that names the teacher. §3.5's code rule keeps the citation —
+    the context word `courses` sits in its URL — and two validated subjects
+    then leave the slot with no answer. The cover is one answer. A glossed
+    code whose title is not that cover is the citation, and it yields.
+    """
+    from facts.cache import pass_cache_key
+    from facts.evidence import cite, observations_for_version
+    from facts.states import VALIDATED
+    from evidence_shape.store import is_derived
+
+    found: list[tuple[str, object]] = []
+    for observation in observations_for_version(conn, file_id, content_hash):
+        if is_derived(observation):
+            continue
+        opening = (observation.raw_value or "")[:_COVER_OPENING]
+        titles_here = {
+            match.group(1)
+            for pattern in (_COVER_COURSE, _TAUGHT_COVER)
+            if (match := pattern.search(opening)) is not None}
+        if len(titles_here) != 1:
+            continue
+        found.append((next(iter(titles_here)), observation))
+    titles = {title for title, _observation in found}
+    if len(titles) != 1:
+        return ()
+    title, observation = found[0]
+    value_id = ensure_value(
+        conn, field_key=SUBJECT_FIELD, canonical_value=title,
+        first_evidence_ref=cite(observation), origin=VALUE_ORIGINS[0])
+    add_raw_variant(conn, value_id, title)
+    fact_id = write_fact(
+        conn, file_id=file_id, content_hash=content_hash,
+        field_key=SUBJECT_FIELD, value_id=value_id,
+        reliability_state=VALIDATED, origin=RULE_ORIGIN,
+        evidence_refs=(cite(observation),),
+        cache_key=pass_cache_key(conn, file_id=file_id, content_hash=content_hash),
+        active=True)
+    glossed = []
+    for row in facts_for_file(conn, file_id, content_hash):
+        if (row["field_key"] != SUBJECT_FIELD or row["superseded_by"] is not None
+                or row["value_id"] == value_id):
+            continue
+        if not _fact_cites_a_different_course(conn, row, title):
+            continue
+        glossed.append(row["fact_id"])
+    if not glossed:
+        return (fact_id,)
+    reason = ("the course named on the line before Instructor is this file's "
+              "course; a code glossed as a different title is a work it cites")
+    # One `supersedes` pointer per row. The first cited code takes it when the
+    # cover fact does not already name one. Any further cited code records
+    # `superseded_by` and stops being an answer; overwriting the pointer would
+    # drop the first link.
+    title_row = conn.execute(
+        "SELECT supersedes FROM file_facts WHERE fact_id = ?",
+        (fact_id,)).fetchone()
+    pointer_free = title_row is not None and title_row["supersedes"] is None
+    for extra in glossed:
+        current = conn.execute(
+            "SELECT superseded_by FROM file_facts WHERE fact_id = ?",
+            (extra,)).fetchone()
+        if current is None or current["superseded_by"] is not None:
+            continue
+        if pointer_free:
+            supersede_fact(conn, old_fact_id=extra, new_fact_id=fact_id,
+                           reason=reason)
+            pointer_free = False
+            continue
+        conn.execute(
+            "UPDATE file_facts SET superseded_by = ?, supersede_reason = ?, "
+            "active = 0, preferred = 0 WHERE fact_id = ?",
+            (fact_id, reason, extra))
+    return (fact_id,)
+
+
+def _fact_cites_a_different_course(conn, row, title: str) -> bool:
+    """Whether this fact's own reading glosses the code as some other course."""
+    from evidence_shape.store import get_observation
+
+    refs = json.loads(row["evidence_refs"] or "[]")
+    if not refs:
+        return False
+    found = conn.execute(
+        "SELECT observation_id, context_after, raw_value FROM evidence "
+        "WHERE observation_key = ? AND superseded_by IS NULL LIMIT 1",
+        (refs[0],)).fetchone()
+    if found is None:
+        return False
+    observation = get_observation(conn, found["observation_id"])
+    glossed = _GLOSSED_CODE.match((observation.context_after or "").lstrip())
+    if glossed is None:
+        return False
+    return glossed.group(1).strip() != title
+
+
 def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     """§8.6's second producer: §3.5's rule, §3.10's dates, and §2.6's one question.
 
@@ -7212,6 +7369,7 @@ def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     """
     written = apply_rules(conn, file_id=file_id, content_hash=content_hash,
                           rules=(SUBJECT_RULE,), screen=METADATA_SCREEN)
+    written += _cover_course_facts(conn, file_id, content_hash)
     # `FIRST_PAGE` is P7's, and it reaches BOTH producers below for one reason
     # stated once: a term and a work type are the same kind of claim -- about what
     # THIS file is -- and a reading deep inside a document is the document talking
@@ -7235,7 +7393,10 @@ def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
         field_key=WORK_TYPE_FIELD, vocabulary=WORK_TYPE_VOCABULARY,
         naming_zones=WORK_TYPE_NAMING_ZONES, first_page=FIRST_PAGE,
         zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
-        minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+        minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN,
+        also=lambda observation: task_kind_on_a_taught_cover(
+            observation, vocabulary=WORK_TYPE_VOCABULARY,
+            cover=_TAUGHT_COVER, opening=_COVER_OPENING))
     return written + _media_type_stage(conn, file_id, content_hash)
 
 
@@ -7291,7 +7452,11 @@ def type_key_rule(schema_id: str):
             field_key=field_key, vocabulary=vocabulary,
             naming_zones=WORK_TYPE_NAMING_ZONES, first_page=FIRST_PAGE,
             zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
-            minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+            minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN,
+            also=(None if field_key != WORK_TYPE_FIELD else
+                  lambda observation: task_kind_on_a_taught_cover(
+                      observation, vocabulary=vocabulary,
+                      cover=_TAUGHT_COVER, opening=_COVER_OPENING)))
     return stage
 
 
@@ -8037,7 +8202,9 @@ def folders_that_separate_nothing(
     `test_an_adopted_folder_enters_as_the_persons_folder_not_as_a_proposal`
     exists to stop exactly that nesting being flattened. The two are
     structurally identical and only the person can tell them apart, so the
-    product keeps both. Folding a chain that divides nothing is `106` Phase 7's
+    product keeps both -- when the child holds files. A chain that holds
+    nothing at every level is not that category. Folding a chain that divides
+    nothing is `106` Phase 7's
     depth rule, and it applies BENEATH a built node where a folded value still
     has a chain to reach it -- not at the root (`104` Q-H).
 
@@ -8060,15 +8227,33 @@ def folders_that_separate_nothing(
             children[folder.parent_directory] = (
                 children.get(folder.parent_directory, 0) + 1)
 
+    by_path = {folder.directory_path: folder for folder in folders}
+    by_parent: dict[str | None, list] = {}
+    for folder in folders:
+        by_parent.setdefault(folder.parent_directory, []).append(folder)
+    subtree_files: dict[str, int] = {}
+
+    def _subtree_files(path: str) -> int:
+        if path in subtree_files:
+            return subtree_files[path]
+        folder = by_path[path]
+        total = folder.file_count + sum(
+            _subtree_files(child.directory_path)
+            for child in by_parent.get(path, ()))
+        subtree_files[path] = total
+        return total
+
     separates_nothing = set()
     for folder in folders:
         here = children.get(folder.directory_path, 0)
+        if _subtree_files(folder.directory_path) == 0:
+            # Nothing in it and nothing under it. A pass-through whose child
+            # holds files is a person's category and is kept. A chain that
+            # never reaches a file -- an unzipped tree, a settings path --
+            # separates nothing, and offering it makes the proposal the disk.
+            separates_nothing.add(folder.directory_path)
+            continue
         if folder.file_count == 0:
-            # Empty only. A single child is a PASS-THROUGH and is kept -- see the
-            # docstring: it is indistinguishable from a person's own category
-            # that holds one thing so far.
-            if here == 0:
-                separates_nothing.add(folder.directory_path)
             continue
         if folder.file_count != 1 or here:
             continue
@@ -11830,6 +12015,65 @@ def sensitivity_policy_for(conn: sqlite3.Connection):
 # ======================================================================================
 
 
+def one_situation_whose_levels_cover(
+        offered: Sequence[str], *,
+        life: str,
+        life_of_situation,
+        levels_of_situation,
+        fields_carried: Collection[str],
+) -> str | None:
+    """The one situation of this life whose folder levels cover the fields.
+
+    Two that cover, or none, is nothing. The order of `offered` is not a
+    choice: a single survivor is the files' own fields, and a tie is left
+    for the person.
+    """
+    carried = frozenset(field for field in fields_carried if field)
+    if not carried:
+        return None
+    covering: list[str] = []
+    for situation in dict.fromkeys(offered):
+        try:
+            if life_of_situation(situation) != life:
+                continue
+            levels = levels_of_situation(situation)
+        except ConfigurationRequired:
+            continue
+        have = frozenset(level for level in levels if level)
+        if carried <= have:
+            covering.append(situation)
+    return covering[0] if len(covering) == 1 else None
+
+
+def signals_this_life_can_use(
+        signals: Collection[str], *,
+        life: str,
+        life_of_situation,
+) -> frozenset[str]:
+    """The detection signals that are situations of this life.
+
+    A file judged to be some other life can still sit in this branch: one
+    teaching file inside an Education group is that. Handing its signal to
+    the router beside coursework makes the two recipes refuse each other, and
+    the branch comes back flat -- the course folders the other files already
+    named are dropped to keep a situation this life does not have. A signal
+    with no `recognition:` prefix is left as it arrived. An id this catalogue
+    does not carry is left out, rather than guessed into the life.
+    """
+    kept: list[str] = []
+    for signal in dict.fromkeys(signals):
+        if not signal.startswith("recognition:"):
+            kept.append(signal)
+            continue
+        situation = signal.removeprefix("recognition:")
+        try:
+            if life_of_situation(situation) == life:
+                kept.append(signal)
+        except ConfigurationRequired:
+            continue
+    return frozenset(kept)
+
+
 def draft_for_review(conn: sqlite3.Connection,
                      results: Sequence[GroupingResult], *,
                      group_category: str, label: str,
@@ -11838,6 +12082,7 @@ def draft_for_review(conn: sqlite3.Connection,
                      default_branch: Branch | None = None,
                      on_accepted: Callable[[str, Branch | None], None] | None = None,
                      schema_of_file: Callable[[str], str | None] | None = None,
+                     domain_of: Callable[[str], str | None] | None = None,
                      ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named DRAFT.
 
@@ -11948,8 +12193,9 @@ def draft_for_review(conn: sqlite3.Connection,
         if default_branch is None:
             raise ValueError("accepting per branch needs the default branch to "
                              "accept the rest under")
-        buckets = _grouped_by_branch(conn, grouped, branch_for, default_branch,
-                                     schema_of_file or (lambda _file_id: None))
+        buckets = _grouped_by_branch(
+            conn, grouped, branch_for, default_branch,
+            schema_of_file or (lambda _file_id: None), domain_of=domain_of)
     drafted: list[str] = []
     for branch, category, branch_label, bucket in buckets:
         merged_id = _draft_as_one(
@@ -11965,7 +12211,8 @@ def _grouped_by_branch(conn: sqlite3.Connection,
                        grouped: Sequence[GroupingResult],
                        branch_for: Callable[[str], Branch | None],
                        default: Branch,
-                       schema_of_file: Callable[[str], str | None]):
+                       schema_of_file: Callable[[str], str | None],
+                       domain_of: Callable[[str], str | None] | None = None):
     """P9's formed groups, bucketed by the branch most of their members are under
     AND by the kind most of their members are -- one draft per (branch, schema).
 
@@ -11976,8 +12223,8 @@ def _grouped_by_branch(conn: sqlite3.Connection,
     for why it is not dropped.
 
     **THE CATEGORY IS THE GROUP'S, NOT THE BRANCH'S** (`00` amendment 12). A
-    branch is a LIFE and Education holds `academic.coursework` beside
-    `applications.undergraduate-packet`, two schemas; `_draft_as_one` writes one
+    branch is a LIFE and Education holds `academic` beside
+    `college_applications`, two domains; `_draft_as_one` writes one
     `group_category` per draft and `routing.eligible_rows` admits a recipe only
     for a domain the branch's drafts carry, so a life with two kinds needs two
     drafts, both wearing the life's name. The kind is voted over the members'
@@ -12004,6 +12251,18 @@ def _grouped_by_branch(conn: sqlite3.Connection,
         leaders = [name for name, count_ in votes.items() if count_ == most]
         return leaders[0] if len(leaders) == 1 else None
 
+    def _as_domain(kind: str | None) -> str | None:
+        # A domain is a category. A situation name is asked of the library.
+        # A folder label is neither, and is not written.
+        if not kind:
+            return None
+        if kind in SCHEMA_IDS:
+            return kind
+        if domain_of is None:
+            return None
+        resolved = domain_of(kind)
+        return resolved if resolved in SCHEMA_IDS else None
+
     buckets: dict[tuple[str, str], tuple[Branch, str, list[GroupingResult]]] = {}
     for result in grouped:
         votes: dict[str, int] = {}
@@ -12020,14 +12279,23 @@ def _grouped_by_branch(conn: sqlite3.Connection,
                 kinds[kind] = kinds.get(kind, 0) + 1
         leader = _the_one_leader(votes)
         chosen = default if leader is None else branches[leader]
-        category = _the_one_leader(kinds)
+        category = _as_domain(_the_one_leader(kinds))
         if category is None and len(chosen.schemas) == 1:
-            category = chosen.schemas[0]
-        if category is None or category not in chosen.schemas:
+            category = _as_domain(chosen.schemas[0])
+        held = tuple(dict.fromkeys(
+            domain for domain in (_as_domain(kind) for kind in chosen.schemas)
+            if domain is not None))
+        if category is None or category not in held:
             # A tie decides nothing, and a kind the branch does not hold is not
             # this branch's draft: the DEFAULT's, under its own kind, where
-            # `draft_for_review` says nothing is dropped.
-            chosen, category = default, default.schemas[0]
+            # `draft_for_review` says nothing is dropped. No domain at all is
+            # not a draft under the folder's name.
+            fallback = next((domain for domain in (
+                _as_domain(kind) for kind in default.schemas)
+                if domain is not None), None)
+            if fallback is None:
+                continue
+            chosen, category = default, fallback
         buckets.setdefault((chosen.label, category),
                            (chosen, category, []))[2].append(result)
     ordered = sorted(buckets.values(),
@@ -12383,6 +12651,28 @@ def would_build(option) -> bool:
 NO_SPLIT_KEY: str = "keep-as-it-is"
 
 
+def _one_option_per_shape(options):
+    """One option per shape key, in the order the shapes first appeared.
+
+    Two compositions can build the same fields -- `capture_year` twice,
+    `media_type>capture_year` twice -- and the question records the key as
+    the option id. A second option with that id refuses the whole run
+    (`AnswerNotPermitted`), so the folder never gets an outline. The dict
+    `choose` already keeps one option per key. The question has to be asked
+    of that same set.
+    """
+    by_key = {_nesting_key(option): option for option in options}
+    seen: set[str] = set()
+    ordered = []
+    for option in options:
+        key = _nesting_key(option)
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(by_key[key])
+    return tuple(ordered)
+
+
 def _nesting_key(option) -> str:
     """The stable identity of the shape one option would build.
 
@@ -12440,7 +12730,38 @@ def _nesting_choices(options) -> tuple[NestingChoice, ...]:
     return tuple(choices)
 
 
-def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
+#: `00`:78's path. A shape that builds one of these is the course the files
+#: named. A coarser shape beside it -- kind of work, and no course -- is not a
+#: second organisation the person has to choose before any folder appears.
+_COURSE_PATH = frozenset({"school", "term", "subject"})
+
+
+def _course_path(option) -> bool:
+    """A term or a subject this shape would actually build.
+
+    `school` on the chain is not enough: a transcript recipe names a school
+    and then builds only kinds of work. That is a coarser cut, and it must
+    not count as a second course path beside the one that builds the courses.
+    """
+    counts = getattr(option, "resulting_child_counts", {}) or {}
+    return any(counts.get(field, 0) > 0 for field in ("term", "subject"))
+
+
+def _builds_folders(option) -> bool:
+    """A shape that would create folders, not one that only records a value.
+
+    A shared artifact type states something on the branch and creates no
+    child. Counting it as a second way to organise left the one shape that
+    does create folders unbuilt, and the question that was supposed to
+    decide between them was never shown.
+    """
+    report = option.validation
+    accepted = report is None or report.accepted
+    return bool(option.total_child_branches) and accepted
+
+
+def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str,
+                    also_record: list | None = None):
     """§5.5's choice, asked instead of taken -- `66` §12 inside the freeze.
 
     This is the moment `00`:78 describes: the engine has routed a branch, built
@@ -12489,8 +12810,14 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
         answered = gated_template(conn, scope=scope)
         if answered is not None and answered in by_key:
             return by_key[answered].option_id
+        # Two shapes that CREATE FOLDERS are a choice, unless one of them is
+        # the course path and the rest are coarser. A shape that only records
+        # a value the files share is not a second organisation, and treating
+        # it as one left the branch flat.
+        folder_shapes = [option for option in options if _builds_folders(option)]
+        path_shapes = [option for option in folder_shapes if _course_path(option)]
         theirs = (candidate.source in EXISTING_FOLDER_SOURCES
-                  or sum(1 for option in options if would_build(option)) > 1)
+                  or (len(folder_shapes) > 1 and len(path_shapes) != 1))
         # ASKED EXACTLY WHERE IT WAS ASKED BEFORE. Two entries or more is
         # something to choose BETWEEN, and §12 permits a question only where "a
         # specific decision is blocked". Narrowing this to the cases that WAIT
@@ -12498,17 +12825,29 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
         # that is a real answer a person may want to give -- what changed here is
         # what the run does while it waits, not what it asks.
         if len(by_key) > 1:
-            record_question(conn, question_for_nesting(
+            question = question_for_nesting(
                 branch_label=candidate.display_label,
-                choices=_nesting_choices(options),
+                choices=_nesting_choices(_one_option_per_shape(options)),
                 file_count=candidate.supporting_file_count,
                 # WHICH OF TWO TRUE SENTENCES the question carries, and this is
                 # the only part that knows. The old one -- "the first shape that
                 # passed every check is used" -- is a false statement about a
                 # branch nothing was built inside, and it is false in exactly the
                 # case where the person most needs to act.
-                waits_for_the_answer=theirs), asked_at=asked_at)
-        return None if theirs else choose_option(candidate, options)
+                waits_for_the_answer=theirs)
+            record_question(conn, question, asked_at=asked_at)
+            # A proposed branch that builds nothing until this is answered has
+            # to show the question. An existing folder is asked too, and its
+            # question stays in the store: printing one per directory is the
+            # disk again.
+            if (also_record is not None and theirs
+                    and candidate.source not in EXISTING_FOLDER_SOURCES):
+                also_record.append(question)
+        if theirs:
+            return None
+        for option in path_shapes or folder_shapes:
+            return option.option_id
+        return choose_option(candidate, options)
 
     return choose
 
@@ -15299,6 +15638,80 @@ def released_wire_bytes(conn: sqlite3.Connection, items) -> int:
     return total
 
 
+def items_the_ceiling_can_carry(conn: sqlite3.Connection, items, *,
+                                ceiling: int) -> list:
+    """The items a placement call can send, in the order they were offered.
+
+    `evidence_for` commits a fact's citation and an anchor line before it asks
+    for the file's own readings, and it used to charge those committed items
+    against the ceiling whether or not they could travel. A citation of the
+    whole document costs more than `max_dossier_tokens`. The remainder then
+    went to nothing, the opening excerpt never got a slot, and the gate denied
+    the call -- which the gate itself names a caller defect, because the
+    reduction ladder is supposed to run before the door.
+
+    The rule is `model_facts.within_dossier_budget`'s. A reading that does not
+    fit is skipped and the walk continues, so one long unit does not cost the
+    file every shorter reading behind it. What is kept is what
+    `released_wire_bytes` would reserve, and that reservation is never larger
+    than the ceiling, so the door's character count -- which is never more than
+    the wire cost -- stays inside the same ceiling.
+    """
+    kept: list = []
+    spent = 0
+    for item in items:
+        cost = released_wire_bytes(conn, [item])
+        if cost and spent + cost > ceiling:
+            continue
+        kept.append(item)
+        spent += cost
+    return kept
+
+
+def items_whose_path_the_cloud_can_relativise(conn: sqlite3.Connection, items, *,
+                                             roots, locality: str) -> list:
+    """A folder path the cloud is shown only when it sits under a scanned folder.
+
+    `104` §18.7. The door makes that path relative to the folder that was
+    scanned, and raises when the value sits under none of them. The raise ends
+    the run. Eight readings on the pinned folder are a relative fragment rather
+    than a path under the corpus, and a placement call that asked for one of
+    them died there once the whole document in front of it was no longer
+    sent. Those readings are not asked for. A path that does sit under a root
+    is kept, and a local call is unchanged: the local model may see the path
+    as it stands.
+    """
+    if locality != CLOUD_LOCALITY:
+        return list(items)
+    kept: list = []
+    for item in items:
+        if getattr(item, "location", None) != "path":
+            kept.append(item)
+            continue
+        ref = getattr(item, "evidence_ref", None)
+        if not ref:
+            continue
+        row = conn.execute(
+            "SELECT raw_value FROM evidence WHERE observation_key = ? "
+            "AND superseded_by IS NULL LIMIT 1", (ref,)).fetchone()
+        if row is None:
+            continue
+        value = row["raw_value"]
+        if any(_sits_under_a_scanned_folder(value, root) for root in roots):
+            kept.append(item)
+    return kept
+
+
+def _sits_under_a_scanned_folder(value: object, root: Path) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    try:
+        Path(value).relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def releasable_items(conn: sqlite3.Connection, items, *, locality: str) -> tuple:
     """`104` R-156: the offered items, filtered by the door's OWN predicate.
 
@@ -16686,6 +17099,19 @@ def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
     return leaders[0] if len(leaders) == 1 else None
 
 
+def _print_situation_questions(asked: Sequence[object], out) -> None:
+    """The situation questions this run recorded, under the structure.
+
+    Empty when this run asked none, including a second run whose answer
+    already settled the branch. Historical questions still open in the
+    database are not reprinted: the screen is this run's edit, not every
+    question the plan has ever stored.
+    """
+    if not asked:
+        return
+    print(f"\n{_what_these_folders_are(asked)}", file=out)
+
+
 def _what_these_folders_are(asked: Sequence[object]) -> str:
     """The QUESTION of a run that read the folder and cannot name what it is.
 
@@ -16710,15 +17136,32 @@ def _what_these_folders_are(asked: Sequence[object]) -> str:
     Matters=...`, and a line a shell splits in two fails looking like their
     mistake rather than ours.
     """
-    lines = ["the folder was read, and these are the folders its own files ask "
-             "for -- but not which situation each of them is. Answer one and run "
-             "the same command again, or pass --situation to answer for the "
-             "whole folder at once:"]
+    lines = ["the folder was read. The structure above is the life and how many "
+             "files sit under it. A situation is an edit on that life. Each "
+             "choice is the library's own word for it, and the line under that "
+             "word is what records it. `--situation` answers for the whole "
+             "folder at once:"]
     for question in asked:
         lines.append(f"\n  {question.prompt}")
         lines.append(f"  {question.evidence_context}")
-        lines.extend(f"    --answer {_typable(question, option.option_id)}"
-                     for option in question.options)
+        # THE CHOICES, not a placeholder. A person cannot type `ID`, and
+        # `--list-situations` is the whole library. The option's label is the
+        # word; the option id is the key the answer records.
+        options = tuple(getattr(question, "options", ()) or ())
+        if not options:
+            lines.append(f"    --answer {_typable(question, 'ID')}")
+            continue
+        for option in options:
+            # THE WORD, not the id. The id is what the recorder stores. The
+            # screen says the word the library already gave the option, and
+            # `the_option_they_named` reads that word back as the id.
+            #
+            # A nesting option's id IS the shape (`school>term>subject`), and
+            # its label is the sentence of what that shape would build. The
+            # sentence is what the person reads. The shape is what they type.
+            lines.append(f"    {option.label}")
+            typed = option.gates_template or option.label
+            lines.append(f"      --answer {_typable(question, typed)}")
     return "\n".join(lines)
 
 
@@ -17182,6 +17625,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # needs to know which drafts this run made.
         accept_drafts: bool = False,
         drafts: list[str] | None = None,
+        # The situation questions this run recorded, printed by `main` under
+        # the outline. Same mailbox shape as `drafts`: `NothingToDesign` and
+        # `--stop-after tree` leave before the placement report, which is the
+        # other place those questions are shown.
+        situation_questions: list | None = None,
         # `00` amendment 2 of 14 Sep's mailbox, and it is `questions_reach`'s
         # shape for `questions_reach`'s reason: the outline the person edits says
         # which situation each branch is built from, that is a fact about the RUN
@@ -17345,7 +17793,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 schema for branch in (
                     partition_cell[0].branches if partition_cell else ())
                 for schema in branch.schemas)
-                or (said().schema,)),
+                or ((said().schema,) if of_the_run else ())),
             # Which accepted groups hold sensitive material. `104` §18.2 gap 14:
             # this named `frozenset()` on the true premise that P7 classifies
             # FILES and publishes no group-level answer, and missed that P10 asks
@@ -17556,6 +18004,60 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 found.add(value)
         return found
 
+    def _situation_the_level_facts_name(branch: Branch | None) -> str | None:
+        """The one situation whose levels the files already fill, or nothing.
+
+        An unsettled branch names no detection signal, and an empty signal
+        set selects no applicability row, so the outline stays the life and
+        a file count. The files may already carry the fields those levels
+        are: a term, a subject, a kind of work. When exactly one of this
+        life's candidate situations has folder levels that include every
+        such field the files carry, that situation is what the files named.
+        Two that cover, or none, names nothing. This is not an alphabetical
+        pick, and it does not settle the branch: the question stays, and
+        nothing moves until freeze then apply.
+
+        A default branch is left alone. Amendment 25 withholds child folders
+        under an unjudged default.
+        """
+        if (branch is None or branch.is_default or branch.situation is not None
+                or not branch.life or not branch.file_ids):
+            return None
+        # The question's menu is empty once the files already carry two
+        # situations: "which situation is Education?" is not asked. The
+        # levels are a different question. The situations of this life's
+        # kinds are still the ones whose folders those facts can build,
+        # and exactly one of them has to cover every field the files carry.
+        offered = list(branch.candidate_situations)
+        if not offered:
+            for kind in branch.schemas:
+                offered.extend(_situations_of(kind))
+        if not offered:
+            return None
+        fields: set[str] = set()
+        for situation in dict.fromkeys(offered):
+            try:
+                if life_of(catalogue, situation) != branch.life:
+                    continue
+                levels = folder_levels_for(catalogue, situation)
+            except ConfigurationRequired:
+                continue
+            fields.update(level.field for level in levels if level.field)
+        carried: set[str] = set()
+        for file_id in branch.file_ids:
+            for field_key in fields:
+                if field_key in carried:
+                    continue
+                if preferred_fact(conn, file_id=file_id,
+                                  field_key=field_key) is not None:
+                    carried.add(field_key)
+        return one_situation_whose_levels_cover(
+            offered, life=branch.life,
+            life_of_situation=lambda situation: life_of(catalogue, situation),
+            levels_of_situation=lambda situation: tuple(
+                level.field for level in folder_levels_for(catalogue, situation)),
+            fields_carried=carried)
+
     def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
         # `run_signal` is read for ONE of `signals_for_branch`'s three cases --
         # a group no branch reaches -- and a run whose default nobody has named
@@ -17564,13 +18066,30 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # that refuses. Decided BEFORE the call because Python evaluates the
         # argument either way, and `said()` is what refuses.
         if not of_the_run:
-            return (frozenset() if branch is None
-                    else signals_for_branch(
-                        branch, situations_of=_situations_of_these_files,
-                        run_signal=""))
-        return signals_for_branch(branch,
-                                  situations_of=_situations_of_these_files,
-                                  run_signal=said().signal)
+            signals = (frozenset() if branch is None
+                       else signals_for_branch(
+                           branch, situations_of=_situations_of_these_files,
+                           run_signal=""))
+        else:
+            signals = signals_for_branch(
+                branch, situations_of=_situations_of_these_files,
+                run_signal=said().signal)
+        # A file judged into some other life does not choose this branch's
+        # recipe. One such file beside a life the rest already share used to
+        # hand the router two recipes, and the refusal came back as no
+        # folders at all.
+        if branch is not None and branch.life and signals:
+            signals = signals_this_life_can_use(
+                signals, life=branch.life,
+                life_of_situation=lambda situation: life_of(catalogue, situation))
+        # A branch the files already described is not told nothing. The
+        # inferred situation is a detection signal for the router only.
+        if signals:
+            return signals
+        named = _situation_the_level_facts_name(branch)
+        if named is None:
+            return signals
+        return frozenset({f"recognition:{named}"})
 
     def adopted_folders() -> tuple[str, ...]:
         """The person's own folders, offered to the design as branches (`00`:100).
@@ -17693,7 +18212,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # it to keep it out -- which is the very defect `110` item 1 names
             # about the residual flags one row up its own table.
             ignored_branches=ignored_branch_origins(conn),
-            choose_option=nesting_chooser(conn, asked_at=clock), refinement_for=refinement_for,
+            choose_option=nesting_chooser(
+                conn, asked_at=clock, also_record=situation_questions),
+            refinement_for=refinement_for,
             residual_library=residual_library,
             residual_choices=residual_choices,
             residual_configuration=residual_configuration,
@@ -17794,36 +18315,64 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         A run where nobody decided returns `()`, `design_tree` refuses, and `main`
         prints the proposal instead of a plan. That is the fix working.
         """
+        def _domain_of_kind(kind: str) -> str | None:
+            return domain_for_a_draft(catalogue, kinds=(kind,))
+
+        def _domain_of_default(branch: Branch) -> str | None:
+            # The situation, asked of the library, then a kind that is already
+            # a domain. Never the branch's display name.
+            return domain_for_a_draft(
+                catalogue, situation=branch.situation,
+                situations=branch.situations, kinds=branch.schemas)
+
         partition = partition_cell[0] if partition_cell else None
-        if partition is None or partition.single:
-            # ONE branch: the merge the run has always made, unchanged.
+        if partition is None or (partition.single and of_the_run):
+            # ONE branch the person already named: the merge the run has always
+            # made. An unsettled single branch does not come through here --
+            # `said()` would end the design loop, and the loop is the product.
             drafted = draft_for_review(db, results, group_category=said().schema,
-                                       label=said().label, created_at=clock)
+                                       label=said().label, created_at=clock,
+                                       domain_of=_domain_of_kind)
+        elif partition.single:
+            # THE DESIGN LOOP ON A FOLDER NOBODY HAS NAMED. Amendment 2 of
+            # 14 Sep: after the gist, propose the structure. The category is
+            # the domain the library gives that situation, the same read as
+            # `said().schema`. A kind already in the 23 domains is that
+            # domain. The folder's name is the label and is not a category:
+            # there is no draft when nothing resolves.
+            domain = _domain_of_default(partition.default)
+            drafted = (() if domain is None else draft_for_review(
+                db, results, group_category=domain,
+                label=partition.default.label, created_at=clock,
+                domain_of=_domain_of_kind))
         else:
             def remember(merged_id: str, branch: Branch | None) -> None:
                 if branch is not None:
                     branch_of_group[merged_id] = branch
 
-            # `group_category` AND `label` ARE NOT READ ON THIS PATH. With
-            # `branch_for` passed, `draft_for_review`'s buckets come whole from
-            # `_grouped_by_branch`, which names each draft after the BRANCH a
-            # strict majority of its members are under; these two are the
-            # one-branch path's arguments and this call passes them only because
-            # they are positional in the signature. They are the default
-            # branch's own kind and name here, so an unsettled run has an honest
-            # value to pass rather than a `said()` that refuses for a value
-            # nothing goes on to read.
-            drafted = draft_for_review(db, results,
-                                       group_category=(
-                                           said().schema if of_the_run
-                                           else partition.default.schemas[0]),
-                                       label=(said().label if of_the_run
-                                              else partition.default.label),
-                                       created_at=clock,
-                                       branch_for=partition.branch_of,
-                                       default_branch=partition.default,
-                                       on_accepted=remember,
-                                       schema_of_file=_schema_of_file)
+            # `group_category` IS NOT READ ON THIS PATH. With `branch_for`
+            # passed, the buckets come from `_grouped_by_branch`, which names
+            # each draft after the branch a strict majority of its members are
+            # under. The argument is still a domain: a situation name or a
+            # folder label is not one, and an empty `schemas` used to raise
+            # here. The label is the name the person sees, which is a
+            # different field.
+            if of_the_run:
+                category, draft_label = said().schema, said().label
+            else:
+                category = _domain_of_default(partition.default)
+                if category is None:
+                    category = next((
+                        resolved for branch in partition.branches
+                        for kind in branch.schemas
+                        if (resolved := _domain_of_kind(kind)) is not None),
+                        None)
+                draft_label = partition.default.label
+            drafted = (() if category is None else draft_for_review(
+                db, results, group_category=category, label=draft_label,
+                created_at=clock, branch_for=partition.branch_of,
+                default_branch=partition.default, on_accepted=remember,
+                schema_of_file=_schema_of_file, domain_of=_domain_of_kind))
         if drafts is not None:
             drafts.extend(drafted)
         if accept_drafts:
@@ -18323,15 +18872,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # words as two pieces of evidence.
         placed = {(offered.evidence_ref, offered.location, offered.excerpt_span)
                   for offered in items}
-        # `104` R-159: WHAT THE CEILING HAS LEFT, and site C is where it has to be
-        # computed rather than measured after the fact. Site A runs §8.6's ladder and
-        # defers a call whose dossier will not fit; this site has no ladder --
-        # `_judge_with_model` builds the request and the gate answers -- so an
-        # over-ceiling dossier here is `Denied(over_dossier_ceiling)` and the file
-        # loses the one stage `00` §5 built for ambiguity. The facts' citations and
-        # the anchor lines above are already committed, so the readings fill what
-        # they left. `GROUPING_LIMITS.max_dossier_tokens` is the same number the
-        # request below is built with and the same one the door measures against.
+        # `104` R-159: WHAT THE CEILING HAS LEFT. A citation committed above can
+        # be the whole document. Charging it and still sending it is how a
+        # placement call reached the gate over budget: the remainder went to
+        # nothing, the opening never got a slot, and the door refused the call.
+        # The fill's own rule applies to what is already in hand. A reading that
+        # does not fit is skipped, and the readings below fill what that leaves.
+        # `GROUPING_LIMITS.max_dossier_tokens` is the same number the request is
+        # built with and the same one the door measures against.
+        items = items_the_ceiling_can_carry(
+            conn, items, ceiling=GROUPING_LIMITS.max_dossier_tokens)
         remainder = (GROUPING_LIMITS.max_dossier_tokens
                      - released_wire_bytes(conn, items))
         for ref, location, reliability in reading_citations(
@@ -18361,6 +18911,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # inference about it. Nothing here is invented at the seam -- `104`
                 # R-11 records what that cost the last time it was.
                 reliability_state=reliability, basis=DIRECT_ANCHOR))
+        items = items_whose_path_the_cloud_can_relativise(
+            conn, items, roots=sources,
+            locality=_placement_locality(file_id))
         return dict(
             # `104` R-156: the door's own predicate over the whole candidate set,
             # asked once, so the item set the model sees is the set P7 releases.
@@ -18953,12 +19506,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             ask_or_abstain=_ask_when_there_are_two_homes_to_offer,
             max_return_cycles=1,
             # `104` §18.15: HOW MANY OF SITE C's CLOUD ROUND TRIPS MAY BE OPEN AT
-            # ONCE, and it is the SAME count the fact pass uses and the same one
-            # this product already chose for how many processes read files at once.
-            # One question -- how much of this machine may one run take at a time --
-            # asked once, at `EXTRACTION_WORKERS`, and answered here for the second
-            # site that can spend a wait on a socket.
-            calls_at_once=EXTRACTION_WORKERS,
+            # ONCE. The same count the fact pass uses. It is not the extraction
+            # count: reading a file takes a core and a cloud call takes a socket,
+            # and `CLOUD_CALLS_AT_ONCE` is the one answer to the second question.
+            calls_at_once=CLOUD_CALLS_AT_ONCE,
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
@@ -19567,6 +20118,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             situation_fact_of=_situation_fact_of,
             alternatives_of=_alternatives_of)
 
+    def _menu_for(situations, named) -> tuple[str, ...]:
+        """The situations this run may print. See
+        `questions.triggers.situations_a_first_run_may_offer`."""
+        return situations_a_first_run_may_offer(
+            situations, named_by_the_files=named,
+            schema_of=lambda situation: schema_for_situation(
+                catalogue, situation))
+
     def _each_kinds_question_under(branch: Branch) -> list:
         """A LIFE BRANCH OF TWO KINDS ASKS EACH KIND'S QUESTION OF THAT KIND'S
         OPEN FILES (`00` amendment 16: Education holds both `academic` and
@@ -19605,8 +20164,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 branch, kind,
                 judged_kind_of=situation_cell[0].named.get,
                 situation_under=_the_situation_this_file_is_under)
-            options = tuple(situation for situation in _situations_of(kind)
-                            if life_of(catalogue, situation) == branch.life)
+            options = _menu_for(
+                (situation for situation in _situations_of(kind)
+                 if life_of(catalogue, situation) == branch.life),
+                (kind,))
             if not files or len(options) < 2:
                 continue
             # AND ONCE PER ACCEPTED PACKET (`00` amendment 32). The kind's open
@@ -19645,15 +20206,31 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         not asked twice.
         """
         asked = []
+        # A life the files already drew is the question. An empty default beside
+        # it used to offer every situation of the majority kind -- homeschool,
+        # k12, teaching -- for zero files. That list is the catalogue, and the
+        # person already has the life's question to type. The empty default is
+        # still asked when it is the only door, which is a folder no life took.
+        a_life_already_asks = any(
+            not other.is_default and not other.settled and other.file_ids
+            and (other.candidate_situations or len(other.schemas) >= 2)
+            for other in partition.branches)
         for branch in partition.branches:
-            # THE DEFAULT BRANCH IS ASKED EVEN WITH NO FILES UNDER IT, and only
-            # it can be in that state: `partition_by_branch` opens a non-default
-            # branch from an anchor and an anchored file is under it by
-            # construction. An unsettled default with no files happens when every
-            # file anchored into a sibling or was held between two, and its
-            # situation is still what the whole run is waiting on -- so a run that
-            # skipped the question would refuse and offer nothing to type.
+            # THE DEFAULT BRANCH IS ASKED EVEN WITH NO FILES UNDER IT when
+            # nothing else can be asked. It is the only branch that can be
+            # empty: `partition_by_branch` opens a non-default branch from an
+            # anchor and an anchored file is under it by construction. Skipping
+            # it in that case used to refuse the run and offer nothing to type.
             if branch.settled or (not branch.file_ids and not branch.is_default):
+                continue
+            # A typed `--label` is the person's name for this pile, so the
+            # question stays under that name even when the files have a life.
+            # With nothing typed, the empty default's label is the kind id, and
+            # its menu is the catalogue the life question already replaced.
+            person_named_it = (branch.is_default and branch.schemas
+                               and branch.label != branch.schemas[0])
+            if (branch.is_default and not branch.file_ids
+                    and a_life_already_asks and not person_named_it):
                 continue
             # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES (`00` amendment
             # 12): "which situation is Education?" is not a question when
@@ -19671,16 +20248,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # arm 0, the resolver loop -- and the key every answer already in
             # the person's database was filed under while a kind was a branch.
             # Recording it under the life would put the new answers where none
-            # of those readers look. The default branch's key is its label.
+            # of those readers look. The WORD is the life (`Education`); the
+            # key stays the kind (`academic`). The default branch's key is its
+            # label, and its word stays that label so an answer already filed
+            # under `situation:default:<label>` still matches.
+            if not branch.is_default and not branch.schemas:
+                continue
+            offered = _menu_for(branch.candidate_situations, branch.schemas)
+            if len(offered) < 2:
+                continue
             question = question_for_situation(
                 branch_label=(branch.label if branch.is_default
-                              else branch.schemas[0]),
-                # THE KEY, WHICH IS NOT THE WORD ON SCREEN. Only the default is
-                # marked; every other branch keeps the kind's scope, which is
-                # where `_persons_answer_for` and `_life_of_file` read.
+                              else branch.folder_name),
                 scope_label=(f"{DEFAULT_SCOPE}{branch.label}"
-                             if branch.is_default else None),
-                situations=branch.candidate_situations,
+                             if branch.is_default else branch.schemas[0]),
+                situations=offered,
                 file_count=len(branch.file_ids),
                 # `00` AMENDMENT 25: an unsettled default is an UNTYPED run's
                 # (a typed one is settled by the word typed) and its files are
@@ -19724,7 +20306,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             files = tuple(file_id for file_id in default.file_ids
                           if situation_cell[0].named.get(file_id) == kind
                           and _the_situation_this_file_is_under(file_id) is None)
-            options = _situations_of(kind)
+            options = _menu_for(_situations_of(kind), (kind,))
             if not files or len(options) < 2:
                 continue
             # ONCE PER ACCEPTED PACKET HERE TOO (`00` amendment 32), and this is
@@ -20393,17 +20975,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 yield file_id, asking.resolve_steps(
                     conn, file_id=file_id, content_hash=content_hash)
 
-        # `104` §18.15: HOW MANY CALLS MAY BE OPEN AT ONCE, AND WHERE THE NUMBER
-        # COMES FROM. It is `EXTRACTION_WORKERS` -- the count this product already
-        # chose for "how much of this machine may one run take at a time", picked
-        # once, for the reason written at its own definition and in the same words
-        # this lane needs: *"every database write stays on the calling thread in
-        # roster order, and sqlite is a serial writer anyway"*. That sentence was
-        # written about seven processes reading files; it is the licence for seven
-        # sockets waiting. A second number here would be a knob nobody could find
-        # and a second answer to one question.
+        # `104` §18.15: HOW MANY CALLS MAY BE OPEN AT ONCE. `CLOUD_CALLS_AT_ONCE`,
+        # not the extraction count: a process that reads a file and a socket
+        # that waits on a model are not the same load, and the reason for each
+        # number is written beside the constant.
         hashes = dict(roster)
-        lane = CallLane(width=EXTRACTION_WORKERS)
+        lane = CallLane(width=CLOUD_CALLS_AT_ONCE)
         for file_id, result in in_walk_order(
                 _walked(), lane=lane,
                 # `104` R-175's clock, STOPPED BEFORE A SHARED WAIT AND STARTED
@@ -20840,7 +21417,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             FileVersionRef(file_id=file_id, content_hash=content_hash)
             for file_id, content_hash in corpus_roster(db, scan_run_id[0])))
 
-    def downstream(p1_p7) -> CorpusAuthorities | None:
+    def downstream(p1_p7) -> CorpusAuthorities:
         """Everything after P1-P7, in the one order the parts allow.
 
         **THE MODEL PASSES RUN IN THIS ORDER AND IT IS NOT A PREFERENCE:**
@@ -20867,14 +21444,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         gate asked after the call it gates is not a gate, and a situation named
         after the fields were asked is a situation nothing acts on.
 
-        **`None` WHERE NOBODY HAS NAMED THIS FOLDER'S SITUATION.** The four steps
-        above all ran; what has no answer is the question the person is being
-        asked, and P8-P11 is what cannot be done without one -- the tree's levels,
-        the group category and the group-level fields are all a situation's. So
-        this prints the question and returns nothing, and the three blocks that
-        report what the SCAN found print first, above it. That order is the
-        owner's ruling of 11 Sep 2026 kept to the end: the question is what the
-        run learned, not what it demanded before it started.
+        **THE QUESTION PRINTS. THE LOOP DOES NOT STOP.** The four steps above
+        all ran. When nobody has named this folder's situation the question is
+        printed after the scan report, and the authorities are still returned.
+        Amendment 25 leaves the unjudged default with no child levels. Amendment
+        2 of 14 Sep is the route past that: grouping and the proposal still
+        run. A missing situation is an edit on the structure, not an exit.
         """
         scan_run_id[0] = p1_p7.scan_run_id
         # `00` amendment 2 of 14 Sep, the FIRST of its three beats: "after we
@@ -21101,34 +21676,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         if _to_file:
             print(f"\n{_what_the_kept_files_are(_to_file, show_protected=show_protected)}",
                   file=out)
-        if not of_the_run:
-            # THE QUESTION, PRINTED, AND THE RUN ENDS HERE. `_partition_branches`
-            # recorded it before the model pass and this is the end of the run,
-            # so the person is asked only after everything that could have
-            # answered for them has been tried: the deterministic passes, the
-            # entity reader, the gate and site G. Printed and not raised -- a
-            # refusal is what the ruling of 11 Sep 2026 took away, and a run that
-            # read every file, judged what it could and then printed one narrow
-            # question is `66` §14 exactly.
-            #
-            # AND THE RUN ENDS HERE ONLY WHERE THERE IS NOTHING ELSE TO BUILD.
-            # `00` amendment 25 rules that the unjudged default has no folders
-            # beneath IT. It does not say that the branches the person DID answer
-            # for lose theirs -- and that is what ending here did: a corpus whose
-            # owner had answered for one branch and not for the default got the
-            # question and NO TREE AT ALL, the answered branch included.
-            #
-            # A branch other than the default with a situation of its own is a
-            # branch whose levels, category and group-level fields are all known
-            # without `said()`: they are the BRANCH's, read through
-            # `_signals_for_branch` and `_grouped_by_branch`, which is why the
-            # readers below are reachable with `of_the_run` empty. Where no such
-            # branch exists there is genuinely nothing to build, and `run`
-            # returns `None`, the seam `--stop-after` already uses.
-            print(f"\n{_what_these_folders_are(asked_of_the_person)}", file=out)
-            if not any(branch.situation is not None
-                       for branch in partition_cell[0].branches[1:]):
-                return None
+        # THE SITUATION QUESTION IS NOT PRINTED HERE. Amendment 2 of 14 Sep is
+        # parse, the gist, a proposed structure, then an edit. The questions
+        # this run recorded are handed to `main`, which prints them under that
+        # structure. Printing them here put a list of situation ids on screen
+        # before any folder. A run that asked none hands over nothing, so a
+        # second run whose answer already settled the branch stays quiet.
+        if not of_the_run and situation_questions is not None:
+            situation_questions.extend(asked_of_the_person)
         return CorpusAuthorities(
 
 
@@ -21234,15 +21789,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # THE FACT PASS AND THE THREE BLOCKS THAT REPORT THE SCAN, all of which are
     # inside `downstream`. Everything the database gets from a stopped run is
     # written by the time this returns.
+    # `downstream` always returns authorities. A missing situation is not an
+    # exit: the question prints inside it, and the proposal still runs.
+    # `--stop-after` returns None below, on purpose, after that work.
     corpus_authorities = downstream(p1_p7)
-    if corpus_authorities is None:
-        # NOBODY HAS NAMED THIS FOLDER'S SITUATION, and `downstream` has printed
-        # the question on the same stream. The run read every file, judged what
-        # it could and asked one narrow question; what it cannot do is design a
-        # tree for a situation nobody has chosen. Read as `is None` rather than
-        # off `of_the_run`, so the one place that decides the run ends here is
-        # the one place that printed the reason.
-        return None
     if stop_after == STOP_AFTER_GATE:
         _print_stopped_after_gate(out=out)
         return None
@@ -21616,6 +22166,57 @@ def _files_something_was_read_out_of(conn: sqlite3.Connection) -> set[str]:
         (FILESYSTEM_SOURCE_TYPE,))}
 
 
+_PROPOSAL_PATH: tuple[str, ...] = ("school", "term", "subject", "work_type")
+
+
+def _proposal_folders(conn: sqlite3.Connection,
+                      file_ids: Sequence[str]) -> tuple[str, ...]:
+    """The folders these files already named, under a draft that is not a tree.
+
+    Nothing is written. A shared term or subject is one line, and a kind of
+    work that differs is a line under it. A field no file carries is skipped.
+    This is the same path the accepted outline builds, shown before anyone
+    has accepted the group.
+    """
+
+    def value(file_id: str, field_key: str) -> str | None:
+        row = preferred_fact(conn, file_id=file_id, field_key=field_key)
+        if row is None:
+            return None
+        label = row["display_label"] if "display_label" in row.keys() else None
+        word = label or row["canonical_value"]
+        return word or None
+
+    def walk(files: Sequence[str], fields: tuple[str, ...], depth: int
+             ) -> list[str]:
+        if not files or not fields:
+            return []
+        field_key, rest = fields[0], fields[1:]
+        grouped: dict[str, list[str]] = {}
+        missing: list[str] = []
+        for file_id in files:
+            named = value(file_id, field_key)
+            if named:
+                grouped.setdefault(named, []).append(file_id)
+            else:
+                missing.append(file_id)
+        indent = "  " * (depth + 2)
+        lines: list[str] = []
+        if len(grouped) == 1 and not missing:
+            only, members = next(iter(grouped.items()))
+            lines.append(f"{indent}{only}")
+            lines.extend(walk(members, rest, depth + 1))
+            return lines
+        for name in sorted(grouped):
+            lines.append(f"{indent}{name}")
+            lines.extend(walk(grouped[name], rest, depth + 1))
+        if missing:
+            lines.extend(walk(missing, rest, depth))
+        return lines
+
+    return tuple(walk(tuple(file_ids), _PROPOSAL_PATH, 0))
+
+
 def _draft_proposal_report(conn: sqlite3.Connection, *,
                            drafted: Sequence[str],
                            also_asked_for: Sequence[str] = (),
@@ -21659,9 +22260,11 @@ def _draft_proposal_report(conn: sqlite3.Connection, *,
         held = sum(1 for membership in memberships_for_group(conn, group_id)
                    if membership.decision == INCLUDED)
         name = group.display_label or group_id
-        cards.append(f"  {name} -- {held} file(s)"
-                     + (f", read as {group.group_category}"
-                        if group.group_category else ""))
+        cards.append(f"  {name} -- {held} file(s)")
+        included = [membership.file_id
+                    for membership in memberships_for_group(conn, group_id)
+                    if membership.decision == INCLUDED]
+        cards.extend(_proposal_folders(conn, included))
     if not cards:
         return None
     unmet: tuple[str, ...] = ()
@@ -21674,6 +22277,8 @@ def _draft_proposal_report(conn: sqlite3.Connection, *,
     return (
         "",
         "These groups are proposed, and nothing has been filed:",
+        "",
+        "The structure being proposed, and yours to change:",
         *cards,
         "",
         _wrapped(
@@ -22710,7 +23315,8 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
                 "something there to take back.")
         record_answer(conn, StructuralAnswer(
             question_id=question_id,
-            option_id=None if (skipped or revoked) else option_id,
+            option_id=None if (skipped or revoked) else the_option_they_named(
+                conn, question_id, option_id),
             state=state,
             scope=row[0], user_id=user_id, recorded_at=recorded_at,
             supersedes=previous_id,
@@ -24746,12 +25352,12 @@ def _files_held_by_node(conn: sqlite3.Connection,
     """node_id -> the files under it, for the outline's counts.
 
     From the placement where one exists. Under `--stop-after tree` (`106` Phase
-    5.3) nothing is placed yet, so a TOP folder is described by the files of the
+    5.3) nothing is placed yet, so a folder is described by the files of the
     groups it was built from -- the same reader `accept_drafted_groups` counts
-    with -- and a level beneath it says nothing about counts, because saying
-    which files a LEVEL holds is placement's answer and this run was told not
-    to give it. Read here and passed IN to `structure_rows`, which composes an
-    outline and holds no connection.
+    with. A level beneath the branch is not left at 0: the file is counted on
+    the deepest folder whose expected values that file's facts already name.
+    That is the proposal, not a move. Read here and passed IN to
+    `structure_rows`, which composes an outline and holds no connection.
     """
     holds: dict[str, list[str]] = {}
     if result.placement is not None:
@@ -24767,7 +25373,149 @@ def _files_held_by_node(conn: sqlite3.Connection,
                 for group_id in node.associated_group_ids
                 for membership in memberships_for_group(conn, group_id)
                 if membership.decision == INCLUDED]
+    # The group count is the branch's. A folder beneath it was printed as
+    # "0 files" on a run that stopped before placement, which is a lie about
+    # a folder the file's own facts already named. Seat each file on the
+    # deepest folder those facts match, and take it off the branch so the
+    # subtree total counts it once.
+    _seat_files_on_the_folders_they_named(conn, result.tree.tree.nodes, holds)
+    # An existing directory is not a group. Its children were printed as
+    # "0 files" while the indexed files sat in them, because the life groups
+    # are attached to the root and to nothing beneath it. Seat again after
+    # that assignment: a lecture folder under the directory the file is
+    # already in is the folder the count belongs on.
+    sitting = _files_sitting_in_their_own_folders(
+        list(conn.execute("SELECT file_id, current_path FROM files")),
+        result.tree.tree.nodes)
+    for node in result.tree.tree.nodes:
+        if getattr(node, "existing_path", None):
+            holds[node.node_id] = sitting.get(node.node_id, [])
+    _seat_files_on_the_folders_they_named(conn, result.tree.tree.nodes, holds)
     return holds
+
+
+def _files_sitting_in_their_own_folders(files: Sequence[tuple[str, str]],
+                                        nodes) -> dict[str, list[str]]:
+    """Count each file on the deepest existing folder its path is inside."""
+    existing = [
+        (node.node_id, str(node.existing_path).rstrip("/"))
+        for node in nodes if getattr(node, "existing_path", None)]
+    existing.sort(key=lambda item: len(item[1]), reverse=True)
+    holds: dict[str, list[str]] = {}
+    for file_id, path in files:
+        for node_id, folder in existing:
+            if path == folder or str(path).startswith(folder + "/"):
+                holds.setdefault(node_id, []).append(file_id)
+                break
+    return holds
+
+
+def _seat_files_on_the_folders_they_named(conn: sqlite3.Connection, nodes,
+                                          holds: dict[str, list[str]]) -> None:
+    """Count a file on the deepest proposed folder its facts already name."""
+    by_id = {node.node_id: node for node in nodes}
+    depth: dict[str, int] = {}
+
+    def _depth(node) -> int:
+        if node.node_id in depth:
+            return depth[node.node_id]
+        parent = by_id.get(node.parent_node_id) if node.parent_node_id else None
+        depth[node.node_id] = 0 if parent is None else _depth(parent) + 1
+        return depth[node.node_id]
+
+    for node in nodes:
+        _depth(node)
+    fields = {item.field for node in nodes
+              for item in (getattr(node, "expected_values", ()) or ())}
+    if not fields:
+        return
+    known: dict[str, dict[str, set[str]]] = {}
+
+    def _named(file_id: str) -> dict[str, set[str]]:
+        if file_id not in known:
+            named: dict[str, set[str]] = {}
+            for field_key in fields:
+                row = preferred_fact(conn, file_id=file_id, field_key=field_key)
+                if row is None:
+                    continue
+                words = {row["canonical_value"]}
+                label = row["display_label"] if "display_label" in row.keys() else None
+                if label:
+                    words.add(label)
+                named[field_key] = {word for word in words if word}
+            known[file_id] = named
+        return known[file_id]
+
+    for root_id, file_ids in list(holds.items()):
+        seated: list[str] = []
+        for file_id in file_ids:
+            home = _deepest_folder_under(
+                nodes, _named(file_id), root_id=root_id, depth=depth, by_id=by_id)
+            if home is None or home == root_id:
+                continue
+            already = holds.setdefault(home, [])
+            if file_id not in already:
+                already.append(file_id)
+            seated.append(file_id)
+        if seated:
+            gone = set(seated)
+            holds[root_id] = [file_id for file_id in file_ids
+                              if file_id not in gone]
+
+
+def _is_under(node_id: str, root_id: str, by_id: Mapping[str, object]) -> bool:
+    """Whether `node_id` is `root_id` or hangs beneath it."""
+    seen: set[str] = set()
+    current = node_id
+    while current and current not in seen:
+        if current == root_id:
+            return True
+        seen.add(current)
+        node = by_id.get(current)
+        current = getattr(node, "parent_node_id", None) if node is not None else None
+    return False
+
+
+def _deepest_folder_under(nodes, named: Mapping[str, set[str]], *,
+                          root_id: str, depth: Mapping[str, int],
+                          by_id: Mapping[str, object]) -> str | None:
+    """The folder under this branch whose expected values the file already names.
+
+    A folder in another life is not a candidate. A kind-of-work folder that
+    another folder on this branch already includes is not a rival of that
+    stricter folder: both matching is one home, and the stricter one is it.
+    Two folders at the same depth whose values neither contains are two homes,
+    and the file stays on the branch rather than being counted on either.
+    """
+    home = None
+    home_depth = -1
+    home_values: frozenset[tuple[str, str]] = frozenset()
+    ambiguous = False
+    for node in nodes:
+        if getattr(node, "node_type", None) == "ignored":
+            continue
+        if not _is_under(node.node_id, root_id, by_id):
+            continue
+        expected = tuple(getattr(node, "expected_values", ()) or ())
+        if not expected:
+            continue
+        if not all(item.value in named.get(item.field, ()) for item in expected):
+            continue
+        values = frozenset((item.field, item.value) for item in expected)
+        here = depth[node.node_id]
+        if home is None or here > home_depth or (
+                here == home_depth and home_values < values):
+            home = node
+            home_depth = here
+            home_values = values
+            ambiguous = False
+        elif here == home_depth and values < home_values:
+            continue
+        elif here == home_depth and node.node_id != home.node_id:
+            ambiguous = True
+    if home is None or ambiguous:
+        return None
+    return home.node_id
 
 
 def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
@@ -24832,6 +25580,11 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             folded = _folded_words(node, ancestor_fields(node))
             if folded:
                 said.append(folded)
+            # A course named by a code the document used, once the person's own
+            # folder has taken its children. It stays on the screen and it is
+            # not a place a file can go.
+            if node.node_type == "ignored":
+                said.append("left out")
         # THE SITUATION ON THE BRANCH AND NOT ON EVERY LINE. A situation is a
         # branch's answer -- every folder beneath it is built from the same one --
         # and repeating it on forty lines would make the file harder to read and
@@ -27722,6 +28475,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                     indent="  "), file=out)
                 return 2
         drafted: list[str] = []
+        situation_questions: list = []
         situations: dict[str, str] = {}
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
@@ -27759,6 +28513,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      # filled with what the run drafted, and is read below when
                      # `design_tree` refuses because nobody accepted anything.
                      accept_drafts=args.accept_groups, drafts=drafted,
+                     situation_questions=situation_questions,
                      # The stage this run ends at, or `None` for all of it. The
                      # four gestures that would need what comes after it were
                      # refused before the scan started.
@@ -27813,6 +28568,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             if proposal is not None:
                 for line in proposal:
                     print(line, file=out)
+                _print_situation_questions(situation_questions, out)
                 return 0
         # A NAMED refusal, printed rather than raised. §5's chain refuses by name
         # -- C1-C8, V1-V6, §5.4's empty branch -- and each refusal says which
@@ -27875,6 +28631,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # that says the run stopped here is, and the file is written where
         # `--structure` reads it back, exactly as an ordinary run writes it.
         _print_structure(outline, path=structure_path, out=out)
+        _print_situation_questions(situation_questions, out)
         _print_stopped_after_tree(result, out=out)
         structure_path.parent.mkdir(parents=True, exist_ok=True)
         structure_path.write_text(

@@ -394,6 +394,12 @@ marked hypothesis; the scratch runs are under the scratchpad's `gt-cloud/`, `gt-
    course names itself (code or title)*, and a study guide, textbook or publisher is not one. This
    is owner text under D2's protocol; no rule is added. **Test:** re-run the cloud ground truth;
    the five essays leave `Georgetown Prep`; `wrong` returns to 0; spillover returns to ≤ 11.
+
+   The two glossary sentences, verbatim, ratified into `field_glossary.json` on 23 Sep 2026:
+
+   the institution that offers this course and term, not any school the person attended; a school merely mentioned is authored_by-class metadata and never a level
+
+   the course as the course names itself (code or title); a study guide, textbook or publisher is not one
 2. **Make coursework's school and term group-level facts, not per-file facts.** `00`:57 puts the
    course's school and term on the syllabus anchor and has the group carry sparse members; per-file
    A_fact should propose only what a file states about itself. Route `holder_institution` and

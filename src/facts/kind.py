@@ -81,14 +81,22 @@ fill a field here and fail to fill one there.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 
 from evidence_shape.observation import Observation
+from evidence_shape.store import is_derived
 
 from facts.evidence import cite, observations_for_version
 from facts.facets import Candidate, fill_or_abstain, rank
+
+#: The cover pattern and the window it is read in are the composition root's,
+#: injected per call like `facts.dates`' `DatePatterns` and for the same reason:
+#: an expression naming a season, a title word or a teacher's honorific is this
+#: deployment's reading of a page, not a rule this part may author. `cli`
+#: authors both beside `_COVER_COURSE`, which reads the same opening.
 
 
 class EmptyVocabulary(ValueError):
@@ -257,6 +265,49 @@ def terms_in(text: str, *, vocabulary: KindVocabulary) -> tuple[str, ...]:
     return tuple(found)
 
 
+def task_kind_on_a_taught_cover(observation: Observation, *,
+                                vocabulary: KindVocabulary,
+                                cover: re.Pattern[str],
+                                opening: int) -> tuple[Candidate, ...]:
+    """The kind a taught cover names on its own line, weighted as a title.
+
+    The cover already names the course. The next line that is one catalogue
+    term and a colon is the kind the file gives itself there (`Exercise:`).
+    That line is body text, and a body mention weighs less than a filename, so
+    a filename that says a different kind would win and the file would be filed
+    as the filename's kind. The cover is where the file names what it is, so
+    this one line weighs what a title weighs. A filename that names another
+    kind then sits inside the margin and the field is refused, which is the
+    two-kinds case rather than a guess.
+
+    A colon line anywhere else is not this. A lecture that opens `Note:` has
+    no taught cover, and this returns nothing for it.
+
+    `cover` is the expression that recognises the cover and `opening` is how
+    much of the reading it is looked for in. Both are the caller's: see the
+    note above the imports.
+    """
+    if is_derived(observation):
+        return ()
+    window = (observation.raw_value or "")[:opening]
+    course = cover.search(window)
+    if course is None:
+        return ()
+    for line in window[course.end():].splitlines():
+        head, sep, _rest = line.strip().partition(":")
+        if not sep:
+            continue
+        matched = terms_in(head.strip(), vocabulary=vocabulary)
+        if len(matched) == 1 and tokens(head.strip()) == tokens(matched[0]):
+            return (Candidate(
+                value=matched[0],
+                score=float(observation.occurrence_count),
+                evidence_refs=(cite(observation),),
+                zone="title",
+                signal_tier=observation.signal_tier),)
+    return ()
+
+
 def kind_candidates(observation: Observation, *,
                          vocabulary: KindVocabulary,
                          naming_zones: Iterable[str],
@@ -286,7 +337,9 @@ def kind_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     zone_weight: Mapping[str, float],
                     tier_weight: Mapping[int, float],
                     minimum_score: float,
-                    minimum_margin: float) -> tuple[str, ...]:
+                    minimum_margin: float,
+                    also: Callable[[Observation], Iterable[Candidate]] | None = None,
+                    ) -> tuple[str, ...]:
     """One type key's facts for one version of one file. Returns the fact ids.
 
     At most one, because `fill_or_abstain` fills one facet from one ranked set: a
@@ -301,10 +354,20 @@ def kind_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     that decides whether the field is filled at all.
     """
     candidates: list[Candidate] = []
+    stated_once: set[str] = set()
     for observation in observations_for_version(conn, file_id, content_hash):
         candidates.extend(kind_candidates(
             observation, vocabulary=vocabulary, naming_zones=naming_zones,
             first_page=first_page))
+        # One cover stored twice is one statement. Counting both would let a
+        # duplicated opening outvote the filename.
+        if also is None:
+            continue
+        for extra in also(observation):
+            if extra.value in stated_once:
+                continue
+            stated_once.add(extra.value)
+            candidates.append(extra)
     fact_id = fill_or_abstain(
         conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
         candidates=rank(candidates, zone_weight=zone_weight,

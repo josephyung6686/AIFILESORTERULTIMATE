@@ -846,3 +846,30 @@ def test_a_level_that_divides_never_contributes_a_value_to_the_branch():
         member_file_ids=frozenset({"f1", "f2"}), unresolved_by_field={})
     assert branch_expectations(evidence) == (
         ExpectedValue(field="school", value="Columbia"),)
+
+
+def test_a_term_one_file_names_is_not_the_path_to_someone_elses_course():
+    from types import SimpleNamespace
+    from tree_design.materialise import _kept_as_the_path_to_a_split
+
+    term = SimpleNamespace(
+        field_ref="term", metadata_only=False, omitted=False, divides=False,
+        values=("Fall2024",),
+        members_by_value={"Fall2024": frozenset({"a"})})
+    elsewhere = SimpleNamespace(
+        field_ref="subject", metadata_only=False, omitted=False, divides=True,
+        values=("ENGI E1006", "Chemistry 1403"),
+        members_by_value={
+            "ENGI E1006": frozenset({"b", "c"}),
+            "Chemistry 1403": frozenset({"d"})})
+    assert _kept_as_the_path_to_a_split(
+        SimpleNamespace(levels=(term, elsewhere)), term, 0) is False
+
+    under_it = SimpleNamespace(
+        field_ref="subject", metadata_only=False, omitted=False, divides=True,
+        values=("ENGI E1006", "Chemistry 1403"),
+        members_by_value={
+            "ENGI E1006": frozenset({"a", "b"}),
+            "Chemistry 1403": frozenset({"a"})})
+    assert _kept_as_the_path_to_a_split(
+        SimpleNamespace(levels=(term, under_it)), term, 0) is True

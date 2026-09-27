@@ -473,9 +473,17 @@ def record_the_situation(conn: sqlite3.Connection, *, file_id: str,
         # SKIPPED, NOT RAISED. A run must not die over an ordering question;
         # `104` §17.2's rule is that a gap must never become a file that vanished.
         retired = conn.execute(
-            f"SELECT superseded_by FROM {FACT_TABLE} WHERE fact_id = ?",
+            f"SELECT superseded_by, supersedes FROM {FACT_TABLE} WHERE fact_id = ?",
             (written[-1],)).fetchone()
         if retired is not None and retired[0] is not None:
+            continue
+        # A replayed row already retires one predecessor. P1 stores one
+        # `supersedes` pointer, so pointing that same row at a second live
+        # value would fork the history and the run died there on the second
+        # pass over a folder the cloud had already judged. The first link
+        # stays. The extra live row is left for the reader, and the outline
+        # is still written.
+        if retired is not None and retired[1] is not None:
             continue
         for row in standing:
             if row["canonical_value"] == value:

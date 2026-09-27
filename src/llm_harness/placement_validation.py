@@ -36,6 +36,7 @@ from database_agent.db import transaction
 from llm_harness.records import CheckedCitation, Dossier, P8Verdict, ValidationUnavailable
 from llm_harness.store import record_verdict, supersede_verdict
 from llm_harness.validation import validate_response
+from llm_harness.value_grounding import occurs_in
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -255,15 +256,17 @@ _DIMENSION_REASON: Mapping[str, str] = {
 def _stated_by_the_file(value: object, dossier: Dossier) -> bool:
     """Whether the file's OWN released evidence says this.
 
-    The same predicate `validation._check_citation` uses, and deliberately the
-    same source: a cited span is matched against `ReleasedEvidence.value` and
-    nothing else, because that is what the model was shown. Matching a level's
-    value against the store instead would accept a value the model could not
-    have read and reject the one it did.
+    The source is the release the model was shown, never the store: matching a
+    level's value against the store would accept a value the model could not
+    have read and reject the one it did. The comparison is the value-grounding
+    token run. A heading `Lecture 2` states the term `lecture`; a space or a
+    hyphen does not make `PHYS 1401` a different course from `PHYS1401`. A
+    raw substring would also call `form` present inside `information`, which
+    is a different word.
     """
     if not isinstance(value, str) or not value:
         return False
-    return any(value in item.value for item in dossier.released_evidence)
+    return any(occurs_in(value, item.value) for item in dossier.released_evidence)
 
 
 def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str | None:

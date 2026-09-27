@@ -190,6 +190,29 @@ def _local(tmp_path, stub, monkeypatch, *extra: str):
 # --- (a) coursework fields reach coursework files and never a cover letter ------
 
 
+
+#: `114` §7 and the owner's ruling of 19 Sep 2026: A DISPLAY STRING IS NOT A KEY.
+#: The situation question's heading is the branch's own folder name -- the word the
+#: person reads -- while its KEY stays the domain id, which is where
+#: `_persons_answer_for` reads and what every `--answer situation:<domain>=` line
+#: carries. The heading no longer contains the domain, so these tests find the
+#: question by its key and then check the sentences agree with each other. The
+#: wording itself is pinned once, in `tests/test_first_run_menu.py`.
+def _situation_question_word(said: str, schema: str) -> str:
+    """The folder word the situation question for `schema` is asked under."""
+    blocks = said.split("Which of these is ")
+    for block in blocks[1:]:
+        word, _, rest = block.partition("?")
+        if f"--answer situation:{schema}=" in rest.split("Which of these is ")[0]:
+            return word
+    raise AssertionError(
+        f"no situation question keyed {schema!r} was asked. Screen:\n{said}")
+
+
+def _situation_question_asked(said: str, schema: str) -> bool:
+    """Whether that question is on this screen at all, found by its key."""
+    return f"--answer situation:{schema}=" in said
+
 def test_site_a_asks_coursework_fields_only_of_the_coursework_branch(
         tmp_path, stub, monkeypatch):
     _corpus_, database, report = _local(tmp_path, stub, monkeypatch)
@@ -251,7 +274,7 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     _corpus_, database, report = _local(tmp_path, stub, monkeypatch)
     log = _call_log(database)
 
-    assert "Which of these is career?" in report, report
+    assert _situation_question_asked(report, "career"), report
     blocking = report.split("Questions only you can answer:", 1)[1]
     blocking = blocking.split("You can change how this is organised", 1)[0]
     assert "--answer situation:career=career.recruiting" in blocking, report
@@ -315,13 +338,13 @@ def test_the_per_branch_answer_is_honoured_and_scoped_to_that_branch(
     field reaches a coursework file and no coursework field reaches a career one.
     """
     corpus, database, first = _local(tmp_path, stub, monkeypatch)
-    assert "Which of these is career?" in first
+    assert _situation_question_asked(first, "career"), first
     before = {name: calls for name, calls in _call_log(database).items()}
 
     report = _run(corpus, database, "--answer", "situation:career=career.recruiting")
     log = _call_log(database)
 
-    assert "Which of these is career?" not in report, report
+    assert not _situation_question_asked(report, "career"), report
     asked_of_career = {name: [offered - frozenset().union(*before.get(name, [frozenset()]))
                               for offered in log.get(name, ())]
                        for name in CAREER}

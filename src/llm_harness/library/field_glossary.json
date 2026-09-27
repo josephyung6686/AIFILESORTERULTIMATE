@@ -48,16 +48,16 @@
       "source": "planning/domains/canonical_fields.json (fields[].role)"
     },
     "school": {
-      "meaning": "the institution the holder attends, attended, or teaches at - the person's own school, never the application target",
-      "source": "planning/domains/canonical_fields.json (fields[].role)"
+      "meaning": "the institution that offers this course and term, not any school the person attended; a school merely mentioned is authored_by-class metadata and never a level",
+      "source": "planning/104-DIAGNOSIS-FINAL.md §11.2 step 1 (owner text under D2's protocol)"
     },
     "term": {
       "meaning": "academic term or cycle the material belongs to",
       "source": "planning/domains/canonical_fields.json (fields[].role)"
     },
     "subject": {
-      "meaning": "the course or study subject the material belongs to",
-      "source": "planning/domains/canonical_fields.json (fields[].role)"
+      "meaning": "the course as the course names itself (code or title); a study guide, textbook or publisher is not one",
+      "source": "planning/104-DIAGNOSIS-FINAL.md §11.2 step 1 (owner text under D2's protocol)"
     },
     "instructor": {
       "meaning": "the person teaching the course; a search/review field, not a folder level",
