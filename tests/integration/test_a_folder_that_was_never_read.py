@@ -1,12 +1,18 @@
 # tests/integration/test_a_folder_that_was_never_read.py
 """A folder whose every file was set aside is not a folder that said nothing.
 
-**THE CASE, measured 21 Sep 2026.** Point the product at a software project --
-`README.md`, `package.json`, `pyproject.toml`, `Makefile`, `index.js`, a notebook
--- and it indexes zero files. That is RIGHT: `package.json` makes the folder a
-project root, P3 leaves it whole, and nobody wants their repository reorganised.
-Six `software project root descendant` verdicts are written to
-`exclusion_verdicts`, so the database knows exactly what happened.
+**THE CASE, measured 21 Sep 2026.** A software project nested inside the folder
+the person pointed at -- `README.md`, `package.json`, `Makefile`, `index.js` --
+indexes zero files. That is still right: `package.json` makes that child a
+project root, P3 leaves its descendants unread, and nobody wants that
+repository reorganised. The `software project root descendant` verdicts are
+written to `exclusion_verdicts`, so the database knows exactly what happened.
+
+**THE SCAN ROOT, ruled 2026-09-30.** Pointing the tool at the project directory
+itself reads that project's source files. A marker in the folder the person
+named does not hide its siblings, and it does not hide the project's own
+files when that project is the folder they named. The unread case this file
+still owns is the nested one.
 
 The SCREEN said something else:
 
@@ -43,8 +49,8 @@ import cli  # noqa: E402
 
 
 def _a_software_project(root: Path) -> Path:
-    """A folder a developer would recognise, and P3 leaves whole."""
-    corpus = root / "widget-kit"
+    """A project nested in the folder a person would point the tool at."""
+    corpus = root / "downloads" / "widget-kit"
     corpus.mkdir(parents=True)
     (corpus / "package.json").write_text(
         '{"name":"widget-kit","version":"1.4.0","dependencies":{"tslib":"^2.6.0"}}')
@@ -69,8 +75,10 @@ def test_a_folder_of_nothing_but_a_project_says_so_and_does_not_blame_the_recogn
     The run refuses with the vote's sentence again, and the first assertion goes
     red on a folder where no vote was ever taken.
     """
-    corpus = _a_software_project(tmp_path)
-    code, said = _run(corpus, tmp_path / "plan.sqlite")
+    project = _a_software_project(tmp_path)
+    # The parent is what the person pointed at. The project is a child of it,
+    # so its descendants stay unread. The plan file sits beside that parent.
+    code, said = _run(project.parent, tmp_path / "plan.sqlite")
     said = " ".join(said.split())
 
     assert code != 0, "a run that indexed nothing reported success"
@@ -83,6 +91,20 @@ def test_a_folder_of_nothing_but_a_project_says_so_and_does_not_blame_the_recogn
     # filenames, when what they need is to scan somewhere that is not a project.
     assert "the recogniser raised nothing" not in said, said[-600:]
     assert "the folder was read and nothing in it" not in said, said[-600:]
+
+
+def test_pointing_at_the_project_itself_reads_its_source_files(tmp_path):
+    """A marker in the folder the person named does not make that folder unread.
+
+    Ruled 2026-09-30. The nested case above is what stays set aside.
+    """
+    project = _a_software_project(tmp_path)
+    code, said = _run(project, tmp_path / "plan-at.sqlite")
+    said = " ".join(said.split())
+
+    assert "software project root descendant" not in said, said[-600:]
+    assert "index.js" in said, said[-600:]
+    assert code != 0
 
 
 def test_a_folder_with_files_in_it_still_gets_the_vote_s_own_sentence(tmp_path):
