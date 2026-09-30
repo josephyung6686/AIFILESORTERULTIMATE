@@ -207,15 +207,9 @@ def _attribute_cache(conn: sqlite3.Connection, name: str) -> dict | None:
     A base `sqlite3.Connection` does not, and a cache kept in a side table
     would have to retain the connection after `cli.main` dropped it.
     """
-    cache = getattr(conn, name, None)
-    if isinstance(cache, dict):
-        return cache
-    try:
-        cache = {}
-        setattr(conn, name, cache)
-    except AttributeError:
-        return None
-    return cache
+    from database_agent.db import connection_cache
+
+    return connection_cache(conn, name)
 
 
 def _evidence_stamp(conn: sqlite3.Connection, file_id: str) -> tuple:

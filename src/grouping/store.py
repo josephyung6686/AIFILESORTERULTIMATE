@@ -254,40 +254,55 @@ def standing_group(conn: sqlite3.Connection, group_id: str) -> Group | None:
     return None if row is None else current_group(conn, group_id)
 
 
+_MEMBERSHIP_INSERT = (
+    "INSERT INTO memberships ("
+    "membership_id, group_id, file_id, content_hash, basis, decision, "
+    "decision_source, support, insufficient_evidence, "
+    "insufficiency_statement, conflicts, outlier_flag, "
+    "validation_verdict_ref, created_at, supersedes, superseded_by, "
+    "supersede_reason"
+    ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+)
+
+
+def _membership_values(membership: Membership) -> tuple:
+    return (
+        membership.membership_id, membership.group_id, membership.file_id,
+        membership.content_hash, membership.basis, membership.decision,
+        membership.decision_source, _dump(membership.support),
+        int(membership.insufficient_evidence),
+        membership.insufficiency_statement, _dump(membership.conflicts),
+        membership.outlier_flag, membership.validation_verdict_ref,
+        membership.created_at, membership.supersedes,
+        membership.superseded_by, membership.supersede_reason,
+    )
+
+
+def _stored_membership(conn: sqlite3.Connection,
+                       membership_id: str) -> Membership | None:
+    row = conn.execute(
+        "SELECT * FROM memberships WHERE membership_id = ?",
+        (membership_id,)).fetchone()
+    return None if row is None else _membership_from(row)
+
+
+def _refuse_a_different_membership(stored: Membership, membership: Membership) -> None:
+    if stored != membership and not _same_derivation(stored, membership):
+        raise MalformedGroupRecord(
+            f"membership {membership.membership_id} is already recorded with "
+            "different content; a revision supersedes rather than replaces"
+        )
+
+
 def record_membership(conn: sqlite3.Connection, membership: Membership) -> str:
     """Insert one membership, or return the id when the same one is recorded."""
     _check_supersession(conn, "memberships", "membership_id", membership)
-    existing = conn.execute(
-        "SELECT * FROM memberships WHERE membership_id = ?",
-        (membership.membership_id,)).fetchone()
+    existing = _stored_membership(conn, membership.membership_id)
     if existing is not None:
-        stored = _membership_from(existing)
-        if stored != membership and not _same_derivation(stored, membership):
-            raise MalformedGroupRecord(
-                f"membership {membership.membership_id} is already recorded with "
-                "different content; a revision supersedes rather than replaces"
-            )
+        _refuse_a_different_membership(existing, membership)
         return membership.membership_id
     with transaction(conn):
-        conn.execute(
-            "INSERT INTO memberships ("
-            "membership_id, group_id, file_id, content_hash, basis, decision, "
-            "decision_source, support, insufficient_evidence, "
-            "insufficiency_statement, conflicts, outlier_flag, "
-            "validation_verdict_ref, created_at, supersedes, superseded_by, "
-            "supersede_reason"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                membership.membership_id, membership.group_id, membership.file_id,
-                membership.content_hash, membership.basis, membership.decision,
-                membership.decision_source, _dump(membership.support),
-                int(membership.insufficient_evidence),
-                membership.insufficiency_statement, _dump(membership.conflicts),
-                membership.outlier_flag, membership.validation_verdict_ref,
-                membership.created_at, membership.supersedes,
-                membership.superseded_by, membership.supersede_reason,
-            ),
-        )
+        conn.execute(_MEMBERSHIP_INSERT, _membership_values(membership))
         _link(conn, "memberships", "membership_id", membership)
     return membership.membership_id
 
@@ -375,8 +390,26 @@ def carry_memberships(
     )
     # The records, not their ids: a carried membership keeps its DECISION, and an
     # uncertain one carries a review obligation its new group has to record too.
+    #
+    # One transaction for the rows that are new. A carried id is
+    # `{source}:{destination}`, so a second carry of the same group finds every
+    # row already stored and inserts nothing. The comparison is the one
+    # `record_membership` uses, so a row that is already there with different
+    # content is still refused.
+    fresh: list[Membership] = []
     for membership in carried:
-        record_membership(conn, membership)
+        _check_supersession(conn, "memberships", "membership_id", membership)
+        existing = _stored_membership(conn, membership.membership_id)
+        if existing is not None:
+            _refuse_a_different_membership(existing, membership)
+            continue
+        fresh.append(membership)
+    if fresh:
+        with transaction(conn):
+            conn.executemany(
+                _MEMBERSHIP_INSERT, [_membership_values(item) for item in fresh])
+            for membership in fresh:
+                _link(conn, "memberships", "membership_id", membership)
     return carried
 
 
@@ -442,11 +475,23 @@ def record_edges(
     its shape.
     """
     del group_id
+    # One lookup for the ids in this call. A per-edge select was one round trip
+    # per edge of every file that formed a graph. The insert and the supersede
+    # stay in call order: an earlier edge must not see a later one that the
+    # sequential update had not inserted yet.
+    known: set[str] = set()
+    pending = [edge.edge_id for edge in edges]
+    for start in range(0, len(pending), 400):
+        chunk = pending[start:start + 400]
+        placeholders = ",".join("?" * len(chunk))
+        for row in conn.execute(
+                f"SELECT edge_id FROM group_edges WHERE edge_id IN ({placeholders})",
+                chunk):
+            known.add(row[0])
     with transaction(conn):
         for edge in edges:
-            already = conn.execute(
-                "SELECT edge_id FROM group_edges WHERE edge_id = ?",
-                (edge.edge_id,)).fetchone()
+            already = edge.edge_id in known
+            known.add(edge.edge_id)
             conn.execute(
                 "INSERT OR IGNORE INTO group_edges ("
                 "edge_id, from_file_id, to_file_id, edge_type, evidence_ref, "
@@ -460,7 +505,7 @@ def record_edges(
                     edge.created_at, None, edge.superseded_by, None,
                 ),
             )
-            if already is None:
+            if not already:
                 append_event(
                     conn,
                     event_type=GRAPH_EDGE_CREATION,

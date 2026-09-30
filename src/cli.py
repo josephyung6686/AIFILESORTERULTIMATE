@@ -12398,13 +12398,24 @@ def _draft_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
         supersede_reason=("the rules merged P9's groups under the label and "
                           "situation the user supplied on the command line"))
     record_group(conn, reviewed)
+    # ONE CARRY PER SOURCE GROUP. `grouped` is one result per subject file, and
+    # a second file that joined a group already standing is a second result
+    # with the same `group_id`. Grouping has finished before this merge, so
+    # the first carry reads every member the group has. Carrying again copies
+    # those same rows and finds them already stored. On a 2,000-file corpus
+    # that repeat was 680,699 `SELECT * FROM memberships WHERE membership_id`
+    # calls, all inside this loop.
+    carried_groups: set[str] = set()
     for result in grouped:
+        source = result.group.group_id
+        if source in carried_groups:
+            continue
+        carried_groups.add(source)
         # `grouping.store`'s carry, not a local one. `104` R-80 gives the MODEL a
         # supersession too -- a second, differing answer mints a superseding group
         # the same way this does -- and two transforms for one act is two things
         # to drift. The comment that used to be here is on the transform.
-        carry_memberships(conn, from_group_id=result.group.group_id,
-                          into_group_id=merged_id)
+        carry_memberships(conn, from_group_id=source, into_group_id=merged_id)
     # `104` SF-3: AND HERE IS WHERE THE ACCEPTANCE USED TO BE.
     #
     #     record_acceptance(conn, GroupAcceptance(
