@@ -31,11 +31,15 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-import Quartz
-import Vision
-from Foundation import NSURL
-
 from extractors.ocr import OcrOutput, OcrRegion
+
+#: Bound by `_apple` on the first call. The module itself must import on Linux:
+#: these frameworks exist only on macOS, and importing them at module scope made
+#: `import readers.ocr_vision` — and therefore every scan — refuse before a text
+#: file was opened.
+Quartz = None
+Vision = None
+NSURL = None
 
 #: §2.7's first persisted field: the provider's own name for itself. P5 folds this
 #: into `extractor_name` (`ocr.apple_vision`) and spells no provider of its own.
@@ -48,10 +52,34 @@ _POINTS_PER_INCH = 72.0
 #: is a caller error and is raised rather than quietly downgraded -- silently running
 #: fast recognition when accurate was configured would make §2.7's first requirement
 #: untrue while every record still claimed it held.
-_LEVELS = {
-    "accurate": Vision.VNRequestTextRecognitionLevelAccurate,
-    "fast": Vision.VNRequestTextRecognitionLevelFast,
-}
+_LEVELS = None
+
+
+def _apple() -> None:
+    """Load Vision, Quartz and Foundation, or name the missing module.
+
+    On macOS a missing wheel raises `ModuleNotFoundError` from the import
+    itself, which is the name a person can act on. On any other platform the
+    same error is raised here, before the import, because the wheels cannot be
+    installed and a scan of ordinary documents must not depend on them. Nothing
+    catches that error inside this module.
+    """
+    global Quartz, Vision, NSURL, _LEVELS
+    if _LEVELS is not None:
+        return
+    if sys.platform != "darwin":
+        raise ModuleNotFoundError("No module named 'Quartz'")
+    import Quartz as _Quartz
+    import Vision as _Vision
+    from Foundation import NSURL as _NSURL
+
+    Quartz = _Quartz
+    Vision = _Vision
+    NSURL = _NSURL
+    _LEVELS = {
+        "accurate": Vision.VNRequestTextRecognitionLevelAccurate,
+        "fast": Vision.VNRequestTextRecognitionLevelFast,
+    }
 
 
 def _provider_version() -> str:
@@ -193,6 +221,9 @@ def _render_pdf_page(page, dpi: float):
 def recognition_languages(*, recognition_level: str) -> tuple[str, ...]:
     """The languages THIS recogniser publishes for that level. Never a typed list.
 
+    `_apple` runs first so a caller on a platform without Vision hears the
+    missing module by name, and so `_LEVELS` exists before it is read.
+
     `104` §18.2 gap 19. §2.7 asks for "appropriate language support INCLUDING CJK
     WHERE REQUIRED" and this deployment asked for `en-US` and nothing else, so the
     owner's Chinese-titled documents came back empty or garbled -- measured again
@@ -210,6 +241,7 @@ def recognition_languages(*, recognition_level: str) -> tuple[str, ...]:
     §3.4 keys the cache on it) and a default here would be a second, unreviewed
     setting quietly deciding what the first one asked about.
     """
+    _apple()
     if recognition_level not in _LEVELS:
         raise ValueError(
             f"{recognition_level!r} is not a Vision recognition level; "
@@ -406,6 +438,7 @@ def vision_ocr() -> Callable[..., OcrOutput]:
 
     def ocr_engine(path: Path,
                    config: Mapping[str, Any] | None = None) -> OcrOutput | None:
+        _apple()
         settings = dict(config or {})
         dpi = float(settings.get("dpi") or 200)
         level_name = settings.get("recognition_level") or "accurate"

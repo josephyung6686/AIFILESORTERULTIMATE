@@ -474,27 +474,14 @@ def test_a_file_the_branch_states_a_value_for_is_not_reported_unresolved(conn):
     assert option.unresolved_file_ids == ("f3",)
 
 
-def test_a_level_that_does_not_divide_is_left_out_when_another_level_does(conn):
-    """THE MIXED CASE, which is where the promise came back.
+def test_a_shared_term_and_course_are_the_path_to_the_split(conn):
+    """A term and a course every file shares are still folders when the kinds split.
 
-    `test_an_option_that_builds_no_folder_says_what_the_branch_records_instead`
-    fixed the all-degenerate branch by replacing the whole sentence, and it is
-    reached only when the option builds NOTHING. The moment one level divides,
-    that replacement is skipped and `_summarise` speaks again -- and `_summarise`
-    dropped only levels with NO values, never levels with exactly one.
-
-    So a corpus of one course in one term, whose files ARE three different kinds
-    of work, summarised itself "1 term, 1 subject, and 3 work_type". The three
-    are real. The other two are the same broken promise as before: `term` and
-    `subject` each hold one value, V2 does not build a level the files do not
-    divide, and the person reads two folders that will never exist.
-
-    `_summarise`'s own docstring already states the rule it half-applied: "A
-    level producing NO folders is left out ... `_project` skips a level with no
-    values and V2 SKIPS ONE THAT DOES NOT DIVIDE." One value is one folder, which
-    separates nothing. V2's test "needs no threshold: either some file disagrees
-    or none does" (`upstream.py`), so this is a definition and not a knob --
-    which is why it lives here and not in `cli.py`.
+    They do not divide the files. They are the path the split sits on:
+    Fall2024, then PHYS1401, then three kinds of work. Leaving them out of the
+    sentence promised a tree the projection does not build, and building them
+    without naming them promised the opposite. The sentence names what was
+    built.
 
     `resulting_child_counts` is untouched, for the reason the fix above records:
     `cli._nesting_key` derives an ANSWER's durable identity from its keys.
@@ -505,12 +492,11 @@ def test_a_level_that_does_not_divide_is_left_out_when_another_level_does(conn):
         _level("work_type", "work_type", 2,
                {"syllabus": {"f1"}, "lecture": {"f2"}, "problem set": {"f3"}}))
     option = _options(conn, evidence, "term", "subject", "work_type")[0]
-    # The level that divides is named, with its real count.
     assert "3 work_type" in option.summary, option.summary
-    # The two that do not are not promised.
-    assert "1 term" not in option.summary, option.summary
-    assert "1 subject" not in option.summary, option.summary
-    # And the keys a recorded answer is identified by are unchanged.
+    assert "1 term" in option.summary, option.summary
+    assert "1 subject" in option.summary, option.summary
+    chains = {child.label_chain for child in option.children}
+    assert ("Academics", "Fall2024", "PHYS1401", "syllabus") in chains
     assert set(option.resulting_child_counts) == {"term", "subject", "work_type"}
 
 
@@ -1138,13 +1124,16 @@ def test_a_school_with_one_term_one_course_and_nothing_below_stays_shallow(conn)
     assert ("Academics", "Columbia", "2026-Spring", "PHYS1401", "Homework") in chains
 
 
-def test_a_school_holding_ONE_file_still_folds_its_chain(conn):
-    """The floor's other side, and the half `107` still asks for: a chain whose
-    top holds a single file folds, "rather than creating a one-file leaf".
+def test_a_school_holding_ONE_file_folds_the_leaf_and_keeps_the_course(conn):
+    """The floor `107` still asks for, at the closest parent rather than the top.
 
-    SABOTAGE: remove the fold entirely. A person opens Georgetown to find one
-    folder, inside it one folder, inside it one file -- three doors for one page,
-    which is what §B.2 was written to prevent and amendment 26 did not license.
+    A chain whose top holds a single file used to collapse all the way to the
+    school, so the course disappeared and the file was filed under the term.
+    The one-file leaf still folds into the course. The course, the term and
+    the school stay, because those are the folders a person looks under.
+
+    SABOTAGE: fold the whole run into Georgetown again. The page is filed
+    under the school and ENG101 is gone.
     """
     columbia = {"c1", "c2", "c3"}
     evidence = _evidence(
@@ -1155,8 +1144,8 @@ def test_a_school_holding_ONE_file_still_folds_its_chain(conn):
                {"Homework": {"c1", "c2"}, "Syllabus": {"c3"}, "Essays": {"g1"}}))
     option = _options(conn, evidence, "school", "term", "subject", "work_type")[0]
     chains = {child.label_chain for child in option.children}
-    assert ("Academics", "Georgetown Prep") in chains
-    assert not any(chain[1] == "Georgetown Prep" and len(chain) > 2 for chain in chains)
+    assert ("Academics", "Georgetown Prep", "2024-Fall", "ENG101") in chains
+    assert ("Academics", "Georgetown Prep", "2024-Fall", "ENG101", "Essays") not in chains
 
 def test_the_folded_values_are_claimed_by_the_folder_that_keeps_the_files(conn):
     """A destination that states nothing cannot be reached by a fact
@@ -1179,13 +1168,17 @@ def test_the_folded_values_are_claimed_by_the_folder_that_keeps_the_files(conn):
         _level("work_type", "work_type", 3,
                {"Homework": {"c1", "c2"}, "Syllabus": {"c3"}, "Essays": {"g1"}}))
     preview = _preview_binding()(None, evidence)
-    top = next(node for node in preview.nodes if node.display_label == "Georgetown Prep")
-    assert top.expected_values == (
+    course = next(node for node in preview.nodes if node.display_label == "ENG101")
+    assert course.expected_values == (
         ExpectedValue("school", "Georgetown Prep"),
         ExpectedValue("term", "2024-Fall"),
         ExpectedValue("subject", "ENG101"),
         ExpectedValue("work_type", "Essays"))
-    assert preview.members_by_node[top.node_id] == frozenset({"g1"})
+    assert preview.members_by_node[course.node_id] == frozenset({"g1"})
+    school = next(node for node in preview.nodes
+                  if node.display_label == "Georgetown Prep")
+    assert school.expected_values == (
+        ExpectedValue("school", "Georgetown Prep"),)
 
 
 def test_a_single_child_holding_a_strict_subset_is_a_real_split_and_stays(conn):
@@ -1212,8 +1205,8 @@ def test_a_fold_beneath_a_folded_run_is_still_said_on_the_folder_that_survives(c
     entirely, so that stacking cannot occur and `FOLDED_ONE_PER_FILE` is no longer
     reachable from `_project`.
 
-    What remains, and is asserted here: a §B.2 run of three levels folding into a
-    one-file top, said on the survivor, every fold's parent still in `nodes`.
+    What remains, and is asserted here: the one-file kind folds into the course,
+    the course stays, and every fold's parent is a folder the tree still holds.
 
     SABOTAGE: leave `parent_node_id` pointing at a removed node. The sentence
     survives and names a folder the tree does not hold.
@@ -1228,9 +1221,10 @@ def test_a_fold_beneath_a_folded_run_is_still_said_on_the_folder_that_survives(c
     preview = _preview_binding()(None, evidence)
     ids = {node.node_id for node in preview.nodes}
     labels = {node.display_label for node in preview.nodes}
-    assert "ENG101" not in labels and "2024-Fall" not in labels
+    assert "ENG101" in labels and "2024-Fall" in labels
+    assert "Essay" not in labels
     assert all(fold.parent_node_id in ids for fold in preview.folded), preview.folded
-    top = next(node for node in preview.nodes if node.display_label == "Georgetown Prep")
-    assert "every file there carries it" in top.explanation
+    course = next(node for node in preview.nodes if node.display_label == "ENG101")
+    assert "every file there carries it" in course.explanation
     option = _options(conn, evidence, "school", "term", "subject", "work_type")[0]
-    assert "not made a folder under 'Georgetown Prep'" in option.summary
+    assert "not made a folder under 'ENG101'" in option.summary

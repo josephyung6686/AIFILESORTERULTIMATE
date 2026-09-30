@@ -96,6 +96,14 @@ def _walk_root(source, root, applies_to, budget_exhausted) -> Iterator:
         markers = project_root_markers_in(
             (entry.name, entry.kind == KIND_DIRECTORY) for entry in entries
         )
+        # The folder the person pointed at is not a project root merely because
+        # a marker file sits in it. Owner ruling 2026-09-30, narrowing
+        # `planning/00` §1.1: a Downloads folder that contains `requirements.txt`
+        # beside coursework is still scanned. A nested directory that contains
+        # a marker still passes that marker to its own children below.
+        # `markers` stays on the directory row either way, so the report can
+        # say the file was seen.
+        markers_for_children = () if directory == root else markers
         file_count = 0
         subdirectory_count = 0
         mix: Counter[str] = Counter()
@@ -116,7 +124,7 @@ def _walk_root(source, root, applies_to, budget_exhausted) -> Iterator:
 
             is_dir = entry.kind == KIND_DIRECTORY
             verdict = exclusion_for(entry.path, is_dir=is_dir, applies_to=applies_to,
-                                    project_root_markers=markers)
+                                    project_root_markers=markers_for_children)
             if verdict is not None:
                 yield verdict          # pruned: never enqueued, never listed
                 continue

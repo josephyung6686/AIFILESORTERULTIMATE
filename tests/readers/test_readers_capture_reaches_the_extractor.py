@@ -16,6 +16,7 @@ These tests use the DEPLOYMENT's readers, not stubs. That is the point of them.
 from __future__ import annotations
 
 import struct
+import sys
 import zlib
 
 import pytest
@@ -81,7 +82,11 @@ def test_a_macos_screenshot_now_produces_section_2_6s_evidence(readers, tmp_path
     `image.metadata: unsupported` row."""
     result = run(readers, png(tmp_path / "Screenshot 2026-08-14 at 11.03.47.png",
                               2560, 1600))
-    assert result.run["completeness"] == "complete"
+    # On macOS ImageIO looks at the container, so the run is complete. Off macOS
+    # the header still yields format and dimensions, and the metadata route says
+    # it never ran, which the extractor records as partial.
+    assert result.run["completeness"] == (
+        "complete" if sys.platform == "darwin" else "partial")
     found = slots(result)
     assert found["format"] == ("PNG", 3, "direct")
     assert found["pixel dimensions"] == ("2560x1600", 3, "direct")

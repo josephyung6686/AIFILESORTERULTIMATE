@@ -571,6 +571,7 @@ def test_every_abstention_reason_this_package_names_is_reachable(db, tmp_path):
             Abstention("file_kind_implausible", "academic", "x"),
             Abstention("ambiguous", None, "x", tied_schema_ids=("a", "b")),
             Abstention("unassigned_handling", "academic", "x"),
+            Abstention("outside_declared_lives", None, "x"),
         )}
     assert reached == set(ABSTENTION_REASONS)
 

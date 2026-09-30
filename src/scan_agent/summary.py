@@ -23,8 +23,12 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 
+from pathlib import PurePath
+
 from scan_agent.deferrals import DEFERRED_BUDGET
-from scan_agent.exclusion import RULE_PROTECTED_CONTAINER, exclusion_verdicts
+from scan_agent.exclusion import (
+    RULE_PROJECT_ROOT_DESCENDANT, RULE_PROTECTED_CONTAINER, exclusion_verdicts,
+)
 
 #: The SPEC's five, in the SPEC's order. There is no sixth.
 R5_COUNTERS: tuple[str, ...] = (
@@ -110,6 +114,36 @@ def set_aside_paths(conn: sqlite3.Connection, *,
         for row in exclusion_verdicts(conn, scan_run_id)
         if row["rule"] != RULE_PROTECTED_CONTAINER
     )
+
+
+def left_alone_project_units(aside) -> tuple[tuple[str, str, str, int], ...]:
+    """Nested software projects, one line each.
+
+    A project-root descendant verdict is one path inside the project. The
+    person should hear the project as one unit they left together, not as a
+    list of files that vanished. Paths that share a parent are one unit. The
+    parent is the directory that held the marker, because the walk excludes
+    that directory's children and does not list anything deeper.
+
+    Returns `(parent path, display name, marker, path count)` in first-seen
+    order. Non-project exclusions are not units and are left out.
+    """
+    grouped: dict[str, list] = {}
+    order: list[str] = []
+    for entry in aside:
+        if entry.rule != RULE_PROJECT_ROOT_DESCENDANT:
+            continue
+        parent = str(PurePath(entry.path).parent)
+        if parent not in grouped:
+            order.append(parent)
+            grouped[parent] = []
+        grouped[parent].append(entry)
+    units = []
+    for parent in order:
+        entries = grouped[parent]
+        units.append((parent, _folder_name(parent), entries[0].rule_subject,
+                      len(entries)))
+    return tuple(units)
 
 
 def _folder_name(path: str) -> str:

@@ -102,6 +102,38 @@ def _declared_distributions() -> set[str]:
     return declared
 
 
+# Import names published by the pyobjc wheels. `packages_distributions()` can
+# name them only once the wheel is installed, and those wheels are marked
+# `sys_platform == "darwin"`, so a Linux run has no distribution to ask.
+# This map is how the declaration is checked on the platform that cannot
+# install them. It is not used to load anything.
+_DARWIN_FRAMEWORKS = {
+    "Quartz": "pyobjc-framework-quartz",
+    "Vision": "pyobjc-framework-vision",
+    "AppKit": "pyobjc-framework-cocoa",
+    "Foundation": "pyobjc-framework-cocoa",
+}
+
+
+def _darwin_markers_exclude_this_platform() -> bool:
+    """True when every pyobjc requirement in the manifest is marked off this OS."""
+    groups = _manifest()["project"].get("optional-dependencies", {})
+    saw = False
+    for requirements in groups.values():
+        for requirement in requirements:
+            if "pyobjc" not in requirement.lower():
+                continue
+            saw = True
+            if ";" not in requirement:
+                return False
+            marker = requirement.split(";", 1)[1]
+            if "darwin" in marker and sys.platform == "darwin":
+                return False
+            if "darwin" not in marker:
+                return False
+    return saw and sys.platform != "darwin"
+
+
 def test_every_library_the_readers_import_is_declared():
     """The measurement, re-run. This is the whole of R-34's first half."""
     declared = _declared_distributions()
@@ -111,6 +143,12 @@ def test_every_library_the_readers_import_is_declared():
     undeclared = {}
     for name, modules in sorted(imports.items()):
         providers = resolver.get(name)
+        if not providers and name in _DARWIN_FRAMEWORKS and (
+                _darwin_markers_exclude_this_platform()):
+            expected = _DARWIN_FRAMEWORKS[name]
+            if expected not in declared:
+                undeclared[name] = [expected]
+            continue
         assert providers, (
             f"{name!r} is imported by {sorted(modules)} and no installed "
             "distribution provides it, so this test cannot say what to declare. "

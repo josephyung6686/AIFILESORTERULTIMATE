@@ -947,14 +947,16 @@ def _fold_single_child_runs(nodes: list[Node], members: dict[str, frozenset[str]
 
     A node with ONE child holding EVERY one of its files, whose child has one
     such child, and so on to a node with no children, is a chain of folders a
-    person opens to find one folder each. The chain folds into its top: the
-    top keeps the files and gains the folded values on its own chain, so a
-    fact still reaches it (`00`:110). A child holding a strict subset divides
-    the parent's files from the rest and is NOT folded -- `WARN_ONE_CHILD`
-    is the advice about that one. `00`:78's own path is untouched because
-    something divides beneath it. The branch root is never a top: it is not
-    in `nodes`, and at the root there is no chain a folded value could be
-    reached by.
+    person opens to find one folder each. The leaf folds into its parent: the
+    parent keeps the files and gains the folded value on its own chain, so a
+    fact still reaches it (`00`:110). The folders above that parent stay.
+    Folding the whole run into the shallowest folder filed a one-file course
+    under its term, and the path no longer named the course. A child holding
+    a strict subset divides the parent's files from the rest and is NOT folded
+    -- `WARN_ONE_CHILD` is the advice about that one. `00`:78's own path is
+    untouched because something divides beneath it. The branch root is never a
+    top: it is not in `nodes`, and at the root there is no chain a folded
+    value could be reached by.
 
     Post-order by construction: `nodes` is in creation order, so a top is
     visited before anything beneath it, and a run's members are removed
@@ -1006,6 +1008,19 @@ def _fold_single_child_runs(nodes: list[Node], members: dict[str, frozenset[str]
         # the level divides somewhere else and not under this parent -- a term
         # holding one of several courses, which is the case just ruled on.
         if len(members[top.node_id]) > 1:
+            continue
+        # THE LEAF, NOT THE WHOLE RUN. `107` says a single file may rest at the
+        # closest meaningful parent rather than become its own folder. The
+        # closest parent of the leaf is the folder it hangs from. Collapsing
+        # the run into the shallowest folder dropped the course: one exam
+        # whose facts were PHYS1401 / exam / Fall2025 was filed under Fall2025,
+        # and a person looking for the course could not find it.
+        #
+        # A longer run is left alone HERE. The walk is parent-before-child, so
+        # the leaf's own parent folds it when that parent is visited. Folding
+        # it early would make the course the new leaf, and the next parent up
+        # would fold the course away too.
+        if len(run) != 1:
             continue
         extra = run[-1].expected_values[len(top.expected_values):]
         folded.extend(FoldedLevel(

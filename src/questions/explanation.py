@@ -61,6 +61,14 @@ CONSEQUENCE_WORDS: dict[str, str] = {
     # worse screen than naming the action and stopping.
     "residual_action": (
         "It settles the catch-all area this question is about: `{value}`."),
+    "declares_life": (
+        "It names `{value}` as one of the lives this folder may be sorted into."),
+    "refuses_life": "It says `{value}` is not a life of this folder.",
+    "names_project": "It treats `{value}` as one project, left together.",
+    "leaves_alone": "It leaves `{value}` alone.",
+    "names_course": "It records the course `{value}`.",
+    "keeps_local_wording": (
+        "It keeps your own sentence on this device."),
 }
 
 #: How each answer state came about, in `66` §12's own distinction between an

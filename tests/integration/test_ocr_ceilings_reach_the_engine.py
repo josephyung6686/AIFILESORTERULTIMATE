@@ -130,6 +130,8 @@ def test_a_ceiling_of_one_stops_a_three_page_document_and_says_so(tmp_path):
     exists. `build_pdf` is the same helper `tests/readers/test_ocr_vision.py` uses
     for the engine's own cap test.
     """
+    pytest.importorskip("Vision", reason="Apple Vision is macOS-only")
+    pytest.importorskip("Quartz", reason="Apple Quartz is macOS-only")
     readers = cli.macos_readers(
         find_structured_strings=cli.find_structured_strings,
         spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING,
@@ -148,6 +150,8 @@ def test_a_ceiling_of_one_stops_a_three_page_document_and_says_so(tmp_path):
 def test_a_document_inside_the_ceiling_is_not_reported_as_capped(tmp_path):
     # The control. A ceiling that marked every document partial would make the
     # `capped` count meaningless, which is the other way to lose §8.6's line.
+    pytest.importorskip("Vision", reason="Apple Vision is macOS-only")
+    pytest.importorskip("Quartz", reason="Apple Quartz is macOS-only")
     readers = cli.macos_readers(
         find_structured_strings=cli.find_structured_strings,
         spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING,

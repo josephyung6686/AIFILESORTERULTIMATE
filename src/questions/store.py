@@ -400,6 +400,88 @@ def residual_choices(conn: sqlite3.Connection, *,
     return out
 
 
+def _confirmed_values(conn: sqlite3.Connection, field: str) -> tuple[str, ...]:
+    """The values a confirmed answer set on one option field, in question order.
+
+    Skipped, revoked, and not-about-me answers contribute nothing. That is the
+    same line `answered_options` draws, so a decline cannot become a life.
+    """
+    values: list[str] = []
+    for option in answered_options(conn):
+        value = getattr(option, field, None)
+        if value and value not in values:
+            values.append(value)
+    return tuple(values)
+
+
+def declared_lives(conn: sqlite3.Connection, *,
+                   scope: str | None = None) -> frozenset[str]:
+    """Schemas the person has declared as filing lives for this corpus.
+
+    A refusal wins a contradiction: a schema both declared and refused is not
+    declared. An empty set means nobody has confirmed a life, which is not an
+    allow-list of nothing — the recogniser treats empty as 'no profile'.
+    """
+    if scope is not None:
+        declared = [
+            option.declares_life for option in answered_options(conn, scope=scope)
+            if option.declares_life]
+        refused = {
+            option.refuses_life for option in answered_options(conn, scope=scope)
+            if option.refuses_life}
+    else:
+        declared = list(_confirmed_values(conn, "declares_life"))
+        refused = set(_confirmed_values(conn, "refuses_life"))
+    return frozenset(value for value in declared if value not in refused)
+
+
+def refused_lives(conn: sqlite3.Connection, *,
+                  scope: str | None = None) -> frozenset[str]:
+    """Schemas the person has explicitly refused for this corpus."""
+    if scope is not None:
+        return frozenset(
+            option.refuses_life for option in answered_options(conn, scope=scope)
+            if option.refuses_life)
+    return frozenset(_confirmed_values(conn, "refuses_life"))
+
+
+def named_projects(conn: sqlite3.Connection) -> tuple[str, ...]:
+    """Folder names the person asked to treat as one project."""
+    return _confirmed_values(conn, "names_project")
+
+
+def left_alone(conn: sqlite3.Connection) -> tuple[str, ...]:
+    """Names the person asked the product to leave alone."""
+    return _confirmed_values(conn, "leaves_alone")
+
+
+def named_courses(conn: sqlite3.Connection) -> tuple[str, ...]:
+    """Courses the person named. Not matched against files by this reader."""
+    return _confirmed_values(conn, "names_course")
+
+
+def profile_wording(conn: sqlite3.Connection) -> tuple[str, ...]:
+    """Sentences the person typed about this folder, in the order they were kept.
+
+    Free text only. A choice that named a schema is not a sentence, and this
+    reader does not turn the sentence into a schema. The words stay in this
+    database; nothing here builds a request.
+    """
+    out: list[str] = []
+    for row in conn.execute(
+            "SELECT question_id, scope FROM structural_questions "
+            "WHERE question_id LIKE 'wording:%' ORDER BY first_asked_at, "
+            "question_id"):
+        answer = live_answer(conn, question_id=row["question_id"],
+                             scope=row["scope"])
+        if (answer is None or answer.state not in BINDING_STATES
+                or not answer.raw_wording):
+            continue
+        if answer.raw_wording not in out:
+            out.append(answer.raw_wording)
+    return tuple(out)
+
+
 def questions_for(conn: sqlite3.Connection,
                   question_ids: Sequence[str]) -> tuple[StructuralQuestion, ...]:
     """The named questions, for a caller that already knows which it wants."""

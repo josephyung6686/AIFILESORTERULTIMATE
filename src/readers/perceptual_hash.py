@@ -45,6 +45,7 @@ useless -- every such image would be within distance 0 of every other.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 #: The owner's ruling of 11 Sep 2026, answering `98` §3.1 ("`00` names no
@@ -101,6 +102,8 @@ NEAR_DUPLICATE_BANDS: int = NEAR_DUPLICATE_MAX_DISTANCE + 1
 
 def _thumbnail_rows(path: Path) -> tuple[bytes, int] | None:
     """The 8x9 grey raster and its stride, or `None` where nothing could be read."""
+    if sys.platform != "darwin":
+        return None
     import Quartz                                # noqa: PLC0415 -- see the docstring
     from Foundation import NSURL                 # noqa: PLC0415
 
