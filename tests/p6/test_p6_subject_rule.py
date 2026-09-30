@@ -683,6 +683,12 @@ IDENTIFIER_JUDGEMENTS: tuple[tuple[str, bool], ...] = (
     # Refused by the term lookahead, which R-146 made load-bearing: `Spring 2026`
     # did not match the uppercase-only shape at all and now does.
     ("Spring 2026", False), ("Fall 2023", False), ("AY 2024-25", False),
+    # Refused by the calendar-year lookahead. A title-case word plus a year is a
+    # date introducer (`Due 2026` on a homework sheet, `March 2026` in a sentence).
+    # A department written in capitals plus a year is still a course.
+    ("Due 2026", False), ("Due2026", False), ("March 2026", False),
+    ("Copyright 2024", False),
+    ("CS 2026", True), ("PHYS 2026", True),
 )
 
 
@@ -766,6 +772,29 @@ def test_the_canonicaliser_was_not_taught_a_spelling_and_this_is_what_it_does():
 # ======================================================================================
 # `104` R-37's principle one layer down: two values is not a resolution
 # ======================================================================================
+
+
+def test_a_due_date_beside_a_course_is_not_a_second_subject(p6_conn, tmp_path):
+    """A calendar introducer plus a year does not compete with the course.
+
+    A homework sheet prints `PHYS 1403` and `Due 2026` in one neighbourhood that
+    contains `Homework`. Both used to clear the context check. Two canonical
+    values then declined the field, the course never became a fact, and the file
+    was filed under its term alone. The date is refused by shape. The course is
+    still written. Nothing here chooses between two surviving candidates.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1403", before="Homework 2\n", after="\nSpring 2026.",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Due 2026", before="Homework 2\nPHYS 1403 ",
+             after=".\nSolve the following.", run_id="run-2", start=24)
+
+    assert _subjects(p6_conn, file_id, content_hash) == {
+        ("PHYS1403", VALIDATED, RULE)}
+    assert "rule_found_several_values" not in _refusals(
+        p6_conn, file_id, content_hash)
 
 
 def test_two_courses_on_one_file_are_declined_and_recorded_rather_than_both_written(

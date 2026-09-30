@@ -1,15 +1,50 @@
-# Database agent — planning repo
+# Database agent
 
-Shared plan for Alana and Joseph. **The design is
-[`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).**
+A local-first file assistant. The filesystem stays the system of record; a local SQLite
+database is the working memory. You point it at a folder. It reads the files, proposes a
+destination tree, and does not move anything until you freeze that tree and apply a branch.
+Undo puts the bytes back. A file it is not sure about stays where it is. Sensitive files
+are held and are not sent to a cloud model.
 
-A local file intelligence system. The filesystem stays the system of record; a local SQLite
-database is the durable working memory. Evidence is extracted once per file version and reused by
-every later stage. Rules establish precision, the graph assembles context, the LLM interprets only
-bounded evidence dossiers, and a deterministic validator checks every cited conclusion. The user
-freezes a destination tree, and after freeze nothing may invent a destination outside it.
+The design this implements is
+[`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).
+Search and the folder watcher are not part of this path.
 
-**Status:** the design doc is the guide for implementation. No application code in this repo yet.
+Python 3.12. The command is `database-agent`. It runs on macOS and Linux. On Linux, Apple
+Vision OCR, `.doc` via AppKit, and ImageIO metadata are absent; text, PDF, and `.docx`
+still read.
+
+## Quickstart
+
+```bash
+python3.12 -m pip install -e ".[dev,readers]"
+database-agent /path/to/folder --user you --database ./plan.sqlite --accept-groups
+database-agent /path/to/folder --user you --database ./plan.sqlite --freeze
+database-agent /path/to/folder --user you --database ./plan.sqlite --apply BRANCH
+database-agent /path/to/folder --user you --database ./plan.sqlite --undo-everything
+```
+
+`--accept-groups` writes `proposed-structure.txt` next to the database and moves nothing.
+`--freeze` names each branch and the exact `--apply` line for it, and still moves nothing.
+`--apply BRANCH` moves the files that branch froze. `--undo-everything` puts them back.
+`--stop-after tree` stops once the outline exists.
+
+No model is required for this path. Cloud models are off unless you opt in, and they cannot
+invent a folder or move a file outside the frozen tree.
+
+Score a labelled folder without moving it:
+
+```bash
+python3 -m tools.groundtruth --corpus DIR --labels labels.json --out ./score --force
+```
+
+Tests:
+
+```bash
+python3 -m pytest tests/
+```
+
+`jsonschema` is in the `dev` extra because several tests validate model-response schemas.
 
 ---
 

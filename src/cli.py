@@ -5219,8 +5219,26 @@ SUBJECT_FIELD = "subject"
 #: above: `AY 2024-25` claimed as `AY2024` and a person's essays filed under a course
 #: by that name. `SPRING 2026` beside the word `semester` is precisely the reading
 #: that would otherwise walk through the context check.
+#:
+#: **THE THIRD LOOKAHEAD REFUSES A TITLE-CASE WORD PLUS A CALENDAR YEAR.** `_TERM`
+#: already holds `Spring 2026` off `subject`. It does not hold `Due 2026`,
+#: `March 2026` or `Copyright 2024`: none of those words is a season, and
+#: `_STRUCTURED` still reads them because a capitalised word and three-or-more
+#: digits is also how `Physics 1401` is printed. The context check cannot separate
+#: them either. A homework sheet prints `PHYS 1403` and `Due 2026` in one window
+#: that contains `Homework`, both clear the check, and two canonical values decline
+#: the field (`rule_found_several_values`) so the course never becomes a fact.
+#:
+#: The refusal is the YEAR, not a list of words. `[A-Z][a-z]+` is a word written
+#: in a sentence (`Due`, `March`, `Copyright`); a department abbreviation is
+#: written in capitals (`CS 2026`, `PHYS 2026`) and stays. A course number that is
+#: not a calendar year stays too (`Physics 1401`, `French 1101`). This is the
+#: asserting knob only: `_STRUCTURED` still SEES `March 2026`, and a model is
+#: still shown the reading. Code does not pick between two candidates.
+_CALENDAR_WORD_YEAR = rf"[A-Z][a-z]+[ -]?{_YEAR}"
 _SUBJECT_IDENTIFIER = re.compile(
     rf"\A\s*(?=[A-Z][A-Za-z0-9])(?!(?i:{_TERM.pattern})\s*\Z)"
+    rf"(?!{_CALENDAR_WORD_YEAR}\s*\Z)"
     rf"(?:{_STRUCTURED.pattern})\s*\Z")
 
 #: §3.5's rule for `subject`, quoted: *"Rules create validated facts when a candidate

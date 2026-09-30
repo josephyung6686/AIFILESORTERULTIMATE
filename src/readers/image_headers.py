@@ -70,6 +70,7 @@ from __future__ import annotations
 
 import re
 import struct
+import sys
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -339,7 +340,17 @@ def _published_properties(path: Path) -> tuple[Mapping[Any, Any] | None, str | N
     container that published no `{Exif}` dictionary and a photograph a messaging app
     stripped are indistinguishable here, and §2.6's own trap 1 is that they must not
     be told apart by guessing.
+
+    Off macOS there is no ImageIO. The header parsers above still size the
+    formats they know; this route says the metadata slots were never looked at
+    rather than importing a framework that cannot be installed. On darwin a
+    missing wheel still raises by name — this function does not catch
+    `ImportError`.
     """
+    if sys.platform != "darwin":
+        return None, (
+            "Apple ImageIO is not on this platform, so §2.6's EXIF, "
+            "capture-time, GPS, colour and software slots were never looked at")
     import Quartz                                      # noqa: PLC0415 -- see the module docstring
     from Foundation import NSURL                       # noqa: PLC0415
 
@@ -420,6 +431,8 @@ def _metadata(published: Mapping[Any, Any] | None) -> tuple[
     first occurrence wins and the repeat is dropped rather than emitted for P4's D10
     to collapse afterwards.
     """
+    if published is None:
+        return (), {}, {}
     import Quartz                                      # noqa: PLC0415
 
     software_key = Quartz.kCGImagePropertyTIFFSoftware
@@ -440,8 +453,6 @@ def _metadata(published: Mapping[Any, Any] | None) -> tuple[
     exif: list[ExifValue] = []
     color: dict[str, str] = {}
     software: dict[str, str] = {}
-    if published is None:
-        return (), color, software
 
     for key in (Quartz.kCGImagePropertyColorModel, Quartz.kCGImagePropertyDepth,
                 Quartz.kCGImagePropertyProfileName):

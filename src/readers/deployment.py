@@ -20,6 +20,7 @@ identifiers, and every downstream count would agree with it.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any, Callable
 
@@ -146,14 +147,24 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
     has read `page_cap` and `time_limit_seconds` since it was written; until now
     nothing supplied either, so §8.6's most expensive operation ran unbounded.
     """
-    # Imported HERE and not at module scope. `readers.ocr_vision` pulls in
-    # Apple's Vision and Quartz frameworks, which cost 4.6s of `import cli`'s
-    # 7.3s warm and about 75 of 77 seconds cold -- before one character of
-    # output. A person typing `--list-situations`, or any run over a corpus with
-    # no image in it, waited all of that for a framework their run never used.
-    # The module still imports it eagerly relative to THIS call, so nothing about
-    # when OCR is available changes; only the moment the cost is paid does.
-    from readers.ocr_vision import recognition_languages, vision_ocr
+    # Imported HERE and not at module scope, and only on macOS. `readers.ocr_vision`
+    # pulls in Apple's Vision and Quartz frameworks. On darwin that cost is paid
+    # when a scan is wired, not when `cli` is imported. On Linux those frameworks
+    # do not exist: importing them refused every scan, including a folder of text
+    # files, with `No module named 'Quartz'`. OCR and legacy `.doc` are then
+    # absent (`ocr_engine is None`, `read_doc is None`), which §2.4 calls
+    # `unsupported`. A missing wheel on darwin is not caught: the import raises
+    # by name.
+    if sys.platform == "darwin":
+        from readers.ocr_vision import recognition_languages, vision_ocr
+        ocr_engine = vision_ocr()
+        ocr_languages = list(recognition_languages(
+            recognition_level=VISION_CONFIG["recognition_level"]))
+        read_doc = cocoa_doc_reader()
+    else:
+        ocr_engine = None
+        ocr_languages = []
+        read_doc = None
 
     wired: dict[str, Any] = {
         "read_pdf": pdfminer_reader(),
@@ -176,17 +187,15 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # `readers/doc_cocoa.py` says why it is Cocoa and not `/usr/bin/textutil`:
         # `subprocess` is on `test_single_egress.NETWORK_MODULES` and a reader is not
         # a provider module. The in-process route is also the stricter one.
-        "read_text_document": stdlib_text_document_reader(
-            read_doc=cocoa_doc_reader()),
-        "ocr_engine": vision_ocr(),
+        "read_text_document": stdlib_text_document_reader(read_doc=read_doc),
+        "ocr_engine": ocr_engine,
         # §2.7's third persisted field, asked of the recogniser rather than typed.
         # It is asked AT THE CONFIGURED LEVEL because Vision publishes the set per
         # level, and it is asked HERE rather than inside the engine so that the run's
         # `config` -- which `extract_ocr` stores verbatim and §3.4 fingerprints --
         # records the languages that were actually available on this machine.
         "ocr_config": {**VISION_CONFIG,
-                       "languages": list(recognition_languages(
-                           recognition_level=VISION_CONFIG["recognition_level"])),
+                       "languages": ocr_languages,
                        "page_cap": ocr_page_ceiling,
                        "time_limit_seconds": ocr_seconds_per_file,
                        # `ocr_policy.sparse_pages`' floor: a page with fewer words

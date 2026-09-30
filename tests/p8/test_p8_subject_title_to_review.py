@@ -169,7 +169,14 @@ WORD_SHAPED_ON_THE_MODEL_PATH: tuple[tuple[str, str | None], ...] = (
     # And what comes with it, because no shape separates these from the two above.
     ("Chapter 101", "Chapter 101"),
     ("Section 001", "Section 001"),
-    ("March 2026", "March 2026"),
+    # A title-case word plus a calendar year is a date, on both paths. `March 2026`
+    # used to pass because nothing separated it from `Physics 1401`; the year does.
+    ("March 2026", None),
+    ("Due 2026", None),
+    # A department written in capitals plus a year is still a course. The
+    # canonicaliser drops the space in front of the digits, as it does for
+    # `PHYS 1401`.
+    ("CS 2026", "CS2026"),
     # Still refused, and by the lookahead R-146 made load-bearing rather than by
     # luck: a term is not a course on either path.
     ("Spring 2026", None),
@@ -191,11 +198,13 @@ def test_the_model_path_takes_a_word_and_a_number_now(raw, expected):
     a model value arrives as `llm_supported` -- weaker than the deterministic rule
     and overrulable by the person, which is not true of what a shape asserts alone.
 
-    The two refusals matter as much as the admissions. `Spring 2026` is held off by
+    The refusals matter as much as the admissions. `Spring 2026` is held off by
     the term lookahead, which stopped being decoration when the widening made a
-    season match the identifier shape; `I 1403` and `A 2150` are held off by the
-    single-capital rule that `TRUNCATIONS` in `tests/p6/test_p6_subject_rule.py`
-    records, and R-146 did not touch it.
+    season match the identifier shape. `March 2026` and `Due 2026` are held off
+    by the calendar-year lookahead: a title-case word plus a year is a date, and
+    `CS 2026` stays because the department is written in capitals. `I 1403` and
+    `A 2150` are held off by the single-capital rule that `TRUNCATIONS` in
+    `tests/p6/test_p6_subject_rule.py` records, and R-146 did not touch it.
     """
     assert normalize_for_model("subject", raw) == expected
 

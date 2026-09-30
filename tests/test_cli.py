@@ -2836,7 +2836,12 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
         spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING,
         ocr_page_ceiling=cli.OCR_PAGE_CEILING,
         ocr_seconds_per_file=cli.OCR_SECONDS_PER_FILE)
-    assert readers.ocr_engine is not None
+    if sys.platform == "darwin":
+        assert readers.ocr_engine is not None
+    else:
+        # Apple Vision does not exist here. The slot stays empty so a text scan
+        # still runs; it is not a no-op pretending to have read an image.
+        assert readers.ocr_engine is None
 
 
 def _their_own_folder_corpus(tmp_path, folder: str):
