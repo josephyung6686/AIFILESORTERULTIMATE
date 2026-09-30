@@ -28,7 +28,7 @@ from scan_agent.exclusion import (
 from scan_agent.scan import scan
 from scan_agent.schema import create_scan_schema
 from scan_agent.selection import record_selection
-from scan_agent.summary import SetAside, set_aside_paths
+from scan_agent.summary import SetAside, left_alone_project_units, set_aside_paths
 
 NEVER = lambda: False
 FIXTURE_STATE = "fixture-scan-state"
@@ -51,6 +51,22 @@ def _scan(conn, corpus):
     return scan(conn, selection, source=FilesystemCorpusSource(),
                 mime_type_for=fixture_mime, scan_state=FIXTURE_STATE,
                 budget_exhausted=NEVER)
+
+
+def test_a_nested_project_is_one_left_alone_unit():
+    aside = (
+        SetAside("/tmp/Downloads/hackathon-repo/requirements.txt",
+                 "requirements.txt", RULE_PROJECT_ROOT_DESCENDANT,
+                 "requirements.txt"),
+        SetAside("/tmp/Downloads/hackathon-repo/src", "src",
+                 RULE_PROJECT_ROOT_DESCENDANT, "requirements.txt"),
+        SetAside("/tmp/Downloads/Library", "Library",
+                 RULE_LITERAL_DIRECTORY_NAME, "Library"),
+    )
+    units = left_alone_project_units(aside)
+    assert units == (
+        ("/tmp/Downloads/hackathon-repo", "hackathon-repo", "requirements.txt", 2),
+    )
 
 
 def test_a_rule_excluded_folder_is_reported_by_name(ready, corpus: Path):

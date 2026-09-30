@@ -31,8 +31,9 @@ from dataclasses import dataclass
 
 from questions.records import QuestionOption
 from questions.store import (
-    RESIDUAL_KIND_ID, activated_schemas, chosen_destination, gated_template,
-    residual_choices, selected_situation,
+    RESIDUAL_KIND_ID, activated_schemas, chosen_destination, declared_lives,
+    gated_template, left_alone, named_courses, named_projects, profile_wording,
+    refused_lives, residual_choices, selected_situation,
 )
 from questions.vocabulary import (
     SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_FOLDER, SCOPE_ORGANIZATION, SCOPES, check,
@@ -165,11 +166,50 @@ RESIDUAL_KIND = QuestionKind(
     consequence_field="residual_action",
     reader=residual_choices)
 
+#: A declared filing life. Not `ROLE_KIND`: that one activates a schema, and
+#: activation only breaks a tie. This kind is the allow-list.
+LIFE_KIND = QuestionKind(
+    kind_id="life",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="declares_life",
+    reader=declared_lives)
+
+NOT_LIFE_KIND = QuestionKind(
+    kind_id="not_life",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="refuses_life",
+    reader=refused_lives)
+
+PROJECT_KIND = QuestionKind(
+    kind_id="project",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="names_project",
+    reader=named_projects)
+
+LEAVE_KIND = QuestionKind(
+    kind_id="leave",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="leaves_alone",
+    reader=left_alone)
+
+COURSE_KIND = QuestionKind(
+    kind_id="course",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="names_course",
+    reader=named_courses)
+
+WORDING_KIND = QuestionKind(
+    kind_id="wording",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="keeps_local_wording",
+    reader=profile_wording)
+
 #: Every kind this deployment ships, and the tests assert that every
 #: consequence `QuestionOption` can carry is claimed by one of them.
 QUESTION_KINDS: tuple[QuestionKind, ...] = (
     READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND, HOME_KIND,
-    RESIDUAL_KIND)
+    RESIDUAL_KIND, LIFE_KIND, NOT_LIFE_KIND, PROJECT_KIND, LEAVE_KIND,
+    COURSE_KIND, WORDING_KIND)
 
 
 def kind_of(question_id: str) -> QuestionKind | None:

@@ -209,6 +209,12 @@ def project_root_markers_in(entry_names) -> tuple[str, ...]:
     whether it may still be a candidate root — is SPEC Q9 and is OPEN: §1.1 says
     only "descendants of software project roots". Nothing here decides it.
 
+    Owner ruling 2026-09-30, recorded in `planning/00`: the walk does not pass
+    these markers to the children of the scan root. A marker file in the folder
+    the person pointed at does not hide that folder's other children. A nested
+    directory that contains a marker still does. This function is unchanged;
+    the exception is in `traversal._walk_root`.
+
     `entry_names` is an iterable of (name, is_dir) pairs: §1.1 says the markers are
     FILES, so a directory called `package.json` is not one.
     """

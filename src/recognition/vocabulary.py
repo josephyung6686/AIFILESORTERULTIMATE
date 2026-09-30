@@ -39,6 +39,10 @@ ABSTENTION_REASONS: tuple[str, ...] = (
     "file_kind_implausible",
     "ambiguous",
     "unassigned_handling",
+    # A declared-life gate declined a schema the term count would have named.
+    # The citation lives on `matched_terms`. `schema_id` stays empty so a later
+    # vote cannot treat the declined schema as a candidate.
+    "outside_declared_lives",
 )
 
 
