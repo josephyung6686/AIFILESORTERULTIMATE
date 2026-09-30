@@ -749,7 +749,7 @@ def run_p1_p7(
     this thread, where P6's persisted pass lives, and the reading is submitted;
     `pool.close()` therefore moved below the fact loop.
     """
-    from scan_profile import active_scan_profile
+    from scan_profile import PHASE_FILE_READ, active_scan_profile
     _profile_on = active_scan_profile() is not None
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,
@@ -926,7 +926,7 @@ def run_p1_p7(
         if _scan_profile is None:
             _consume(entry)
             return
-        with _scan_profile.phase("extraction"):
+        with _scan_profile.phase(PHASE_FILE_READ):
             _consume(entry)
 
     window: deque[_Submitted] = deque()

@@ -16,6 +16,10 @@ from pathlib import Path, PurePath
 #: The WAL-reset bug fixed in SQLite 3.51.3. Reported, never upgraded here.
 _WAL_RESET_FIX = (3, 51, 3)
 
+#: SQL phase for the parent's read of one file. Named here, not in
+#: `orchestrator`, which does not spell P5's stage vocabulary.
+PHASE_FILE_READ = "extraction"
+
 _ACTIVE: "ScanProfile | None" = None
 
 _PREFIX_CUTS = (

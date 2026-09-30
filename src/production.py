@@ -26,7 +26,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Sequence
 
-from database_agent.db import batched_writes, create_schema, rebuildable_durability
+from database_agent.db import create_schema, rebuildable_durability
 from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
@@ -1112,26 +1112,24 @@ def _group_corpus(conn: sqlite3.Connection, roster, *,
 
     The grouping index is rebuildable, so these commits run at NORMAL. The
     acceptance, the plan approval and the privacy policy are written after
-    this function returns, back at FULL. Inner `transaction` calls become
-    savepoints while a batch is open, and the batch commits on the same
-    window the scan uses.
-    """
-    from scan_agent.scan import SCAN_COMMIT_BATCH
+    this function returns, back at FULL.
 
+    One transaction is not held across the loop. A model call reserves its
+    budget only when no transaction is open, and `group_subject` is where
+    that call happens.
+    """
     results: list[GroupingResult] = []
     with rebuildable_durability(conn):
-        with batched_writes(conn, size=SCAN_COMMIT_BATCH) as recorded:
-            for file_id, content_hash in roster:
-                results.append(group_subject(
-                    conn, file_id=file_id, content_hash=content_hash,
-                    plan_version_id=decisions.plan_version_id,
-                    limits=authorities.grouping_limits,
-                    knowledge=authorities.grouping_knowledge,
-                    user_seed_for=authorities.user_seed_for,
-                    p8_run_call=authorities.p8_run_call,
-                    p8_authorities=authorities.p8_authorities,
-                    embeddings=authorities.embeddings, created_at=created_at))
-                recorded()
+        for file_id, content_hash in roster:
+            results.append(group_subject(
+                conn, file_id=file_id, content_hash=content_hash,
+                plan_version_id=decisions.plan_version_id,
+                limits=authorities.grouping_limits,
+                knowledge=authorities.grouping_knowledge,
+                user_seed_for=authorities.user_seed_for,
+                p8_run_call=authorities.p8_run_call,
+                p8_authorities=authorities.p8_authorities,
+                embeddings=authorities.embeddings, created_at=created_at))
     return tuple(results)
 
 
