@@ -178,10 +178,13 @@ def test_a_pdfs_pages_without_words_reach_ocr_and_only_they_do():
             PdfPage(number=1, text="Honors Precalculus power functions due Thursday"),
             PdfPage(number=2, text=""),
             PdfPage(number=3, text="1"))),
-        "ocr_engine": engine})
+        "ocr_engine": engine,
+        # Six words on the cover is under the product floor of 20, so the cover
+        # is not enough to classify and every sparse page is still read.
+        "ocr_config": {"sparse_page_words": 20}})
     assert [r.run["analysis_tier"] for r in dispatched.results] == ["native", "ocr"]
-    assert asked[0]["pages"] == [2, 3]
-    assert dispatched.results[1].run["config"]["pages"] == [2, 3]
+    assert asked[0]["pages"] == [1, 2, 3]
+    assert dispatched.results[1].run["config"]["pages"] == [1, 2, 3]
 
 
 def test_a_pdf_with_no_text_layer_reaches_ocr():

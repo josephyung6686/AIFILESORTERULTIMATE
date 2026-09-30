@@ -210,7 +210,7 @@ def test_the_progress_line_names_the_ceiling_that_actually_fired(bootstrapped):
     sentence = cli._no_extractor_cause(bootstrapped)("capped")
 
     assert sentence is not None
-    assert str(cli.OCR_PAGE_CEILING) in sentence
+    assert f"{cli.FIRST_SCAN_OCR_PAGES} pages" in sentence
     assert str(cli.SPREADSHEET_CELL_CEILING) in sentence
     # The one that did NOT fire is not named, or the sentence is a list of every
     # ceiling this deployment holds rather than a cause.

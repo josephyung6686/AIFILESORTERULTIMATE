@@ -134,3 +134,31 @@ The remembered values sit on the connection `open_database` returns. A base `sql
 The pool join and the p8–p11 pass moved by about two seconds in opposite directions on this single pair of runs. Those stages were not rewritten. Treat that pair as run-to-run movement, and the 18.71 s wall-clock drop as the measurement of stages 1 and 2.
 
 Full suite on this change: **21 failed, 11,287 passed, 44 skipped, 34 xfailed** in 1,167 s. The baseline on the path-index commit was **19 failed, 11,277 passed, 44 skipped, 34 xfailed** in 1,148 s. Twelve new tests passed. The two additional failures are `test_the_sort_writes_groups_a_tree_and_a_plan` and `test_the_held_file_is_not_placed_and_the_released_one_is`. Those two failed in the earlier 11,267-passed run and passed in the 11,277-passed run. They also fail, with `placement_decisions` at 66 rather than 44, when run alone against the commit from before this change. The life-mate pair still fails, as it did in the 11,277 run, and passes alone. This run has both pairs failed at once.
+
+## OCR, from the owner's Mac profile
+
+The profile that follows is the owner's machine, a copy of Downloads at `~/star-sorter-test/dl`, 1,821 files, macOS, SQLite 3.50.4, `--scan-profile`. Wall clock 717 s, and the process then crashed in the targeted OCR pass (`_pool_result` was missing the file row). This Linux VM has no Vision, so none of the times below were reproduced here.
+
+Extraction worker time, summed, was 1,155 s. Vision OCR was 1,031 s of that, over 600 files (p50 0.58 s, p95 5.8 s, max 33.8 s). pdfium's text layer was 100.6 s over 1,080 files. The parent blocked in `pool.result` for 282 s. Database execute was 19.3 s (475,000 executes, 4,394 commits, 416,000 of the executes in extraction). Recognition was 2.0 s, hashing 2.2 s, the walk 0.1 s. The slowest files were all OCR: an 11 MB PDF at 65 s, a 1.8 MB PNG at 63 s, then scanned PDFs at 12–29 s. OCR is about 89% of extraction work (1,031 / 1,155). The next cost is OCR.
+
+SQLite on that report is 3.50.4. SQLite on this VM is 3.45.1. The WAL-reset fix is 3.51.3. Neither copy was upgraded.
+
+### What the first scan does
+
+`cli.FIRST_SCAN_OCR_PAGES` is 2. The ground-truth corpus measured 2026-09-06, pdfium, no OCR and no model, was 68 readable PDFs with a median of 2 pages. A cap of 2 reads that median document whole. The synthetic corpus in this note is one-page PDFs, so the cap does not shorten them. The Mac run already had the earlier 20-page OCR bound and a 120-second per-file bound, and Vision still took 1,031 s, because each file stayed inside those bounds. `OCR_PAGE_CEILING` stays 20 as that earlier bound. `PDF_PAGE_CEILING` stays 50; that measurement is the text-layer reader, and cutting it to 20 pages lost 3 classifications.
+
+`OCR_SECONDS_PER_FILE` stays 120. The Mac Vision samples maxed at 33.8 s. There is no classification-versus-time measurement that would set a lower cap. The page cap is what bounds a long PDF. A single image cannot be interrupted mid-call; an overrun is recorded as capped.
+
+OCR runs when the text layer, or an image's metadata, is under `OCR_SPARSE_PAGE_WORDS` (20). A page or a caption that already meets that floor is enough to classify. The engine is not called, and the file is still an OCR run: `completeness` is `capped`, `extractor_name` is `ocr.not_called`, and `config` carries `not_called` plus `pages_not_read`. A camera tag such as `Canon` stays under the floor and still goes to the engine.
+
+`VISION_CONFIG["recognition_level"]` is `fast` for this classification pass. The engine still accepts `accurate`. Label agreement between the two levels is not measured on this machine.
+
+`OCR_IMAGE_LONG_EDGE_PX` is 2,200. That is the long side of a US Letter page at the 200 DPI already in `VISION_CONFIG`, which is the size `_render_pdf_page` already produces. A loose image is not submitted larger than that page. The Mac report's 1.8 MB PNG does not include a pixel size, so this edge is not fitted to that file.
+
+A successful OCR run, including a capped classification read, is reused by content hash. A second path with the same bytes does not call the engine. A run the scan budget marked `deferred` does not count, so the next scan retries it. Changing the page cap, the recognition level, or the long-edge setting changes the config fingerprint, so the next Mac scan reads each file once under the new settings and then caches.
+
+### Deferred OCR, designed and not built
+
+A first pass that classifies from cheap evidence and leaves OCR-dependent files as "pending OCR", with the screen up before Vision finishes, does not fit this pipeline cheaply. Classification and the screen both happen inside one `run_p1_p7`, and the CLI prints when that call returns. A background tier would need a process that keeps running after the CLI returns, a status the review screen already understands, and a second classification once the text exists. `deferred` already records a budget stop and is excluded from "already extracted", so the next scan retries that file. A later full-OCR pass reads `pages_not_read` on the capped runs. That pass is not this change.
+
+Anything that can reach a cloud model is unchanged.

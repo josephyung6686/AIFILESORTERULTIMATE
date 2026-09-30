@@ -146,8 +146,13 @@ class ScanProfile:
         self.pool_wait_beyond = 0.0
         self.pdf_reader = "not recorded"
         self.ocr_engine = "not recorded"
+        self.partial = False
         self._conn = None
         self._originals: dict[str, object] = {}
+
+    def mark_partial(self) -> None:
+        """The scan raised before it finished. The report still gets written."""
+        self.partial = True
 
     def elapsed(self) -> float:
         return time.perf_counter() - self.t0
@@ -373,6 +378,7 @@ class ScanProfile:
                                 | set(self._sql_counts))
         }
         return {
+            "partial": self.partial,
             "wall_seconds": wall_s,
             "platform": sys.platform,
             "measured_on": sys.platform,

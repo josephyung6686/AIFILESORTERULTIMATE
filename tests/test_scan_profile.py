@@ -120,6 +120,32 @@ def test_hash_and_a_file_are_recorded_only_while_armed(tmp_path):
     conn.close()
 
 
+def test_a_crashed_scan_is_marked_partial(tmp_path):
+    """The report is written from a finally. A crash must not look finished."""
+    conn = open_database(tmp_path / "plan.sqlite")
+    profile = arm_scan_profile(conn)
+    try:
+        profile.mark_partial()
+        written = profile.write(tmp_path / "plan.sqlite")
+        body = json.loads(written["json"].read_text(encoding="utf-8"))
+        assert body["partial"] is True
+    finally:
+        profile.disarm()
+        conn.close()
+
+
+def test_a_finished_scan_is_not_partial(tmp_path):
+    conn = open_database(tmp_path / "finished.sqlite")
+    profile = arm_scan_profile(conn)
+    try:
+        written = profile.write(tmp_path / "finished.sqlite")
+        body = json.loads(written["json"].read_text(encoding="utf-8"))
+        assert body["partial"] is False
+    finally:
+        profile.disarm()
+        conn.close()
+
+
 def test_report_files_land_beside_the_database_and_name_the_pdf_reader(tmp_path):
     db = tmp_path / "plan.sqlite"
     conn = open_database(db)

@@ -84,7 +84,7 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -151,6 +151,10 @@ class ExtractionRequest:
     #: Opt-in scan profile. Default off: `perform` does not time the read and
     #: the outcome's timing fields stay at their defaults.
     profile: bool = False
+    #: A reading already stored for this content hash under the current engine
+    #: settings. None means the worker calls the engine. The worker holds no
+    #: connection, so the parent attaches the output and the worker replays it.
+    cached_ocr: Any = None
 
 
 @dataclass(frozen=True)
@@ -182,6 +186,8 @@ class TargetedOcrRequest:
     ocr_budget_spent: bool = False
     #: See `ExtractionRequest.profile`. Same default, same meaning.
     profile: bool = False
+    #: See `ExtractionRequest.cached_ocr`.
+    cached_ocr: Any = None
 
 
 @dataclass(frozen=True)
@@ -198,6 +204,22 @@ class ExtractionOutcome:
     message: str = ""
     work_seconds: float = 0.0
     readers: tuple[str, ...] = ()
+
+
+def _with_cached_reading(request, context: ExtractionContext) -> ExtractionContext:
+    """The context the worker should use.
+
+    A stored reading replaces the engine for this one file. Every other reader
+    stays the one the deployment wired. No stored reading leaves the context
+    alone, which is every first scan.
+    """
+    cached = request.cached_ocr
+    if cached is None:
+        return context
+    readers = replace(
+        context.readers,
+        ocr_engine=lambda _path, config=None, _cached=cached: _cached)
+    return replace(context, readers=readers)
 
 
 def perform(request: ExtractionRequest | TargetedOcrRequest,
@@ -229,6 +251,7 @@ def _perform(request: ExtractionRequest | TargetedOcrRequest,
     -- and the pool's whole shape is that a handle is a handle. The request knows
     what it is; nothing else has to.
     """
+    context = _with_cached_reading(request, context)
     if isinstance(request, TargetedOcrRequest):
         return _perform_targeted(request, context)
     try:

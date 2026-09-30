@@ -60,6 +60,9 @@ in it are from the machine that ran the command.
 The SQLite version is in the report. If it is below 3.51.3, the report says
 so. That release fixes a WAL-reset bug. This command does not upgrade SQLite.
 
+If the scan raises after the profile is armed, the report is still written.
+`partial` is true on that report. A scan that returns has `partial` false.
+
 ## Off by default
 
 Without `--scan-profile` the scan does not install a statement counter, does

@@ -242,13 +242,58 @@ def _has_successful_ocr_coverage(
     observations by construction, so "OCR evidence exists for this file version"
     would be false, and the word this function's own name uses is `successful`.
     """
+    # By content hash, not by this file's own rows. A second path with the same
+    # bytes is the same reading, and a second scan must not call the engine again.
     return any(
-        run.content_hash == content_hash
-        and run.analysis_tier == ocr.ANALYSIS_TIER
+        run.analysis_tier == ocr.ANALYSIS_TIER
         and run.finished_at is not None
         and run.failure_reason is None
         and run.completeness != DEFERRED_COMPLETENESS
-        for run in runs_for_file(conn, file_id))
+        for run in runs_for_content(conn, content_hash))
+
+
+def _ocr_settings_match(stored: Mapping, current: Mapping | None) -> bool:
+    """Whether a stored run was made under the settings this scan would use.
+
+    A missing key on the stored run is a miss: the page cap, the recognition
+    level and the long-edge limit live in that config, and a run from before
+    they were set is not this scan's reading. Extra keys on the stored run
+    (the context window, the pages actually sent) are not settings.
+    """
+    if not current:
+        return True
+    return all(stored.get(key) == value for key, value in current.items())
+
+
+def _cached_ocr_output(conn: sqlite3.Connection, content_hash: str,
+                       ocr_config: Mapping | None):
+    """The stored reading for these bytes, or None when the engine must run.
+
+    Keyed on the content hash and on the current engine settings. A second
+    path, or a path whose mtime moved and whose bytes did not, replays this
+    instead of calling the recogniser. A budget deferral is not a reading.
+    """
+    matches = [
+        run for run in runs_for_content(conn, content_hash)
+        if run.analysis_tier == ocr.ANALYSIS_TIER
+        and run.finished_at is not None
+        and run.failure_reason is None
+        and run.completeness != DEFERRED_COMPLETENESS
+        and not run.config.get("not_called")
+        and _ocr_settings_match(run.config, ocr_config)]
+    if not matches:
+        return None
+    run = matches[-1]
+    observations = observations_for_run(conn, run.run_id)
+    text = max((item.raw_value or "" for item in observations), default="",
+               key=len)
+    processed = 0 if run.coverage is None else run.coverage.processed
+    total = 0 if run.coverage is None else run.coverage.total
+    regions = ((ocr.OcrRegion(page=1, region=1, text=text),) if text else ())
+    return ocr.OcrOutput(
+        provider="cached", provider_version=run.extractor_version,
+        regions=regions, pages_processed=processed, pages_total=total,
+        capped=run.completeness == "capped")
 
 
 def _write(sink, result, written: list[str]) -> str:
@@ -1021,6 +1066,9 @@ def run_p1_p7(
                         decision=decision, path=path, now=stamp,
                         context_window=context_window, versions=versions,
                         profile=_profile_on,
+                        cached_ocr=(_cached_ocr_output(
+                            conn, file_row["content_hash"], readers.ocr_config)
+                            if readers.ocr_engine is not None else None),
                         # READ AT SUBMISSION, which is the latest this thread can
                         # answer for a file it is about to hand away. The window
                         # is bounded (`pool.lookahead`), so the total this is
@@ -1131,17 +1179,20 @@ def run_p1_p7(
                     # had been built and closed, so this was the only Vision call
                     # left on the calling thread. One request, consumed immediately:
                     # the pass is per file and there is nothing to read ahead of.
-                    targeted_outcome = _pool_result(pool, pool.submit(
-                        TargetedOcrRequest(
+                    targeted_outcome = _pool_result(
+                        pool, pool.submit(TargetedOcrRequest(
                             file_id=file_id, file_row=dict(file_row),
                             path=Path(file_row["current_path"]), now=now(),
                             context_window=context_window,
                             profile=_profile_on,
+                            cached_ocr=_cached_ocr_output(
+                                conn, content_hash, readers.ocr_config),
                             # ASKED AGAIN, HERE. The initial loop may have spent
                             # the rest of §8.6's OCR clock after this file went
                             # through it, and this pass is the more expensive of
                             # the two.
-                            ocr_budget_spent=_ocr_budget_spent())), file_row)
+                            ocr_budget_spent=_ocr_budget_spent())),
+                        file_row=file_row)
                     if targeted_outcome.dispatched is not None:
                         # The same clock the initial pass charges. A targeted read
                         # that spends four minutes has spent four minutes of the

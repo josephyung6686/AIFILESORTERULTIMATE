@@ -2936,6 +2936,41 @@ SPREADSHEET_CELL_CEILING: int = 2000
 #: is the order of a minute; 287 would be twenty.
 OCR_PAGE_CEILING: int = 20
 
+#: How many pages of a scanned PDF the first scan OCRs in order to classify it.
+#:
+#: WHY TWO. The ground-truth corpus measured 2026-09-06 with pdfium, no OCR and
+#: no model: 68 readable PDFs, median 2 pages. A cap of 2 reads the whole
+#: document for that median file. The synthetic 2,000-file corpus in
+#: `docs/performance-architecture-plan.md` is one-page PDFs, so this cap does
+#: not shorten any of them.
+#:
+#: WHY NOT THE TWENTY ABOVE. That twenty is the earlier full-read bound: at 20
+#: pages, 61 of those 68 PDFs are untouched. The owner's Mac profile of the
+#: 1,821-file Downloads copy (macOS, SQLite 3.50.4, `--scan-profile`, wall
+#: 717 s before the targeted-OCR crash) already ran with this twenty-page cap
+#: and with `OCR_SECONDS_PER_FILE` at 120. Vision still took 1,031 s over 600
+#: files (p50 0.58 s, p95 5.8 s, max 33.8 s). The cap did not bind the total,
+#: because hundreds of files each stayed inside it. The first scan now stops at
+#: the median length and records a longer file as capped.
+#:
+#: The text-layer measurement that chose `PDF_PAGE_CEILING` at 50 is a different
+#: reader. Cutting that reader to 20 pages lost 3 classifications. This constant
+#: does not change that reader.
+FIRST_SCAN_OCR_PAGES: int = 2
+
+#: The long edge, in pixels, a loose image is shrunk to before Vision.
+#:
+#: 11 inches is the long side of a US Letter page. At the 200 DPI already in
+#: `readers.deployment.VISION_CONFIG`, that side is 2,200 pixels, which is the
+#: long edge `_render_pdf_page` already produces for a letter page. A loose
+#: image is not submitted larger than a page this engine already renders.
+#:
+#: The Mac profile's slowest image was a 1.8 MB PNG at 63 s of file time. The
+#: report does not include its pixel size, so this edge is not fitted to that
+#: file. Whether 2,200 pixels changes that PNG is unverified until the next
+#: Mac run.
+OCR_IMAGE_LONG_EDGE_PX: int = 2200
+
 #: §8.6's "Maximum OCR time per file" (`00`:246), in seconds, and it is deliberately
 #: a fraction of `EXTRACTION_SECONDS_PER_FILE` below.
 #:
@@ -2947,6 +2982,10 @@ OCR_PAGE_CEILING: int = 20
 #: stopped. An in-process limit is only worth having if it is reached first, which is
 #: why 120 sits well under 600 and why a test asserts the inequality rather than
 #: trusting whoever next edits one of them.
+#: The Mac profile's Vision samples maxed at 33.8 s, under this 120. There is
+#: no classification-versus-time measurement that would justify a lower cap, so
+#: 120 stays. The page cap above is what bounds a long scan. A single image
+#: cannot be interrupted mid-call; an overrun is recorded as capped.
 OCR_SECONDS_PER_FILE: int = 120
 
 #: A PDF page with fewer words than this has no text layer and is sent to OCR, page
@@ -11837,9 +11876,10 @@ def extraction_context() -> ExtractionContext:
                               # publishes these same two numbers on P1's table, so
                               # what bounded a run can be read back from the run's
                               # own database rather than from this file.
-                              ocr_page_ceiling=OCR_PAGE_CEILING,
+                              ocr_page_ceiling=FIRST_SCAN_OCR_PAGES,
                               ocr_seconds_per_file=OCR_SECONDS_PER_FILE,
-                              ocr_sparse_page_words=OCR_SPARSE_PAGE_WORDS),
+                              ocr_sparse_page_words=OCR_SPARSE_PAGE_WORDS,
+                              ocr_image_long_edge=OCR_IMAGE_LONG_EDGE_PX),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -13069,7 +13109,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # exactly as every run this product has made.
     #
     # Setting either is now one `set_ceiling` call and needs no other change.
-    set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
+    set_ceiling(conn, "ocr.max_pages_per_file", FIRST_SCAN_OCR_PAGES)
     set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
@@ -22468,7 +22508,7 @@ def _nothing_could_be_read_report(
 #: A source type absent from this mapping produces no sentence rather than a guess.
 _CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
     "ocr": ("OCR stopped at this deployment's per-file ceiling of "
-            f"{OCR_PAGE_CEILING} pages or {OCR_SECONDS_PER_FILE} seconds"),
+            f"{FIRST_SCAN_OCR_PAGES} pages or {OCR_SECONDS_PER_FILE} seconds"),
     "text_document": ("PDF text extraction stopped at this deployment's ceiling "
                       f"of {PDF_PAGE_CEILING} pages per file"),
     "spreadsheet": ("a spreadsheet stopped at this deployment's ceiling of "
@@ -28702,6 +28742,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
+    except BaseException:
+        if scan_profile_run is not None:
+            scan_profile_run.mark_partial()
+        raise
     finally:
         if scan_profile_run is not None:
             try:
