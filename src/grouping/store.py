@@ -480,13 +480,14 @@ def record_edges(
     # stay in call order: an earlier edge must not see a later one that the
     # sequential update had not inserted yet.
     known: set[str] = set()
-    pending = [edge.edge_id for edge in edges]
-    for start in range(0, len(pending), 400):
-        chunk = pending[start:start + 400]
-        placeholders = ",".join("?" * len(chunk))
+    if edges:
+        # One call's edges, not the corpus. A graph does not approach SQLite's
+        # variable limit; the whole-corpus count is many calls, not one.
+        placeholders = ",".join("?" * len(edges))
         for row in conn.execute(
-                f"SELECT edge_id FROM group_edges WHERE edge_id IN ({placeholders})",
-                chunk):
+                "SELECT edge_id FROM group_edges WHERE edge_id IN "
+                f"({placeholders})",
+                [edge.edge_id for edge in edges]):
             known.add(row[0])
     with transaction(conn):
         for edge in edges:

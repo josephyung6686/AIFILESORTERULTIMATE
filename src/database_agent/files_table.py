@@ -311,14 +311,14 @@ def get_file(conn: sqlite3.Connection, file_id: str) -> sqlite3.Row:
     from database_agent.db import connection_cache
 
     cache = connection_cache(conn, "_file_rows")
-    generation = conn.total_changes
-    if cache is not None:
+    generation = getattr(conn, "total_changes", None)
+    if cache is not None and generation is not None:
         slot = cache.get(file_id)
         if slot is not None and slot[0] == generation:
             return slot[1]
     row = conn.execute(
         "SELECT * FROM files WHERE file_id = ?", (file_id,)).fetchone()
-    if cache is not None:
+    if cache is not None and generation is not None:
         cache[file_id] = (generation, row)
     return row
 

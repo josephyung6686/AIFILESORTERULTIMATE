@@ -7,6 +7,7 @@ armed profile. No trace is installed, no per-file record is kept, and
 from __future__ import annotations
 
 import csv
+import math
 import sqlite3
 import sys
 import time
@@ -103,7 +104,7 @@ def _percentile(values: list[float], percent: float) -> float | None:
     ordered = sorted(values)
     if len(ordered) == 1:
         return ordered[0]
-    rank = int(__import__("math").ceil(percent / 100.0 * len(ordered)))
+    rank = math.ceil(percent / 100.0 * len(ordered))
     rank = min(max(rank, 1), len(ordered))
     return ordered[rank - 1]
 

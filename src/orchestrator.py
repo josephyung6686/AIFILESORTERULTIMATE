@@ -1141,7 +1141,7 @@ def run_p1_p7(
                             # the rest of §8.6's OCR clock after this file went
                             # through it, and this pass is the more expensive of
                             # the two.
-                            ocr_budget_spent=_ocr_budget_spent())))
+                            ocr_budget_spent=_ocr_budget_spent())), file_row)
                     if targeted_outcome.dispatched is not None:
                         # The same clock the initial pass charges. A targeted read
                         # that spends four minutes has spent four minutes of the
