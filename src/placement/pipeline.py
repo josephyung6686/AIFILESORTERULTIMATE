@@ -2346,10 +2346,40 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                     assessment.scored, home=home, parent_of=parent_of,
                     threshold=inputs.policy.minimum_support_threshold,
                     expects=_expects)
+                # A SECOND WAY TO BE ALLOWED TO STAY, ADDED BESIDE THE FIRST.
+                # A file with nothing supporting anything may stay where it is
+                # when the folder it is in either
+                #
+                #  * IS ONE THE PERSON MADE (`home in their_own_folders`, an
+                #    ADOPTED node) -- new, and the reason is that an adopted
+                #    folder never carries `expected_values`: those belong to a
+                #    node this run PROPOSED. Expected values are what let a
+                #    folder ATTRACT a file; they are not what lets a file
+                #    already in one remain. The first arm also could not fire
+                #    for a folder the person made at the TOP of the scan, whose
+                #    `parent_of` is None -- in a real corpus most of them --
+                #    while a loose file in the scanned folder has no own-folder
+                #    at all and so already presents as `home is None`. Three
+                #    club files already filed by hand in the person's own
+                #    top-level folder were abstained `semantic_only` off their
+                #    own shelf (`tests/integration/
+                #    test_the_judge_names_the_situation.py::
+                #    test_those_files_are_asked_their_situations_fields_and_are_placed`).
+                #
+                #  * or EXPECTS SOMETHING and is nested -- the original arm,
+                #    which is what `tests/p11/test_p11_pipeline.py::
+                #    test_a_model_choice_with_no_support_confirms_the_folder_the_
+                #    file_is_in` pins, and it stays exactly as it was.
+                #
+                # Neither, and the abstention holds: `test_a_folder_that_expects_
+                # nothing_is_not_confirmed_on_no_support` names a folder that is
+                # not the person's and expects nothing, and naming it would be a
+                # guess about a folder nobody adopted.
                 if (best is None or best.support_score == 0) and not (
                         stays and chosen_node_id == home and home is not None
-                        and parent_of.get(home) is not None
-                        and _expects(home)):
+                        and (home in their_own_folders
+                             or (parent_of.get(home) is not None
+                                 and _expects(home)))):
                     if shelf is None:
                         return _abstention(
                             conn, context,
