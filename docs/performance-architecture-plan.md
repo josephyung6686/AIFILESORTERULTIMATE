@@ -129,6 +129,8 @@ The explain phase is the stage 1 check: the same 12,149 calls, 13.85 s less. `_m
 
 The stamp queries are why `execute` went up by 38,622 calls and about one second. The wall clock still fell by 18.71 s.
 
+The remembered values sit on the connection `open_database` returns. A base `sqlite3.Connection` cannot carry attributes, and a cache kept beside the connection would hold it open after `cli.main` dropped its reference. The 101.80 s figure is from the run before that move. The scan holds one connection for the whole run, so the hit path is the same.
+
 The pool join and the p8–p11 pass moved by about two seconds in opposite directions on this single pair of runs. Those stages were not rewritten. Treat that pair as run-to-run movement, and the 18.71 s wall-clock drop as the measurement of stages 1 and 2.
 
 The suite comparison is recorded with the change once the full run finishes. The baseline to match is 19 failed, 11,277 passed, 44 skipped, 34 xfailed.

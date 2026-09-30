@@ -50,7 +50,7 @@ from database_agent.files_table import get_file
 
 from evidence_shape.location import Segment
 from evidence_shape.locator import serialize_container_path
-from evidence_shape.store import is_derived_extractor
+from evidence_shape.store import _attribute_cache, is_derived_extractor
 
 #: §2.4's "language where relevant" slot, IMPORTED rather than spelled. `_matches`
 #: refuses term matches from it (see there), and a detector holding its own copy of
@@ -688,14 +688,6 @@ def settled_by_file_kind(outcome: "Abstention | Recognition") -> bool:
     return isinstance(outcome, Recognition) and not outcome.matches
 
 
-def _connection_closed(conn: sqlite3.Connection) -> bool:
-    try:
-        conn.total_changes
-    except sqlite3.ProgrammingError:
-        return True
-    return False
-
-
 def _routing_stamp(conn: sqlite3.Connection, file_id: str,
                    content_hash: str) -> tuple | None:
     """How many routing rows this file version has, or None if P5's table is absent.
@@ -831,11 +823,9 @@ class Detector:
         #: among leaders the file already named.
         self._declared_lives = declared_lives
         self._topic_condition_mentions = topic_condition_mentions
-        # One connection -> one file version -> (stamp, frozen outcome). The
-        # connection is the key, so a closed handle can be dropped without
-        # reusing another connection's answers. The stamp is everything
-        # `explain` reads that a later call can change.
-        self._explanations: dict[sqlite3.Connection, dict] = {}
+        self._handling_key = tuple(sorted(
+            (schema_id, handling.handling_class, handling.protected, handling.basis)
+            for schema_id, handling in self._handling.items()))
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
         # and a tie abstains. That is why no cross-schema weight is needed.
@@ -1152,22 +1142,16 @@ class Detector:
         changed answer misses.
         """
         stamp = self._explanation_stamp(conn, file_id, content_hash)
-        per_conn = self._explanations.get(conn)
-        if per_conn is None:
-            self._drop_closed_explanations()
-            per_conn = {}
-            self._explanations[conn] = per_conn
-        slot = per_conn.get((file_id, content_hash))
-        if slot is not None and slot[0] == stamp:
-            return slot[1]
+        cache = _attribute_cache(conn, "_explanation_cache")
+        key = (id(self._index), self._handling_key, file_id, content_hash)
+        if cache is not None:
+            slot = cache.get(key)
+            if slot is not None and slot[0] == stamp:
+                return slot[1]
         outcome = self._explain_uncached(conn, file_id, content_hash)
-        per_conn[(file_id, content_hash)] = (stamp, outcome)
+        if cache is not None:
+            cache[key] = (stamp, outcome)
         return outcome
-
-    def _drop_closed_explanations(self) -> None:
-        closed = [held for held in self._explanations if _connection_closed(held)]
-        for held in closed:
-            del self._explanations[held]
 
     def _explanation_stamp(self, conn: sqlite3.Connection, file_id: str,
                            content_hash: str) -> tuple:

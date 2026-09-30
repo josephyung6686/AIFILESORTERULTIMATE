@@ -55,6 +55,10 @@ def default_database_path(bundle_id: str) -> Path:
     return Path.home() / "Library" / "Application Support" / bundle_id / "agent.sqlite"
 
 
+class _Database(sqlite3.Connection):
+    """The product's connection. Attributes on this subclass hold read caches."""
+
+
 def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Connection:
     """Open (creating if absent) the single local database (§0).
 
@@ -77,8 +81,13 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     # database can see, and a setting nobody can read back is one that exists only
     # in the source. `tests/test_database_contention.py` asks SQLite rather than
     # this file.
+    # A subclass so a read cache can live on the handle the caller already
+    # holds. The base connection accepts no attributes. A cache kept beside
+    # it would have to retain the connection, and `cli.main` drops its
+    # reference at the end of a run.
     conn = sqlite3.connect(path, isolation_level=None,
-                           timeout=BUSY_TIMEOUT_MS / 1000)
+                           timeout=BUSY_TIMEOUT_MS / 1000,
+                           factory=_Database)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     conn.execute("PRAGMA foreign_keys = ON")

@@ -200,29 +200,22 @@ def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]
         (run_id,))]
 
 
-# file_id -> (stamp, decoded rows). Held on the connection object so a new
-# connection cannot see another database's rows, including when CPython reuses
-# an id. Closed connections are dropped on the next read.
-_OBSERVATIONS: dict[sqlite3.Connection, dict[str, tuple]] = {}
+def _attribute_cache(conn: sqlite3.Connection, name: str) -> dict | None:
+    """A dict stored on `conn`, or None when this handle cannot carry one.
 
-
-def _connection_closed(conn: sqlite3.Connection) -> bool:
+    `open_database` returns a connection subclass that accepts attributes.
+    A base `sqlite3.Connection` does not, and a cache kept in a side table
+    would have to retain the connection after `cli.main` dropped it.
+    """
+    cache = getattr(conn, name, None)
+    if isinstance(cache, dict):
+        return cache
     try:
-        conn.total_changes
-    except sqlite3.ProgrammingError:
-        return True
-    return False
-
-
-def _observation_bucket(conn: sqlite3.Connection) -> dict[str, tuple]:
-    bucket = _OBSERVATIONS.get(conn)
-    if bucket is not None:
-        return bucket
-    for held in [one for one in _OBSERVATIONS if _connection_closed(one)]:
-        del _OBSERVATIONS[held]
-    bucket = {}
-    _OBSERVATIONS[conn] = bucket
-    return bucket
+        cache = {}
+        setattr(conn, name, cache)
+    except AttributeError:
+        return None
+    return cache
 
 
 def _evidence_stamp(conn: sqlite3.Connection, file_id: str) -> tuple:
@@ -244,13 +237,15 @@ def _evidence_stamp(conn: sqlite3.Connection, file_id: str) -> tuple:
 
 def observations_for_file(conn: sqlite3.Connection, file_id: str) -> list[Observation]:
     stamp = _evidence_stamp(conn, file_id)
-    bucket = _observation_bucket(conn)
-    slot = bucket.get(file_id)
-    if slot is not None and slot[0] == stamp:
-        return list(slot[1])
+    cache = _attribute_cache(conn, "_observation_cache")
+    if cache is not None:
+        slot = cache.get(file_id)
+        if slot is not None and slot[0] == stamp:
+            return list(slot[1])
     rows = tuple(_observation_from_row(row) for row in conn.execute(
         "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,)))
-    bucket[file_id] = (stamp, rows)
+    if cache is not None:
+        cache[file_id] = (stamp, rows)
     return list(rows)
 
 
