@@ -688,6 +688,33 @@ def settled_by_file_kind(outcome: "Abstention | Recognition") -> bool:
     return isinstance(outcome, Recognition) and not outcome.matches
 
 
+def _connection_closed(conn: sqlite3.Connection) -> bool:
+    try:
+        conn.total_changes
+    except sqlite3.ProgrammingError:
+        return True
+    return False
+
+
+def _routing_stamp(conn: sqlite3.Connection, file_id: str,
+                   content_hash: str) -> tuple | None:
+    """How many routing rows this file version has, or None if P5's table is absent.
+
+    `_capture` reads `extraction_routing`. A unit test that never created that
+    table still explains text, and the query has to miss rather than raise.
+    """
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*), IFNULL(MAX(routing_id), 0) "
+            "FROM extraction_routing WHERE file_id = ? AND content_hash = ?",
+            (file_id, content_hash)).fetchone()
+    except sqlite3.OperationalError as exc:
+        if "no such table" not in str(exc).lower():
+            raise
+        return None
+    return (int(row[0]), int(row[1]))
+
+
 def _tokens(text: str) -> tuple[str, ...]:
     """Words, case-folded. Everything that is not a letter or digit separates.
 
@@ -804,6 +831,11 @@ class Detector:
         #: among leaders the file already named.
         self._declared_lives = declared_lives
         self._topic_condition_mentions = topic_condition_mentions
+        # One connection -> one file version -> (stamp, frozen outcome). The
+        # connection is the key, so a closed handle can be dropped without
+        # reusing another connection's answers. The stamp is everything
+        # `explain` reads that a later call can change.
+        self._explanations: dict[sqlite3.Connection, dict] = {}
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
         # and a tie abstains. That is why no cross-schema weight is needed.
@@ -1112,7 +1144,60 @@ class Detector:
 
     def explain(self, conn: sqlite3.Connection, file_id: str,
                 content_hash: str) -> Recognition | Abstention:
-        """What this detector concluded about one file version, and why."""
+        """What this detector concluded about one file version, and why.
+
+        A plain scan asks this about six times per file. The value is frozen.
+        A repeat with the same path, evidence, routing, and declared or settled
+        answers returns the same object. A new row, a supersede, a move, or a
+        changed answer misses.
+        """
+        stamp = self._explanation_stamp(conn, file_id, content_hash)
+        per_conn = self._explanations.get(conn)
+        if per_conn is None:
+            self._drop_closed_explanations()
+            per_conn = {}
+            self._explanations[conn] = per_conn
+        slot = per_conn.get((file_id, content_hash))
+        if slot is not None and slot[0] == stamp:
+            return slot[1]
+        outcome = self._explain_uncached(conn, file_id, content_hash)
+        per_conn[(file_id, content_hash)] = (stamp, outcome)
+        return outcome
+
+    def _drop_closed_explanations(self) -> None:
+        closed = [held for held in self._explanations if _connection_closed(held)]
+        for held in closed:
+            del self._explanations[held]
+
+    def _explanation_stamp(self, conn: sqlite3.Connection, file_id: str,
+                           content_hash: str) -> tuple:
+        file_row = get_file(conn, file_id)
+        if file_row is None:
+            return ("no-file",)
+        path = file_row["current_path"]
+        extension = file_row["extension"]
+        protected = is_protected_container(PurePath(path), extra=self._is_protected)
+        if protected:
+            return ("protected", path, extension)
+        evidence = conn.execute(
+            "SELECT COUNT(*), IFNULL(MAX(rowid), 0), COUNT(superseded_by), "
+            "IFNULL(MIN(observation_key), ''), IFNULL(MAX(observation_key), '') "
+            "FROM evidence WHERE file_id = ? AND content_hash = ?",
+            (file_id, content_hash)).fetchone()
+        routing = _routing_stamp(conn, file_id, content_hash)
+        declared = tuple(sorted(self._declared()))
+        settled = None
+        if self._settled_by_user is not None:
+            settled = tuple(sorted(frozenset(self._settled_by_user())))
+        corroborating = None
+        if self._corroborating is not None:
+            corroborating = tuple(sorted(
+                self._corroborating(conn, file_id, content_hash)))
+        return ("open", path, extension, tuple(evidence), routing,
+                declared, settled, corroborating)
+
+    def _explain_uncached(self, conn: sqlite3.Connection, file_id: str,
+                          content_hash: str) -> Recognition | Abstention:
         file_row = get_file(conn, file_id)
         if file_row is None:
             return Abstention("no_evidence", None,

@@ -200,9 +200,58 @@ def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]
         (run_id,))]
 
 
+# file_id -> (stamp, decoded rows). Held on the connection object so a new
+# connection cannot see another database's rows, including when CPython reuses
+# an id. Closed connections are dropped on the next read.
+_OBSERVATIONS: dict[sqlite3.Connection, dict[str, tuple]] = {}
+
+
+def _connection_closed(conn: sqlite3.Connection) -> bool:
+    try:
+        conn.total_changes
+    except sqlite3.ProgrammingError:
+        return True
+    return False
+
+
+def _observation_bucket(conn: sqlite3.Connection) -> dict[str, tuple]:
+    bucket = _OBSERVATIONS.get(conn)
+    if bucket is not None:
+        return bucket
+    for held in [one for one in _OBSERVATIONS if _connection_closed(one)]:
+        del _OBSERVATIONS[held]
+    bucket = {}
+    _OBSERVATIONS[conn] = bucket
+    return bucket
+
+
+def _evidence_stamp(conn: sqlite3.Connection, file_id: str) -> tuple:
+    """Changes when a row is inserted, superseded, or its key is rewritten.
+
+    `raw_value` and the other provenance columns cannot be updated: the schema
+    trigger refuses them. Supersede is the legal update, and it moves
+    `COUNT(superseded_by)`. A rewritten `observation_key` moves the min or the
+    max when it is either extreme; a middle key of three or more is outside
+    the published writer.
+    """
+    row = conn.execute(
+        "SELECT COUNT(*), IFNULL(MAX(rowid), 0), COUNT(superseded_by), "
+        "IFNULL(MIN(observation_key), ''), IFNULL(MAX(observation_key), '') "
+        "FROM evidence WHERE file_id = ?",
+        (file_id,)).fetchone()
+    return tuple(row)
+
+
 def observations_for_file(conn: sqlite3.Connection, file_id: str) -> list[Observation]:
-    return [_observation_from_row(row) for row in conn.execute(
-        "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,))]
+    stamp = _evidence_stamp(conn, file_id)
+    bucket = _observation_bucket(conn)
+    slot = bucket.get(file_id)
+    if slot is not None and slot[0] == stamp:
+        return list(slot[1])
+    rows = tuple(_observation_from_row(row) for row in conn.execute(
+        "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,)))
+    bucket[file_id] = (stamp, rows)
+    return list(rows)
 
 
 def observations_by_key(conn: sqlite3.Connection,
