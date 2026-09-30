@@ -534,6 +534,7 @@ from review_surface.progress import (
 )
 from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
+from items.schema import create_items_schema
 from review_surface.trail import file_trail
 #: `110` §0.2. The comparison between the plan the person froze and the proposal
 #: this run built, which existed in four functions and was called by nothing.
@@ -13000,6 +13001,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # belongs to the part, not to whether today's run reaches it.
     create_mutation_schema(conn)
     create_review_schema(conn)
+    create_items_schema(conn)
     for name, key in CEILINGS.items():
         # Named, so the one that is not a spend ceiling is visibly not one, and so
         # that the one with a SECOND ANSWER elsewhere is visibly the same number as

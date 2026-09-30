@@ -1,8 +1,8 @@
-# Item and relationship model — design only
+# Item and relationship model
 
-Date: 2026-09-30. Status: proposal, except the sections marked **Exists**. This change adds one document. It adds no code, no migration, and no new behaviour.
+Date: 2026-09-30. Status: proposal, except the sections marked **Exists**, and except stage (a) in section 11, which is implemented on branch `app`.
 
-Branch: `cursor/item-relationship-model-29aa`, stacked on `cursor/context-onboarding-plan-29aa`. `main` is untouched.
+Branch: `app`, starting from `cursor/item-relationship-model-29aa` (that branch stacks the sorting pipeline and context onboarding). `main` is untouched. Nothing here is merged.
 
 The owner decided the product is a context graph over what a person already has. Files, folders, emails, calendar events, tasks, people, and projects are items. Relationships are built from evidence. The folder tree is one view among Graph, Timeline, Board, Table, and Folder. Files stay where they are on disk; choosing an item opens the original path. Gmail and Calendar are read-only. A student profile is the first profile, and profiles are pluggable. The agent has one ladder: connector, nudge, assistant. It acts only with approval. It does not change anything silently, and it does not send a protected hold to the cloud.
 
@@ -10,10 +10,10 @@ This note starts from `docs/architecture-audit.md` and from the code that audit 
 
 ## What was not verified
 
-- The founder's Downloads folder (1,833 files). No name list and no rescan.
+- The founder's Downloads folder (1,833 files). No name list and no rescan. Stage (a)'s tests rename, edit, and delete files under pytest's temporary directory. Nothing in that stage has been run on the owner's Downloads.
 - Whether the macOS run passed `--semantic-model`.
 - A line-by-line reading of every `group_edges.weight` writer. The column exists (`src/grouping/schema.py`). This note does not adopt that float as a confidence.
-- `src/scan_agent/watch`. Identity reattachment described below is `database_agent.files_table.observe_path`, called from `scan_agent/basic_record.py` on a recording scan. `scan_agent/scan.py` has a path that does not re-hash and does not call `observe_path`. This note did not establish a live filesystem watcher.
+- A platform filesystem watcher. `SessionWatch.poll` is the stdlib stand-in; FSEvents is still not bound. Stage (a) re-finds a renamed file through `observe_path` on the next `reconcile_tree` or live scan. `scan_agent/scan.py` still has a path that does not re-hash when size and mtime are unchanged.
 - Gmail and Calendar APIs, scopes, and payload shapes. No ingester exists in `src/`. A search for those products in Python found only academic-calendar wording in the sorter.
 - Whether an edited structural answer now creates a draft plan version. `planning/75` recorded that link as missing on 2026-08-30. This pass did not re-audit it.
 - A database shared by two people. `learning_records` requires `user_id IS NOT NULL` and does not filter to the current user (`src/database_agent/learning.py`).
@@ -56,7 +56,7 @@ One local model of the person's items and the evidenced links between them, so a
 
 **Exists.** Apply still renames or copies (`mutation/execute.py`). Leave-in-place is a residual policy (`tree_design/vocabulary.py` `leave-in-place`). There is no in-repo screen that opens `current_path`.
 
-**Proposal.** The context graph is a new pair of tables, items and relationships. It does not reuse `group_edges` as its storage. Those edges are file-to-file, they carry a float `weight`, and they exist to group files before a model sees a dossier. A life link from an email to a project does not fit that row. The seven edge types may be *projected* into relationships (stage 2). They stay where they are.
+**Proposal.** The context graph is a new pair of tables, items and relationships. It does not reuse `group_edges` as its storage. Those edges are file-to-file, they carry a float `weight`, and they exist to group files before a model sees a dossier. A life link from an email to a project does not fit that row. The seven edge types may be *projected* into relationships (the witnessed-links stage after the thin slice). They stay where they are.
 
 **Proposal.** `tree_nodes` stays the proposed filing tree of the sorter. The Folder view in this product reads `files.current_path`. It does not read `tree_nodes`, and it does not call `mutation/execute.py`. Until a later owner ruling turns apply off, the sorter can still move files. This plan does not turn apply off. A view that promises "nothing moved" must not share a button with apply.
 
@@ -68,8 +68,8 @@ One local model of the person's items and the evidenced links between them, so a
 |---|---|---|
 | `file` | yes | `file_id` of the live version, chained across supersession |
 | `folder` | yes | directory inode when `lstat` works, else the path string, reattached by the same vanished-home rule as files |
-| `email` | later, stage 6 | provider message id + local account id |
-| `event` | later, stage 6 | provider event id + calendar id |
+| `email` | later, stage (b) | provider message id + local account id |
+| `event` | later, stage (b) | provider event id + calendar id |
 | `project` | yes, as a declared name | the profile's project id, not a folder path |
 | `course` | yes, as a declared name | the profile's course id |
 | `person` | no, until a profile asks | a local id; an address is an alias |
@@ -89,7 +89,7 @@ One local model of the person's items and the evidenced links between them, so a
 
 **Proposal.** `open_target` for a file or folder is `current_path`. Choosing the item opens that path. For an email or event it is the provider's own deep link, stored locally, and the bytes stay on the laptop. There is no virtual filesystem.
 
-**Proposal.** A missing path does not delete the item. The item is marked `absent` until a later scan finds it. Links to it stay, with the same state they had. Deleting a row because the file moved is how a rename looks like data loss.
+**Proposal.** A missing path does not delete the item. The item's `presence` becomes `missing` until a later scan finds it. Links to it stay, with the same state they had. Deleting a row because the file moved is how a rename looks like data loss.
 
 ## 3. Relationships
 
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS items (
     file_id        TEXT,
     open_target    TEXT,
     external_key   TEXT,
-    presence       TEXT NOT NULL,  -- live, absent
+    presence       TEXT NOT NULL,  -- live, missing
     typing_state   TEXT NOT NULL,  -- typed, unplaced, held
     type_schema    TEXT,
     profile_id     TEXT,
@@ -288,27 +288,63 @@ Approval is a person event (section 5). Silent approval is a test failure at eve
 
 ## 11. Staged build
 
-Each stage is a later change. This document is stage 0. Checks are fixture counts. The Downloads tree is not a stage gate, because it is not in the repo.
+The first three stages are a thin slice. Later stages stay after that slice and are not started with it. This document's reorder is stage 0. Checks are fixture counts. The Downloads tree is not a stage gate, because it is not in the repo.
+
+Wrong and unplaced stay separate counts on every stage. A wrong count is an identity, type, or link the stage showed as true and the check rejects. An unplaced count is `typing_state = unplaced`, or a file with no `member-of` once links exist. A missing path is neither: the item row stays, and `presence` is `missing`.
 
 ### Stage 0 — this document
 
-No code. Done when the document is the only new file on the branch.
+The stage order below. Done when the thin slice is the first build order in this file.
 
-### Stage 1 — file items that follow `observe_path`
+### Stage (a) — a path index that survives a rename or move done outside the app
 
-**Files:** `src/items/schema.py`, `src/items/identity.py`, `tests/items/test_file_identity.py`, a call from `cli._bootstrap`.
+**Implemented on `app`.** Files: `src/items/schema.py`, `src/items/identity.py`, `tests/items/test_file_identity.py`, `create_items_schema` from `cli._bootstrap`, and `project_after_scan` at the end of the live scan (`orchestrator.run_p1_p7`).
 
-**Check.** A fixture of 20 files. Rename ten outside the process, edit the bytes of five in place, copy five to a second live path. Rescan through `observe_path`.
+**What this stage reuses.** The `files` table and `content_hash` (`hash_file`). `observe_path`, reached through `record_basic_record`, for same-bytes rename and move, for an edit that supersedes a `file_id`, and for two live copies staying two file rows. Inode confirmation stays inside `observe_path`; the item layer does not store an inode as identity. `reconcile_disappearances` and `set_path_no_longer_exists` retire a gone path from the corpus and delete nothing. The walk is `scan_agent.traversal.walk` over `FilesystemCorpusSource`, after `require_access`. `SessionWatch.poll` is the existing session watcher (a stdlib stand-in for FSEvents). A detection still does not rewrite `files`; the reconcile pass is what applies the fingerprint after the watch has seen a change. The live scan already calls `observe_path` on a recompute and already retires disappearances; `project_after_scan` only points items at those rows.
 
-- Renames: same `item_id`, `open_target` updated, 0 new items.
-- Edits: same `item_id`, new `file_id` on `item_versions`, old version retained.
-- Copies: a second item, plus no merge.
+**What this stage adds.** `items` and `item_versions`, so an edit that mints a new `file_id` keeps one `item_id`. `presence = missing` when the path is gone. `reconcile_tree`, the pass the tests run: walk, `observe_path`, disappearance, then the same item projection the live scan runs.
 
-**Kill (proposal).** Any rename produces a second item, or any copy collapses two live paths into one item. Stop and keep `file_id` as the only file identity until the chain is fixed.
+**Check.** A temporary fixture, rescanned through `reconcile_tree`.
 
-**Continue (proposal).** 0 split renames, 0 merged copies, on that fixture.
+- A file renamed or moved outside the process, including a move onto a new inode: same `item_id`, `open_target` updated, 0 new items. Wrong (a second item): 0.
+- An in-place edit: same `item_id`, the new `file_id` and the old one both on `item_versions`. Wrong (a new item): 0.
+- Two live copies of the same bytes: two items. Wrong (one item for two live paths): 0.
+- A deleted file: the `items` row remains and `presence` is `missing`. The `files` row remains with `scan_state = path_no_longer_exists`. That missing count is not the unplaced count and not the wrong count.
+- Unplaced: these file items stay `typing_state = unplaced`, because this stage does not type them. A missing path does not change that count.
 
-### Stage 2 — witnessed links only
+**Kill (proposal).** Any rename or fingerprint move produces a second item, any copy collapses two live paths into one item, or a deleted file has no `items` row. Stop and keep `file_id` as the only file identity until the chain is fixed.
+
+**Continue (proposal).** Wrong identity changes: 0. Every deleted fixture file is still a row with `presence = missing`. Unplaced is reported on its own and is not the name for missing.
+
+### Stage (b) — read-only Gmail and Calendar, stored locally as items
+
+**Not started.** Files, when it starts: `src/items/ingest_mailbox.py`, `tests/items/test_mailbox_local.py`. A fixture message and a fixture event, not a live account.
+
+**Check.** One message, one attachment whose hash matches a local file: an email item, stored locally, with the message id and the hash, and no body in any table the model-release path reads. One calendar event: an event item with the provider event id, start, end, and title, and no description. A protected local file matched by attachment hash: the email item's `typing_state` is `held`, and a model-request builder returns no body and no attachment text. The test double has no network and no send.
+
+- Wrong: a body, token, or raw message stored as a releasable excerpt, or an item written as approved. Count those as wrong, not as unplaced.
+- Unplaced: an attachment hash that matches no local file stays an email item with no file link. That is unplaced relative to the library, not a wrong link, and the email item is still stored.
+
+**Kill (proposal).** A body, token, or raw message appears in a releasable excerpt, or the ingester writes `approved`, or it sends or modifies.
+
+**Continue (proposal).** The fixture message and the fixture event are local items. Wrong excerpts: 0. Held stays held. Unplaced attachments (no matching file) stay unplaced and are still listed.
+
+### Stage (c) — one deadline-to-files view
+
+**Not started.** One query, not the five views. Files, when it starts: `src/items/deadline_view.py`, `tests/items/test_deadline_view.py`.
+
+**Check.** One event item with a start time, two file items with a witnessed or approved link to it, and one file the fixture expects at that deadline with no such link.
+
+- The two linked files appear on the deadline.
+- The expected file with no link appears as missing from the deadline, and its `items` row is still there. That is a missing count.
+- Wrong: a file shown as linked when the relationship is not witnessed or approved. Count 0.
+- Unplaced: a file with `typing_state = unplaced` and no link stays in the unplaced count. It is not counted as a wrong link, and it is not dropped from the result to make the deadline look complete.
+
+**Kill (proposal).** The view hides the gap, shows an inferred link as though it were witnessed, or omits the unplaced count.
+
+**Continue (proposal).** Linked count matches the witnessed or approved rows. Missing count matches the expected file with no such row. Wrong links shown: 0. Unplaced stays its own count.
+
+### Later — witnessed links only
 
 **Files:** `src/items/relationships.py`, `tests/items/test_witnessed_links.py`.
 
@@ -320,7 +356,7 @@ Project `duplicate` and `version-family` from `group_edges` when `evidence_ref` 
 
 **Continue (proposal).** Wrong links on the fixture: 0. Unplaced files: still unplaced. The business-only gate fixture gains no `member-of`.
 
-### Stage 3 — approve, reject, undo
+### Later — approve, reject, undo
 
 **Files:** `src/database_agent/events.py` (scope `link`, owner permitting), `src/items/decisions.py`, `tests/items/test_link_decisions.py`.
 
@@ -328,9 +364,9 @@ Project `duplicate` and `version-family` from `group_edges` when `evidence_ref` 
 
 **Kill (proposal).** A link reject changes a recognition, or a reject of one pair suppresses another.
 
-**Continue (proposal).** 0 schema changes. 0 cross-pair suppressions. Undo leaves the prior event in place.
+**Continue (proposal).** 0 schema changes. 0 cross-pair suppressions. Undo leaves the prior event in place. Wrong links (one reject suppressing a different pair): 0. Unplaced files stay unplaced.
 
-### Stage 4 — a pluggable profile
+### Later — a pluggable profile
 
 **Files:** `src/items/profiles/student.json`, `src/items/profiles/files_only.json`, `src/items/profile_loader.py`, `tests/items/test_profile_packages.py`.
 
@@ -342,7 +378,7 @@ Student turns on file, folder, project, course, and the relationship subset in s
 
 **Continue (proposal).** Both packages load through one loader. Holds: unchanged on the passport fixture. Wrong types: 0 on the coursework gate fixture. Unplaced: the business-only file.
 
-### Stage 5 — the five queries
+### Later — the five queries
 
 **Files:** `src/items/views.py`, `tests/items/test_views.py`.
 
@@ -352,17 +388,7 @@ Student turns on file, folder, project, course, and the relationship subset in s
 
 **Continue (proposal).** Cap respected. Wrong links shown as approved: 0, because nothing has been approved. Unplaced count equals the files with `typing_state = unplaced`.
 
-### Stage 6 — read-only mail and calendar
-
-**Files:** `src/items/ingest_mailbox.py`, `tests/items/test_mailbox_local.py`. A fixture message, not a live account.
-
-**Check.** One message, one attachment whose hash matches a local file: an email item, an `attached-to` relationship, confidence `witnessed`, evidence is message id plus hash. The body is absent from every table the model-release path reads. A protected local file matched by hash: email item `held`, and a model-request builder returns no body and no attachment text. The test double has no network.
-
-**Kill (proposal).** A body, token, or raw message appears in a releasable excerpt, or the ingester writes `approved`.
-
-**Continue (proposal).** 1 witnessed attachment link on the fixture. 0 cloud bytes. Held stays held.
-
-### Stage 7 — nudge, then assistant
+### Later — nudge, then assistant
 
 **Files:** `src/items/nudge.py`, `src/items/assistant.py`, `tests/items/test_nudge.py`.
 
@@ -376,14 +402,14 @@ Student turns on file, folder, project, course, and the relationship subset in s
 
 - Treating `group_edges` as the context graph locks every link into file-to-file and drags semantic edges into the picture. Section 3 refuses that reuse on purpose.
 - Teaching the recogniser from link rejects would re-open the professional-schema failure. Section 5 keeps those stores apart.
-- An edit that mints a new `file_id` looks like a new document unless stage 1's version chain is in place. Shipping relationships before that chain orphans links on every save.
+- An edit that mints a new `file_id` looks like a new document unless stage (a)'s version chain is in place. Shipping relationships before that chain orphans links on every save.
 - Inodes do not exist for an email. Using a path as the only identity for mail will break when the provider rewrites a label.
 - Gmail subjects and calendar titles are often more sensitive than a filename. Storing them is required for a timeline and is a standing local-only obligation. A later "just this once" excerpt is the risk.
 - The sorter still moves files on apply. A Folder view that opens `current_path` is honest only while nothing else relocates the file in the same session. The two behaviours need separate commands.
 - The default graph cap is a product choice (40, 90 days). A wrong cap is a bad picture. An absent cap is an unreadable one. The kill is the absent cap, not the particular number.
-- Extending `CORRECTION_SCOPES` and `RESERVED_EVENT_TYPES` is a closed-vocabulary edit. It needs the same kind of owner note `branch` and `refused move` already have. Implementing stage 3 without that note should stop.
+- Extending `CORRECTION_SCOPES` and `RESERVED_EVENT_TYPES` is a closed-vocabulary edit. It needs the same kind of owner note `branch` and `refused move` already have. Implementing the approve/reject stage without that note should stop.
 - Profile JSON that can name arbitrary relationship types is a plug-in. Profile JSON that can name a safety domain as "not held" is a bypass. The loader must ignore hold-related keys.
-- There is no GUI in the repo. Stages 1–5 can be tested as queries. A screen is not a stage in this plan.
+- There is no GUI in the repo. The thin slice and the later query stages can be tested as functions. A screen is not a stage in this plan.
 
 ## 13. Self-check against the request
 
