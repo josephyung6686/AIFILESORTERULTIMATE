@@ -148,6 +148,9 @@ class ExtractionRequest:
     #: Defaulted, like `Dispatched.ocr_seconds`, so every existing construction
     #: means what it meant: no ceiling stored is no ceiling.
     ocr_budget_spent: bool = False
+    #: Opt-in scan profile. Default off: `perform` does not time the read and
+    #: the outcome's timing fields stay at their defaults.
+    profile: bool = False
 
 
 @dataclass(frozen=True)
@@ -177,18 +180,40 @@ class TargetedOcrRequest:
     #: §8.6's OCR clock between the two, and a flag computed once at submission
     #: would let the targeted pass overspend a ceiling the scan had already met.
     ocr_budget_spent: bool = False
+    #: See `ExtractionRequest.profile`. Same default, same meaning.
+    profile: bool = False
 
 
 @dataclass(frozen=True)
 class ExtractionOutcome:
-    """What `perform` decided, in a form that survives a process boundary."""
+    """What `perform` decided, in a form that survives a process boundary.
+
+    `work_seconds` and `readers` are filled only when the request asked for a
+    scan profile. They are not written to the database. A request that did not
+    ask leaves both at the defaults, so an outcome still compares equal to one
+    built the way every existing caller builds one.
+    """
     kind: str
     dispatched: Dispatched | None = None
     message: str = ""
+    work_seconds: float = 0.0
+    readers: tuple[str, ...] = ()
 
 
 def perform(request: ExtractionRequest | TargetedOcrRequest,
             context: ExtractionContext) -> ExtractionOutcome:
+    """`_perform`, and a clock only when this request asked for one."""
+    if not request.profile:
+        return _perform(request, context)
+    started = time.perf_counter()
+    outcome = _perform(request, context)
+    from scan_profile import annotate_extraction
+    return annotate_extraction(
+        outcome, context.readers, time.perf_counter() - started)
+
+
+def _perform(request: ExtractionRequest | TargetedOcrRequest,
+             context: ExtractionContext) -> ExtractionOutcome:
     """`extract_initial` plus the caller's inner `except`, named rather than raised.
 
     The two blocks this mirrors live in `orchestrator.run_p1_p7` and this function is

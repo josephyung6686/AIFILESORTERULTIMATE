@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import json as _json
 import sqlite3
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import PurePath
@@ -1141,17 +1142,30 @@ class Detector:
         answers returns the same object. A new row, a supersede, a move, or a
         changed answer misses.
         """
-        stamp = self._explanation_stamp(conn, file_id, content_hash)
-        cache = _attribute_cache(conn, "_explanation_cache")
-        key = (id(self._index), self._handling_key, file_id, content_hash)
-        if cache is not None:
-            slot = cache.get(key)
-            if slot is not None and slot[0] == stamp:
-                return slot[1]
-        outcome = self._explain_uncached(conn, file_id, content_hash)
-        if cache is not None:
-            cache[key] = (stamp, outcome)
-        return outcome
+        from scan_profile import active_scan_profile
+        profile = active_scan_profile()
+        started = time.perf_counter() if profile is not None else None
+        if profile is not None:
+            profile.push_phase("recognise_explain")
+        try:
+            stamp = self._explanation_stamp(conn, file_id, content_hash)
+            cache = _attribute_cache(conn, "_explanation_cache")
+            key = (id(self._index), self._handling_key, file_id, content_hash)
+            if cache is not None:
+                slot = cache.get(key)
+                if slot is not None and slot[0] == stamp:
+                    outcome = slot[1]
+                else:
+                    outcome = self._explain_uncached(conn, file_id, content_hash)
+                    cache[key] = (stamp, outcome)
+            else:
+                outcome = self._explain_uncached(conn, file_id, content_hash)
+            return outcome
+        finally:
+            if profile is not None:
+                profile.pop_phase()
+                profile.note_explain(
+                    file_id=file_id, seconds=time.perf_counter() - started)
 
     def _explanation_stamp(self, conn: sqlite3.Connection, file_id: str,
                            content_hash: str) -> tuple:

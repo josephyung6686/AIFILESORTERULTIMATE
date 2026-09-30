@@ -45,6 +45,7 @@ import sys
 import uuid
 import textwrap
 import threading
+import time
 import unicodedata
 from collections import namedtuple
 from decimal import Decimal
@@ -21818,23 +21819,37 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # to leave a composition for a case that is not an error. Hoisted into a
     # local, the stop is an `if` between two statements and the ordinary run is
     # the same three steps in the same order it always ran them.
-    p1_p7 = run_production_p1_p7(
-        conn, selection_id, authorities=p1_p7_authorities(
-            now=now, detector=classify_producer, operation_mode=operation_mode,
-            source=recording,
-            # THE ONE CONDITION, and it is the same one that decides `recording`
-            # two lines up: §8.5's envelope is built when the person asked to keep
-            # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
-            # the bundle has to exist by the time it is called and cannot be
-            # assembled afterwards -- a sealed bundle is immutable by trigger.
-            bundle_content=record is not None))
+    from scan_profile import active_scan_profile
+    _scan_profile = active_scan_profile()
+    if _scan_profile is not None:
+        _scan_profile.push_phase("p1_p7")
+    try:
+        p1_p7 = run_production_p1_p7(
+            conn, selection_id, authorities=p1_p7_authorities(
+                now=now, detector=classify_producer, operation_mode=operation_mode,
+                source=recording,
+                # THE ONE CONDITION, and it is the same one that decides `recording`
+                # two lines up: §8.5's envelope is built when the person asked to keep
+                # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
+                # the bundle has to exist by the time it is called and cannot be
+                # assembled afterwards -- a sealed bundle is immutable by trigger.
+                bundle_content=record is not None))
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
     # THE FACT PASS AND THE THREE BLOCKS THAT REPORT THE SCAN, all of which are
     # inside `downstream`. Everything the database gets from a stopped run is
     # written by the time this returns.
     # `downstream` always returns authorities. A missing situation is not an
     # exit: the question prints inside it, and the proposal still runs.
     # `--stop-after` returns None below, on purpose, after that work.
-    corpus_authorities = downstream(p1_p7)
+    if _scan_profile is not None:
+        _scan_profile.push_phase("downstream")
+    try:
+        corpus_authorities = downstream(p1_p7)
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
     if stop_after == STOP_AFTER_GATE:
         _print_stopped_after_gate(out=out)
         return None
@@ -21845,13 +21860,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # takes, and P8--P11 is what this run was told not to do.
         _print_stopped_after_facts(conn, run_id=p1_p7.scan_run_id, out=out)
         return None
-    result = run_production_p8_p11(
-        conn, p1_p7, authorities=corpus_authorities,
-        decisions=CorpusDecisions(
-            plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
-            design=design_decisions, approve_plan=approve_plan,
-            set_privacy_policy=set_privacy_policy),
-        stop_after_design=(stop_after == STOP_AFTER_TREE))
+    _p8_started = time.perf_counter() if _scan_profile is not None else None
+    if _scan_profile is not None:
+        _scan_profile.push_phase("p8_p11")
+    try:
+        result = run_production_p8_p11(
+            conn, p1_p7, authorities=corpus_authorities,
+            decisions=CorpusDecisions(
+                plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
+                design=design_decisions, approve_plan=approve_plan,
+                set_privacy_policy=set_privacy_policy),
+            stop_after_design=(stop_after == STOP_AFTER_TREE))
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
+            _scan_profile.add_time("p8_p11", time.perf_counter() - _p8_started)
     if stop_after == STOP_AFTER_TREE:
         # `106` Phase 5.3. Everything below this line reads `result.placement`
         # -- the on-demand Generals, the two-home questions, the residual sets
@@ -27740,6 +27763,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--database", type=Path, default=None,
         help="where to keep the plan (default: ./database-agent-plan.sqlite). It "
              "may not live inside the folder being read.")
+    parser.add_argument(
+        "--scan-profile", action="store_true",
+        help="write a timing report beside the plan database. Off unless you "
+             "pass it. The report is plan.scan-profile.json and "
+             "plan.scan-profile.csv next to that database. It names file "
+             "paths, so leave it on this machine. A plain run still moves "
+             "nothing; this flag does not apply a plan.")
     parser.add_argument("--list-situations", action="store_true",
                         help="print every situation the shipped library carries")
     parser.add_argument(
@@ -28317,6 +28347,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
+    scan_profile_run = None
+    if args.scan_profile:
+        from scan_profile import arm_scan_profile
+        scan_profile_run = arm_scan_profile(conn)
+        _wired = extraction_context().readers
+        scan_profile_run.note_production_readers(
+            read_pdf=_wired.read_pdf, ocr_engine=_wired.ocr_engine)
+        scan_profile_run.push_phase("before_scan")
     try:
         # INSIDE the `try`, because it refuses: a folder `--entity-model` names that
         # the reader cannot be built from raises `NotConfigured`, and the handler
@@ -28653,6 +28691,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
+    finally:
+        if scan_profile_run is not None:
+            try:
+                written = scan_profile_run.write(database)
+                print(f"Scan profile: {written['json']}", file=out)
+            finally:
+                scan_profile_run.disarm()
     # `--stop-after` ENDED THE RUN, and `run` has already said so on the same
     # stream. Everything below this line reads `result.tree` or
     # `result.placement`, which a stopped run does not have: the report is a report

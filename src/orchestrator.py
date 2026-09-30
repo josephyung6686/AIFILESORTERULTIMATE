@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from collections import deque
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -678,6 +679,32 @@ class _Submitted(NamedTuple):
     refusal: Exception | None
 
 
+def _pool_result(pool, handle, file_row):
+    """`pool.result`, and a per-file timing when a scan profile is armed.
+
+    The wait is the main thread blocked on this file. The work is what the
+    worker reported. With no profile this is `pool.result` and nothing else.
+    """
+    from scan_profile import active_scan_profile
+    profile = active_scan_profile()
+    if profile is None:
+        return pool.result(handle)
+    started = time.perf_counter()
+    outcome = pool.result(handle)
+    dispatched = outcome.dispatched
+    extension = file_row["extension"] or ""
+    profile.note_extraction(
+        path=str(file_row["current_path"]),
+        extension=extension.lower() or "(none)",
+        size=int(file_row["observed_size"] or 0),
+        blocked_s=time.perf_counter() - started,
+        work_s=float(outcome.work_seconds or 0.0),
+        ocr_s=float(dispatched.ocr_seconds if dispatched is not None else 0.0),
+        readers=tuple(outcome.readers or ()),
+    )
+    return outcome
+
+
 def run_p1_p7(
         conn: sqlite3.Connection, selection_id: str, *,
         source, mime_type_for: Callable[[Path], str | None], scan_state: str,
@@ -722,6 +749,8 @@ def run_p1_p7(
     this thread, where P6's persisted pass lives, and the reading is submitted;
     `pool.close()` therefore moved below the fact loop.
     """
+    from scan_profile import active_scan_profile
+    _profile_on = active_scan_profile() is not None
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,
         scan_state=scan_state, budget_exhausted=budget_exhausted)
@@ -817,7 +846,7 @@ def run_p1_p7(
             # §3.4's caching and §8.5's replay depend on how full a budget was.
             results = list(filesystem)
         else:
-            outcome = pool.result(handle)
+            outcome = _pool_result(pool, handle, file_row)
             if outcome.kind == PROTECTED:
                 # Unreachable by construction -- `extract_filesystem` runs `admit()`
                 # on this thread and a protected path is never submitted -- and kept
@@ -890,6 +919,15 @@ def run_p1_p7(
             conn, file_id,
             status_by_tier=extraction_status_by_tier([r.run for r in results]),
             author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+
+    _scan_profile = active_scan_profile()
+
+    def _take(entry) -> None:
+        if _scan_profile is None:
+            _consume(entry)
+            return
+        with _scan_profile.phase("extraction"):
+            _consume(entry)
 
     window: deque[_Submitted] = deque()
     try:
@@ -982,6 +1020,7 @@ def run_p1_p7(
                         file_id=file_id, file_row=dict(file_row),
                         decision=decision, path=path, now=stamp,
                         context_window=context_window, versions=versions,
+                        profile=_profile_on,
                         # READ AT SUBMISSION, which is the latest this thread can
                         # answer for a file it is about to hand away. The window
                         # is bounded (`pool.lookahead`), so the total this is
@@ -993,9 +1032,9 @@ def run_p1_p7(
             # A bounded look-ahead, not an unbounded one: a 5,760-file run holds a
             # handful of extraction batches in memory rather than all of them.
             while len(window) >= pool.lookahead:
-                _consume(window.popleft())
+                _take(window.popleft())
         while window:
-            _consume(window.popleft())
+            _take(window.popleft())
         # Preserve the dataless state transition even when P3's stat cache says REUSE.
         for detection in dataless_detections(conn, scan_run_id):
             row = conn.execute(
@@ -1092,11 +1131,12 @@ def run_p1_p7(
                     # had been built and closed, so this was the only Vision call
                     # left on the calling thread. One request, consumed immediately:
                     # the pass is per file and there is nothing to read ahead of.
-                    targeted_outcome = pool.result(pool.submit(
+                    targeted_outcome = _pool_result(pool, pool.submit(
                         TargetedOcrRequest(
                             file_id=file_id, file_row=dict(file_row),
                             path=Path(file_row["current_path"]), now=now(),
                             context_window=context_window,
+                            profile=_profile_on,
                             # ASKED AGAIN, HERE. The initial loop may have spent
                             # the rest of §8.6's OCR clock after this file went
                             # through it, and this pass is the more expensive of
@@ -1165,7 +1205,15 @@ def run_p1_p7(
         # It still covers the way out through a `ContractViolation`: without
         # `cancel_futures` the raise would wait on every in-flight extraction
         # before surfacing.
-        pool.close()
+        _profile = active_scan_profile()
+        if _profile is None:
+            pool.close()
+        else:
+            _join_started = time.perf_counter()
+            with _profile.phase("extraction_pool_join"):
+                pool.close()
+            _profile.add_time(
+                "extraction_pool_join", time.perf_counter() - _join_started)
     # THE ENVELOPE ALWAYS; ITS BULK ONLY WHEN SOMETHING WILL READ IT.
     #
     # `bundle_manifest` is an AUDIT RECORD, not an optimisation: it carries

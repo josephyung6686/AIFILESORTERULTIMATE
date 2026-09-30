@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from database_agent.db import batched_writes
 
@@ -72,19 +73,54 @@ def scan(conn: sqlite3.Connection, selection_id: str, *,
     # file is observed, so a scan interrupted halfway is a visible incomplete run
     # rather than an absent one.
     scan_run_id = start_scan_run(conn, selection_id)
+    from scan_profile import active_scan_profile
+    profile = active_scan_profile()
+    if profile is None:
+        with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
+            for item in walk(source, sources=sources, candidate_roots=candidate_roots,
+                             budget_exhausted=budget_exhausted):
+                _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
+                        scan_state=scan_state)
+                item_recorded()
+        # AFTER the walk, inside the run: the walk is what proves a recorded file was
+        # not found, and a person's disk changing between runs is the normal case
+        # rather than the edge one. Without this the corpus only ever grew, and every
+        # later plan went on offering to file something they had deleted.
+        reconcile_disappearances(conn, scan_run_id, sources=sources,
+                                 scan_state=scan_state)
+        finish_scan_run(conn, scan_run_id)
+        return scan_run_id
+
     with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
-        for item in walk(source, sources=sources, candidate_roots=candidate_roots,
-                         budget_exhausted=budget_exhausted):
-            _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
-                    scan_state=scan_state)
+        walker = walk(source, sources=sources, candidate_roots=candidate_roots,
+                      budget_exhausted=budget_exhausted)
+        while True:
+            started = time.perf_counter()
+            try:
+                item = next(walker)
+            except StopIteration:
+                profile.add_time("walk_stat", time.perf_counter() - started)
+                break
+            profile.add_time("walk_stat", time.perf_counter() - started)
+            if isinstance(item, ObservedFile):
+                suffix = PurePath(item.path).suffix.lower()
+                profile.note_file(path=item.path, extension=suffix or "(none)",
+                                  size=item.size)
+            started = time.perf_counter()
+            hashed_before = profile.stages_seconds("hash")
+            with profile.phase("scan_record"):
+                _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
+                        scan_state=scan_state)
+            elapsed = time.perf_counter() - started
+            hashed = profile.stages_seconds("hash") - hashed_before
+            profile.add_time("db_writes", max(0.0, elapsed - hashed))
             item_recorded()
-    # AFTER the walk, inside the run: the walk is what proves a recorded file was
-    # not found, and a person's disk changing between runs is the normal case
-    # rather than the edge one. Without this the corpus only ever grew, and every
-    # later plan went on offering to file something they had deleted.
-    reconcile_disappearances(conn, scan_run_id, sources=sources,
-                             scan_state=scan_state)
-    finish_scan_run(conn, scan_run_id)
+    started = time.perf_counter()
+    with profile.phase("disappearance"):
+        reconcile_disappearances(conn, scan_run_id, sources=sources,
+                                 scan_state=scan_state)
+        finish_scan_run(conn, scan_run_id)
+    profile.add_time("db_writes", time.perf_counter() - started)
     return scan_run_id
 
 
