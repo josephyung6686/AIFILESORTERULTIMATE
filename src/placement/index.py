@@ -28,7 +28,7 @@ from database_agent.db import transaction
 
 from placement import events as placement_events
 from placement.vocabulary import (
-    DISPOSITIONS, NODE_ROLES, PROPOSED, RESIDUAL_ROLE, SCOPED_GENERAL,
+    DISPOSITIONS, EXISTING, NODE_ROLES, PROPOSED, RESIDUAL_ROLE, SCOPED_GENERAL,
     SHARED_MATERIAL, check,
 )
 
@@ -179,8 +179,17 @@ def _entry(node, profile, by_id) -> IndexEntry:
 #: Anything else on the entry -- the ancestor labels, the representative files,
 #: the document types -- is read AFTER a node is already a candidate, so indexing
 #: it would build a term nothing queries.
+#: **`node_type` IS THE FIFTH, AND IT IS NOT A RETRIEVAL CHANNEL EITHER.** Nothing
+#: retrieves a node by its type. It is indexed for the same reason the fourth is:
+#: gap 16 made suppression a question about the CHAIN, and the chain walk needs to
+#: know which of the nodes it passes is a folder THE PERSON MADE. An adopted
+#: folder's expected values were read off the files that happen to sit loose in
+#: it; they are not a claim about the folders inside it, so they do not rule those
+#: out. `placement_index_entries` could answer this only one deserialised payload
+#: at a time, which is the read this module exists to have stopped.
 TERM_SOURCES: tuple[str, ...] = (
     "expected_values", "accepted_group_ids", "display_label", "parent_node_id",
+    "node_type",
 )
 assert set(TERM_SOURCES) <= {field.name for field in _dataclass_fields(IndexEntry)}
 
@@ -235,6 +244,9 @@ def _terms_of(entry: IndexEntry, *,
         # selects on `node_id = Y`. A root node emits nothing, and the walk up
         # stops on the row it does not find.
         rows.append(("parent_node_id", entry.parent_node_id, "", 0))
+    # The type in `term_key`, so the chain walk selects the adopted nodes among a
+    # chunk in one equality rather than reading a payload per node.
+    rows.append(("node_type", entry.node_type, "", 0))
     return tuple(rows)
 
 
@@ -545,6 +557,21 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
         # CANDIDATE BRANCHES, not of the tree.
         parent_of, related = _chain_around(
             conn, plan_version=plan_version, reached=reached)
+        #: THE NODES ON THESE CHAINS THE PERSON MADE. One equality per chunk off
+        #: the fifth term source. Only `EXISTING` -- an ADOPTED folder, whose
+        #: expected values this run read off the files already sitting loose in
+        #: it. A `USER_CREATED` folder is deliberately NOT here: the person named
+        #: it during this run, so its values are their intent and rule the way a
+        #: proposed node's do.
+        adopted: set[str] = set()
+        for chunk in _chunks(conn, sorted(related), reserved=2):
+            adopted.update(
+                row["node_id"] for row in conn.execute(
+                    "SELECT node_id FROM placement_index_terms WHERE "
+                    "plan_version = ? AND source_field = 'node_type' AND "
+                    f"term_key = ? AND node_id IN ({_in_clause(len(chunk))}) "
+                    "AND superseded_by IS NULL",
+                    (plan_version, EXISTING, *chunk)))
         #: node -> the stated-field values it holds that the subject contradicts,
         #: in `(field, value)` order.
         holds: dict[str, list[tuple[str, str]]] = {}
@@ -573,12 +600,28 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
             NEAREST, and the walk stops at the first one: a node ruled out twice
             over by two levels of its own chain is one folder the person cannot
             use, and naming it twice would spend the budget saying so.
+
+            **AN ADOPTED FOLDER ABOVE IS WALKED PAST, NOT STOPPED AT.** A pile's
+            own expected values came from the files sitting loose IN it, and they
+            are not a claim about the folders INSIDE it: a lecture filed in
+            `Inbox/Course` is not thereby filed as the resume the loose files in
+            `Inbox` agree on, so the pile's value rules the pile out and leaves
+            the course and the lecture standing. A PROPOSED ancestor is the other
+            case and still rules: its `Spring 2025` was composed for the branch,
+            so a `Spring 2026` file does not belong under it -- `00`:107's own
+            sentence. The walk therefore steps OVER an adopted holder and keeps
+            going up, so a proposed ancestor further up still rules.
+
+            A node's OWN value always rules it out, adopted or not: that is the
+            folder itself stating something the file contradicts, which is what
+            `cursor is node_id` keeps out of the exception.
             """
             cursor: str | None = node_id
             seen: set[str] = set()
             while cursor is not None and cursor not in seen:
                 seen.add(cursor)
-                if cursor in holds:
+                if cursor in holds and not (cursor != node_id
+                                            and cursor in adopted):
                     return cursor
                 cursor = parent_of.get(cursor)
             return None
