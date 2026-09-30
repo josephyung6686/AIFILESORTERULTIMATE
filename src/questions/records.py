@@ -130,6 +130,25 @@ class QuestionOption:
     #: Those four are settled per run and said so on the screen; `enable` and
     #: `disable` are their whole decision and are what this remembers.
     residual_action: str | None = None
+    #: A filing life the person declared for this corpus. Distinct from
+    #: `activates_schema`: activation may break a tie, and a declaration is the
+    #: only set of schemas allowed to win. The two must not share a field.
+    declares_life: str | None = None
+    #: An explicit refusal. A major, or a sentence, must not be able to turn
+    #: this schema back on later. A schema both declared and refused is refused.
+    refuses_life: str | None = None
+    #: A folder treated as one project unit. The name the person gave, not a
+    #: schema id.
+    names_project: str | None = None
+    #: Something the person asked to leave alone. Not a schema, and not a
+    #: destination.
+    leaves_alone: str | None = None
+    #: A course the person named. Corroboration for academic, later. Stored
+    #: now and not matched against every file.
+    names_course: str | None = None
+    #: Marks a question whose answer is the person's own sentence, kept on
+    #: the device. The sentence itself is `StructuralAnswer.raw_wording`.
+    keeps_local_wording: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("option_id", "label"):
@@ -141,6 +160,12 @@ class QuestionOption:
                 f"{self.activates_schema!r} is not one of the "
                 f"{len(SCHEMA_IDS)} schemas the product recognises; a typo in an "
                 "activation must not read as a policy")
+        for name in ("declares_life", "refuses_life"):
+            value = getattr(self, name)
+            if value is not None and value not in SCHEMA_IDS:
+                raise AnswerNotPermitted(
+                    f"{value!r} is not one of the {len(SCHEMA_IDS)} schemas; "
+                    f"{name} cannot name a life the product does not have")
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,6 +281,16 @@ class StructuralQuestion:
                     "six actions does one of those four to a catch-all folder -- "
                     "which is the same refusal the four consequences above this "
                     "one carry, for the same sentence")
+            for field in ("declares_life", "refuses_life", "names_project",
+                          "leaves_alone", "names_course", "keeps_local_wording"):
+                carrying = [option.option_id for option in self.options
+                            if getattr(option, field)]
+                if carrying:
+                    raise AnswerNotPermitted(
+                        f"a contextual question's options {carrying} would set "
+                        f"{field}. A profile answer decides which lives may win, "
+                        "and §13 forbids a contextual answer to become a "
+                        "structural rule")
 
 
 @dataclass(frozen=True, slots=True)

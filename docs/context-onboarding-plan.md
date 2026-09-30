@@ -251,7 +251,7 @@ Do not treat the scan root as a project root merely because a marker file is one
 - The stray `requirements.txt` in Downloads is an ordinary file (Q9 already refuses to exclude the marker directory itself; this proposal also refuses to exclude the scan root's other children).
 - Dependency directory names stay excluded wherever they sit.
 
-Pointing the tool at a repository root would then read that repo's source files, because the root is the scan root. Dependency directories would still be skipped. That is a real change from a literal reading of §1.1, and it needs an owner ruling before code lands. The alternative — keep excluding whenever any marker is present — is the bug. The proposal is the scan-root exception plus unchanged nested roots, not a longer marker list.
+Pointing the tool at a repository root would then read that repo's source files, because the root is the scan root. Dependency directories would still be skipped. The owner approved this narrowing of §1.1 on 2026-09-30. The rule is the scan-root exception plus unchanged nested roots, not a longer marker list. The approval is also recorded on the exclusion paragraph in `planning/00-database-agent-product-design.md`.
 
 A nested project directory should be one unit on the plan ("this looks like a software project; leave it together"), not a set of source files and not a silent disappearance. `tests/p3/test_p3_composition.py` already records that set-aside paths for this rule do not reach the screen the person reads (`cli` prints protected containers only). Telling the person the repo was left aside is part of this stage, using the existing exclusion verdicts, not a new exclusion.
 

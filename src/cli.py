@@ -330,13 +330,15 @@ from questions.role_report import (
     shortlist_lines,
 )
 from questions.registry import HOME_KIND, SITUATION_KIND, kind_of
+from questions.profile import apply_profile
 from questions.roles import (
     apply_declarations, apply_descriptions, described_sentences, live_roles,
 )
 from questions.schema import create_questions_schema
 from questions.store import (
     RESIDUAL_KIND_ID,
-    activated_schemas, chosen_destination, gated_template, live_answer,
+    activated_schemas, chosen_destination, declared_lives, gated_template,
+    live_answer,
     selected_situation,
     live_answer_id,
     open_questions,
@@ -430,13 +432,17 @@ from evaluation import (
 from eval_harness.bundle import RecordingNameTaken, bundle_named
 from grouping.acceptance import group_state_as_of
 from scan_agent.replay import CORPUS_FORM_SNAPSHOT, RecordingCorpusSource, snapshot_from
-from scan_agent.exclusion import is_protected_container
+from scan_agent.exclusion import (
+    RULE_PROJECT_ROOT_DESCENDANT, is_protected_container,
+)
 #: `104` §18.2 gap 21's second guard. `_detect_format` opens files now, and the OTHER
 #: class of file that must not be opened is the iCloud-evicted one -- see that
 #: function for the whole argument.
 from scan_agent.dataless import is_dataless
 from scan_agent.selection import record_selection
-from scan_agent.summary import scan_run_summary, set_aside_paths
+from scan_agent.summary import (
+    left_alone_project_units, scan_run_summary, set_aside_paths,
+)
 from tree_design import vocabulary as tv
 from tree_design.candidates import (
     EXISTING_FOLDER_SOURCES, folder_label, node_type_for,
@@ -15075,7 +15081,19 @@ def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
         return
     print(f"\nSet aside by rule: {len(aside)}, not read and not in this plan",
           file=out)
+    projects = {parent for parent, _, _, _ in left_alone_project_units(aside)}
+    for parent, name, marker, count in left_alone_project_units(aside):
+        print(f"  {name}  ({RULE_PROJECT_ROOT_DESCENDANT}: {marker})", file=out)
+        print(f"    {parent}", file=out)
+        print(f"    left together; {count} "
+              f"{'path' if count == 1 else 'paths'} inside "
+              f"{'was' if count == 1 else 'were'} not read", file=out)
+        for entry in aside:
+            if str(Path(entry.path).parent) == parent:
+                print(f"    {entry.path}", file=out)
     for entry in aside:
+        if str(Path(entry.path).parent) in projects:
+            continue
         print(f"  {entry.display_label}  ({entry.rule}"
               f"{f': {entry.rule_subject}' if entry.rule_subject else ''})",
               file=out)
@@ -17717,7 +17735,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                         # own files could not settle. Read fresh on every call
                         # rather than captured, so an answer given by `--answer`
                         # earlier in this same invocation is already in force.
-                        settled_by_user=lambda: activated_schemas(conn))
+                        settled_by_user=lambda: activated_schemas(conn),
+                        # A confirmed profile is a closed allow-list. An empty
+                        # set — nobody has declared a life — leaves recognition
+                        # as it is. Read fresh, for the same reason as above.
+                        declared_lives=lambda: declared_lives(conn))
     # RECOGNITION BY MEANING, composed AROUND the term detector and never in front
     # of it: `SemanticRecogniser` calls it first and returns its answer untouched,
     # so a vector can add a classification where there was none and can never
@@ -27755,6 +27777,31 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "from. Can be given more than once, and holding several at once is "
              "normal.")
     parser.add_argument(
+        "--declare-life", action="append", default=[], metavar="NAME=SCHEMA",
+        help="name one life this folder may be sorted into, e.g. "
+             "--declare-life coursework=academic. Only a confirmed life may "
+             "win. Can be given more than once.")
+    parser.add_argument(
+        "--refuse-life", action="append", default=[], metavar="NAME=SCHEMA",
+        help="say a schema is not a life of this folder, e.g. "
+             "--refuse-life business=business_operations. A refusal beats a "
+             "declaration of the same schema.")
+    parser.add_argument(
+        "--profile-project", action="append", default=[], metavar="NAME=FOLDER",
+        help="treat one folder as a project left together, e.g. "
+             "--profile-project hackathon=hackathon-repo.")
+    parser.add_argument(
+        "--leave-alone", action="append", default=[], metavar="NAME=WHAT",
+        help="name something to leave alone, e.g. "
+             "--leave-alone export='LinkedIn export'.")
+    parser.add_argument(
+        "--profile-course", action="append", default=[], metavar="NAME=COURSE",
+        help="record a course, e.g. --profile-course transport='CHEN 3120'.")
+    parser.add_argument(
+        "--profile-wording", action="append", default=[], metavar="NAME=WORDS",
+        help="keep a sentence about this folder on this device. The words "
+             "are not sent off the machine and do not choose a schema.")
+    parser.add_argument(
         "--declare-role", action="append", default=[], metavar="NAME=LAYOUT",
         help="turn on one of the layouts this product knows, for this material, "
              "e.g. --declare-role teaching=research. `=not_listed` says none of "
@@ -28354,6 +28401,15 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         if args.declare_role:
             apply_declarations(conn, args.declare_role, schemas=SCHEMA_IDS,
                                user_id=args.user, recorded_at=now())
+        if (args.declare_life or args.refuse_life or args.profile_project
+                or args.leave_alone or args.profile_course
+                or args.profile_wording):
+            _bootstrap(conn)
+            apply_profile(
+                conn, user_id=args.user, recorded_at=now(),
+                lives=args.declare_life, refused=args.refuse_life,
+                projects=args.profile_project, leave_alone=args.leave_alone,
+                courses=args.profile_course, wording=args.profile_wording)
         if args.reject:
             _bootstrap(conn)
             typed = [raw for raw in args.reject if raw not in from_the_structure_file]

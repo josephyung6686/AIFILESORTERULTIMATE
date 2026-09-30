@@ -764,6 +764,7 @@ class Detector:
                  corroborating_observations: Callable[
                      [sqlite3.Connection, str, str], Iterable[str]] | None = None,
                  settled_by_user: Callable[[], Iterable[str]] | None = None,
+                 declared_lives: Callable[[], Iterable[str]] | None = None,
                  topic_condition_mentions: int | None = None
                  ) -> None:
         if not isinstance(rules, RecognitionRules):
@@ -795,6 +796,13 @@ class Detector:
         #: part's record and this module does not read another part's tables.
         #: Absent means "nobody has been asked", which is not "nobody agreed".
         self._settled_by_user = settled_by_user
+        #: Schemas the person has declared as the lives this folder is about.
+        #: Injected, like `settled_by_user`, because the profile is another part's
+        #: record. Absent, and an empty set, both mean "no profile": the catalogue
+        #: decides as it does today. A non-empty set is a closed allow-list. It is
+        #: not a weight and it is not `settled_by_user`, which only breaks a tie
+        #: among leaders the file already named.
+        self._declared_lives = declared_lives
         self._topic_condition_mentions = topic_condition_mentions
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
@@ -1137,6 +1145,27 @@ class Detector:
         by_schema: dict[str, list[TermMatch]] = {}
         for match in matches:
             by_schema.setdefault(match.schema_id, []).append(match)
+        # The unfiltered count. The gate below may drop schemas the person did
+        # not declare; this copy is what a declined winner is cited from.
+        catalogue = {
+            schema_id: list(found) for schema_id, found in by_schema.items()}
+        declared = self._declared()
+        if declared:
+            by_schema = {
+                schema_id: found for schema_id, found in by_schema.items()
+                if schema_id in declared}
+
+        def finish(outcome: Recognition | Abstention) -> Recognition | Abstention:
+            return self._cite_outside_declared(
+                outcome, catalogue, declared, file_row=file_row,
+                source_types=source_types)
+
+        # An empty table has no leader. `max` on it would raise, and a file
+        # that matched only undeclared schemas is an abstention, not a crash.
+        if not by_schema:
+            return finish(Abstention(
+                "no_evidence", None,
+                f"{file_id} matched no term of a life declared for this folder"))
         best = max(len(found) for found in by_schema.values())
         leaders = sorted(
             schema_id for schema_id, found in by_schema.items()
@@ -1299,7 +1328,7 @@ class Detector:
             capture = self._capture(conn, file_id, content_hash,
                                     source_types=source_types)
             if capture is not None:
-                return capture
+                return finish(capture)
 
         if best < 2:
             schema_id = leaders[0]
@@ -1321,7 +1350,7 @@ class Detector:
             # Left empty when there is only one reading, because one reading is
             # not a tie -- and a field filled unconditionally would be useless for
             # telling the two apart.
-            return Abstention(
+            return finish(Abstention(
                 "no_corroboration", schema_id,
                 f"{schema_id} matched one authored term "
                 f"({by_schema[schema_id][0].term!r}) and every node row carries a "
@@ -1334,7 +1363,7 @@ class Detector:
                 # R-166: EVERY leader, not just the one named. A near miss of one
                 # is a shortlist of one and still needs its citation; a tie of two
                 # needs both sides or the question cannot say what either rests on.
-                **_named(self._cited(by_schema, leaders)))
+                **_named(self._cited(by_schema, leaders))))
 
         plausible = [schema_id for schema_id in leaders
                      if self._plausible(self._rules.schemas[schema_id],
@@ -1342,26 +1371,26 @@ class Detector:
                                         source_types=source_types)]
         if not plausible:
             schema_id = leaders[0]
-            return Abstention(
+            return finish(Abstention(
                 "file_kind_implausible", schema_id,
                 f"{schema_id} matched {best} authored terms on a file kind its "
                 f"rows never name ({file_row['extension']!r}, "
                 f"{sorted(source_types)}); `file_kind_plausible` is a constraint "
                 "and never a signal",
                 deferred_readings=self._readings(schema_id),
-                **_named(self._cited(by_schema, leaders)))
+                **_named(self._cited(by_schema, leaders))))
         if len(plausible) > 1:
             # `00` requires abstention where two readings are both supported.
             # Nothing breaks this tie: a tie-breaker would be the invented
             # threshold this package exists without.
-            return Abstention(
+            return finish(Abstention(
                 "ambiguous", None,
                 f"{len(plausible)} schemas are supported by {best} authored terms "
                 f"each ({', '.join(plausible)}); both readings are supported and "
                 "`00` requires abstention rather than a winner",
                 tied_schema_ids=tuple(plausible),
                 deferred_readings=self._readings(plausible[0]),
-                **_named(self._cited(by_schema, plausible)))
+                **_named(self._cited(by_schema, plausible))))
 
         schema_id = plausible[0]
         found = tuple(by_schema[schema_id])
@@ -1371,19 +1400,85 @@ class Detector:
             # carrying a handling class, and `00` states one for no ordinary
             # domain, so this is the honest end of the road rather than a class
             # picked to let the pipeline continue.
-            return Abstention(
+            return finish(Abstention(
                 "unassigned_handling", schema_id,
                 f"{schema_id} was recognised from {len(found)} authored terms and "
                 "the caller's handling policy states no class for it; recognition "
                 "is not classification",
                 deferred_readings=self._readings(schema_id),
-                **_named(self._cited(by_schema, (schema_id,))))
+                **_named(self._cited(by_schema, (schema_id,)))))
         refs: list[str] = []
         for match in found:
             if match.observation_key not in refs:
                 refs.append(match.observation_key)
-        return Recognition(schema_id=schema_id, matches=found,
-                           evidence_refs=tuple(refs))
+        return finish(Recognition(schema_id=schema_id, matches=found,
+                                  evidence_refs=tuple(refs)))
+
+    def _declared(self) -> frozenset[str]:
+        """Lives the person confirmed. Empty means no profile, not an empty list."""
+        if self._declared_lives is None:
+            return frozenset()
+        return frozenset(self._declared_lives())
+
+    def _unique_assigned_winner(
+            self, catalogue: Mapping[str, list["TermMatch"]], *,
+            extension: str | None, source_types: set[str]) -> str | None:
+        """The schema the unfiltered count would have named, or none.
+
+        A unique plausible leader at two or more terms, with a handling class.
+        A tie, a single term, an implausible kind, and an unassigned class are
+        abstentions already, and this does not invent a winner for them.
+        `settled_by_user` is not consulted: it breaks ties only among leaders
+        that survived the gate.
+        """
+        if not catalogue:
+            return None
+        best = max(len(found) for found in catalogue.values())
+        if best < 2:
+            return None
+        leaders = [schema_id for schema_id, found in catalogue.items()
+                   if len(found) == best]
+        plausible = [
+            schema_id for schema_id in leaders
+            if schema_id in self._rules.schemas and self._plausible(
+                self._rules.schemas[schema_id], extension=extension,
+                source_types=source_types)]
+        if len(plausible) != 1:
+            return None
+        winner = plausible[0]
+        if winner not in self._handling:
+            return None
+        return winner
+
+    def _cite_outside_declared(
+            self, outcome: "Recognition | Abstention",
+            catalogue: Mapping[str, list["TermMatch"]],
+            declared: frozenset[str], *, file_row, source_types: set[str]
+            ) -> "Recognition | Abstention":
+        """Cite a winner the allow-list declined, without offering it as a kind.
+
+        An empty declaration is not a gate, and a recognition of a declared
+        life stands. When the unfiltered count has one plausible winner the
+        person did not declare, the abstention names that schema on
+        `matched_terms` and in the detail string.
+
+        `schema_id` stays `None` and `tied_schema_ids` stays empty. Do not
+        "fix" that by copying the winner onto either field: `situation_outcome_of`
+        builds folder candidates from those two, and a declined schema must
+        not become a vote or a gist line.
+        """
+        if not declared or isinstance(outcome, Recognition):
+            return outcome
+        winner = self._unique_assigned_winner(
+            catalogue, extension=file_row["extension"], source_types=source_types)
+        if winner is None or winner in declared:
+            return outcome
+        found = catalogue[winner]
+        return Abstention(
+            "outside_declared_lives", None,
+            f"{winner} matched {len(found)} authored terms and is not a life "
+            "declared for this folder; the file stays unplaced",
+            **_named(self._cited(catalogue, (winner,))))
 
     def situation_outcome(self, conn: sqlite3.Connection, file_id: str,
                           content_hash: str) -> SituationOutcome:
@@ -1514,8 +1609,15 @@ class Detector:
         # here is not sent anywhere on their word: the gate reads it next, at its
         # own ceiling, and the gate's prompt asks whose particulars the text shows.
         work_types = self._safety_work_type_matches(conn, file_id, content_hash)
-        readings = [schema_id for schema_id
-                    in (outcome.schema_id, *outcome.tied_schema_ids)
+        # Leaders already sit on `schema_id` and `tied_schema_ids`. The
+        # declared-life gate deliberately leaves both empty and cites the
+        # declined schema on `matched_terms` instead, so a vote cannot file
+        # the file there. A safety domain in that citation is still a hold:
+        # the gate decides what we claim, not what we expose.
+        named: list[str | None] = [outcome.schema_id, *outcome.tied_schema_ids]
+        if outcome.reason == "outside_declared_lives":
+            named.extend(schema_id for schema_id, _terms in outcome.matched_terms)
+        readings = [schema_id for schema_id in named
                     if schema_id in SAFETY_DOMAIN_IDS and schema_id in work_types
                     and (any(_names_the_file(match)
                              for match in work_types[schema_id])

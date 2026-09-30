@@ -89,6 +89,47 @@ def test_a_pruned_directory_is_never_listed(corpus: Path):
     assert str(corpus / "node_modules") not in source.listed
 
 
+def test_a_marker_in_the_scan_root_does_not_hide_its_siblings(corpus: Path):
+    # Owner ruling 2026-09-30. A requirements.txt sitting in the folder the
+    # person pointed at used to mark that folder as a project root, so every
+    # child was a software-project descendant and nothing was read.
+    (corpus / "requirements.txt").write_bytes(b"pytest\n")
+    (corpus / "notes.pdf").write_bytes(b"notes")
+    (corpus / "course").mkdir()
+    (corpus / "course" / "homework.pdf").write_bytes(b"homework")
+
+    items = _walk(corpus)
+    files = [i for i in items if isinstance(i, ObservedFile)]
+    assert sorted(f.path for f in files) == [
+        str(corpus / "course" / "homework.pdf"),
+        str(corpus / "notes.pdf"),
+        str(corpus / "requirements.txt"),
+    ]
+    assert not [i for i in items if isinstance(i, ExclusionVerdict)
+                and i.rule == RULE_PROJECT_ROOT_DESCENDANT]
+    root = [i for i in items if isinstance(i, ObservedDirectory)
+            and i.directory_path == str(corpus)][0]
+    assert root.project_root_markers == ("requirements.txt",)
+
+
+def test_a_nested_project_is_still_left_unread(corpus: Path):
+    # The same marker one directory down still excludes that directory's
+    # descendants. The coursework beside it is read.
+    project = corpus / "hackathon-repo"
+    (project / "src").mkdir(parents=True)
+    (project / "requirements.txt").write_bytes(b"flask\n")
+    (project / "src" / "main.py").write_bytes(b"print(1)\n")
+    (corpus / "notes.pdf").write_bytes(b"notes")
+
+    items = _walk(corpus)
+    files = [i for i in items if isinstance(i, ObservedFile)]
+    assert [f.path for f in files] == [str(corpus / "notes.pdf")]
+    rejected = [i for i in items if isinstance(i, ExclusionVerdict)
+                and i.rule == RULE_PROJECT_ROOT_DESCENDANT]
+    assert {Path(i.path).name for i in rejected} >= {"requirements.txt", "src"}
+    assert all("notes.pdf" not in i.path for i in rejected)
+
+
 def test_a_project_root_yields_no_files_from_its_descendants(corpus: Path):
     # Done-means 4, for each of §1.1's four markers.
     for index, marker in enumerate(PROJECT_ROOT_MARKERS):
