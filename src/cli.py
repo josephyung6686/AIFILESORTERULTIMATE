@@ -52,7 +52,7 @@ from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePath, PurePosixPath
 from functools import lru_cache, partial
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Callable, Collection, Mapping, Sequence
 
 from database_agent.budget import set_ceiling
@@ -495,6 +495,7 @@ from structure_file import (
     plan_in as structure_plan_in, read as structure_read,
     render as structure_render,
 )
+from structure_shape import shape_proposed_tree
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import (
     BranchRefused, branches_named, qualified_path as _qualified_path,
@@ -25718,6 +25719,21 @@ def _deepest_folder_under(nodes, named: Mapping[str, set[str]], *,
     return home.node_id
 
 
+def _holds_the_outline_counted(conn: sqlite3.Connection, nodes, plan_version: str):
+    """The file counts `structure_rows` used when it wrote this plan's outline.
+
+    A run that stopped at the tree has no placement, and the outline counted
+    files from the groups and the folders they already sit in. A run that
+    placed files counted the placement. The edited file is checked against
+    whichever of those the outline was built from.
+    """
+    decisions = tuple(placement_decisions_for(conn, plan_version=plan_version))
+    result = SimpleNamespace(
+        placement=(None if not decisions else SimpleNamespace(decisions=decisions)),
+        tree=SimpleNamespace(tree=SimpleNamespace(nodes=tuple(nodes))))
+    return _files_held_by_node(conn, result)
+
+
 def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
                    words_of, holds: Mapping[str, Sequence[str]] | None = None,
                    ) -> tuple[StructureRow, ...]:
@@ -25748,8 +25764,12 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             if decision.destination is not None:
                 holds.setdefault(decision.destination.node_id, []).extend(
                     _files_of(decision))
-    by_parent = _children_of(result.tree.tree.nodes)
-    by_id = {node.node_id: node for node in result.tree.tree.nodes}
+    # Finder copies, `_export` titles, and same-subject peers are still the
+    # scan's own names at this point. The outline the person edits is the
+    # shaped tree; the plan's node ids are unchanged.
+    nodes = shape_proposed_tree(result.tree.tree.nodes, holds=holds)
+    by_parent = _children_of(nodes)
+    by_id = {node.node_id: node for node in nodes}
 
     def ancestor_fields(node) -> frozenset[str]:
         """The fields the folders ABOVE this one already claim -- the path."""
@@ -25768,7 +25788,7 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
         return files
 
     rows: list[StructureRow] = []
-    for marker, depth, node in _outline_walk(result.tree.tree.nodes):
+    for marker, depth, node in _outline_walk(nodes):
         files = under(node.node_id)
         if node.node_type == PROTECTED_NODE_TYPE:
             # `106` Phase 7 §C producer 3: a bundle at the root is not a folder
@@ -25915,9 +25935,14 @@ def structure_edits(conn: sqlite3.Connection, text: str, *,
             f"would rename and remove folders you never touched. Run the command "
             f"without `--structure` to get the current outline, and make your "
             f"edits in that.")
+    raw_nodes = tuple(nodes_for_version(conn, plan_version))
+    # The same pass `structure_rows` applies before `--structure-out`, so an
+    # unedited file is the walk this plan wrote and not the scan underneath it.
+    shaped = shape_proposed_tree(
+        raw_nodes, holds=_holds_the_outline_counted(
+            conn, raw_nodes, plan_version))
     nodes = {marker: node
-             for marker, _depth, node in _outline_walk(
-                 nodes_for_version(conn, plan_version))}
+             for marker, _depth, node in _outline_walk(shaped)}
     parents = {marker: None for marker in nodes}
     place = {node.node_id: marker for marker, node in nodes.items()}
     for marker, node in nodes.items():
