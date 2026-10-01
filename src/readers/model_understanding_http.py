@@ -64,7 +64,7 @@ class DeepSeekUnderstanding:
 
 
 class OpenAICompatibleUnderstanding:
-    def __init__(self, *, api_key: str, base_url: str, post):
+    def __init__(self, *, api_key: str, base_url: str, post, name: str = "openai-compatible"):
         if not api_key.strip():
             raise ProviderError("no API key was injected")
         if not str(base_url).startswith("https://"):
@@ -72,9 +72,10 @@ class OpenAICompatibleUnderstanding:
         self._key = api_key
         self._base = base_url.rstrip("/")
         self._post = post
+        self._name = name
 
     def provider_name(self) -> str:
-        return "openai-compatible"
+        return self._name
 
     def locality(self) -> str:
         return "cloud"

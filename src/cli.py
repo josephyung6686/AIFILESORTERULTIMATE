@@ -3324,7 +3324,10 @@ def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
 
 def model_route(*, out, on_usage=None, discover=None,
                 credential: str | None = None,
-                provider_choice: dict | None = None) -> TierRouting | None:
+                provider_choice: dict | None = None,
+                keychain_run=None, siwc_post=None,
+                siwc_post_form=None, siwc_jwks=None,
+                siwc_now: int | None = None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -3461,11 +3464,22 @@ def model_route(*, out, on_usage=None, discover=None,
         return None
     cloud: TierRouting | None = None
     if subscription:
-        from readers.model_siwc import begin_or_refuse
-        print(begin_or_refuse() or (
-            "Sign in with ChatGPT is flagged on. This build still will not "
-            "send a dossier until the ID token signature is verified. Use an "
-            "API key."), file=out)
+        from readers.model_siwc import flag_enabled, siwc_cloud_routing
+        run = keychain_run
+        if run is None and flag_enabled():
+            from readers.model_provider_cli import _keychain_run
+            run = _keychain_run()
+        try:
+            cloud = siwc_cloud_routing(
+                out=out, tier_of_call_site=TIER_OF_CALL_SITE,
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                keychain_run=run, post=siwc_post, post_form=siwc_post_form,
+                jwks=siwc_jwks, now=siwc_now)
+        except Exception as refusal:
+            # The class name only. A token-exchange failure must not print
+            # the token, and this branch does not continue on to DeepSeek.
+            print("No ChatGPT subscription model was consulted "
+                  f"({type(refusal).__name__}).", file=out)
     elif other_cloud:
         from readers.model_provider_cli import _keychain_run, route_byok
         try:
@@ -27829,15 +27843,56 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
             if isinstance(area, str) and area.strip():
                 private.add(area.strip())
         note = model_context(stored)
+    from providers.record import load_provider_choice
+    provider, model_id = _understanding_selection(
+        out, load_provider_choice(conn), role="fast")
     understand_unplaced(
         conn, decisions, directory=directory,
         private_areas=private,
         declared_areas=declared,
         offline=operation_mode_for(consent) == "offline",
-        provider=_understanding_provider(out),
-        model_id=_understanding_model_id(out),
+        provider=provider,
+        model_id=model_id,
         profile_note=note,
         out=out)
+
+
+def _provider_choice_if_database(args):
+    """The stored lane when the plan database already exists. Does not create one."""
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    path = Path(database)
+    if not path.is_file():
+        return None
+    try:
+        from database_agent.db import open_database
+        from providers.record import load_provider_choice
+        directory = args.directory.expanduser().resolve()
+        conn = open_database(path, scan_roots=[directory])
+    except Exception:
+        return None
+    try:
+        return load_provider_choice(conn)
+    finally:
+        conn.close()
+
+
+def _understanding_selection(out, choice, *, role: str = "fast"):
+    """DeepSeek's env path when nothing else is stored. A stored lane decides."""
+    if not choice:
+        return _understanding_provider(out), _understanding_model_id(out, role=role)
+    from readers.model_provider_cli import understanding_from_choice
+    from readers.model_siwc import flag_enabled
+    run = None
+    if (choice.get("credential") == "keychain"
+            or (choice.get("lane") == "subscription" and flag_enabled())):
+        from readers.model_provider_cli import _keychain_run
+        run = _keychain_run()
+    decided = understanding_from_choice(
+        choice, out=out, role=role, env_lookup=_understanding_env,
+        keychain_run=run)
+    if decided is None:
+        return _understanding_provider(out), _understanding_model_id(out, role=role)
+    return decided
 
 
 def _understanding_provider(out):
@@ -28505,8 +28560,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             parser.error("--onboarding-questions needs the folder")
         from understanding.command import onboarding_questions_folder
         send = bool(args.accept_cloud_understanding and args.enable_cloud)
-        provider = _understanding_provider(out) if send else None
-        model_id = _understanding_model_id(out, role="reasoning") if send else ""
+        if send:
+            provider, model_id = _understanding_selection(
+                out, _provider_choice_if_database(args), role="reasoning")
+        else:
+            provider, model_id = None, ""
         if args.accept_cloud_understanding:
             _record_understanding_consent(args, out)
         declared = set()

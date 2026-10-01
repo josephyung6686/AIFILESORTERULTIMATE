@@ -67,6 +67,21 @@ def validate_choice(choice: dict) -> dict:
             raise ProviderChoiceRefused(
                 "the only subscription lane implemented is OpenAI, and it stays "
                 "off until FILESORTER_OPENAI_SIWC=1")
+    if provider == "claude-code":
+        if lane != "byok":
+            raise ProviderChoiceRefused(
+                "Claude Code is the unmodified binary, not a subscription "
+                "login. Use: filesorter providers use byok claude-code")
+        stored = {
+            "lane": "byok",
+            "provider": "claude-code",
+            "credential": "none",
+            "provenance": choice.get("provenance") or "answered",
+        }
+        model = choice.get("model")
+        if isinstance(model, str) and model.strip():
+            stored["model"] = model.strip()
+        return stored
     if lane == "byok" and provider not in BYOK_PROVIDERS:
         raise ProviderChoiceRefused(
             f"{provider!r} is not a BYOK provider. The set is "

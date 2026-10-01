@@ -1,12 +1,13 @@
 # AI model providers
 
-The understanding pass (`docs/model-assisted-understanding.md`) uses an API
-key. Bring-your-own-key is the supported default: DeepSeek, then any
-OpenAI-compatible endpoint, then a local model on loopback. Signing in with
-a ChatGPT or Claude subscription is not how that pass authenticates. A
-login scraper is not implemented. The notes below say what an official
-OAuth route would require if a provider opens one, and what is already
-gated off in this tree.
+The understanding pass (`docs/model-assisted-understanding.md`) follows the
+provider you stored. Bring-your-own-key is the supported default: DeepSeek,
+OpenAI, Anthropic's Messages API, or any OpenAI-compatible endpoint, then a
+local model on loopback. Continue with ChatGPT is OpenAI's published OAuth
+flow, and it runs on this machine only when `FILESORTER_OPENAI_SIWC=1`.
+Claude subscription login is not implemented. A login scraper is not
+implemented. This program does not read browser cookies, `~/.codex/auth.json`,
+or Claude Code's keychain.
 
 This is the user-facing and engineering description of how a folder picks a
 model. Files stay on disk until a freeze and an apply. A cloud model is never
@@ -20,7 +21,7 @@ The command is `filesorter` or `database-agent`. They are the same program.
 | Lane | What you can do today | What is not built |
 | --- | --- | --- |
 | Managed / plan-included | The list shows it as **coming later**. Selecting it refuses. | There is no included-plan backend and no fake one. |
-| Subscription sign-in | **Continue with ChatGPT** is shown. It runs only when `FILESORTER_OPENAI_SIWC=1`. Claude subscription is shown as not available. | No Claude.ai login. No browser-cookie or `~/.codex/auth.json` import. |
+| Subscription sign-in | **Continue with ChatGPT** is live on this machine when `FILESORTER_OPENAI_SIWC=1`. Commercial plan usage still waits on OpenAI's partner access. Claude subscription is the sentence "use Claude Code or an API key — Anthropic policy." | No Claude.ai login. No browser-cookie or `~/.codex/auth.json` import. No Free, Pro, or Max OAuth. |
 | API key (bring your own) | DeepSeek, OpenAI, Anthropic, and any OpenAI-compatible HTTPS endpoint. | Native Bedrock SigV4 and Vertex OAuth are not implemented. Point an Anthropic-compatible HTTPS URL at the Messages path if you already have one. |
 
 DeepSeek remains the cloud default when `DEEPSEEK_API_KEY` is set and this
@@ -95,14 +96,16 @@ macOS `security`, service `filesorter`:
 
 - `deepseek-api-key`, `openai-api-key`, `anthropic-api-key`,
   `openai-compatible-api-key` — API keys
+- `openai-siwc-host` — this app's `ext_agent_host_id`
 - `openai-siwc-access`, `openai-siwc-refresh`, `openai-siwc-registration` —
-  ChatGPT sign-in, only after a verified token response
+  ChatGPT sign-in, only after the ID token signature verifies
 
 The registration item is JSON with the issued client id, host id, expiry,
-scopes, and subject. It is still a secret. Nothing in this list is written to
-the plan database, a log line, or an exception. On a machine without the
-`security` command the keychain commands refuse; they do not fall back to a
-file.
+scopes, subject, the ID token (for a later `id_token_hint`), and the model
+id when you passed `--model`. It is still a secret. Nothing in this list is
+written to the plan database, a log line, or an exception. On a machine
+without the `security` command the keychain commands refuse; they do not
+fall back to a file.
 
 ## Sign in with ChatGPT
 
@@ -140,13 +143,21 @@ What the code builds, from those pages and not from a guessed client:
   `store: false`, `stream: true`, and `input` as an array
 - An expired access token is refreshed. If the refresh is refused, the prompt
   is **Reauthenticate** and the old access token is not sent
+- ID tokens are checked as RS256 against the JWKS URI the website page
+  publishes for issuer `https://auth.openai.com`:
+  `https://auth.openai.com/.well-known/jwks.json`. A bad signature is not
+  stored. `alg` other than RS256 fails closed.
 
-**TODO.** ID-token signature verification against OpenAI's published JWKS for
-issuer `https://auth.openai.com` is not implemented. Structural checks (issuer,
-audience, expiry, nonce) run, and a token response is refused — not stored —
-until a verifier reports the signature good. The live command with the flag on
-stops before opening a browser for that reason and tells you to use an API key.
-Guessing a JWKS URL was the less safe option, so it was not done.
+With the flag off, `filesorter providers sign-in-chatgpt` exits 2, prints
+the quickstart limit, and does not open a browser or a plan database.
+`FILESORTER_OPENAI_SIWC=1` is the local sign-in. It binds
+`127.0.0.1` on an ephemeral port, opens the authorize URL, exchanges the
+issued client id, verifies the ID token, and stores the tokens in the
+keychain. That flag is not a grant of commercial rights. OpenAI's quickstart
+says ChatGPT plan usage is limited to open-source partners and selected
+private clients, and that commercial partners are in a limited trial. This
+checkout found no separate waitlist form URL, so both the flag-off text and
+this page point at the quickstart.
 
 This program does not read `~/.codex/auth.json`, a Claude Code keychain item,
 or a browser cookie.
@@ -160,16 +171,31 @@ credentials or session tokens:
 
 https://code.claude.com/docs/en/legal-and-compliance
 
-The provider list says: **not available — Anthropic policy. Use an API key or
-Claude Code.**
+The provider list says: **use Claude Code or an API key — Anthropic policy.**
+Sign in inside Claude Code. Selecting Claude as a subscription refuses.
+
+Why this program does not ship Claude.ai OAuth:
+
+- Anthropic's page forbids offering Claude.ai login, routing Free, Pro, or
+  Max credentials, and collecting or storing those session tokens.
+- A cookie scrape of claude.ai would be that ban, so it is not implemented.
+- Reading Claude Code's keychain items, or `~/.claude`, would be handling
+  those tokens, so the binary is spawned unmodified and its login stays
+  inside it.
+- Intermediating Anthropic's OAuth in this app is the same ban. The screen
+  tells you to sign in inside Claude Code, or to use an API key.
 
 The same page says this does not prevent a person from signing in to the
-unmodified Claude Code binary. `filesorter providers claude-code` is that
-path, and only when `FILESORTER_CLAUDE_CODE=1`. It runs `claude -p` with the
-prompt. It does not read Claude Code's tokens. If `claude` is not on `PATH`,
-the command says to install it or use an API key. Anthropic can change
-enforcement without notice; if they do, turn the flag off. This document does
-not say Anthropic approved this product.
+unmodified Claude Code binary. `filesorter providers use byok claude-code`
+stores that choice with no credential. `filesorter providers claude-code`
+runs `claude -p` with the prompt, and only when `FILESORTER_CLAUDE_CODE=1`.
+The understanding pass uses the same unmodified argv when that choice is
+stored and the flag is on. If `claude` is not on `PATH`, the command says
+to install it and sign in inside Claude Code, or use an API key. The list
+shows whether `claude` is on `PATH`. Being on `PATH` does not switch a scan
+over by itself. Anthropic can change enforcement without notice; if they
+do, turn the flag off. This document does not say Anthropic approved this
+product.
 
 ## Consent, audit, cache, budget
 
@@ -188,8 +214,58 @@ That is the profile record. It is not a copy of the secret.
 | | Aside | This program |
 | --- | --- | --- |
 | Managed plan | A plan included with their product | Shown as coming later. No backend. |
-| ChatGPT subscription | Sign in with ChatGPT | Official OAuth + PKCE, flag off until partner access. No borrowed Codex tokens. |
-| Claude subscription | They offer a Claude sign-in | Refused. Anthropic's published policy does not allow it. |
-| Claude on the machine | | Optional unmodified `claude -p`, flag off by default. We never see the login. |
-| API keys | Bring your own key | DeepSeek, OpenAI, Anthropic, OpenAI-compatible HTTPS. Keychain or environment. |
+| ChatGPT subscription | Sign in with ChatGPT | Official OAuth + PKCE. Runnable locally when `FILESORTER_OPENAI_SIWC=1`, after the ID token verifies. Commercial use waits on OpenAI's partner access. No borrowed Codex tokens. |
+| Claude subscription | They offer a Claude sign-in | Refused: "use Claude Code or an API key — Anthropic policy." No Claude.ai OAuth, no cookie scrape, no keychain token read. |
+| Claude on the machine | | Optional unmodified `claude -p`, and only when you choose it and set `FILESORTER_CLAUDE_CODE=1`. Sign in inside Claude Code. We never see the login. |
+| API keys | Bring your own key | DeepSeek, OpenAI, Anthropic Messages, OpenAI-compatible HTTPS. Keychain or environment. The provider list is the picker. |
 | Secrets in the plan | | Never. Keychain service `filesorter`, or the environment. |
+
+## On a Mac
+
+The plan database stays outside the folder you scan. Fill
+`profiles/answers.alana.json` before a first scan; the shipped copy is a
+template and a scan refuses it until the TODOs are filled and `confirmed`
+is true. Nothing below was run against live OpenAI from this checkout: the
+browser redirect, the JWKS fetch, the token endpoint, the Responses stream,
+and whether this app is inside the commercial trial are for your machine.
+
+Flag off. `providers` lists the three lanes and exits 0. `sign-in-chatgpt`
+exits 2, points at the quickstart, and does not open a browser:
+
+```
+filesorter providers
+filesorter providers sign-in-chatgpt
+```
+
+Local ChatGPT sign-in, then a scan that may send. `<model-the-plan-allows>`
+is a model id your ChatGPT plan actually returns. The flag is local use,
+not commercial approval:
+
+```
+FILESORTER_OPENAI_SIWC=1 filesorter providers sign-in-chatgpt \
+  --database ~/star-sorter-test/plan.sqlite \
+  --model <model-the-plan-allows>
+filesorter ~/star-sorter-test/dl \
+  --database ~/star-sorter-test/dl-plan.sqlite \
+  --enable-cloud --accept-cloud-understanding --understand \
+  --answers ~/star-sorter-test/answers.alana.json
+```
+
+Claude Code. Sign in inside Claude Code. This app does not read that login:
+
+```
+FILESORTER_CLAUDE_CODE=1 filesorter providers use byok claude-code \
+  --database ~/star-sorter-test/plan.sqlite
+FILESORTER_CLAUDE_CODE=1 filesorter providers claude-code \
+  --prompt 'Reply with one JSON object {"ok": true}'
+```
+
+API keys. `add` asks for the key with no echo:
+
+```
+filesorter providers add deepseek --database ~/star-sorter-test/plan.sqlite
+filesorter providers add openai --model your-model --database ~/star-sorter-test/plan.sqlite
+filesorter providers add anthropic --model your-model --database ~/star-sorter-test/plan.sqlite
+filesorter providers use byok openai --model your-model --database ~/star-sorter-test/plan.sqlite
+filesorter providers dry-run anthropic --model your-model
+```

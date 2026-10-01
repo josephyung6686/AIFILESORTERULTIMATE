@@ -327,3 +327,35 @@ def anthropic_invoke(*, api_key: str | None, model_target: ModelTarget,
         )).encode("utf-8")
 
     return invoke
+
+
+class AnthropicUnderstanding:
+    """Messages API for the understanding pass. The key stays on the request."""
+
+    def __init__(self, *, api_key: str, post, model_id: str = ""):
+        self._headers = messages_headers(api_key)
+        self._post = post
+        self._model = model_id
+
+    def provider_name(self) -> str:
+        return "anthropic"
+
+    def locality(self) -> str:
+        return "cloud"
+
+    def complete(self, request) -> dict:
+        from understanding.backoff import RateLimited
+        body = messages_body(
+            model_id=request.model_id or self._model,
+            max_tokens=request.max_tokens, prompt=request.prompt)
+        try:
+            payload = self._post(MESSAGES_URL, self._headers, body)
+        except (RateLimited, AnthropicRequestRefused):
+            raise
+        except Exception:
+            raise AnthropicRequestRefused("the provider did not answer") from None
+        if not isinstance(payload, dict):
+            raise AnthropicRequestRefused("the transport did not return an object")
+        text = messages_text(payload)
+        return {"choices": [{"finish_reason": "stop",
+                             "message": {"content": text}}]}

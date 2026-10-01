@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 from datetime import datetime, timezone
 from getpass import getpass
@@ -45,6 +46,7 @@ from readers.model_keychain import (
     DEEPSEEK_API_KEY,
     OPENAI_API_KEY,
     SIWC_ACCESS,
+    SIWC_HOST,
     SIWC_REFRESH,
     SIWC_REGISTRATION,
     KeychainError,
@@ -118,17 +120,25 @@ def _keychain_run():
 def _print_lanes(out) -> None:
     print(explain_order(), file=out)
     print("", file=out)
-    print("1. Managed / plan-included: coming later. No backend.", file=out)
-    print("2. Subscription sign-in:", file=out)
-    print("   Continue with ChatGPT — " + (
-        "flag on (FILESORTER_OPENAI_SIWC=1)." if os.environ.get(SIWC_FLAG) == "1"
-        else "shown, not live. Use an API key today."), file=out)
-    print("   Claude subscription — " + POLICY, file=out)
-    print("3. API key (BYOK): deepseek, openai, anthropic, openai-compatible.",
+    print("1. Managed — coming later. No backend.", file=out)
+    print("2. Subscription:", file=out)
+    if os.environ.get(SIWC_FLAG) == "1":
+        print("   Continue with ChatGPT — live. "
+              "Commercial use still waits on OpenAI's partner access.", file=out)
+    else:
+        print("   Continue with ChatGPT — shown, not live. "
+              f"Set {SIWC_FLAG}=1 to sign in on this machine. "
+              "An API key works today.", file=out)
+    print("   Claude subscription — use Claude Code or an API key — "
+          "Anthropic policy. Sign in inside Claude Code.", file=out)
+    print("3. API key — deepseek, openai, anthropic, openai-compatible.",
           file=out)
-    print("   Claude Code — the unmodified binary, flag "
-          f"{CLAUDE_FLAG}. " + (
-              "Flag is on." if claude_flag() else "Flag is off."), file=out)
+    present = find_binary(shutil.which)
+    print("   Claude Code — the unmodified `claude` binary. "
+          + ("claude is on PATH. " if present else "claude is not on PATH. ")
+          + "Sign in inside Claude Code. This app never reads that login. "
+          + (f"{CLAUDE_FLAG}=1." if claude_flag() else f"{CLAUDE_FLAG} is off."),
+          file=out)
 
 
 def _active_line(conn) -> str:
@@ -192,12 +202,46 @@ def command_remove(conn, provider: str, *, user: str, keychain_run, out) -> int:
 def command_use(conn, lane: str, provider: str, *, user: str, model: str | None,
                 base_url: str | None, keychain_run, out) -> int:
     if lane == "managed":
-        print("Managed / plan-included is coming later. There is no backend.",
-              file=out)
+        print("Managed — coming later. There is no backend.", file=out)
         return 2
-    if lane == "subscription" and provider in ("anthropic", "claude"):
+    if lane == "subscription" and provider in ("anthropic", "claude", "claude-code"):
         print(POLICY, file=out)
+        print("Sign in inside Claude Code, or use an API key.", file=out)
         return 2
+    if lane == "subscription" and provider == "openai":
+        choice = {
+            "lane": "subscription", "provider": "openai", "credential": "keychain",
+            "provenance": "answered",
+        }
+        if model:
+            choice["model"] = model
+        try:
+            stored = store_provider_choice(
+                conn, choice, user_id=user, recorded_at=_now())
+        except ValueError as refusal:
+            print(str(refusal), file=out)
+            return 2
+        print("Stored Continue with ChatGPT. Sign in with "
+              "`filesorter providers sign-in-chatgpt` when "
+              f"{SIWC_FLAG}=1. The plan database has the lane, not the tokens.",
+              file=out)
+        print(json.dumps(stored, sort_keys=True), file=out)
+        return 0
+    if provider == "claude-code":
+        choice = {"lane": "byok", "provider": "claude-code", "credential": "none",
+                  "provenance": "answered"}
+        if model:
+            choice["model"] = model
+        try:
+            stored = store_provider_choice(
+                conn, choice, user_id=user, recorded_at=_now())
+        except ValueError as refusal:
+            print(str(refusal), file=out)
+            return 2
+        print("Stored Claude Code. Sign in inside Claude Code. "
+              "This app does not read that login.", file=out)
+        print(json.dumps(stored, sort_keys=True), file=out)
+        return 0
     choice = {"lane": lane, "provider": provider, "credential": "env",
               "provenance": "answered"}
     if model:
@@ -282,18 +326,101 @@ def command_dry_run(provider: str, *, model: str | None, base_url: str | None,
     return 0
 
 
-def command_sign_in(out) -> int:
+def command_sign_in(out, *, conn=None, user: str = "local", keychain_run=None,
+                    post_form=None, jwks=None, wait=None, open_url=None,
+                    model: str | None = None, now: int | None = None,
+                    nonce: str | None = None, state: str | None = None) -> int:
+    """Loopback Sign in with ChatGPT. Flag off refuses before any browser."""
     refusal = begin_or_refuse()
     if refusal is not None:
         print(refusal, file=out)
         return 2
-    print("FILESORTER_OPENAI_SIWC=1 is set. This build will not store tokens:",
-          file=out)
-    print("ID token signature verification against OpenAI's JWKS is a TODO, "
-          "so the safer path is still an API key. The authorize URL can be "
-          "built by readers.model_siwc.authorize_request; this command does "
-          "not open a browser until that check exists.", file=out)
-    return 2
+    if conn is None or keychain_run is None:
+        print("Sign in needs a plan database and a keychain. Nothing was stored.",
+              file=out)
+        return 2
+    from readers.model_siwc import (
+        JWKS_URI,
+        SiwcRefused,
+        bind_loopback,
+        fetch_jwks,
+        finish_sign_in,
+        post_token_form,
+        prepare_sign_in,
+    )
+    host = find_secret(SIWC_HOST, run=keychain_run)
+    if not host:
+        import uuid
+        host = "urn:uuid:" + uuid.uuid4().hex
+        add_secret(SIWC_HOST, host, run=keychain_run)
+    issued = None
+    raw = find_secret(SIWC_REGISTRATION, run=keychain_run)
+    if raw:
+        try:
+            issued = json.loads(raw).get("issued_client_id")
+        except json.JSONDecodeError:
+            issued = None
+    server = None
+    if wait is None:
+        server = bind_loopback()
+        port = server.server_address[1]
+    else:
+        port = 1455
+    attempt = prepare_sign_in(
+        host_id=host, port=port, issued_client_id=issued,
+        state=state, nonce=nonce)
+    print("Continue with ChatGPT. Open this URL if the browser does not:", file=out)
+    print(attempt.url, file=out)
+    print("Commercial use of ChatGPT plan tokens waits on OpenAI's partner "
+          "access. This command is the local sign-in.", file=out)
+    if open_url is not None:
+        open_url(attempt.url)
+    elif wait is None:
+        import webbrowser
+        webbrowser.open(attempt.url)
+    if wait is None:
+        server.timeout = 300
+        server.handle_request()
+        query = server.query
+        if not query:
+            print("The browser did not return to the loopback callback. "
+                  "No token was stored.", file=out)
+            return 2
+    else:
+        query = wait(attempt.url)
+    try:
+        document = jwks if jwks is not None else fetch_jwks()
+        session = finish_sign_in(
+            attempt, query, post_form=post_form or post_token_form,
+            jwks=document, now=now if now is not None else int(
+                datetime.now(timezone.utc).timestamp()))
+    except SiwcRefused as refusal:
+        print(str(refusal), file=out)
+        return 2
+    except Exception:
+        print("Sign in did not finish. Tokens were not stored.", file=out)
+        return 2
+    stored_tokens = siwc_tokens_for_storage(session, model=model)
+    for account, secret in stored_tokens.items():
+        add_secret(account, secret, run=keychain_run)
+    choice = {
+        "lane": "subscription", "provider": "openai", "credential": "keychain",
+        "provenance": "answered",
+    }
+    if model:
+        choice["model"] = model
+    stored = store_provider_choice(
+        conn, choice, user_id=user, recorded_at=_now())
+    print("ChatGPT sign-in is stored in the keychain. "
+          "The plan database has the lane, not the tokens.", file=out)
+    if not session.inference_ready:
+        print("chatgpt.tokens.use.direct was not granted, so plan usage "
+              "will not be called.", file=out)
+    print("JWKS: " + JWKS_URI, file=out)
+    print(json.dumps(
+        {key: stored[key] for key in stored if key != "subject"},
+        sort_keys=True), file=out)
+    return 0
 
 
 def command_claude(prompt: str, *, run, which, out) -> int:
@@ -326,7 +453,9 @@ def command_reauth_status(*, expires_at: int, now: int,
 
 
 def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
-         claude_run=None, which_claude=None) -> int:
+         claude_run=None, which_claude=None, siwc_post=None, siwc_jwks=None,
+         siwc_wait=None, siwc_open=None, siwc_now=None, siwc_nonce=None,
+         siwc_state=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter providers")
     parser.add_argument("--database", default=None)
@@ -348,7 +477,8 @@ def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
     dry.add_argument("provider")
     dry.add_argument("--model", default=None)
     dry.add_argument("--base-url", default=None)
-    sub.add_parser("sign-in-chatgpt")
+    sign_in = sub.add_parser("sign-in-chatgpt")
+    sign_in.add_argument("--model", default=None)
     claude = sub.add_parser("claude-code")
     claude.add_argument("--prompt", default='Reply with one JSON object {"ok": true}')
     status = sub.add_parser("session")
@@ -400,7 +530,14 @@ def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
             args.provider, model=args.model, base_url=args.base_url,
             key_present=present, out=out)
     if command == "sign-in-chatgpt":
-        return command_sign_in(out)
+        from readers.model_siwc import flag_enabled
+        if not flag_enabled():
+            return command_sign_in(out)
+        return command_sign_in(
+            out, conn=_open(_database(args.database)), user=args.user,
+            keychain_run=run, post_form=siwc_post, jwks=siwc_jwks,
+            wait=siwc_wait, open_url=siwc_open, model=args.model,
+            now=siwc_now, nonce=siwc_nonce, state=siwc_state)
     if command == "claude-code":
         return command_claude(
             args.prompt, run=claude_run or run,
@@ -503,17 +640,140 @@ def resolve_api_key(provider: str, *, credential: str, environ=None,
     return found or ""
 
 
-def siwc_tokens_for_storage(session) -> dict[str, str]:
+def siwc_tokens_for_storage(session, *, model: str | None = None) -> dict[str, str]:
     """What goes into the keychain, keyed by account. Not for the plan database."""
+    from readers.model_siwc import registration_document
     return {
         SIWC_ACCESS: session.access_token,
         SIWC_REFRESH: session.refresh_token,
-        SIWC_REGISTRATION: json.dumps({
-            "issued_client_id": session.issued_client_id,
-            "host_id": session.host_id,
-            "expires_at": session.expires_at,
-            "scopes": list(session.scopes),
-            "inference_ready": session.inference_ready,
-            "subject": session.subject,
-        }, sort_keys=True),
+        SIWC_REGISTRATION: json.dumps(
+            registration_document(session, model=model), sort_keys=True),
     }
+
+
+def _env_value(name: str, env_lookup) -> str:
+    if not name:
+        return ""
+    if env_lookup is None:
+        return (os.environ.get(name) or "").strip()
+    return (env_lookup(name) or "").strip()
+
+
+def _byok_key(provider: str, choice: dict, env_lookup, keychain_run) -> str:
+    found = _env_value(ENV_OF.get(provider, ""), env_lookup)
+    if found:
+        return found
+    if choice.get("credential") != "keychain" or keychain_run is None:
+        return ""
+    account = ACCOUNT_OF.get(provider)
+    if account is None:
+        return ""
+    return find_secret(account, run=keychain_run) or ""
+
+
+def understanding_from_choice(choice, *, out, role: str = "fast", env_lookup=None,
+                              keychain_run=None, http_post=None, siwc_post=None,
+                              siwc_post_form=None, siwc_jwks=None, siwc_now=None,
+                              claude_run=None, which_claude=None):
+    """The understanding adapter for a stored choice.
+
+    None means the caller keeps the DeepSeek environment path, including its
+    `/models` check. A tuple means this choice already decided, and `(None, "")`
+    means nothing is sent. A ChatGPT or Claude Code choice does not fall
+    through to DeepSeek.
+    """
+    if not choice:
+        return None
+    lane = choice.get("lane")
+    provider = choice.get("provider")
+    if lane == "none":
+        print("No cloud model was consulted: the stored provider choice is none.",
+              file=out)
+        return (None, "")
+    if lane == "managed":
+        print("Managed — coming later. There is no backend.", file=out)
+        return (None, "")
+    if provider == "deepseek" and choice.get("credential") != "keychain":
+        return None
+    if provider == "claude-code":
+        if not claude_flag():
+            print(POLICY, file=out)
+            print(f"Set {CLAUDE_FLAG}=1 to run the local binary.", file=out)
+            return (None, "")
+        binary = find_binary(which_claude or shutil.which)
+        if binary is None:
+            print(MISSING, file=out)
+            return (None, "")
+        from readers.model_claude_code import ClaudeCodeUnderstanding, default_runner
+        model = (choice.get("model") or "claude").strip()
+        return (ClaudeCodeUnderstanding(binary, claude_run or default_runner()), model)
+    if lane == "subscription":
+        if provider != "openai":
+            print(POLICY, file=out)
+            print("Sign in inside Claude Code, or use an API key.", file=out)
+            return (None, "")
+        from readers.model_siwc import SiwcUnderstanding, load_ready_access, post_responses
+        ready = load_ready_access(
+            out=out, keychain_run=keychain_run, post_form=siwc_post_form,
+            jwks=siwc_jwks, now=siwc_now)
+        if ready is None:
+            return (None, "")
+        access, model = ready
+        return (SiwcUnderstanding(
+            access_token=access, post=siwc_post or post_responses, model_id=model),
+            model)
+    if provider == "deepseek":
+        key = _byok_key("deepseek", choice, env_lookup, keychain_run)
+        role_env = {
+            "fast": "DEEPSEEK_MODEL_FAST",
+            "logic": "DEEPSEEK_MODEL_LOGIC",
+            "reasoning": "DEEPSEEK_MODEL_REASONING",
+        }.get(role, "")
+        model = (choice.get("model") or _env_value(role_env, env_lookup)).strip()
+        base = _env_value("DEEPSEEK_BASE_URL", env_lookup) or "https://api.deepseek.com"
+        if not key or not model:
+            print("No DeepSeek model was consulted. Store the key and set the "
+                  "model id. No dossier was sent.", file=out)
+            return (None, "")
+        from readers.model_understanding_http import DeepSeekUnderstanding, post_json
+        return (DeepSeekUnderstanding(
+            api_key=key, base_url=base, post=http_post or post_json), model)
+    if provider == "openai":
+        key = _byok_key("openai", choice, env_lookup, keychain_run)
+        model = (choice.get("model") or _env_value(OPENAI_MODEL, env_lookup)).strip()
+        if not key or not model:
+            print("No OpenAI model was consulted. Set OPENAI_MODEL and provide "
+                  "OPENAI_API_KEY, or store the key in the keychain.", file=out)
+            return (None, "")
+        from readers.model_understanding_http import (
+            OpenAICompatibleUnderstanding, post_json,
+        )
+        return (OpenAICompatibleUnderstanding(
+            api_key=key, base_url=DEFAULT_BASE_URL, post=http_post or post_json,
+            name="openai"), model)
+    if provider in (COMPATIBLE, "openai-compatible"):
+        key = _byok_key("openai-compatible", choice, env_lookup, keychain_run)
+        model = (choice.get("model") or _env_value(ENV_COMPATIBLE_MODEL, env_lookup)).strip()
+        base = choice.get("base_url") or _env_value(ENV_COMPATIBLE_BASE, env_lookup)
+        if not key or not model or not str(base).startswith("https://"):
+            print("No OpenAI-compatible model was consulted. It needs an https "
+                  "base URL, a model id, and a key.", file=out)
+            return (None, "")
+        from readers.model_understanding_http import (
+            OpenAICompatibleUnderstanding, post_json,
+        )
+        return (OpenAICompatibleUnderstanding(
+            api_key=key, base_url=str(base), post=http_post or post_json), model)
+    if provider == "anthropic":
+        key = _byok_key("anthropic", choice, env_lookup, keychain_run)
+        model = (choice.get("model") or _env_value(ANTHROPIC_MODEL, env_lookup)).strip()
+        if not key or not model:
+            print("No Anthropic model was consulted. Set ANTHROPIC_MODEL and "
+                  "provide ANTHROPIC_API_KEY, or store the key in the keychain.",
+                  file=out)
+            return (None, "")
+        from readers.model_anthropic import AnthropicUnderstanding, post_json
+        return (AnthropicUnderstanding(
+            api_key=key, post=http_post or post_json, model_id=model), model)
+    print(f"No cloud model was consulted: {provider!r} is not routed.", file=out)
+    return (None, "")

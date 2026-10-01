@@ -25,10 +25,11 @@ COMPATIBLE_API_KEY: str = "openai-compatible-api-key"
 SIWC_ACCESS: str = "openai-siwc-access"
 SIWC_REFRESH: str = "openai-siwc-refresh"
 SIWC_REGISTRATION: str = "openai-siwc-registration"
+SIWC_HOST: str = "openai-siwc-host"
 
 ACCOUNTS: frozenset[str] = frozenset({
     DEEPSEEK_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, COMPATIBLE_API_KEY,
-    SIWC_ACCESS, SIWC_REFRESH, SIWC_REGISTRATION,
+    SIWC_ACCESS, SIWC_REFRESH, SIWC_REGISTRATION, SIWC_HOST,
 })
 
 

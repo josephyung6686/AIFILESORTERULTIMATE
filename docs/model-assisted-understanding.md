@@ -174,10 +174,13 @@ not invent them.
 
 `ModelProvider` is `complete(request) -> chat completion dict`. DeepSeek,
 an OpenAI-compatible HTTPS endpoint (your own key, base URL, and model
-ids), and Ollama on `127.0.0.1` or `localhost` only. Keys come from the
-environment, `.env`, or the macOS Keychain helper in
-`readers/model_keychain.py`. They are not written into the plan database
-and not printed.
+ids), Anthropic's Messages API, a verified ChatGPT plan token when
+`FILESORTER_OPENAI_SIWC=1`, the unmodified `claude -p` binary when
+`FILESORTER_CLAUDE_CODE=1`, and Ollama on `127.0.0.1` or `localhost`
+only. Keys and plan tokens come from the environment, `.env`, or the
+macOS Keychain helper in `readers/model_keychain.py`. They are not
+written into the plan database and not printed.
 
-Sign-in with a ChatGPT or Claude subscription is not this pass. See
-`docs/model-providers.md`.
+A stored provider choice selects that adapter. No stored choice keeps
+DeepSeek when its key is set. Claude subscription login is not a choice
+this pass can make. See `docs/model-providers.md`.

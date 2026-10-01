@@ -1,10 +1,11 @@
 # src/understanding/provider.py
 """The provider interface the understanding pass calls.
 
-DeepSeek, any OpenAI-compatible API key (OpenAI, Anthropic-compatible
-gateways, or another base URL), and a local Ollama on loopback. Sign-in
-with a ChatGPT or Claude subscription is not this interface. That route is
-described in `docs/model-providers.md`. This pass does not scrape a login.
+DeepSeek, any OpenAI-compatible API key, Anthropic's Messages API, a
+verified ChatGPT plan token, the unmodified Claude Code binary, and a
+local Ollama on loopback. The composition root picks the adapter. This
+pass does not scrape a login, and it does not read Claude.ai or Codex
+tokens. Those limits are in `docs/model-providers.md`.
 
 The key is not a field of the request, so a log of the request cannot
 contain it. Adapters that speak HTTP live under `readers/model_` because
