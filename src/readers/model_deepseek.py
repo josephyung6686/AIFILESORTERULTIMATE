@@ -25,13 +25,11 @@ same sentence pointed the other way: the socket is the fact, so the socket's mod
 is where the claim is measured.
 
 **THE ENDPOINT IS THE SAME CLAIM, and it is the one thing this module must check
-that the Anthropic twin need not.** The OpenAI-compatible client defaults its
-`base_url` to OpenAI's own endpoint. A DeepSeek transport built with no endpoint
-would open a socket to a company the `ModelTarget` does not name, while the release
-ledger, §8.4's audit record and the screen all say `deepseek`. That the key would
-then be rejected is luck, not design. So an absent endpoint refuses, exactly as an
-absent key does: `84` §1's rule is absent means refuse, never guess, and an SDK
-default is a guess this module did not make.
+that the Anthropic twin need not.** This transport posts to whatever base URL the
+caller injected. An empty one refuses, exactly as an absent key does: `84` §1's
+rule is absent means refuse, never guess, and a host this module invented would be
+a company the `ModelTarget` does not name while the release ledger, §8.4's audit
+record and the screen all say `deepseek`.
 
 **Absent means refuse, and a credential is not an exception.** With no API key this
 raises, at the moment the client is built, before the scan starts. It does not
@@ -98,22 +96,23 @@ else raises, including a reason DeepSeek publishes and this module has never see
 failure, which says what actually happened.
 
 **ONE DEADLINE OVER THE WHOLE CALL (`104` R-176).** `timeout_seconds` used to
-become the SDK's own timeout, which is four per-operation timers: each bounds one
-connect, one write or one read and restarts on the next, so a call could legally
-take several of them and a reply that kept trickling could take all of them for
-ever. On 10 Sep 2026 the internet went for ninety minutes, this client sat on dead
-connections, and the run recorded NO failure for seven files it never got an answer
-about (§18.28). `_under_one_deadline` now spends ONE budget across the four phases
-of a call -- connecting, sending the request, waiting for the first byte, reading
-the body -- and a call that runs out raises the phase's own class, so
-`transport.issue` records an `llm_call_failure` naming the phase and the run goes on
-to the next file. The number is still the deployment's and still `cli.py`'s to pick.
+become four per-operation timers: each bounds one connect, one write or one read
+and restarts on the next, so a call could legally take several of them and a reply
+that kept trickling could take all of them for ever. On 10 Sep 2026 the internet
+went for ninety minutes, this client sat on dead connections, and the run recorded
+NO failure for seven files it never got an answer about (§18.28).
+`_under_one_deadline` spends ONE budget across the four phases of a call --
+connecting, sending the request, waiting for the first byte, reading the body --
+and a call that runs out raises the phase's own class, so `transport.issue`
+records an `llm_call_failure` naming the phase and the run goes on to the next
+file. The number is still the deployment's and still `cli.py`'s to pick. The
+socket is `http.client`, the same standard-library POST the understanding pass
+uses for this provider's chat completions. Nothing here imports an SDK, so a
+`readers` install and one `DEEPSEEK_API_KEY` are enough.
 
-**On retries.** The SDK retries 429s and 5xx by default. Those responses are not
-billed and are not answers, so they are not a second call in anything this product
-measures: `harness.run_call` reserves one budget call and `transport.issue`
-consumes one release per `invoke`, and there is no retry in this module over an
-answer.
+**On retries.** A 429 or a 5xx is not an answer and it is not a second call.
+`harness.run_call` reserves one budget call and `transport.issue` consumes one
+release per `invoke`. This module does not retry.
 """
 from __future__ import annotations
 
@@ -179,10 +178,10 @@ JSON_WORD: str = "json"
 #: all four is the only shape that bounds the call itself.
 #:
 #: THE SAME FOUR WORDS AS `model_ollama`, COPIED AND NOT IMPORTED. The two transports
-#: share no module -- one speaks `http.client` to loopback, one speaks an SDK to the
-#: internet -- and a reader importing another reader would make the local client's
-#: vocabulary a run-time dependency of the cloud client's. What R-176 asks them to
-#: share is the CONTRACT, and the contract is these four names and one spent budget.
+#: share no module -- both speak `http.client`, and neither imports the other -- so
+#: the local client's vocabulary is not a run-time dependency of the cloud client's.
+#: What R-176 asks them to share is the CONTRACT, and the contract is these four
+#: names and one spent budget.
 CONNECTING: str = "connecting"
 SENDING_THE_REQUEST: str = "sending the request"
 WAITING_FOR_THE_FIRST_BYTE: str = "waiting for the first byte"
@@ -531,134 +530,111 @@ def usage_of(response: object, *, model_id: str) -> Usage | None:
     )
 
 
-def _under_one_deadline(timeout_seconds: float):
-    """An HTTP client whose WHOLE call is bounded by one budget. `104` R-176.
+class ProviderDidNotAnswer(RuntimeError):
+    """The provider was asked and did not return an answer. The message has no key."""
 
-    **WHY THE SEAM IS HERE AND NOT IN A HAND-ROLLED SOCKET.** `model_ollama._post`
-    answered R-175 by dropping to `http.client`, because loopback HTTP with no
-    credential is a request a reader can honestly build by hand. This path is not
-    that: it carries the owner's API key over TLS to another company, and
-    hand-rolling that would mean this module authoring its own authentication and
-    its own certificate handling on the one line where a mistake is a leaked key.
-    So R-176 mirrors R-175's CONTRACT and not its mechanism -- one spent budget,
-    four named phases, a class per phase, no leaked socket -- through the seam the
-    SDK offers: `OpenAI(http_client=...)` takes any `httpx.Client`, and an
-    `httpx.Client` takes any transport.
 
-    **WHAT THE LIBRARY'S OWN TIMEOUT IS, AND WHY IT IS NOT THIS.** `httpx.Timeout`
-    is four numbers -- connect, write, read, pool -- and each bounds ONE operation
-    and restarts on the next. It bounds a SILENT socket and it does not bound a slow
-    one, which is the distinction `cli.MODEL_CALL_TIMEOUT_SECONDS` used to record in
-    its own docstring and which the outage turned from a note into seven unrecorded
-    files. `_Budget` replaces those four numbers with one budget: httpcore asks it
-    for each operation's patience and is answered with what is LEFT.
+class _CompletionView:
+    """One JSON object, read the way `response_text` and `usage_of` already read it.
 
-    **THE BOUND THIS ACTUALLY BUYS, stated exactly, because a bound overstated is
-    worse than a bound.** httpcore arms each phase's socket timer ONCE, from the
-    number it is handed at the moment that phase begins -- `connect` once for the
-    TCP connect and the TLS handshake together, `write` once, `read` once for the
-    headers and once for the whole body loop. So:
-
-    * **Silence is bounded by the budget.** Whichever phase goes quiet, its timer
-      was armed with the remainder, so the call ends at the deadline. This is the
-      outage's own shape and the one that mattered.
-    * **A body that keeps arriving is cut BETWEEN chunks.** `_BodyUnderTheDeadline`
-      consults the budget before each piece, so a trickle cannot satisfy a per-read
-      timer for ever the way `104` §18.22 measured at twenty-six minutes.
-    * **The one shape that can overshoot is trickle-then-stall**, and it overshoots
-      by at most ONE armed window: the last byte arrives just before the body's read
-      timer would have fired, the check passes, and the next read waits out a timer
-      that was armed with the remainder at the START of the body. Worst case is
-      therefore under twice the deadline, and it is never unbounded.
-    * **Name resolution is outside every timer**, here and in any client built on
-      `socket.create_connection`: `getaddrinfo` runs before the timeout applies, so
-      a dead resolver adds the operating system's own patience to the connecting
-      phase. The outage killed one agent on exactly that.
-
-    A tighter bound is reachable only by re-implementing the body reader -- which
-    means leaving the SDK, and the key and the TLS with it -- or by a watchdog
-    thread per call, which is a second timing mechanism to keep true. Neither is
-    worth what it buys over "never unbounded, and silence exact", so the bound above
-    is the one this module promises and `tests/readers/test_model_deepseek_deadline`
-    is the one that measures it.
+    Those two functions ask for attributes (`choices`, `finish_reason`,
+    `message.content`, `usage.prompt_tokens`). The chat-completions body is a
+    dict. This is the adapter between them, and it adds nothing the JSON did
+    not already say.
     """
-    import httpx
 
-    class _BodyUnderTheDeadline(httpx.SyncByteStream):
-        """The response body, with the budget consulted between the pieces.
+    def __init__(self, mapping: dict):
+        self._mapping = mapping
 
-        The check has to be HERE and not only in the timers: httpcore arms the
-        body's read timer once, before its loop, so a body that keeps producing
-        bytes satisfies that timer for as long as the bytes keep coming. Checking
-        between chunks is what turns "no read waited too long" into "the call did
-        not outlive its deadline".
+    def __getattr__(self, name: str):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        value = self._mapping.get(name)
+        if isinstance(value, dict):
+            return _CompletionView(value)
+        if isinstance(value, list):
+            return tuple(
+                _CompletionView(item) if isinstance(item, dict) else item
+                for item in value)
+        return value
 
-        Consulted BEFORE each piece rather than after it, the way `_post`'s
-        `read1` loop is written. The one difference from that loop, stated because
-        a bound overstated is worse than a bound: `_post` asks whether the response
-        is closed before it spends any budget, and this cannot -- there is no way
-        to know whether the next piece will read the socket or come out of what h11
-        already holds. So the check runs once more after the last piece, at
-        effectively the instant the stream reports its end, and a body that
-        completed inside the deadline is an answer UNLESS the deadline falls in
-        that instant.
-        """
 
-        def __init__(self, inner, budget: _Budget) -> None:
-            self._inner = inner
-            self._budget = budget
+def _completion_view(parsed: dict) -> _CompletionView:
+    return _CompletionView(parsed)
 
-        def __iter__(self):
-            pieces = iter(self._inner)
-            while True:
-                self._budget.left(READING_THE_BODY)
-                try:
-                    piece = next(pieces)
-                except StopIteration:
-                    return
-                except _OutOfTimeInPhase:
-                    raise
-                except httpx.TimeoutException as expiry:
-                    # The socket's own timer fired inside the phase's remainder,
-                    # which is the same deadline arriving by a different route.
-                    raise self._budget.expired(READING_THE_BODY) from expiry
-                yield piece
 
-        def close(self) -> None:
-            # A call that ran out of time leaves no socket behind. httpx closes a
-            # response whose read raised, and this is the line that carries that
-            # through to the connection underneath.
-            self._inner.close()
+#: How many body bytes one `read1` asks for. The budget is checked between
+#: these pieces, which is what stops a trickle from holding the call open.
+_BODY_CHUNK = 65536
 
-    class _OneBudgetForTheWholeCall(httpx.HTTPTransport):
-        """The stock transport, with one budget substituted for its four timers."""
 
-        def handle_request(self, request):
-            budget = _Budget(timeout_seconds)
-            # The mapping httpx built from its own `Timeout` is REPLACED, not
-            # amended: leaving any of its four numbers in place would leave one
-            # operation bounded by a patience nobody spent.
-            request.extensions["timeout"] = budget
-            try:
-                response = super().handle_request(request)
-            except _OutOfTimeInPhase:
-                raise
-            except httpx.TimeoutException as expiry:
-                raise budget.expired() from expiry
-            # The status line and the headers are in and the body's own timer has
-            # not been armed yet, which is the one moment a `read` changes meaning.
-            budget.the_headers_are_in()
-            response.stream = _BodyUnderTheDeadline(response.stream, budget)
-            return response
+def _under_one_deadline(url: str, body: bytes, headers: dict, *,
+                        timeout_seconds: float, api_key: str) -> bytes:
+    """POST one chat completion under one budget. `104` R-176.
 
-    # `trust_env` is left at its default so a deployment's certificate bundle is
-    # still honoured. THE ONE BEHAVIOUR THIS COSTS: httpx reads `HTTPS_PROXY` from
-    # the environment only when it builds the transport itself, so a deployment
-    # behind an environment-configured proxy now reaches the provider directly.
-    # Recorded rather than worked around: nothing in this product sets a proxy, and
-    # a proxy option here would be a deployment fact this module invented.
-    return httpx.Client(transport=_OneBudgetForTheWholeCall(),
-                        timeout=timeout_seconds)
+    `urllib.request.urlopen` is what the understanding pass uses, and its
+    timeout is an inactivity timer: a body that keeps arriving restarts it
+    forever. This is the same request -- `POST {base}/chat/completions`, the
+    same JSON, the same bearer header -- read with `http.client` so the budget
+    can be spent across connecting, sending, the first byte, and each piece of
+    the body. `model_ollama._post` is the same shape on loopback.
+
+    A timeout raises `_OutOfTimeInPhase`. Anything else that would put the key
+    in a message becomes `ProviderDidNotAnswer` with the key left out. The
+    socket is closed on every path.
+    """
+    from http.client import HTTP_PORT, HTTPS_PORT, HTTPConnection, HTTPSConnection
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(url)
+    if parts.scheme not in {"http", "https"} or not parts.hostname:
+        raise ModelEndpointMissing(
+            f"the {PROVIDER} endpoint must be an http or https URL. Nothing was sent.")
+    secure = parts.scheme == "https"
+    port = parts.port or (HTTPS_PORT if secure else HTTP_PORT)
+    path = parts.path or "/"
+    if parts.query:
+        path = f"{path}?{parts.query}"
+    budget = _Budget(timeout_seconds)
+    connection = (HTTPSConnection if secure else HTTPConnection)(
+        parts.hostname, port, timeout=budget.left(CONNECTING))
+    try:
+        try:
+            connection.connect()
+            sock = connection.sock
+            sock.settimeout(budget.left(SENDING_THE_REQUEST))
+            connection.request("POST", path, body=body, headers=headers)
+            sock.settimeout(budget.left(WAITING_FOR_THE_FIRST_BYTE))
+            response = connection.getresponse()
+            chunks: list[bytes] = []
+            while not response.isclosed():
+                sock.settimeout(budget.left(READING_THE_BODY))
+                chunk = response.read1(_BODY_CHUNK)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            raw = b"".join(chunks)
+            status = response.status
+        except _OutOfTimeInPhase:
+            raise
+        except TimeoutError as expiry:
+            raise budget.expired() from expiry
+        except Exception as problem:
+            _refuse_without_the_key(problem, api_key)
+            raise
+    finally:
+        connection.close()
+    if status != 200:
+        raise ProviderDidNotAnswer(
+            f"the {PROVIDER} provider did not answer (HTTP {status})")
+    return raw
+
+
+def _refuse_without_the_key(problem: BaseException, api_key: str) -> None:
+    """Re-raise, unless the message contains the key. Then the key is dropped."""
+    if api_key and api_key in str(problem):
+        raise ProviderDidNotAnswer(
+            f"the {PROVIDER} provider did not answer") from None
 
 
 def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
@@ -666,70 +642,30 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
           temperature: float | None = None) -> object:
     """The one place this module touches a socket, so a test can replace it.
 
-    Everything the module does with what comes back is `response_text`, which is
-    pure. What this function itself does -- open a socket, spend a budget across
-    the four phases of one call, and close what it opened -- is measured against a
-    real loopback server in `tests/readers/test_model_deepseek_deadline.py`, which
-    is `104` R-176's own answer to the sentence this docstring used to carry: that
-    these were statements the project could not exercise. It cannot exercise them
-    against the PROVIDER without a key and a bill; it can exercise them against a
-    socket, and the defect R-176 records lived in the socket.
+    The body is `request_body`: JSON object mode, thinking disabled, and the
+    sampling term when the caller names one. Understanding's DeepSeek adapter
+    posts that same chat-completions shape. This function does not import an
+    SDK, so the call works on a `readers` install.
     """
-    import openai
+    import json
 
-    # TIMEOUT AND RETRIES ARE BOTH SET, and neither has a default here. The
-    # library's own are ten minutes PER ATTEMPT with retries on top, so an
-    # unanswered request holds a scan open long past the point a person is still
-    # watching -- measured: the test suite stopped dead for ten minutes, twice,
-    # with no output, the first time a real client reached a `--enable-cloud`
-    # test. §8.6 bounds model SPEND and says nothing about a socket that never
-    # answers, so a hung call is not a budget event, not a `budget_deferred` and
-    # not a refusal: it is a run over ten thousand files that never finishes.
-    #
-    # `max_retries=0` because a retry multiplies the wait by a number the caller
-    # never chose, and because P8 already owns what happens to a failed call --
-    # retrying inside the transport would spend a second call the budget never
-    # reserved.
-    #
-    # THE SAME NUMBER TWICE, AND ONLY ONE OF THEM IS READ BY A SOCKET (`104`
-    # R-176). `timeout` is what the SDK puts in the request it builds; the client
-    # below replaces it with `_Budget` before any operation is armed, so the number
-    # that bounds the call is the budget's. It is still passed because it is the
-    # deployment's patience and this is where the SDK asks for it -- a client built
-    # with none would be a client whose own defaults are back.
-    #
-    # BOTH ARE CLOSED, and that is the "no leaked socket" half of R-176. The
-    # ESTABLISHED connections the outage left behind outlived the calls they
-    # belonged to because nothing closed them when the wait was abandoned.
-    with _under_one_deadline(timeout_seconds) as http:
-        with openai.OpenAI(
-            api_key=api_key, base_url=base_url,
-            timeout=timeout_seconds, max_retries=0, http_client=http,
-        ) as client:
-            return client.chat.completions.create(
-                # Every term of the request, built and checked by a pure function
-                # so this stays the one statement here that reaches the provider
-                # (`104` R-14).
-                **_as_the_sdk_takes_it(request_body(model_id=model_id, max_tokens=max_tokens,
-                             prompt=prompt, temperature=temperature)),
-            )
-
-
-#: The request terms the SDK has no keyword for, and so takes through
-#: `extra_body` -- merged into the same JSON body on the wire, which is why
-#: `request_body` still states them and the deadline pin still compares the
-#: whole body. `thinking` is the provider's own field (14 Sep 2026).
-_PROVIDER_ONLY_TERMS: frozenset[str] = frozenset({"thinking"})
-
-
-def _as_the_sdk_takes_it(body: dict) -> dict:
-    """`request_body`'s dict as `chat.completions.create` accepts it: the
-    provider-only terms moved under `extra_body`, everything else as keywords."""
-    extra = {key: body[key] for key in _PROVIDER_ONLY_TERMS if key in body}
-    kwargs = {key: value for key, value in body.items() if key not in extra}
-    if extra:
-        kwargs["extra_body"] = extra
-    return kwargs
+    payload = json.dumps(request_body(
+        model_id=model_id, max_tokens=max_tokens, prompt=prompt,
+        temperature=temperature)).encode("utf-8")
+    raw = _under_one_deadline(
+        base_url.rstrip("/") + "/chat/completions", payload,
+        {"Authorization": "Bearer " + api_key,
+         "Content-Type": "application/json"},
+        timeout_seconds=timeout_seconds, api_key=api_key)
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise NoAnswerFromModel(
+            "the provider's reply was not JSON") from None
+    if not isinstance(parsed, dict):
+        raise NoAnswerFromModel(
+            "the provider's reply was not a JSON object")
+    return _completion_view(parsed)
 
 
 def response_text(response: object) -> str:
@@ -812,12 +748,11 @@ def _require_credential(api_key: str | None) -> str:
 def _require_endpoint(base_url: str | None) -> str:
     if not isinstance(base_url, str) or not base_url.strip():
         raise ModelEndpointMissing(
-            f"no {PROVIDER} endpoint was injected. This SDK is OpenAI's, and with "
-            f"no base_url it calls OpenAI -- a company the ModelTarget does not "
-            f"name, while §8.4's audit record, P7's release ledger and the screen "
-            f"all say {PROVIDER!r}. Put the endpoint in {BASE_URL_NAME} and pass it "
-            f"in; a default chosen by an SDK is not a destination this deployment "
-            f"chose."
+            f"no {PROVIDER} endpoint was injected. Put the endpoint in "
+            f"{BASE_URL_NAME} and pass it in. This module does not choose a host: "
+            f"a guessed one would be a company the ModelTarget does not name, while "
+            f"§8.4's audit record, P7's release ledger and the screen all say "
+            f"{PROVIDER!r}."
         )
     return base_url
 

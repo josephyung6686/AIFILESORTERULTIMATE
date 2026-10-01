@@ -87,22 +87,11 @@ readers = [
 # device -- pull down two clients it will never open. `dependencies` stays empty
 # either way, so P5's rule is untouched by the split.
 models = [
-    # `readers/model_anthropic.py`.
+    # `readers/model_anthropic.py` still imports the Anthropic SDK for that
+    # provider's SDK path. DeepSeek fact, situation, and understanding calls
+    # post chat completions with the standard library, so a `readers` install
+    # and `DEEPSEEK_API_KEY` are enough for that provider.
     "anthropic>=0.40",
-    # `readers/model_deepseek.py`, which speaks DeepSeek through the OpenAI client.
-    "openai>=1.40",
-    # NAMED, NOT ADDED (`104` R-176). `httpx` is the OpenAI client's own transport
-    # library and is installed with it either way; what changed is that
-    # `model_deepseek` now reaches it DIRECTLY, to put one deadline over the whole
-    # call through the seam the SDK offers (`OpenAI(http_client=...)`).
-    # `tests/test_packaging_declares_what_the_readers_import.py` derives this list
-    # from the imports themselves, so an import that is real and undeclared is a
-    # failing test -- which is the rule working, not a new dependency.
-    #
-    # NO VERSION BOUND, deliberately: which httpx works is `openai`'s to pin, and a
-    # bound typed here would be this project inventing a compatibility claim it has
-    # not measured.
-    "httpx",
 ]
 
 # The command a person types after installing. The name is the one `cli.py` already

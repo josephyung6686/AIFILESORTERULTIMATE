@@ -155,6 +155,25 @@ the answers file. `--declare-life coursework=academic` still adds a life for
 that invocation. FAST is the classification model. `--private-area medical`
 adds an area that must not be sent, on top of `private_areas` in the file.
 
+When the pass finishes, the screen prints `After understanding` with one
+line per `life_area` the model named, including answers served from the
+cache. `What you have` stays the rules' reading from before the pass.
+`need review` is separate from those areas.
+
+## Reinstall
+
+From the app checkout. Fact, situation, and understanding calls to DeepSeek
+use the standard library. `pip install -e '.[dev,readers]'` is enough for
+`DEEPSEEK_API_KEY`. The `models` extra is the Anthropic SDK.
+
+```
+cd ~/star-sorter-test/repo-app
+git pull origin app
+pip install -e '.[dev,readers]'
+```
+
+The short re-run, after that install, is the Downloads command above.
+
 ## Cost
 
 No price is stored in this repository.

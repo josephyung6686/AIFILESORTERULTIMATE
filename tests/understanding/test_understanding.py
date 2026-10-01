@@ -488,3 +488,36 @@ def test_onboarding_questions_command_sends_nothing_without_consent(tmp_path):
     assert "sent nothing" in text
     assert SECRET not in text
     assert "Names seen: 1" in text
+
+
+def test_after_understanding_prints_life_areas_including_cached_answers():
+    """The rules' gist is printed before this pass. This block is the pass."""
+    from understanding.answer import Understanding
+    from understanding.attach import print_after_understanding
+    from understanding.run import FileResult, PassReport
+
+    def named(file_id, area, *, needs=False):
+        return Understanding(
+            file_id=file_id, kind="resume", life_area=area,
+            course=None, term=None, company=None, project=None,
+            concerns="user", confidence=0.4 if needs else 0.9,
+            evidence_quote="cover letter", needs_review=needs,
+            reason="confidence is low" if needs else "")
+
+    report = PassReport(results=[
+        FileResult("a", "cache", understanding=named("a", "career")),
+        FileResult("b", "answered", understanding=named("b", "career")),
+        FileResult("c", "answered", understanding=named("c", "academic", needs=True)),
+        FileResult("d", "needs_review", reason="budget stop"),
+        FileResult("e", "excluded", reason="protected"),
+    ])
+    out = io.StringIO()
+    print_after_understanding(report, out)
+    text = out.getvalue()
+    assert "After understanding: 5 files." in text
+    assert "2 career" in text
+    assert "1 academic" in text
+    assert "1 need review" in text
+    assert "1 excluded" in text
+    assert "1 of the named files need review" in text
+    assert "business" not in text

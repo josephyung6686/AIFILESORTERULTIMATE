@@ -216,8 +216,9 @@ def _declares_transport(tree: ast.Module) -> bool:
 def _imported(tree: ast.Module) -> frozenset[str]:
     """Every module name this one imports, at any depth including inside a function.
 
-    Inside a function too, deliberately: `model_deepseek._send` does `import openai`
-    in its body, which is where a part hiding an egress would put it as well.
+    Inside a function too, deliberately: `model_deepseek._under_one_deadline` does
+    `from http.client import HTTPConnection` in its body, which is where a part
+    hiding an egress would put it as well.
 
     `from a.b import c` contributes BOTH `a.b` and `a.b.c`, because `c` may be a
     module: `from readers import model_deepseek` and `import readers.model_deepseek`

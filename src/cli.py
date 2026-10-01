@@ -922,11 +922,10 @@ LOCAL_MAX_RESPONSE_TOKENS: int = 4096
 #: is not a budget ceiling and a call that hits it is not `budget_deferred`; it is a
 #: failed call, and P8 records it as one.
 #:
-#: **THE ONE THING IT DOES NOT PROMISE.** The transport library arms each phase's
-#: socket timer once, so a reply that trickles and then stalls is cut at the first
-#: piece after the deadline plus the window already armed -- under twice this number,
-#: never unbounded -- and name resolution runs before any timer applies, so a dead
-#: resolver adds the operating system's own patience to the connecting phase.
+#: **THE ONE THING IT DOES NOT PROMISE.** Name resolution runs before any timer
+#: applies, so a dead resolver adds the operating system's own patience to the
+#: connecting phase. The body itself is checked before every chunk, so a reply
+#: that trickles is cut at the deadline rather than held open by the next byte.
 #: `readers.model_deepseek._under_one_deadline` states that bound where it is built
 #: and `tests/readers/test_model_deepseek_deadline.py` measures it.
 #:

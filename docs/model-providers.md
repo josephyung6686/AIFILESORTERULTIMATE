@@ -260,6 +260,11 @@ FILESORTER_CLAUDE_CODE=1 filesorter providers claude-code \
   --prompt 'Reply with one JSON object {"ok": true}'
 ```
 
+DeepSeek from `.env` does not need the `models` extra. Fact, situation, and
+understanding calls post chat completions with the standard library. Reinstall
+from the app checkout with `pip install -e '.[dev,readers]'`, then the scan
+under "On a Mac" above. The `models` extra is the Anthropic SDK.
+
 API keys. `add` asks for the key with no echo:
 
 ```

@@ -131,3 +131,41 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
     print(f"Understanding: {report.sent} sent, {report.cache_hits} from cache, "
           f"{report.excluded} excluded, {report.needs_review} need review, "
           f"{report.budget_stopped} stopped by the budget.", file=out)
+    print_after_understanding(report, out)
+
+
+def print_after_understanding(report, out) -> None:
+    """Life areas the pass named, including answers that came from the cache.
+
+    ``What you have`` is the rules' reading and it is printed before this pass.
+    A file the rules left unnamed stays in that earlier block. This block is
+    the pass's own reading, so a successful run is not summarised only as unsorted.
+    """
+    areas: dict[str, int] = {}
+    review = 0
+    excluded = 0
+    flagged = 0
+    for result in report.results:
+        if result.status == "excluded":
+            excluded += 1
+            continue
+        understood = result.understanding
+        area = getattr(understood, "life_area", None) if understood is not None else None
+        if isinstance(area, str) and area.strip() and area != "needs_review":
+            areas[area] = areas.get(area, 0) + 1
+            if getattr(understood, "needs_review", False):
+                flagged += 1
+        else:
+            review += 1
+    total = len(report.results)
+    noun = "file" if total == 1 else "files"
+    print("", file=out)
+    print(f"After understanding: {total} {noun}.", file=out)
+    for area, count in sorted(areas.items(), key=lambda item: (-item[1], item[0])):
+        print(f"    {count} {area}", file=out)
+    if review:
+        print(f"    {review} need review", file=out)
+    if excluded:
+        print(f"    {excluded} excluded", file=out)
+    if flagged:
+        print(f"    {flagged} of the named files need review", file=out)
