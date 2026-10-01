@@ -106,15 +106,25 @@ def dry_run_estimate(dossiers: list[dict]) -> dict:
     }
 
 
+# Chat completions on these ids accept json_object only. json_schema is
+# rejected by that endpoint, so the shape is spelled here and checked here.
+_CONCERNS_RULE = (
+    '"concerns" is one string, exactly "user" or "someone_else" or '
+    '"unknown". It is not an array.'
+)
+
+
 def _prompt(dossier: dict, declared: list[str]) -> str:
     areas = ", ".join(sorted(declared)) or "(none declared)"
     return (
         "Reply with one JSON object and nothing else. "
         f"life_area must be one of: {areas}, or \"needs_review\". "
         "Do not invent a category. Business is not a fallback. "
-        "Keys: kind, life_area, course, term, company, project, "
-        "concerns (user, someone_else, or unknown), confidence "
-        "from 0 to 1, evidence_quote as one line. "
+        "Keys: kind (string), life_area (string), course, term, company, "
+        "project (each a string or null), "
+        + _CONCERNS_RULE + " "
+        "confidence is a number from 0 to 1, not a percent sign and not an "
+        "array. evidence_quote is one string and one line. "
         "Dossier: " + json.dumps(dossier, sort_keys=True)
     )
 
@@ -278,9 +288,42 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
     return report
 
 
+class UnexpectedFault(Exception):
+    """A worker failure that is not the model's answer. The message is the class name."""
+
+    def __init__(self, class_name: str):
+        super().__init__(class_name)
+        self.exception_class = class_name
+
+
+def _fault_from(problem: BaseException) -> tuple[str, str]:
+    """A reason safe to store, and the exception class. No payload, no key."""
+    klass = type(problem).__name__
+    if isinstance(problem, json.JSONDecodeError):
+        return "the model did not return JSON", "JSONDecodeError"
+    if isinstance(problem, (AnswerRejected, CompletionUnreadable, RateLimited)):
+        return str(problem), klass
+    return klass, klass
+
+
 def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
                     attempts: int):
-    """The HTTP part. No database. Safe to run on a worker thread."""
+    """The HTTP part. No database. One bad answer does not escape this function."""
+    try:
+        return _ask_members(
+            provider, model_id=model_id, members=members, declared=declared,
+            tokens=tokens, sleep=sleep, attempts=attempts)
+    except Exception as problem:  # noqa: BLE001 -- a worker must not kill the pool
+        reason, klass = _fault_from(problem)
+        return {
+            "members": members, "tokens": tokens, "calls": 1,
+            "error": reason, "exception_class": klass,
+            "reading": None, "items": None,
+        }
+
+
+def _ask_members(provider, *, model_id, members, declared, tokens, sleep,
+                 attempts: int):
     if len(members) == 1:
         view, dossier, key, _tokens = members[0]
         try:
@@ -288,8 +331,10 @@ def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
                 provider, model_id=model_id, dossier=dossier, declared=declared,
                 sleep=sleep, attempts=attempts)
         except (AnswerRejected, CompletionUnreadable, RateLimited) as refusal:
+            reason, klass = _fault_from(refusal)
             return {
-                "members": members, "tokens": tokens, "calls": 1, "error": str(refusal),
+                "members": members, "tokens": tokens, "calls": 1,
+                "error": reason, "exception_class": klass,
                 "reading": None, "items": None,
             }
         return {
@@ -319,8 +364,10 @@ def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
         if not isinstance(files, list) or len(files) != len(members):
             raise AnswerRejected("the batch did not return one object per file")
     except (AnswerRejected, CompletionUnreadable, RateLimited, json.JSONDecodeError) as refusal:
+        reason, klass = _fault_from(refusal)
         return {
-            "members": members, "tokens": tokens, "calls": 1, "error": str(refusal),
+            "members": members, "tokens": tokens, "calls": 1,
+            "error": reason, "exception_class": klass,
             "reading": None, "items": None,
         }
     items = []
@@ -331,6 +378,8 @@ def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
                 raw, file_id=view.file_id, declared_areas=declared)
         except AnswerRejected as refusal:
             items.append((view, key, raw, refusal))
+        except Exception as problem:  # noqa: BLE001 -- one file, not the batch
+            items.append((view, key, raw, UnexpectedFault(type(problem).__name__)))
         else:
             items.append((view, key, raw, understood))
     return {
@@ -346,7 +395,8 @@ def _batch_prompt(members, declared) -> str:
         "{\"files\": [ one object per dossier, in order ]}. "
         "Each object has file_id, kind, life_area, course, term, company, "
         "project, concerns, confidence, evidence_quote. "
-        f"life_area must be one of {', '.join(sorted(declared))}, "
+        + _CONCERNS_RULE + " "
+        f"life_area must be one string, one of {', '.join(sorted(declared))}, "
         "or \"needs_review\". Do not invent a category. "
         "Dossiers: " + json.dumps(payload_dossiers)
     )
@@ -362,25 +412,32 @@ def _persist(conn, report, budget, outcome, *, model_id, now) -> None:
     report.called_complete += outcome["calls"]
     if outcome["error"] is not None:
         report.sent += len(members)
+        klass = outcome.get("exception_class")
         for view, _dossier, _key, _tokens in members:
             report.needs_review += 1
             report.results.append(FileResult(
                 view.file_id, "needs_review", reason=outcome["error"]))
             audit(conn, file_id=view.file_id, fields=FIELDS_THAT_LEAVE,
                   model_id=model_id, prompt_tokens=None, completion_tokens=None,
-                  cache_hit=False, recorded_at=now)
+                  cache_hit=False, recorded_at=now, exception_class=klass)
         return
     reading = outcome["reading"]
     report.sent += len(members)
     for view, key, raw, understood in outcome["items"]:
-        if isinstance(understood, AnswerRejected):
+        if isinstance(understood, (AnswerRejected, UnexpectedFault)):
             report.needs_review += 1
+            if isinstance(understood, UnexpectedFault):
+                reason = understood.exception_class
+                klass = understood.exception_class
+            else:
+                reason = str(understood)
+                klass = "AnswerRejected"
             report.results.append(FileResult(
-                view.file_id, "needs_review", reason=str(understood)))
+                view.file_id, "needs_review", reason=reason))
             audit(conn, file_id=view.file_id, fields=FIELDS_THAT_LEAVE,
                   model_id=model_id, prompt_tokens=reading.prompt_tokens,
                   completion_tokens=reading.completion_tokens,
-                  cache_hit=False, recorded_at=now)
+                  cache_hit=False, recorded_at=now, exception_class=klass)
             continue
         cache_put(conn, cache_key=key, model_id=model_id,
                   response_json=raw, stored_at=now)

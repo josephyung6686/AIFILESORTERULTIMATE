@@ -375,6 +375,69 @@ def test_a_stored_excerpt_is_capped_before_it_can_leave():
     assert SECRET not in dossier["text_excerpt"]
 
 
+def test_a_one_element_concerns_list_is_not_a_type_error():
+    understood = interpret_answer(
+        _answer(concerns=["user"]), file_id="f", declared_areas={"academic"})
+    assert understood.concerns == "user"
+    assert not understood.needs_review
+    with pytest.raises(Exception) as raised:
+        interpret_answer(
+            _answer(concerns=["user", "someone_else"]),
+            file_id="f", declared_areas={"academic"})
+    assert type(raised.value).__name__ == "AnswerRejected"
+    assert not isinstance(raised.value, TypeError)
+
+
+def test_one_bad_member_does_not_drop_the_rest_of_the_batch():
+    good = json.loads(_answer())
+    listed = json.loads(_answer())
+    listed["concerns"] = ["user", "someone_else"]
+    also = json.loads(_answer(kind="notes"))
+    payload = {"files": [good, listed, also]}
+    provider = Fake([_completion(json.dumps(payload))])
+    conn = _conn()
+    report = run_understanding(
+        conn=conn,
+        views=[
+            _view("a.txt", file_id="a.txt"),
+            _view("b.txt", file_id="b.txt"),
+            _view("c.txt", file_id="c.txt"),
+        ],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        workers=2, sleep=lambda _seconds: None)
+    assert len(report.results) == 3
+    by_id = {item.file_id: item for item in report.results}
+    assert by_id["a.txt"].status == "answered"
+    assert by_id["b.txt"].status == "needs_review"
+    assert by_id["c.txt"].status == "answered"
+    rows = conn.execute(
+        "SELECT file_id, exception_class FROM understanding_audit"
+    ).fetchall()
+    assert {row[0] for row in rows} == {"a.txt", "b.txt", "c.txt"}
+    rejected = [row for row in rows if row[0] == "b.txt"]
+    assert rejected and rejected[0][1] == "AnswerRejected"
+
+
+def test_an_unexpected_error_is_audited_as_its_class_and_not_the_key():
+    class Boom(Fake):
+        def complete(self, request):
+            raise RuntimeError(SECRET)
+
+    conn = _conn()
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=Boom([]), model_id="deepseek-flash",
+        offline=False, consent=True, now="t", sleep=lambda _seconds: None)
+    assert report.results[0].status == "needs_review"
+    assert SECRET not in report.results[0].reason
+    row = conn.execute(
+        "SELECT exception_class, fields_sent FROM understanding_audit"
+    ).fetchone()
+    assert row[0] == "RuntimeError"
+    assert SECRET not in " ".join(str(cell) for cell in row)
+
+
 def test_onboarding_questions_command_sends_nothing_without_consent(tmp_path):
     import cli
     (tmp_path / "CHEM.pdf").write_text(SECRET)

@@ -13,7 +13,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-PROMPT_VERSION: str = "understanding-1"
+PROMPT_VERSION: str = "understanding-2"
 WORD_CAP: int = 400
 
 FIELDS_THAT_LEAVE: tuple[str, ...] = (

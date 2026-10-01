@@ -46,13 +46,22 @@ CREATE TABLE IF NOT EXISTS understanding_audit (
     prompt_tokens      INTEGER,
     completion_tokens  INTEGER,
     cache_hit          INTEGER NOT NULL,
-    recorded_at        TEXT NOT NULL
+    recorded_at        TEXT NOT NULL,
+    exception_class    TEXT
 );
 """
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(CONSENT_DDL + CACHE_DDL + AUDIT_DDL)
+    # A database created before exception_class existed still has the table.
+    # CREATE TABLE IF NOT EXISTS does not add the column.
+    columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(understanding_audit)")
+    }
+    if "exception_class" not in columns:
+        conn.execute(
+            "ALTER TABLE understanding_audit ADD COLUMN exception_class TEXT")
 
 
 def record_consent(conn: sqlite3.Connection, *, corpus_root: str, user_id: str,
@@ -90,23 +99,27 @@ def cache_get(conn: sqlite3.Connection, cache_key: str) -> str | None:
 
 def cache_put(conn: sqlite3.Connection, *, cache_key: str, model_id: str,
               response_json: str, stored_at: str) -> None:
+    from understanding.dossier import PROMPT_VERSION
     ensure_schema(conn)
     conn.execute(
         "INSERT OR REPLACE INTO understanding_cache "
         "(cache_key, model_id, prompt_version, response_json, stored_at) "
         "VALUES (?, ?, ?, ?, ?)",
-        (cache_key, model_id, "understanding-1", response_json, stored_at),
+        (cache_key, model_id, PROMPT_VERSION, response_json, stored_at),
     )
 
 
 def audit(conn: sqlite3.Connection, *, file_id: str, fields: tuple[str, ...],
           model_id: str, prompt_tokens: int | None, completion_tokens: int | None,
-          cache_hit: bool, recorded_at: str) -> None:
+          cache_hit: bool, recorded_at: str,
+          exception_class: str | None = None) -> None:
     ensure_schema(conn)
     conn.execute(
         "INSERT INTO understanding_audit "
         "(file_id, fields_sent, model_id, prompt_tokens, completion_tokens, "
-        "cache_hit, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "cache_hit, recorded_at, exception_class) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (file_id, json.dumps(list(fields)), model_id, prompt_tokens,
-         completion_tokens, 1 if cache_hit else 0, recorded_at),
+         completion_tokens, 1 if cache_hit else 0, recorded_at,
+         exception_class),
     )

@@ -58,27 +58,57 @@ def _object(raw: str) -> dict:
     return parsed
 
 
+def _one_string(value, key: str) -> str:
+    """A string, or a one-element list of a string. Anything else is rejected.
+
+    A live model returned `concerns` as `["user"]`. Membership-testing that
+    list raises TypeError, and that error is not an answer.
+    """
+    if isinstance(value, str):
+        return value
+    if (isinstance(value, (list, tuple)) and len(value) == 1
+            and isinstance(value[0], str)):
+        return value[0]
+    raise AnswerRejected(
+        f"{key} must be one string, not {type(value).__name__}")
+
+
+def _confidence(value) -> float:
+    if isinstance(value, (list, tuple)) and len(value) == 1:
+        value = value[0]
+    if isinstance(value, bool) or isinstance(value, (list, tuple, dict)):
+        raise AnswerRejected("confidence is not a number")
+    if isinstance(value, str) and value.strip().endswith("%"):
+        try:
+            number = float(value.strip()[:-1]) / 100.0
+        except ValueError as problem:
+            raise AnswerRejected("confidence is not a number") from problem
+    else:
+        try:
+            number = float(value)
+        except (TypeError, ValueError) as problem:
+            raise AnswerRejected("confidence is not a number") from problem
+    return number
+
+
 def interpret_answer(raw: str, *, file_id: str,
                      declared_areas: set[str]) -> Understanding:
     parsed = _object(raw)
-    concerns = parsed["concerns"]
+    concerns = _one_string(parsed["concerns"], "concerns")
     if concerns not in CONCERNS:
         raise AnswerRejected(
             f"concerns must be one of {sorted(CONCERNS)}")
-    try:
-        confidence = float(parsed["confidence"])
-    except (TypeError, ValueError) as problem:
-        raise AnswerRejected("confidence is not a number") from problem
+    confidence = _confidence(parsed["confidence"])
     if not 0.0 <= confidence <= 1.0:
         raise AnswerRejected("confidence is outside 0 to 1")
-    quote = parsed["evidence_quote"]
-    if not isinstance(quote, str) or "\n" in quote or not quote.strip():
+    quote = _one_string(parsed["evidence_quote"], "evidence_quote")
+    if "\n" in quote or not quote.strip():
         raise AnswerRejected("evidence_quote must be one non-empty line")
-    kind = parsed["kind"]
-    if not isinstance(kind, str) or not kind.strip():
+    kind = _one_string(parsed["kind"], "kind")
+    if not kind.strip():
         raise AnswerRejected("kind is empty")
-    area = parsed["life_area"]
-    if not isinstance(area, str) or not area.strip():
+    area = _one_string(parsed["life_area"], "life_area")
+    if not area.strip():
         raise AnswerRejected("life_area is empty")
     declared = {name.casefold(): name for name in declared_areas}
     needs = False
@@ -104,6 +134,8 @@ def interpret_answer(raw: str, *, file_id: str,
         value = parsed.get(key)
         if value is None or value == "":
             return None
+        if isinstance(value, (list, tuple)) and len(value) == 1 and isinstance(value[0], str):
+            value = value[0]
         if not isinstance(value, str):
             raise AnswerRejected(f"{key} must be a string or empty")
         return value
