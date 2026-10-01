@@ -52,9 +52,10 @@ empty content is needs-review, not a classification.
 ## Consent, cache, budget, audit
 
 Consent is one row per folder, the sentence in
-`understanding.store.STATEMENT`, recorded by
-`--accept-cloud-understanding`. It says dossier text goes to the provider's
-servers.
+`understanding.store.STATEMENT`. `filesorter onboard` records it, and a
+normal scan records it when a provider is configured. It says dossier text
+goes to the provider's servers. `--accept-cloud-understanding` records the
+same sentence.
 
 The cache key is the SHA-256 of the dossier, the model id, and the prompt
 version `understanding-1`. A hit does not call the provider.
@@ -90,10 +91,13 @@ line: `filename`, `path_hints`, `kind`, `text_excerpt`, `metadata`. It also
 prints the token estimates and the cost formula. It does not fill in a
 price.
 
-`--understand` with `--enable-cloud` and no provider exits before the scan.
-The sentence names `filesorter providers`, `DEEPSEEK_API_KEY`, and
+A scan with no provider exits before any file is read. The sentence says
+to set up a model provider and names `filesorter onboard` and
+`filesorter providers`, and also `DEEPSEEK_API_KEY` and
 `DEEPSEEK_MODEL_FAST`. Nothing is sent. An empty balance is still
 `InsufficientBalance` on the audit row and on the `After understanding` line.
+`--no-understand` and `FILESORTER_SKIP_UNDERSTANDING=1` skip the pass.
+Those are for tests and developers. A normal scan does not need a flag.
 
 ## Onboarding questions
 
@@ -137,7 +141,6 @@ mkdir -p ~/star-sorter-test/smoke
 printf 'office hours Tuesday\n' > ~/star-sorter-test/smoke/hours.txt
 database-agent ~/star-sorter-test/smoke \
   --database ~/star-sorter-test/smoke-plan.sqlite \
-  --enable-cloud --accept-cloud-understanding --understand \
   --answers ~/star-sorter-test/answers.alana.json
 sqlite3 ~/star-sorter-test/smoke-plan.sqlite \
   'SELECT COUNT(*) FROM understanding_audit;'
@@ -156,15 +159,14 @@ replaces the TODOs and sets `confirmed` to true.
 ```
 database-agent ~/star-sorter-test/dl \
   --database ~/star-sorter-test/dl-plan.sqlite \
-  --enable-cloud --accept-cloud-understanding --understand \
   --answers ~/star-sorter-test/answers.alana.json
 ```
 
-`--enable-cloud` is the existing per-folder cloud consent. The understanding
-pass also requires `--accept-cloud-understanding`. Declared lives come from
-the answers file. `--declare-life coursework=academic` still adds a life for
-that invocation. FAST is the classification model. `--private-area medical`
-adds an area that must not be sent, on top of `private_areas` in the file.
+The scan records that dossier text may go to the provider. There is no
+separate switch for that. Declared lives come from the answers file.
+`--declare-life coursework=academic` still adds a life for that invocation.
+FAST is the classification model. `--private-area medical` adds an area
+that must not be sent, on top of `private_areas` in the file.
 
 When the pass finishes, the screen prints `After understanding` with one
 line per `life_area` the model named, including answers served from the

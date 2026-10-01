@@ -109,8 +109,10 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
     root = str(directory)
     if not consent_recorded(conn, root):
         print(STATEMENT, file=out)
-        print("Understanding did not run. Pass --accept-cloud-understanding "
-              "once for this folder. Nothing was sent.", file=out)
+        print("Understanding did not run. This folder has no record that "
+              "dossier text may be sorted with the model provider. "
+              "Run `filesorter onboard` for this folder. Nothing was sent.",
+              file=out)
         return
     if decisions is None:
         views = indexed_views(conn, directory)

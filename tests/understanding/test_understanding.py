@@ -390,6 +390,184 @@ def test_understand_without_a_provider_fails_before_the_scan(tmp_path, monkeypat
     assert files == 0
 
 
+def _quiet_keys(monkeypatch):
+    import http.client
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    for name in (
+            "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL_FAST", "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+
+
+def _one_folder(tmp_path):
+    folder = tmp_path / "inbox"
+    folder.mkdir()
+    (folder / "hours.txt").write_text("office hours Tuesday\n")
+    answers = tmp_path / "answers.json"
+    answers.write_text(json.dumps({
+        "person_name": "Ada Localname",
+        "lives": ["academic"],
+        "not_lives": [],
+        "situations": {},
+        "school": "Example School",
+        "courses": [],
+        "companies": [],
+        "confirmed": True,
+    }), encoding="utf-8")
+    return folder, answers, tmp_path / "plan.sqlite"
+
+
+class _ScanFake:
+    def __init__(self):
+        self.calls = []
+
+    def provider_name(self):
+        return "fake"
+
+    def locality(self):
+        return "cloud"
+
+    def complete(self, request):
+        self.calls.append(request.prompt)
+        return {
+            "choices": [{
+                "finish_reason": "stop",
+                "message": {"content": json.dumps({
+                    "kind": "note",
+                    "life_area": "academic",
+                    "course": None,
+                    "term": None,
+                    "company": None,
+                    "project": None,
+                    "concerns": "user",
+                    "confidence": 0.9,
+                    "evidence_quote": "office hours",
+                })},
+            }],
+            "usage": {"prompt_tokens": 12, "completion_tokens": 8},
+        }
+
+
+def test_a_scan_runs_understanding_without_an_opt_in_flag(tmp_path, monkeypatch):
+    """A normal scan asks the model. The person does not pass --understand."""
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    lowered = said.lower()
+    assert "do you want ai" not in lowered
+    assert "use ai" not in lowered
+    conn = sqlite3.connect(database)
+    try:
+        rows = conn.execute("SELECT COUNT(*) FROM understanding_audit").fetchone()[0]
+    finally:
+        conn.close()
+    assert rows >= 1, said[-800:]
+    assert fake.calls, said[-800:]
+    assert "Ada Localname" not in fake.calls[0]
+
+
+def test_a_scan_without_a_provider_refuses_before_any_file_is_read(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 2, said[-800:]
+    assert "set up a model provider" in said.lower()
+    assert "filesorter providers" in said
+    assert "onboard" in said
+    assert "do you want ai" not in said.lower()
+    assert "Ada Localname" not in said
+    conn = sqlite3.connect(database)
+    try:
+        try:
+            files = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        except sqlite3.OperationalError:
+            files = 0
+    finally:
+        conn.close()
+    assert files == 0
+
+
+def test_no_understand_is_the_only_scan_flag_that_skips_the_pass(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--no-understand",
+    ], out=out)
+    said = out.getvalue()
+    assert code in (0, 1), said[-800:]
+    assert "set up a model provider" not in said.lower()
+    assert "Plan database:" in said
+
+
+def test_the_skip_env_keeps_a_rules_scan_from_refusing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.setenv("FILESORTER_SKIP_UNDERSTANDING", "1")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code in (0, 1), said[-800:]
+    assert "set up a model provider" not in said.lower()
+    assert "Plan database:" in said
+
+
+def test_model_dry_run_stays_local_when_understanding_is_the_default(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, _answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--model-dry-run", "--database", str(database),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert "Nothing was sent" in said
+    assert "No network call was made" in said
+    assert "Candidates: 1" in said
+    assert not database.exists()
+
+
 def test_rate_limit_waits_and_is_not_an_answer():
     from understanding.backoff import RateLimited
     from readers.model_understanding_http import status_error

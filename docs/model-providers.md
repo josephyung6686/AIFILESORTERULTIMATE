@@ -25,11 +25,11 @@ The command is `filesorter` or `database-agent`. They are the same program.
 | API key (bring your own) | DeepSeek, OpenAI, Anthropic, and any OpenAI-compatible HTTPS endpoint. | Native Bedrock SigV4 and Vertex OAuth are not implemented. Point an Anthropic-compatible HTTPS URL at the Messages path if you already have one. |
 
 DeepSeek remains the cloud default when `DEEPSEEK_API_KEY` is set and this
-folder has not stored a different provider. A scan with no key and no stored
-choice does what it did before: it sorts from the files and says no model was
-consulted. `--understand` with cloud consent and no provider does not sort
-first and does not call: it exits and tells you to run `filesorter providers`
-or set `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL_FAST`.
+folder has not stored a different provider. Understanding runs on a normal
+scan. A scan with no key and no stored choice does not sort first and does
+not call: it exits and tells you to set up a model provider, naming
+`filesorter onboard` and `filesorter providers`, or `DEEPSEEK_API_KEY` and
+`DEEPSEEK_MODEL_FAST`.
 
 ## Where this sits in onboarding
 
@@ -252,7 +252,6 @@ FILESORTER_OPENAI_SIWC=1 filesorter providers sign-in-chatgpt \
   --model <model-the-plan-allows>
 filesorter ~/star-sorter-test/dl \
   --database ~/star-sorter-test/dl-plan.sqlite \
-  --enable-cloud --accept-cloud-understanding --understand \
   --answers ~/star-sorter-test/answers.alana.json
 ```
 

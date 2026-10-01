@@ -26,6 +26,12 @@ os.environ.setdefault("GRAPH_AGENT_NO_DOTENV", "1")
 #: Mac run does not set it.
 os.environ.setdefault("FILESORTER_ONBOARDING_OPTIONAL", "1")
 
+#: A person's scan runs the understanding pass, and refuses when no model
+#: provider is configured. The suite would refuse every `cli.main` call, so
+#: tests opt out the same way they opt out of onboarding. A test that wants
+#: the product default deletes this name. A person's Mac run does not set it.
+os.environ.setdefault("FILESORTER_SKIP_UNDERSTANDING", "1")
+
 #: AND NO TEST MAY CALL THE DEVELOPER'S OWN LOCAL MODEL EITHER. The line above
 #: stops `.env` reaching a run; it does not stop an EXPORTED name, and
 #: `GRAPH_AGENT_LOCAL_MODEL` is the one that would be exported -- a local model

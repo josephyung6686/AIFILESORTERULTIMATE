@@ -59,6 +59,19 @@ def test_onboard_writes_a_record_the_scan_accepts(tmp_path, monkeypatch):
     assert WORDING not in said
     assert "filesorter providers" in said
     assert "Profile stored" in said
+    assert "--understand" not in said
+    assert "do you want" not in said.lower()
+    assert "use ai" not in said.lower()
+    consent = open_database(database, scan_roots=[folder.resolve()])
+    try:
+        cloud = consent.execute(
+            "SELECT decision FROM cloud_consent").fetchone()
+        understood = consent.execute(
+            "SELECT statement FROM understanding_consent").fetchone()
+    finally:
+        consent.close()
+    assert cloud is not None and cloud[0] == "enabled"
+    assert understood is not None and understood[0]
     data = json.loads(written.read_text(encoding="utf-8"))
     assert data["confirmed"] is True
     assert data["person_name"] == NAME

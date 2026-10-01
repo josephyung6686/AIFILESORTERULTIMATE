@@ -13110,8 +13110,8 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_review_schema(conn)
     create_items_schema(conn)
     # The understanding pass's consent, cache, and audit. Same rule as the
-    # tables above: a person who asks `--understand` should not discover the
-    # missing table after the scan has already read the disk.
+    # tables above: the pass should not discover the missing table after the
+    # scan has already read the disk.
     from understanding.store import ensure_schema
     ensure_schema(conn)
     from onboarding.answers import ensure_record
@@ -27846,10 +27846,25 @@ def _understanding_model_id(out, role: str = "fast") -> str:
 
 
 NO_UNDERSTANDING_PROVIDER = (
-    "Understanding did not run: no provider is configured. Nothing was sent. "
-    "Run `filesorter providers` to store a lane, or set DEEPSEEK_API_KEY and "
+    "Set up a model provider before this folder can be sorted. Nothing was sent. "
+    "Run `filesorter onboard` for this folder if the profile is not stored yet, "
+    "then `filesorter providers` to store a lane, or set DEEPSEEK_API_KEY and "
     "DEEPSEEK_MODEL_FAST. `filesorter providers add` stores a key in the keychain."
 )
+
+
+def _understanding_wanted(args) -> bool:
+    """A normal scan runs the pass. Developers opt out; they do not opt in.
+
+    ``--no-understand`` wins over ``--understand``. The explicit flag still
+    forces the pass when ``FILESORTER_SKIP_UNDERSTANDING=1``, which is how
+    the suite stays on the rules. A person's run does not set that name.
+    """
+    if getattr(args, "no_understand", False):
+        return False
+    if getattr(args, "understand", False):
+        return True
+    return os.environ.get("FILESORTER_SKIP_UNDERSTANDING") != "1"
 
 
 def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> int:
@@ -28365,15 +28380,21 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "deterministic tier has not run.")
     parser.add_argument(
         "--understand", action="store_true",
-        help="after this scan, ask the FAST model about files the "
-             "deterministic tier did not place. Requires cloud consent and "
-             "--accept-cloud-understanding. Protected files and private areas "
-             "are not sent. offline sends nothing.")
+        help="developer: run the understanding pass even when "
+             "FILESORTER_SKIP_UNDERSTANDING=1. A normal scan already runs it "
+             "after the rules, when a model provider is configured. Protected "
+             "files and private areas are not sent.")
+    parser.add_argument(
+        "--no-understand", action="store_true",
+        help="developer: skip the understanding pass on this scan. "
+             "FILESORTER_SKIP_UNDERSTANDING=1 does the same for the process. "
+             "A normal scan runs the pass.")
     parser.add_argument(
         "--accept-cloud-understanding", action="store_true",
-        help="record the one-time consent that dossier text (not whole files) "
-             "may go to the provider's servers for this folder. Remembered. "
-             "Does not send anything by itself.")
+        help="record that dossier text (not whole files) may go to the "
+             "provider's servers for this folder. A normal scan records the "
+             "same sentence when a provider is configured. Does not send "
+             "anything by itself.")
     parser.add_argument(
         "--onboarding-questions", action="store_true",
         help="from filenames only, ask the REASONING model for a plain-language "
@@ -28787,19 +28808,28 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # every source into one corpus and one dossier, so a folder that has not
     # been cleared cannot be protected by a mode chosen for a folder that has.
     # Absent is refusal, and refusal wins.
-    consent = _weakest_consent(
-        cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
-    announce_cloud_posture(routing, consent, corpus_root=directory,
-                           other_sources=also_read, out=out)
-    if args.understand and operation_mode_for(consent) != OPERATION_MODE:
+    if _understanding_wanted(args):
         # Before the folder is walked. A missing provider must not become a
-        # scan that then tries a call, and it must not look like success.
+        # rules-only scan that looks like the product worked.
         provider, model_id = _understanding_selection(
             out, provider_choice, role="fast")
         if provider is None or not model_id:
             print(NO_UNDERSTANDING_PROVIDER, file=out)
             return 2
+        if not args.accept_cloud_understanding:
+            from understanding.store import record_consent
+            record_consent(conn, corpus_root=str(directory), user_id=args.user,
+                           decided_at=now())
+        if not args.enable_cloud:
+            for source in (directory, *also_read):
+                record_cloud_consent(
+                    conn, corpus_root=str(source), decision=ENABLED,
+                    user_id=args.user, decided_at=now())
         args.understanding_resolved = (provider, model_id)
+    consent = _weakest_consent(
+        cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
+    announce_cloud_posture(routing, consent, corpus_root=directory,
+                           other_sources=also_read, out=out)
     scan_profile_run = None
     if args.scan_profile:
         from scan_profile import arm_scan_profile
@@ -29145,7 +29175,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
               f"  {type(refusal).__name__}: {refusal}", file=out)
         # The files were read and none of them were placed. --understand asks
         # about those files. The refusal above stays on the screen.
-        if args.understand and isinstance(refusal, NothingToDesign):
+        if _understanding_wanted(args) and isinstance(refusal, NothingToDesign):
             return _understand_after_scan(
                 args, conn, directory, decisions=None, consent=consent, out=out)
         return 1
@@ -29338,7 +29368,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         for line in recorded_lines(args.record, recorded,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
-    if args.understand:
+    if _understanding_wanted(args):
         understood = _understand_after_scan(
             args, conn, directory, decisions=result.placement.decisions,
             consent=consent, out=out)

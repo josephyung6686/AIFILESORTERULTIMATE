@@ -198,9 +198,26 @@ def _schemas_free(raw: str) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
+def _remember_sorting_consent(conn, *, folder: Path, user_id: str) -> None:
+    """Dossier text may leave for the provider. This stores that fact.
+
+    It does not ask, and it does not send.
+    """
+    from database_agent.cloud_consent import ENABLED, record_cloud_consent
+    from understanding.store import record_consent
+    when = datetime.now(timezone.utc).isoformat()
+    root = str(folder)
+    record_consent(conn, corpus_root=root, user_id=user_id, decided_at=when)
+    record_cloud_consent(
+        conn, corpus_root=root, decision=ENABLED,
+        user_id=user_id, decided_at=when)
+
+
 def _next_step(out, conn, *, folder: Path, database: Path) -> None:
     from providers.record import load_provider_choice
     print(f"Profile stored for {folder}.", file=out)
+    print("Sorting uses a model provider. Protected files stay on this computer.",
+          file=out)
     choice = load_provider_choice(conn)
     if choice and choice.get("lane") not in (None, "none"):
         print(
@@ -210,8 +227,7 @@ def _next_step(out, conn, *, folder: Path, database: Path) -> None:
     else:
         print("Next: filesorter providers", file=out)
         print(f"  filesorter providers --database {database}", file=out)
-        print("Then the scan. --understand needs a stored lane, or "
-              "DEEPSEEK_API_KEY and DEEPSEEK_MODEL_FAST.", file=out)
+        print("Then the scan.", file=out)
     print(f"  database-agent {folder} --database {database}", file=out)
 
 
@@ -253,6 +269,7 @@ def main(argv: list[str] | None = None, *, out=None, ask=None) -> int:
             conn, data, user_id=args.user,
             recorded_at=datetime.now(timezone.utc).isoformat(),
             corpus_root=str(folder))
+        _remember_sorting_consent(conn, folder=folder, user_id=args.user)
         if args.write is not None:
             target = args.write.expanduser().resolve()
             target.write_text(
