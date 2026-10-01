@@ -31,7 +31,7 @@ A dossier is JSON with only these fields:
 - `filename`
 - `path_hints` (directory names)
 - `kind` (already known, or empty)
-- `text_excerpt` (the first 400 words of text or OCR)
+- `text_excerpt` (the first 400 words of text or OCR). On a real scan this is a prefix of the text already stored for that file, cut in the database with `substr` before the word cap. It is not the whole extracted unit. The dry-run does not read it.
 - `metadata` (scalar keys the caller already extracted)
 
 The model must answer one JSON object: `kind`, `life_area`, `course`,

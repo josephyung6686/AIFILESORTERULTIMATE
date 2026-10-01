@@ -6,9 +6,37 @@ open a socket and does not read a key.
 """
 from __future__ import annotations
 
-from understanding.dossier import FileView, path_is_protected
+import sqlite3
+
+from understanding.dossier import WORD_CAP, FileView, excerpt, path_is_protected
 from understanding.run import Budget, run_understanding
 from understanding.store import STATEMENT, consent_recorded
+
+# More characters than 400 words, so the word cap is what truncates, and
+# fewer than a whole document. The SQL `substr` is the bound.
+EXCERPT_CHARS: int = 8000
+
+
+def stored_excerpt(conn, file_id: str) -> str:
+    """The start of the latest extracted text for this file.
+
+    The query asks SQLite for a prefix, so the rest of the unit stays in
+    the database. A folder with no extraction tables yields an empty
+    excerpt. The word cap is applied by the dossier builder.
+    """
+    try:
+        row = conn.execute(
+            "SELECT substr(tu.text, 1, ?) FROM text_units AS tu "
+            "JOIN extraction_runs AS er ON er.run_id = tu.run_id "
+            "WHERE er.file_id = ? "
+            "ORDER BY er.started_at DESC LIMIT 1",
+            (EXCERPT_CHARS, file_id),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return ""
+    if row is None or not row[0]:
+        return ""
+    return excerpt(str(row[0]), word_cap=WORD_CAP)
 
 
 def unplaced_views(conn, decisions, *, private_areas: set[str]) -> list[FileView]:
@@ -37,9 +65,11 @@ def unplaced_views(conn, decisions, *, private_areas: set[str]) -> list[FileView
         if row is None:
             continue
         path, filename = row[1], row[2]
+        protected = path_is_protected(path)
         views.append(FileView(
             file_id=file_id, path=path, filename=filename,
-            protected=path_is_protected(path)))
+            text="" if protected else stored_excerpt(conn, file_id),
+            protected=protected))
     return views
 
 

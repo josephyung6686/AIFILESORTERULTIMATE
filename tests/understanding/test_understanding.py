@@ -354,6 +354,27 @@ def test_logic_and_reasoning_keep_the_category_gate():
     assert provider.calls[0].model_id == "deepseek-v4-pro"
 
 
+def test_a_stored_excerpt_is_capped_before_it_can_leave():
+    from understanding.attach import stored_excerpt
+    from understanding.dossier import build_dossier
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE extraction_runs (run_id TEXT, file_id TEXT, started_at TEXT)")
+    conn.execute("CREATE TABLE text_units (run_id TEXT, text TEXT)")
+    words = " ".join(f"w{i}" for i in range(500))
+    conn.execute("INSERT INTO extraction_runs VALUES ('r', 'f', 't')")
+    conn.execute("INSERT INTO text_units VALUES ('r', ?)", (words,))
+    text = stored_excerpt(conn, "f")
+    assert text.split()[0] == "w0"
+    assert len(text.split()) == 400
+    assert "w499" not in text
+    dossier = build_dossier(
+        FileView(file_id="f", path="/folder/notes.txt", filename="notes.txt", text=text),
+        private_areas=set())
+    assert len(dossier["text_excerpt"].split()) == 400
+    assert SECRET not in dossier["text_excerpt"]
+
+
 def test_onboarding_questions_command_sends_nothing_without_consent(tmp_path):
     import cli
     (tmp_path / "CHEM.pdf").write_text(SECRET)

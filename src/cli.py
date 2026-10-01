@@ -13096,6 +13096,11 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_mutation_schema(conn)
     create_review_schema(conn)
     create_items_schema(conn)
+    # The understanding pass's consent, cache, and audit. Same rule as the
+    # tables above: a person who asks `--understand` should not discover the
+    # missing table after the scan has already read the disk.
+    from understanding.store import ensure_schema
+    ensure_schema(conn)
     for name, key in CEILINGS.items():
         # Named, so the one that is not a spend ceiling is visibly not one, and so
         # that the one with a SECOND ANSWER elsewhere is visibly the same number as
