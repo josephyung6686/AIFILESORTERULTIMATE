@@ -161,6 +161,9 @@ def print_after_understanding(report, out) -> None:
     noun = "file" if total == 1 else "files"
     print("", file=out)
     print(f"After understanding: {total} {noun}.", file=out)
+    notice = getattr(report, "balance_notice", "") or ""
+    if notice:
+        print(f"    {notice}", file=out)
     for area, count in sorted(areas.items(), key=lambda item: (-item[1], item[0])):
         print(f"    {count} {area}", file=out)
     if review:

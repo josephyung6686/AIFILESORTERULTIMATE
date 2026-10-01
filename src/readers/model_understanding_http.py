@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from urllib.parse import urlparse
 
-from understanding.backoff import RateLimited
+from understanding.backoff import InsufficientBalance, RateLimited, document_says_balance_empty
 from understanding.provider import CompletionRequest, ModelProvider
 
 
@@ -57,7 +57,7 @@ class DeepSeekUnderstanding:
                 {"Authorization": "Bearer " + self._key,
                  "Content-Type": "application/json"},
                 body)
-        except (ProviderError, RateLimited):
+        except (ProviderError, RateLimited, InsufficientBalance):
             raise
         except Exception:
             raise ProviderError("the provider did not answer") from None
@@ -93,7 +93,7 @@ class OpenAICompatibleUnderstanding:
                 {"Authorization": "Bearer " + self._key,
                  "Content-Type": "application/json"},
                 body)
-        except (ProviderError, RateLimited):
+        except (ProviderError, RateLimited, InsufficientBalance):
             raise
         except Exception:
             raise ProviderError("the provider did not answer") from None
@@ -125,7 +125,7 @@ class OllamaUnderstanding:
                 {"model": request.model_id,
                  "messages": [{"role": "user", "content": request.prompt}],
                  "stream": False, "think": False})
-        except (ProviderError, RateLimited):
+        except (ProviderError, RateLimited, InsufficientBalance):
             raise
         except Exception:
             raise ProviderError("the local model did not answer") from None
@@ -167,8 +167,22 @@ def get_json(url: str, headers: dict, *, timeout: float = 30) -> dict:
     return parsed
 
 
-def status_error(code: int, retry_after: str | None = None) -> ProviderError:
+def _body_says_balance_empty(raw: bytes) -> bool:
+    """The error body, read only to recognise an empty balance. Never returned."""
+    if not raw:
+        return False
+    try:
+        parsed = json.loads(raw[:4096].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    return document_says_balance_empty(parsed)
+
+
+def status_error(code: int, retry_after: str | None = None,
+                 body: bytes | None = None) -> ProviderError:
     """An HTTP failure the caller can show. The message has no key and no body."""
+    if code == 402 or _body_says_balance_empty(body or b""):
+        return InsufficientBalance()
     if code == 429:
         try:
             wait = float(retry_after) if retry_after else 1.0
@@ -193,7 +207,14 @@ def post_json(url: str, headers: dict, body: dict, *, timeout: float = 90) -> di
         header = None
         if problem.headers is not None:
             header = problem.headers.get("Retry-After")
-        raise status_error(int(problem.code), header) from None
+        raw = b""
+        try:
+            raw = problem.read(4096)
+        except Exception:
+            raw = b""
+        raise status_error(int(problem.code), header, raw) from None
+    except InsufficientBalance:
+        raise
     except Exception as problem:
         code = getattr(problem, "code", None)
         if code:
@@ -201,6 +222,8 @@ def post_json(url: str, headers: dict, body: dict, *, timeout: float = 90) -> di
         raise ProviderError("the provider did not answer") from None
     if not isinstance(parsed, dict):
         raise ProviderError("the provider's reply was not a JSON object")
+    if document_says_balance_empty(parsed):
+        raise InsufficientBalance()
     return parsed
 
 

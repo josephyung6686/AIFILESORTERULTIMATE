@@ -154,3 +154,27 @@ def test_a_body_that_is_not_json_is_not_an_answer(monkeypatch):
     with pytest.raises(NoAnswerFromModel) as raised:
         invoke(DOSSIER)
     assert SECRET not in str(raised.value)
+
+
+def test_http_402_is_an_empty_balance_and_does_not_repeat_the_body(monkeypatch):
+    from readers.model_deepseek import BALANCE_EMPTY, InsufficientBalance
+    from understanding.backoff import BALANCE_EMPTY as understanding_sentence
+
+    body = json.dumps({
+        "error": {"message": "Insufficient Balance", "type": "invalid_request_error"},
+    }).encode()
+
+    class Unpaid(_Connection):
+        def getresponse(self):
+            return _Response(402, body)
+
+    _install(monkeypatch, Unpaid)
+    invoke = deepseek_invoke(
+        api_key=SECRET, base_url="http://127.0.0.1:9", model_target=TARGET,
+        max_response_tokens=64, timeout_seconds=30)
+    with pytest.raises(InsufficientBalance) as raised:
+        invoke(DOSSIER)
+    assert str(raised.value) == BALANCE_EMPTY == understanding_sentence
+    assert raised.value.status_code == 402
+    assert SECRET not in str(raised.value)
+    assert "Insufficient Balance" not in str(raised.value)

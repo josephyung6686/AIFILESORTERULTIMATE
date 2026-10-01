@@ -521,3 +521,145 @@ def test_after_understanding_prints_life_areas_including_cached_answers():
     assert "1 excluded" in text
     assert "1 of the named files need review" in text
     assert "business" not in text
+
+
+def test_http_402_stops_the_pass_and_names_the_balance_in_the_audit():
+    """A fake 402. Not retried, and later batches are not sent."""
+    from understanding.attach import print_after_understanding
+    from understanding.backoff import BALANCE_EMPTY, InsufficientBalance
+
+    class Empty(Fake):
+        def complete(self, request):
+            self.calls.append(request)
+            raise InsufficientBalance()
+
+    provider = Empty([])
+    conn = _conn()
+    views = [_view(f"{i}.txt", file_id=f"{i}.txt", text="office hours json")
+             for i in range(9)]
+    slept = []
+    report = run_understanding(
+        conn=conn, views=views, declared_areas={"academic", "career"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t", workers=1, attempts=4,
+        sleep=slept.append)
+    assert len(provider.calls) == 1
+    assert slept == []
+    assert report.called_complete == 1
+    assert report.balance_notice == BALANCE_EMPTY
+    assert report.needs_review == 9
+    classes = {
+        row[0] for row in conn.execute(
+            "SELECT exception_class FROM understanding_audit")
+    }
+    assert classes == {"InsufficientBalance"}
+    assert "ProviderError" not in classes
+    out = io.StringIO()
+    print_after_understanding(report, out)
+    text = out.getvalue()
+    assert BALANCE_EMPTY in text
+    assert SECRET not in text
+
+
+def test_a_402_response_and_an_insufficient_balance_body_are_not_retried(monkeypatch):
+    import io as _io
+    import urllib.error
+    import urllib.request
+    from understanding.backoff import (
+        BALANCE_EMPTY, InsufficientBalance, complete_with_backoff,
+    )
+    from understanding.provider import CompletionRequest
+    from readers.model_understanding_http import DeepSeekUnderstanding, post_json, status_error
+
+    payload = json.dumps({
+        "error": {
+            "message": "Insufficient Balance",
+            "code": "invalid_request_error",
+        },
+    }).encode()
+    calls = []
+
+    def unpaid(request, timeout=None):
+        calls.append(request.full_url)
+        raise urllib.error.HTTPError(
+            request.full_url, 402, "Payment Required", hdrs=None,
+            fp=_io.BytesIO(payload))
+
+    monkeypatch.setattr(urllib.request, "urlopen", unpaid)
+    with pytest.raises(InsufficientBalance) as raised:
+        post_json("https://api.deepseek.com/chat/completions",
+                  {"Authorization": "Bearer " + SECRET},
+                  {"model": "deepseek-flash"})
+    assert str(raised.value) == BALANCE_EMPTY
+    assert SECRET not in str(raised.value)
+    assert type(raised.value).__name__ == "InsufficientBalance"
+    assert len(calls) == 1
+
+    def paid_looking(request, timeout=None):
+        calls.append("200")
+
+        class _Body:
+            def read(self):
+                return payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        return _Body()
+
+    monkeypatch.setattr(urllib.request, "urlopen", paid_looking)
+    with pytest.raises(InsufficientBalance):
+        post_json("https://api.deepseek.com/chat/completions", {}, {"model": "x"})
+
+    refused = status_error(400, None, payload)
+    assert isinstance(refused, InsufficientBalance)
+    ordinary = status_error(401, None, b'{"error":{"message":"Invalid API key"}}')
+    assert type(ordinary).__name__ == "ProviderError"
+    assert "balance" not in str(ordinary)
+    vague = status_error(400, None, b'{"error":{"message":"the balance of evidence is low"}}')
+    assert type(vague).__name__ == "ProviderError"
+    assert "evidence" not in str(vague)
+
+    adapter = DeepSeekUnderstanding(
+        api_key=SECRET, base_url="https://api.deepseek.com", post=post_json)
+    monkeypatch.setattr(urllib.request, "urlopen", unpaid)
+    before = len(calls)
+    slept = []
+    with pytest.raises(InsufficientBalance):
+        complete_with_backoff(
+            adapter,
+            CompletionRequest(
+                model_id="deepseek-flash", prompt="Reply with one JSON object",
+                max_tokens=16, thinking="disabled"),
+            sleep=slept.append, attempts=4)
+    assert len(calls) == before + 1
+    assert slept == []
+    assert SECRET not in str(raised.value)
+
+
+def test_the_facts_summary_prints_an_empty_balance_without_the_body():
+    import cli
+    from llm_harness.records import CallFailed
+
+    def failed(kind, status):
+        return CallFailed(
+            request_identity="req", release_id="rel", audit_id=1,
+            explanation=json.dumps({"type": kind, "status": status}),
+            validator_version="v", policy_version="p")
+
+    out = io.StringIO()
+    cli._print_fact_pass(
+        written=0, withheld={}, files=2,
+        outcomes=[
+            ("a", failed("InsufficientBalance", 402)),
+            ("b", failed("ProviderDidNotAnswer", 401)),
+        ],
+        model_id="deepseek-chat", out=out)
+    text = out.getvalue()
+    assert "cloud provider balance is empty — top up or switch keys" in text
+    assert "1 refused: the call did not come back (CallFailed)." in text
+    assert "Insufficient Balance" not in text
+    assert SECRET not in text

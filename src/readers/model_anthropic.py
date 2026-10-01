@@ -344,13 +344,13 @@ class AnthropicUnderstanding:
         return "cloud"
 
     def complete(self, request) -> dict:
-        from understanding.backoff import RateLimited
+        from understanding.backoff import InsufficientBalance, RateLimited
         body = messages_body(
             model_id=request.model_id or self._model,
             max_tokens=request.max_tokens, prompt=request.prompt)
         try:
             payload = self._post(MESSAGES_URL, self._headers, body)
-        except (RateLimited, AnthropicRequestRefused):
+        except (RateLimited, AnthropicRequestRefused, InsufficientBalance):
             raise
         except Exception:
             raise AnthropicRequestRefused("the provider did not answer") from None

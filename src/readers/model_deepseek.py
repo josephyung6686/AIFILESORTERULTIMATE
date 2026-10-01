@@ -534,6 +534,50 @@ class ProviderDidNotAnswer(RuntimeError):
     """The provider was asked and did not return an answer. The message has no key."""
 
 
+#: The same sentence `understanding.backoff.BALANCE_EMPTY` prints. This module
+#: does not import that package. The two strings are pinned equal by a test.
+BALANCE_EMPTY: str = "cloud provider balance is empty — top up or switch keys"
+
+_CLEAR_BALANCE: frozenset[str] = frozenset({
+    "insufficient balance",
+    "insufficient_balance",
+    "insufficient_quota",
+})
+
+
+class InsufficientBalance(RuntimeError):
+    """HTTP 402, or a JSON body that clearly says the balance is empty.
+
+    Not transient. The message is `BALANCE_EMPTY` and never the body.
+    """
+
+    status_code = 402
+
+    def __init__(self) -> None:
+        super().__init__(BALANCE_EMPTY)
+
+
+def _body_says_balance_empty(raw: bytes) -> bool:
+    import json
+    try:
+        parsed = json.loads(raw[:4096].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(parsed, dict):
+        return False
+    values: list[object] = []
+    error = parsed.get("error")
+    if isinstance(error, dict):
+        values.extend(error.get(key) for key in ("message", "code", "type"))
+    elif isinstance(error, str):
+        values.append(error)
+    values.extend(parsed.get(key) for key in ("message", "code", "type"))
+    for value in values:
+        if isinstance(value, str) and value.strip().casefold() in _CLEAR_BALANCE:
+            return True
+    return False
+
+
 class _CompletionView:
     """One JSON object, read the way `response_text` and `usage_of` already read it.
 
@@ -615,7 +659,11 @@ def _under_one_deadline(url: str, body: bytes, headers: dict, *,
                 chunks.append(chunk)
             raw = b"".join(chunks)
             status = response.status
+            if status == 402 or _body_says_balance_empty(raw):
+                raise InsufficientBalance()
         except _OutOfTimeInPhase:
+            raise
+        except InsufficientBalance:
             raise
         except TimeoutError as expiry:
             raise budget.expired() from expiry

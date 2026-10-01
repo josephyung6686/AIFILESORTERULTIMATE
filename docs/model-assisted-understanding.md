@@ -68,6 +68,9 @@ Small dossiers share a call, up to 8. Separate batches run together, up to
 4 at a time. A response of HTTP 429 is not an answer: the call waits for
 the provider's Retry-After (or a growing delay, capped at 60 seconds) and
 tries again, four tries in all. The wait is not an answer either.
+HTTP 402, or a JSON error whose message is exactly `Insufficient Balance`,
+is not retried. The pass stops, the screen says the balance is empty, and
+the audit class is `InsufficientBalance`.
 
 Every call appends an audit row: file id, the field names, the model id,
 prompt tokens, completion tokens, and whether it was a cache hit. There is

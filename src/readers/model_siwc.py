@@ -630,13 +630,13 @@ class SiwcUnderstanding:
         return "cloud"
 
     def complete(self, request) -> dict:
-        from understanding.backoff import RateLimited
+        from understanding.backoff import InsufficientBalance, RateLimited
         model = (getattr(request, "model_id", "") or self._model).strip()
         body = responses_body(model=model or self._model, prompt=request.prompt)
         try:
             answer = self._post(
                 RESPONSES_URL, responses_headers(self._token), body)
-        except (RateLimited, SiwcRefused):
+        except (RateLimited, SiwcRefused, InsufficientBalance):
             raise
         except Exception:
             raise SiwcRefused("the Responses call did not answer") from None

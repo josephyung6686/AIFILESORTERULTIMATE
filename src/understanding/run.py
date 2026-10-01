@@ -12,12 +12,15 @@ length is retried once at four times the token budget, then needs-review.
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import dataclass, field
 
 from concurrent.futures import ThreadPoolExecutor
 
 from understanding.answer import AnswerRejected, interpret_answer
-from understanding.backoff import RateLimited, complete_with_backoff
+from understanding.backoff import (
+    BALANCE_EMPTY, InsufficientBalance, RateLimited, complete_with_backoff,
+)
 from understanding.dossier import (
     FIELDS_THAT_LEAVE,
     FileView,
@@ -81,6 +84,7 @@ class PassReport:
     results: list[FileResult] = field(default_factory=list)
     fields: tuple[str, ...] = FIELDS_THAT_LEAVE
     called_complete: int = 0
+    balance_notice: str = ""
 
 
 def cost_formula() -> str:
@@ -275,12 +279,23 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
         budget.spend(tokens)
         admitted.append((members, tokens))
 
+    halted = threading.Event()
+
     def invoke(item):
         members, tokens = item
-        return _invoke_members(
+        if halted.is_set():
+            return {
+                "members": members, "tokens": tokens, "calls": 0,
+                "error": BALANCE_EMPTY, "exception_class": "InsufficientBalance",
+                "reading": None, "items": None, "unsent": True,
+            }
+        outcome = _invoke_members(
             provider, model_id=model_id, members=members,
             declared=declared_areas, tokens=tokens, sleep=sleep,
             attempts=attempts, profile_note=profile_note)
+        if outcome.get("exception_class") == "InsufficientBalance":
+            halted.set()
+        return outcome
 
     if len(admitted) <= 1 or workers == 1:
         outcomes = [invoke(item) for item in admitted]
@@ -305,6 +320,8 @@ def _fault_from(problem: BaseException) -> tuple[str, str]:
     klass = type(problem).__name__
     if isinstance(problem, json.JSONDecodeError):
         return "the model did not return JSON", "JSONDecodeError"
+    if isinstance(problem, InsufficientBalance):
+        return BALANCE_EMPTY, klass
     if isinstance(problem, (AnswerRejected, CompletionUnreadable, RateLimited)):
         return str(problem), klass
     return klass, klass
@@ -418,8 +435,11 @@ def _persist(conn, report, budget, outcome, *, model_id, now) -> None:
         budget.spend(outcome["tokens"])
     report.called_complete += outcome["calls"]
     if outcome["error"] is not None:
-        report.sent += len(members)
+        if not outcome.get("unsent"):
+            report.sent += len(members)
         klass = outcome.get("exception_class")
+        if klass == "InsufficientBalance":
+            report.balance_notice = BALANCE_EMPTY
         for view, _dossier, _key, _tokens in members:
             report.needs_review += 1
             report.results.append(FileResult(

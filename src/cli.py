@@ -13731,6 +13731,20 @@ def _dossier_cut(conn: sqlite3.Connection,
     return calls, readings, dropped_bytes
 
 
+def _failed_because_balance_is_empty(result: object) -> bool:
+    """A fact call the provider refused because the balance is empty.
+
+    The durable explanation is the type name and the status, not the body.
+    """
+    if type(result).__name__ != "CallFailed":
+        return False
+    try:
+        parsed = json.loads(getattr(result, "explanation", ""))
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return isinstance(parsed, dict) and parsed.get("type") == "InsufficientBalance"
+
+
 def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out, not_asked: Mapping[str, int] = MappingProxyType({}),
@@ -13861,9 +13875,17 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     named = {"CallFailed": "the call did not come back",
              "ValidationUnavailable": "something the check needed was missing",
              "NeedsConsent": "it needs an answer from you first"}
+    balance_empty = sum(
+        1 for _file_id, result in outcomes
+        if _failed_because_balance_is_empty(result))
+    if balance_empty:
+        kinds["CallFailed"] = kinds.get("CallFailed", 0) - balance_empty
+        print(f"  {balance_empty} refused: cloud provider balance is empty — "
+              f"top up or switch keys.", file=out)
     for kind, count_ in sorted(kinds.items()):
-        if kind in named:
-            print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+        if not count_ or kind not in named:
+            continue
+        print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
     # `104` R-O's line. A refusal raised inside a model-site call used to end the
     # run with a traceback and no report at all, so there was nothing here to
     # print; now it is an outcome, and an outcome a person is never told about is

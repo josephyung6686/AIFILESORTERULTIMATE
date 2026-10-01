@@ -10,6 +10,52 @@ from __future__ import annotations
 from understanding.provider import CompletionRequest
 
 
+#: What the screen and the audit reason say. HTTP 402, or a JSON error whose
+#: message or code is exactly an empty-balance phrase, is this and nothing else.
+#: It is not a slow-down and it is not retried.
+BALANCE_EMPTY: str = (
+    "cloud provider balance is empty — top up or switch keys"
+)
+
+#: Whole strings only. A longer sentence that happens to contain one of these
+#: words is a different failure.
+_CLEAR_BALANCE: frozenset[str] = frozenset({
+    "insufficient balance",
+    "insufficient_balance",
+    "insufficient_quota",
+})
+
+
+class InsufficientBalance(RuntimeError):
+    """The provider refused because the account balance is empty.
+
+    Not transient. Callers stop. The message is the sentence above and never
+    the response body.
+    """
+
+    status_code = 402
+
+    def __init__(self) -> None:
+        super().__init__(BALANCE_EMPTY)
+
+
+def document_says_balance_empty(parsed: object) -> bool:
+    """True when a JSON object is clearly an empty-balance error."""
+    if not isinstance(parsed, dict):
+        return False
+    values: list[object] = []
+    error = parsed.get("error")
+    if isinstance(error, dict):
+        values.extend(error.get(key) for key in ("message", "code", "type"))
+    elif isinstance(error, str):
+        values.append(error)
+    values.extend(parsed.get(key) for key in ("message", "code", "type"))
+    for value in values:
+        if isinstance(value, str) and value.strip().casefold() in _CLEAR_BALANCE:
+            return True
+    return False
+
+
 class RateLimited(RuntimeError):
     """The provider asked the caller to wait. The message has no key in it."""
 
@@ -47,6 +93,8 @@ def complete_with_backoff(provider, request: CompletionRequest, *, sleep,
     for _ in range(attempts):
         try:
             return provider.complete(request)
+        except InsufficientBalance:
+            raise
         except RateLimited as problem:
             last = problem
             sleep(wait_seconds(problem.retry_after, delay))
