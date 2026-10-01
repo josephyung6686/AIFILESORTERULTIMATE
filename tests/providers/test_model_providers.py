@@ -342,6 +342,39 @@ def test_providers_command_lists_lanes_and_does_not_print_a_key(tmp_path):
     assert SECRET not in removed.getvalue()
 
 
+def test_status_and_deepseek_dry_run_name_a_key_without_printing_it(tmp_path, monkeypatch):
+    import http.client
+    monkeypatch.setenv("DEEPSEEK_API_KEY", SECRET)
+    monkeypatch.setenv("DEEPSEEK_MODEL_FAST", "deepseek-flash")
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    database = str(tmp_path / "plan.sqlite")
+    status = io.StringIO()
+    code = providers_main(
+        ["--database", database, "status"], out=status,
+        keychain_run=MemoryKeychain())
+    text = status.getvalue()
+    assert code == 0, text
+    assert SECRET not in text
+    assert "deepseek key: present" in text
+    assert "Nothing was sent" in text
+    assert "coming later" in text
+    dry = io.StringIO()
+    code = providers_main(
+        ["--database", database, "dry-run", "deepseek", "--model", "deepseek-flash"],
+        out=dry, keychain_run=MemoryKeychain())
+    printed = dry.getvalue()
+    assert code == 0, printed
+    assert SECRET not in printed
+    assert "chat.completions" in printed
+    assert "No network call was made" in printed
+    assert '"sent": false' in printed
+
+
 def test_a_chatgpt_choice_does_not_fall_through_to_deepseek(monkeypatch):
     import cli
     monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-secret")

@@ -161,6 +161,37 @@ def command_list(conn, out) -> int:
     return 0
 
 
+def _key_state(provider: str, keychain_run) -> str:
+    """present or absent. The secret itself is never returned."""
+    env_name = ENV_OF.get(provider, "")
+    if env_name and os.environ.get(env_name, "").strip():
+        return "present"
+    account = ACCOUNT_OF.get(provider)
+    if account is None or keychain_run is None:
+        return "absent"
+    try:
+        found = find_secret(account, run=keychain_run)
+    except Exception:
+        return "absent"
+    return "present" if found else "absent"
+
+
+def command_status(conn, out, *, keychain_run) -> int:
+    """Where this folder stands. Sends nothing and prints no secret."""
+    print(_active_line(conn), file=out)
+    for provider in ("deepseek", "openai", "anthropic", "openai-compatible"):
+        print(f"{provider} key: {_key_state(provider, keychain_run)}", file=out)
+    print(f"{SIWC_FLAG}: "
+          + ("on" if os.environ.get(SIWC_FLAG) == "1" else "off"), file=out)
+    print(f"{CLAUDE_FLAG}: " + ("on" if claude_flag() else "off"), file=out)
+    print("claude binary: "
+          + ("on PATH" if find_binary(shutil.which) else "not on PATH"),
+          file=out)
+    print("Managed — coming later. Selecting it refuses.", file=out)
+    print("Nothing was sent.", file=out)
+    return 0
+
+
 def command_add(conn, provider: str, *, key: str, base_url: str | None,
                 model: str | None, user: str, keychain_run) -> dict:
     if provider not in ACCOUNT_OF:
@@ -300,14 +331,22 @@ def command_dry_run(provider: str, *, model: str | None, base_url: str | None,
         body = None
         headers = "Authorization: Bearer <redacted>" if key_present else "no key"
     elif provider == "deepseek":
+        model_id = model or os.environ.get("DEEPSEEK_MODEL_FAST", "")
+        base = (os.environ.get("DEEPSEEK_BASE_URL", "").strip()
+                or "https://api.deepseek.com")
         described = {
             "provider": "deepseek",
-            "endpoint": os.environ.get("DEEPSEEK_BASE_URL", ""),
-            "model": model or "",
+            "endpoint": base.rstrip("/") + "/chat/completions",
+            "model": model_id,
             "shape": "chat.completions",
             "sent": False,
         }
         body = None
+        if model_id:
+            from readers.model_deepseek import request_body
+            body = request_body(
+                model_id=model_id, max_tokens=16,
+                prompt='Reply with one JSON object {"ok": true}')
         headers = "Authorization: Bearer <redacted>" if key_present else "no key"
     else:
         print(f"{provider!r} is not a dry-run provider.", file=out)
@@ -322,7 +361,8 @@ def command_dry_run(provider: str, *, model: str | None, base_url: str | None,
         "sent": False,
         "body_without_secrets": body,
     }, indent=2, sort_keys=True), file=out)
-    print("No file was read. No request was sent.", file=out)
+    print("No file was read. No request was sent. No network call was made.",
+          file=out)
     return 0
 
 
@@ -462,6 +502,7 @@ def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
     parser.add_argument("--user", default="local")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("list")
+    sub.add_parser("status")
     add = sub.add_parser("add")
     add.add_argument("provider")
     add.add_argument("--base-url", default=None)
@@ -490,12 +531,14 @@ def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
         argv = ["list"]
     args = parser.parse_args(argv)
     command = args.command or "list"
-    needs_db = command in ("list", "add", "remove", "use")
+    needs_db = command in ("list", "add", "remove", "use", "status")
     conn = _open(_database(args.database)) if needs_db else None
     run = keychain_run or _keychain_run()
 
     if command == "list":
         return command_list(conn, out)
+    if command == "status":
+        return command_status(conn, out, keychain_run=run)
     if command == "add":
         secret = key_reader() if key_reader else getpass(
             "Paste the API key. It is not shown and it is not written to the "

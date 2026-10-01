@@ -48,14 +48,15 @@ def dry_run_folder(root: Path, *, out, private_areas: set[str] | None = None,
     private = private_areas or set()
     dossiers, excluded = _views(root, private)
     estimate = dry_run_estimate(dossiers)
-    print("Model dry-run. Nothing was sent.", file=out)
+    print("Model dry-run. Nothing was sent. No network call was made.", file=out)
     print("The deterministic tier has not run, so this count is an upper "
           "bound: every ordinary file is a candidate.", file=out)
-    print(f"Candidates: {estimate['files']}. Excluded as protected or private: "
-          f"{excluded}.", file=out)
-    print("Fields that would leave the device: "
-          + ", ".join(FIELDS_THAT_LEAVE) + f". text_excerpt is the first "
-          f"{WORD_CAP} words.", file=out)
+    print(f"Candidates: {estimate['files']}.", file=out)
+    print(f"Excluded as protected or private: {excluded}.", file=out)
+    print("Fields that would leave the device:", file=out)
+    for field in FIELDS_THAT_LEAVE:
+        print(f"    {field}", file=out)
+    print(f"text_excerpt is the first {WORD_CAP} words.", file=out)
     print(f"Estimated input tokens: {estimate['estimated_input_tokens']} "
           f"(len(dossier_json) / 4).", file=out)
     print(f"Estimated output tokens: {estimate['estimated_output_tokens']} "

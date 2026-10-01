@@ -81,6 +81,12 @@ def problems_in(data: object) -> list[str]:
         for company in companies:
             if _is_todo(company):
                 problems.append("a company still says TODO")
+    if "wording" in data:
+        wording = data.get("wording")
+        if not isinstance(wording, str):
+            problems.append("wording must be a string")
+        elif _is_todo(wording):
+            problems.append("wording still says TODO")
     return problems
 
 
@@ -183,8 +189,12 @@ def apply_answers(conn: sqlite3.Connection, data: dict, *, user_id: str,
         f"leave-{index}={name}"
         for index, name in enumerate(data.get("leave_alone") or [])
         if isinstance(name, str) and name.strip()]
+    wording_rows = []
+    wording = data.get("wording")
+    if isinstance(wording, str) and wording.strip() and not _is_todo(wording):
+        wording_rows.append("note=" + wording.strip())
     apply_profile(
         conn, user_id=user_id, recorded_at=recorded_at,
         lives=lives, refused=refused, courses=courses,
-        projects=projects, leave_alone=leave)
+        projects=projects, leave_alone=leave, wording=wording_rows)
     store_answers(conn, corpus_root=corpus_root, data=data, recorded_at=recorded_at)

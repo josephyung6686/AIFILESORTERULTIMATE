@@ -307,6 +307,87 @@ def test_dry_run_prints_fields_and_the_formula_and_sends_nothing(tmp_path):
     assert "input_usd_per_million" in text
     assert SECRET not in text
     assert "Candidates: 1" in text
+    assert "No network call was made" in text
+    for field in ("filename", "path_hints", "kind", "text_excerpt", "metadata"):
+        assert field in text
+
+
+def test_model_dry_run_counts_a_large_folder_and_opens_no_socket(tmp_path, monkeypatch):
+    import http.client
+    import cli
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    count = 40
+    for index in range(count):
+        (tmp_path / f"note-{index}.txt").write_text("hours\n")
+    (tmp_path / "secret.pem").write_text(SECRET)
+    out = io.StringIO()
+    code = cli.main([str(tmp_path), "--model-dry-run"], out=out)
+    text = out.getvalue()
+    assert code == 0, text
+    assert f"Candidates: {count}." in text
+    assert "Excluded as protected or private: 1." in text
+    assert "No network call was made" in text
+    assert SECRET not in text
+    for field in ("filename", "path_hints", "kind", "text_excerpt", "metadata"):
+        assert f"    {field}" in text
+
+
+def test_understand_without_a_provider_fails_before_the_scan(tmp_path, monkeypatch):
+    import http.client
+    import cli
+    from cli import NO_UNDERSTANDING_PROVIDER
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    for name in (
+            "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL_FAST", "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    folder = tmp_path / "inbox"
+    folder.mkdir()
+    (folder / "hours.txt").write_text("office hours Tuesday\n")
+    answers = tmp_path / "answers.json"
+    answers.write_text(json.dumps({
+        "person_name": "Ada Localname",
+        "lives": ["academic"],
+        "not_lives": [],
+        "situations": {},
+        "school": "Example School",
+        "courses": [],
+        "companies": [],
+        "confirmed": True,
+    }), encoding="utf-8")
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+        "--enable-cloud", "--accept-cloud-understanding", "--understand",
+    ], out=out)
+    text = out.getvalue()
+    assert code == 2, text[-800:]
+    assert NO_UNDERSTANDING_PROVIDER in text
+    assert "filesorter providers" in text
+    assert "DEEPSEEK_API_KEY" in text
+    assert "Ada Localname" not in text
+    conn = sqlite3.connect(database)
+    try:
+        try:
+            files = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        except sqlite3.OperationalError:
+            files = 0
+    finally:
+        conn.close()
+    assert files == 0
 
 
 def test_rate_limit_waits_and_is_not_an_answer():

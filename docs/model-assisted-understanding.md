@@ -82,10 +82,18 @@ no key column.
 database-agent ~/star-sorter-test/dl --model-dry-run
 ```
 
-Nothing is read out of the files and nothing is sent. The count is an
-upper bound, because the deterministic tier has not run. The output names
-the fields, the token estimates, and the cost formula. It does not fill in
-a price.
+Nothing is read out of the files and nothing is sent. No network call is
+made, including for a folder the size of a Downloads copy. The count is an
+upper bound, because the deterministic tier has not run. The output prints
+`Candidates: N` and then each field that would leave the device on its own
+line: `filename`, `path_hints`, `kind`, `text_excerpt`, `metadata`. It also
+prints the token estimates and the cost formula. It does not fill in a
+price.
+
+`--understand` with `--enable-cloud` and no provider exits before the scan.
+The sentence names `filesorter providers`, `DEEPSEEK_API_KEY`, and
+`DEEPSEEK_MODEL_FAST`. Nothing is sent. An empty balance is still
+`InsufficientBalance` on the audit row and on the `After understanding` line.
 
 ## Onboarding questions
 

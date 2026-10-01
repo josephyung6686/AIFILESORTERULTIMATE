@@ -27,7 +27,9 @@ The command is `filesorter` or `database-agent`. They are the same program.
 DeepSeek remains the cloud default when `DEEPSEEK_API_KEY` is set and this
 folder has not stored a different provider. A scan with no key and no stored
 choice does what it did before: it sorts from the files and says no model was
-consulted.
+consulted. `--understand` with cloud consent and no provider does not sort
+first and does not call: it exits and tells you to run `filesorter providers`
+or set `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL_FAST`.
 
 ## Where this sits in onboarding
 
@@ -38,6 +40,7 @@ profile record in the plan database. It does not write the secret there.
 ```
 filesorter providers
 filesorter providers list
+filesorter providers status
 filesorter providers add openai
 filesorter providers add anthropic
 filesorter providers add deepseek
@@ -52,8 +55,10 @@ FILESORTER_CLAUDE_CODE=1 filesorter providers claude-code --prompt 'Reply with o
 
 `add` asks for the key with no echo. The key is not printed and not stored in
 the plan database. `remove` deletes the keychain item; adding again is the
-rotation. `dry-run` prints the endpoint, the model, and the request shape. It
-sends nothing and reads no file.
+rotation. `status` prints the stored lane and whether each key is present or
+absent. `dry-run` prints the endpoint, the model, and the request shape. It
+sends nothing, reads no file, and opens no network connection. Managed still
+refuses. Continue with ChatGPT and Claude Code stay behind their flags.
 
 A cloud call during a scan still needs the folder's consent and
 `--enable-cloud`, same as DeepSeek. The dry-run does not send a dossier, so it

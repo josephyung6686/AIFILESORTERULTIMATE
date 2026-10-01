@@ -27845,8 +27845,19 @@ def _understanding_model_id(out, role: str = "fast") -> str:
         return ""
 
 
-def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> None:
-    """Ask about files this scan did not place. A missing plan places none."""
+NO_UNDERSTANDING_PROVIDER = (
+    "Understanding did not run: no provider is configured. Nothing was sent. "
+    "Run `filesorter providers` to store a lane, or set DEEPSEEK_API_KEY and "
+    "DEEPSEEK_MODEL_FAST. `filesorter providers add` stores a key in the keychain."
+)
+
+
+def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> int:
+    """Ask about files this scan did not place. A missing plan places none.
+
+    A cloud understanding pass with no provider returns 2 before any call.
+    Offline stays on this device and returns 0.
+    """
     from onboarding.answers import model_context, stored_answers
     from understanding.attach import understand_unplaced
     declared = set()
@@ -27864,18 +27875,33 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
             if isinstance(area, str) and area.strip():
                 private.add(area.strip())
         note = model_context(stored)
-    from providers.record import load_provider_choice
-    provider, model_id = _understanding_selection(
-        out, load_provider_choice(conn), role="fast")
+    offline = operation_mode_for(consent) == OPERATION_MODE
+    if offline:
+        understand_unplaced(
+            conn, decisions, directory=directory,
+            private_areas=private, declared_areas=declared, offline=True,
+            provider=None, model_id="", profile_note=note, out=out)
+        return 0
+    resolved = getattr(args, "understanding_resolved", None)
+    if resolved is None:
+        from providers.record import load_provider_choice
+        provider, model_id = _understanding_selection(
+            out, load_provider_choice(conn), role="fast")
+    else:
+        provider, model_id = resolved
+    if provider is None or not model_id:
+        print(NO_UNDERSTANDING_PROVIDER, file=out)
+        return 2
     understand_unplaced(
         conn, decisions, directory=directory,
         private_areas=private,
         declared_areas=declared,
-        offline=operation_mode_for(consent) == "offline",
+        offline=False,
         provider=provider,
         model_id=model_id,
         profile_note=note,
         out=out)
+    return 0
 
 
 def _provider_choice_if_database(args):
@@ -27966,9 +27992,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # `providers` is a command, not a folder. It is recognised only as the first
     # word, and only when the next word is one of its own commands, so a scan of
     # a directory that happens to be named `providers` still scans.
+    if asked[:1] == ["onboard"] and (
+            len(asked) == 1 or asked[1].startswith("-")):
+        from onboarding.ask import main as onboard_main
+        return onboard_main(asked[1:], out=out)
     if asked[:1] == ["providers"] and (
             len(asked) == 1 or asked[1] in (
-                "list", "add", "remove", "use", "dry-run",
+                "list", "add", "remove", "use", "dry-run", "status",
                 "sign-in-chatgpt", "claude-code", "session")
             or asked[1].startswith("-")):
         from readers.model_provider_cli import main as providers_main
@@ -28747,6 +28777,15 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
+    if args.understand and operation_mode_for(consent) != OPERATION_MODE:
+        # Before the folder is walked. A missing provider must not become a
+        # scan that then tries a call, and it must not look like success.
+        provider, model_id = _understanding_selection(
+            out, provider_choice, role="fast")
+        if provider is None or not model_id:
+            print(NO_UNDERSTANDING_PROVIDER, file=out)
+            return 2
+        args.understanding_resolved = (provider, model_id)
     scan_profile_run = None
     if args.scan_profile:
         from scan_profile import arm_scan_profile
@@ -29093,9 +29132,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # The files were read and none of them were placed. --understand asks
         # about those files. The refusal above stays on the screen.
         if args.understand and isinstance(refusal, NothingToDesign):
-            _understand_after_scan(
+            return _understand_after_scan(
                 args, conn, directory, decisions=None, consent=consent, out=out)
-            return 0
         return 1
     except BaseException:
         if scan_profile_run is not None:
@@ -29287,9 +29325,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
     if args.understand:
-        _understand_after_scan(
+        understood = _understand_after_scan(
             args, conn, directory, decisions=result.placement.decisions,
             consent=consent, out=out)
+        if understood:
+            return understood
     if not args.freeze:
         return 0
 
