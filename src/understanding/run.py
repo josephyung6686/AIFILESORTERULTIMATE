@@ -114,8 +114,9 @@ _CONCERNS_RULE = (
 )
 
 
-def _prompt(dossier: dict, declared: list[str]) -> str:
+def _prompt(dossier: dict, declared: list[str], profile_note: str = "") -> str:
     areas = ", ".join(sorted(declared)) or "(none declared)"
+    note = f" Profile: {profile_note}" if profile_note else ""
     return (
         "Reply with one JSON object and nothing else. "
         f"life_area must be one of: {areas}, or \"needs_review\". "
@@ -126,6 +127,7 @@ def _prompt(dossier: dict, declared: list[str]) -> str:
         "confidence is a number from 0 to 1, not a percent sign and not an "
         "array. evidence_quote is one string and one line. "
         "Dossier: " + json.dumps(dossier, sort_keys=True)
+        + note
     )
 
 
@@ -166,9 +168,10 @@ def batch_dossiers(items: list[dict], *, limit: int = BATCH_LIMIT,
 
 
 def ask_one(provider, *, model_id: str, dossier: dict, declared: set[str],
-            sleep, max_tokens: int = CLASSIFICATION_MAX_TOKENS, attempts: int = 4):
+            sleep, max_tokens: int = CLASSIFICATION_MAX_TOKENS, attempts: int = 4,
+            profile_note: str = ""):
     """One file. Retries once when the reasoning budget ate the content."""
-    prompt = _prompt(dossier, sorted(declared))
+    prompt = _prompt(dossier, sorted(declared), profile_note)
     payload = _complete_once(
         provider, model_id=model_id, prompt=prompt, max_tokens=max_tokens,
         sleep=sleep, attempts=attempts)
@@ -191,7 +194,8 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
                       private_areas: set[str], provider, model_id: str,
                       offline: bool, consent: bool, budget: Budget | None = None,
                       now: str = "", dry_run: bool = False, sleep=None,
-                      workers: int = 4, attempts: int = 4) -> PassReport:
+                      workers: int = 4, attempts: int = 4,
+                      profile_note: str = "") -> PassReport:
     if sleep is None:
         import time
         sleep = time.sleep
@@ -232,7 +236,7 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
             report.excluded += 1
             report.results.append(FileResult(view.file_id, "excluded", str(refusal)))
             continue
-        key = dossier_hash(dossier, model_id=model_id)
+        key = dossier_hash(dossier, model_id=model_id, profile_note=profile_note)
         cached = cache_get(conn, key)
         if cached is not None:
             report.cache_hits += 1
@@ -276,7 +280,7 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
         return _invoke_members(
             provider, model_id=model_id, members=members,
             declared=declared_areas, tokens=tokens, sleep=sleep,
-            attempts=attempts)
+            attempts=attempts, profile_note=profile_note)
 
     if len(admitted) <= 1 or workers == 1:
         outcomes = [invoke(item) for item in admitted]
@@ -307,12 +311,13 @@ def _fault_from(problem: BaseException) -> tuple[str, str]:
 
 
 def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
-                    attempts: int):
+                    attempts: int, profile_note: str = ""):
     """The HTTP part. No database. One bad answer does not escape this function."""
     try:
         return _ask_members(
             provider, model_id=model_id, members=members, declared=declared,
-            tokens=tokens, sleep=sleep, attempts=attempts)
+            tokens=tokens, sleep=sleep, attempts=attempts,
+            profile_note=profile_note)
     except Exception as problem:  # noqa: BLE001 -- a worker must not kill the pool
         reason, klass = _fault_from(problem)
         return {
@@ -323,13 +328,13 @@ def _invoke_members(provider, *, model_id, members, declared, tokens, sleep,
 
 
 def _ask_members(provider, *, model_id, members, declared, tokens, sleep,
-                 attempts: int):
+                 attempts: int, profile_note: str = ""):
     if len(members) == 1:
         view, dossier, key, _tokens = members[0]
         try:
             understood, calls, reading, raw = ask_one(
                 provider, model_id=model_id, dossier=dossier, declared=declared,
-                sleep=sleep, attempts=attempts)
+                sleep=sleep, attempts=attempts, profile_note=profile_note)
         except (AnswerRejected, CompletionUnreadable, RateLimited) as refusal:
             reason, klass = _fault_from(refusal)
             return {
@@ -342,7 +347,7 @@ def _ask_members(provider, *, model_id, members, declared, tokens, sleep,
             "reading": reading,
             "items": [(view, key, raw, understood)],
         }
-    prompt = _batch_prompt(members, declared)
+    prompt = _batch_prompt(members, declared, profile_note)
     try:
         payload = _complete_once(
             provider, model_id=model_id, prompt=prompt,
@@ -388,8 +393,9 @@ def _ask_members(provider, *, model_id, members, declared, tokens, sleep,
     }
 
 
-def _batch_prompt(members, declared) -> str:
+def _batch_prompt(members, declared, profile_note: str = "") -> str:
     payload_dossiers = [item[1] for item in members]
+    note = f" Profile: {profile_note}" if profile_note else ""
     return (
         "Reply with one JSON object and nothing else, of the form "
         "{\"files\": [ one object per dossier, in order ]}. "
@@ -397,8 +403,9 @@ def _batch_prompt(members, declared) -> str:
         "project, concerns, confidence, evidence_quote. "
         + _CONCERNS_RULE + " "
         f"life_area must be one string, one of {', '.join(sorted(declared))}, "
-        "or \"needs_review\". Do not invent a category. "
+        "or \"needs_review\". Do not invent a category. Business is not a fallback. "
         "Dossiers: " + json.dumps(payload_dossiers)
+        + note
     )
 
 

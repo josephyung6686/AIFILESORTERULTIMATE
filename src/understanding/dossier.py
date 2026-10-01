@@ -105,9 +105,11 @@ def build_dossier(view: FileView, *, private_areas: set[str]) -> dict:
     }
 
 
-def dossier_hash(dossier: dict, *, model_id: str) -> str:
+def dossier_hash(dossier: dict, *, model_id: str, profile_note: str = "") -> str:
+    """The cache key. A different profile is a different question."""
     payload = json.dumps(
-        {"dossier": dossier, "model": model_id, "prompt": PROMPT_VERSION},
+        {"dossier": dossier, "model": model_id, "prompt": PROMPT_VERSION,
+         "profile": profile_note},
         sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 

@@ -1,0 +1,23 @@
+{
+  "person_name": "TODO",
+  "lives": ["academic", "career", "college_applications"],
+  "not_lives": [
+    "business_operations",
+    "construction_property",
+    "clinical_practice",
+    "law_practice",
+    "engineering"
+  ],
+  "situations": {
+    "academic": "academic.coursework"
+  },
+  "school": "TODO",
+  "courses": [
+    {"code": "TODO", "name": "TODO", "term": "TODO"}
+  ],
+  "companies": ["TODO"],
+  "projects": [],
+  "leave_alone": [],
+  "private_areas": ["medical", "identity", "legal", "finance"],
+  "confirmed": false
+}

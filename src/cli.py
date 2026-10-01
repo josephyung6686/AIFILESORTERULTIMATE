@@ -13101,6 +13101,8 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # missing table after the scan has already read the disk.
     from understanding.store import ensure_schema
     ensure_schema(conn)
+    from onboarding.answers import ensure_record
+    ensure_record(conn)
     for name, key in CEILINGS.items():
         # Named, so the one that is not a spend ceiling is visibly not one, and so
         # that the one with a SECOND ANSWER elsewhere is visibly the same number as
@@ -27808,6 +27810,36 @@ def _understanding_model_id(out, role: str = "fast") -> str:
         return ""
 
 
+def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> None:
+    """Ask about files this scan did not place. A missing plan places none."""
+    from onboarding.answers import model_context, stored_answers
+    from understanding.attach import understand_unplaced
+    declared = set()
+    private = set(args.private_area or [])
+    for item in args.declare_life or []:
+        if "=" in item:
+            declared.add(item.split("=", 1)[1].strip())
+    stored = stored_answers(conn, str(directory))
+    note = ""
+    if stored:
+        for life in stored.get("lives") or []:
+            if isinstance(life, str) and life.strip():
+                declared.add(life.strip())
+        for area in stored.get("private_areas") or []:
+            if isinstance(area, str) and area.strip():
+                private.add(area.strip())
+        note = model_context(stored)
+    understand_unplaced(
+        conn, decisions, directory=directory,
+        private_areas=private,
+        declared_areas=declared,
+        offline=operation_mode_for(consent) == "offline",
+        provider=_understanding_provider(out),
+        model_id=_understanding_model_id(out),
+        profile_note=note,
+        out=out)
+
+
 def _understanding_provider(out):
     key = _understanding_env("DEEPSEEK_API_KEY")
     if not key:
@@ -27995,6 +28027,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         help="name one life this folder may be sorted into, e.g. "
              "--declare-life coursework=academic. Only a confirmed life may "
              "win. Can be given more than once.")
+    parser.add_argument(
+        "--answers", default=None, type=Path, metavar="FILE",
+        help="a completed onboarding file. confirmed must be true and every "
+             "TODO must already be replaced. A template is refused and "
+             "nothing in the folder is scanned.")
     parser.add_argument(
         "--refuse-life", action="append", default=[], metavar="NAME=SCHEMA",
         help="say a schema is not a life of this folder, e.g. "
@@ -28519,6 +28556,31 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         print(f"{directory} is not a folder", file=out)
         return 2
 
+    # Before any file in the folder is opened. A person's run refuses until a
+    # completed answers file is stored for this folder. The suite sets
+    # FILESORTER_ONBOARDING_OPTIONAL=1 and skips this unless --answers is
+    # passed. --model-dry-run and --onboarding-questions already returned.
+    from onboarding.gate import allow_scan, onboarding_optional
+    if args.answers or not onboarding_optional():
+        from datetime import datetime, timezone
+        database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+        try:
+            gate_conn = open_database(database, scan_roots=[directory])
+        except DatabaseInsideCorpus as refusal:
+            print(f"\n{refusal}", file=out)
+            return 2
+        try:
+            _bootstrap(gate_conn)
+            refusal = allow_scan(
+                gate_conn, corpus_root=str(directory), answers=args.answers,
+                user_id=args.user,
+                recorded_at=datetime.now(timezone.utc).isoformat())
+        finally:
+            gate_conn.close()
+        if refusal:
+            print(refusal, file=out)
+            return 2
+
     # `00`:20's other two answers, checked before anything is opened. A folder
     # that is not there gets the same sentence the first one gets, because a
     # traceback is what this command prints when a person makes a typo and
@@ -28949,6 +29011,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # design worked hard to give into a crash.
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
+        # The files were read and none of them were placed. --understand asks
+        # about those files. The refusal above stays on the screen.
+        if args.understand and isinstance(refusal, NothingToDesign):
+            _understand_after_scan(
+                args, conn, directory, decisions=None, consent=consent, out=out)
+            return 0
         return 1
     except BaseException:
         if scan_profile_run is not None:
@@ -29140,19 +29208,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
     if args.understand:
-        from understanding.attach import understand_unplaced
-        declared = set()
-        for item in args.declare_life or []:
-            if "=" in item:
-                declared.add(item.split("=", 1)[1].strip())
-        understand_unplaced(
-            conn, result.placement.decisions, directory=directory,
-            private_areas=set(args.private_area or []),
-            declared_areas=declared,
-            offline=operation_mode_for(consent) == "offline",
-            provider=_understanding_provider(out),
-            model_id=_understanding_model_id(out),
-            out=out)
+        _understand_after_scan(
+            args, conn, directory, decisions=result.placement.decisions,
+            consent=consent, out=out)
     if not args.freeze:
         return 0
 

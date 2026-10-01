@@ -98,16 +98,62 @@ database-agent ~/star-sorter-test/dl --onboarding-questions --enable-cloud --acc
 Without those two consent flags the command prints the consent sentence and
 sends nothing. It does not open the files.
 
-## A real pass
+Chat completions keep `response_format` `json_object`. `json_schema` on that
+endpoint returns HTTP 400 for these model ids. The prompt says `concerns` is
+one string, `"user"` or `"someone_else"` or `"unknown"`, and a one-element
+list is read as that string. A bad answer becomes needs-review for that file.
+It does not stop the other files, and it still writes an audit row.
+
+## A completed profile comes first
+
+A scan of a folder refuses until `--answers FILE` has been accepted for that
+folder, or a completed record is already stored. The template
+`profiles/answers.alana.json` is refused until every TODO is replaced and
+`confirmed` is true. The database must sit outside the folder being scanned.
+
+The person's name stays in the plan database. The prompt may include the
+declared lives, the school, the courses, the companies, and the situations.
+`life_area` must be one of those lives or `needs_review`. Business is not a
+fallback.
+
+## Smoke, one file
+
+From `~/star-sorter-test/repo-app` after `git pull origin app`. Fill a copy
+of the template first. The copy below is the command, not a filled profile.
 
 ```
-database-agent ~/star-sorter-test/dl --enable-cloud --accept-cloud-understanding --understand --declare-life coursework=academic
+mkdir -p ~/star-sorter-test/smoke
+printf 'office hours Tuesday\n' > ~/star-sorter-test/smoke/hours.txt
+database-agent ~/star-sorter-test/smoke \
+  --database ~/star-sorter-test/smoke-plan.sqlite \
+  --enable-cloud --accept-cloud-understanding --understand \
+  --answers ~/star-sorter-test/answers.alana.json
+sqlite3 ~/star-sorter-test/smoke-plan.sqlite \
+  'SELECT COUNT(*) FROM understanding_audit;'
+```
+
+The command exits 0. One text file does not become a folder plan, so the
+deterministic tier places nothing and the understanding pass asks about
+that file. With `DEEPSEEK_API_KEY` set, the audit count is at least 1.
+The screen still says no plan was made. The key is not in the audit table.
+
+## The Downloads copy
+
+Same filled answers file. Lives in the template are suggestions until she
+replaces the TODOs and sets `confirmed` to true.
+
+```
+database-agent ~/star-sorter-test/dl \
+  --database ~/star-sorter-test/dl-plan.sqlite \
+  --enable-cloud --accept-cloud-understanding --understand \
+  --answers ~/star-sorter-test/answers.alana.json
 ```
 
 `--enable-cloud` is the existing per-folder cloud consent. The understanding
-pass also requires `--accept-cloud-understanding`. `--declare-life` is the
-closed set of areas the model may choose. FAST is the classification model.
-Add `--private-area medical` for an area that must not be sent.
+pass also requires `--accept-cloud-understanding`. Declared lives come from
+the answers file. `--declare-life coursework=academic` still adds a life for
+that invocation. FAST is the classification model. `--private-area medical`
+adds an area that must not be sent, on top of `private_areas` in the file.
 
 ## Cost
 

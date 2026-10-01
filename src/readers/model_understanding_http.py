@@ -45,6 +45,7 @@ class DeepSeekUnderstanding:
             "model": request.model_id,
             "messages": [{"role": "user", "content": request.prompt}],
             "max_tokens": request.max_tokens,
+            # json_schema on chat completions returns HTTP 400 for these ids.
             "response_format": {"type": "json_object"},
             "thinking": {"type": "disabled"},
         }

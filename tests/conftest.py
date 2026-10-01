@@ -20,6 +20,12 @@ from database_agent.db import open_database
 #: a test opts INTO, not something it inherits from the developer's own machine.
 os.environ.setdefault("GRAPH_AGENT_NO_DOTENV", "1")
 
+#: A person's scan refuses until a completed answers file is stored. The suite
+#: would refuse every `cli.main` call, so tests opt out the same way they opt
+#: out of `.env`. A test that wants the refusal deletes this name. A person's
+#: Mac run does not set it.
+os.environ.setdefault("FILESORTER_ONBOARDING_OPTIONAL", "1")
+
 #: AND NO TEST MAY CALL THE DEVELOPER'S OWN LOCAL MODEL EITHER. The line above
 #: stops `.env` reaching a run; it does not stop an EXPORTED name, and
 #: `GRAPH_AGENT_LOCAL_MODEL` is the one that would be exported -- a local model

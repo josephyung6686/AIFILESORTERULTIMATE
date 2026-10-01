@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS understanding_audit (
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(CONSENT_DDL + CACHE_DDL + AUDIT_DDL)
     # A database created before exception_class existed still has the table.
-    # CREATE TABLE IF NOT EXISTS does not add the column.
+    # Creating the table when it is missing does not add a column to an old one.
     columns = {
         row[1] for row in conn.execute("PRAGMA table_info(understanding_audit)")
     }

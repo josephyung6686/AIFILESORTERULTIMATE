@@ -157,6 +157,41 @@ def test_consent_is_required_and_offline_sends_nothing():
     assert report.results[0].reason == "offline"
 
 
+def test_a_profile_note_reaches_the_prompt_and_not_the_persons_name():
+    from onboarding.answers import model_context
+    note = model_context({
+        "person_name": SECRET,
+        "lives": ["academic"],
+        "school": "Example School",
+        "courses": [{"code": "CHEM 101", "name": "Chemistry", "term": "2026 Fall"}],
+        "companies": ["Example Lab"],
+        "situations": {"academic": "academic.coursework"},
+    })
+    conn = _conn()
+    provider = Fake([_completion(_answer()), _completion(_answer())])
+    first = run_understanding(
+        conn=conn, views=[_view(text="office hours Tuesday")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        profile_note=note)
+    assert first.sent == 1
+    prompt = provider.calls[0].prompt
+    assert SECRET not in prompt
+    assert "Example School" in prompt
+    assert "CHEM 101" in prompt
+    assert "Example Lab" in prompt
+    assert "Business is not a fallback" in prompt
+    assert '"concerns" is one string' in prompt
+    second = run_understanding(
+        conn=conn, views=[_view(text="office hours Tuesday")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t2",
+        profile_note=note + " changed")
+    assert second.cache_hits == 0
+    assert second.sent == 1
+    assert len(provider.calls) == 2
+
+
 def test_cache_hit_does_not_call_the_provider_again():
     conn = _conn()
     provider = Fake([_completion(_answer())])
@@ -373,6 +408,11 @@ def test_a_stored_excerpt_is_capped_before_it_can_leave():
         private_areas=set())
     assert len(dossier["text_excerpt"].split()) == 400
     assert SECRET not in dossier["text_excerpt"]
+    # A filename record and the document can share one timestamp. The body
+    # is the excerpt. The filename is already its own field.
+    conn.execute("INSERT INTO extraction_runs VALUES ('name', 'f', 't')")
+    conn.execute("INSERT INTO text_units VALUES ('name', 'notes.txt')")
+    assert stored_excerpt(conn, "f").split()[0] == "w0"
 
 
 def test_a_one_element_concerns_list_is_not_a_type_error():
