@@ -1,5 +1,13 @@
 # AI model providers
 
+The understanding pass (`docs/model-assisted-understanding.md`) uses an API
+key. Bring-your-own-key is the supported default: DeepSeek, then any
+OpenAI-compatible endpoint, then a local model on loopback. Signing in with
+a ChatGPT or Claude subscription is not how that pass authenticates. A
+login scraper is not implemented. The notes below say what an official
+OAuth route would require if a provider opens one, and what is already
+gated off in this tree.
+
 This is the user-facing and engineering description of how a folder picks a
 model. Files stay on disk until a freeze and an apply. A cloud model is never
 asked about a file the sensitivity gate is holding, and it is never asked

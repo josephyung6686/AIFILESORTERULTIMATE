@@ -27763,6 +27763,79 @@ def say_where_you_are_when_asked() -> None:
         pass
 
 
+def _understanding_env(name: str) -> str:
+    from os import environ
+    supplied = {} if environ.get("GRAPH_AGENT_NO_DOTENV") else _dotenv(ENV_FILE)
+    return (environ.get(name) or supplied.get(name) or "").strip()
+
+
+def _understanding_model_id(out, role: str = "fast") -> str:
+    """One tier's id, after `/models`. Empty means do not send.
+
+    `fast` classifies files. `logic` groups them. `reasoning` writes the
+    onboarding questions and resolves a hard conflict. A missing id is not
+    filled from another tier.
+    """
+    from understanding.catalog import ModelIdNotListed, resolve_model_id
+    env_name = {
+        "fast": "DEEPSEEK_MODEL_FAST",
+        "logic": "DEEPSEEK_MODEL_LOGIC",
+        "reasoning": "DEEPSEEK_MODEL_REASONING",
+    }.get(role)
+    if env_name is None:
+        print(f"{role} is not a model role, so nothing will be sent.", file=out)
+        return ""
+    configured = _understanding_env(env_name)
+    key = _understanding_env("DEEPSEEK_API_KEY")
+    if not key or not configured:
+        return ""
+    base = _understanding_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+    from readers.model_understanding_http import get_json, list_model_ids
+    try:
+        listed = list_model_ids(base, key, get=get_json)
+    except Exception:
+        print("Understanding did not read /models, so it will not send.", file=out)
+        return ""
+    try:
+        return resolve_model_id(configured, listed)
+    except ModelIdNotListed as refusal:
+        print(str(refusal), file=out)
+        return ""
+
+
+def _understanding_provider(out):
+    key = _understanding_env("DEEPSEEK_API_KEY")
+    if not key:
+        return None
+    base = _understanding_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+    from readers.model_understanding_http import DeepSeekUnderstanding, post_json
+    try:
+        return DeepSeekUnderstanding(api_key=key, base_url=base, post=post_json)
+    except Exception:
+        print("Understanding has no usable DeepSeek endpoint, so it will not send.",
+              file=out)
+        return None
+
+
+def _record_understanding_consent(args, out) -> None:
+    """Write the one-time sentence for this folder. Does not send a dossier."""
+    from datetime import datetime, timezone
+
+    from database_agent.db import DatabaseInsideCorpus, open_database
+    from understanding.store import record_consent
+    directory = args.directory.expanduser().resolve()
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    try:
+        conn = open_database(database, scan_roots=[directory])
+    except DatabaseInsideCorpus as refusal:
+        print(str(refusal), file=out)
+        return
+    record_consent(
+        conn, corpus_root=str(directory), user_id=args.user,
+        decided_at=datetime.now(timezone.utc).isoformat())
+    conn.close()
+
+
 def main(argv: Sequence[str] | None = None, *, out=None,
          # `104` R-175. NOT A FLAG, and that is the decision. A per-file ceiling is
          # not a thing a person types: it is derived from the deployment's own
@@ -28122,6 +28195,34 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
     parser.add_argument(
+        "--model-dry-run", action="store_true",
+        help="print how many ordinary files a cloud understanding pass would "
+             "ask about, the token estimate, the cost formula, and the field "
+             "names that would leave the device. Sends nothing and does not "
+             "read file contents. The count is an upper bound, because the "
+             "deterministic tier has not run.")
+    parser.add_argument(
+        "--understand", action="store_true",
+        help="after this scan, ask the FAST model about files the "
+             "deterministic tier did not place. Requires cloud consent and "
+             "--accept-cloud-understanding. Protected files and private areas "
+             "are not sent. offline sends nothing.")
+    parser.add_argument(
+        "--accept-cloud-understanding", action="store_true",
+        help="record the one-time consent that dossier text (not whole files) "
+             "may go to the provider's servers for this folder. Remembered. "
+             "Does not send anything by itself.")
+    parser.add_argument(
+        "--onboarding-questions", action="store_true",
+        help="from filenames only, ask the REASONING model for a plain-language "
+             "summary and follow-up questions. Does not open file contents and "
+             "does not scan. Requires --enable-cloud and "
+             "--accept-cloud-understanding. offline sends nothing.")
+    parser.add_argument(
+        "--private-area", action="append", default=[], metavar="NAME",
+        help="a life area or folder name that must never be sent to a cloud "
+             "model, e.g. --private-area medical. Can be given more than once.")
+    parser.add_argument(
         "--enable-cloud", action="store_true",
         help="allow this folder's files to be sent to a cloud model, from this "
              "run on. Recorded against THIS FOLDER and remembered between runs, "
@@ -28345,6 +28446,36 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if args.replay is not None:
         return _replay_bundle(args, out=out)
 
+    if args.model_dry_run:
+        if args.directory is None:
+            parser.error("--model-dry-run needs the folder to estimate")
+        from os import environ
+        from understanding.command import dry_run_folder
+        return dry_run_folder(
+            args.directory, out=out,
+            private_areas=set(args.private_area or []),
+            offline=not args.enable_cloud,
+            consent=False,
+            model_id=(environ.get("DEEPSEEK_MODEL_FAST") or "").strip())
+
+    if args.onboarding_questions:
+        if args.directory is None:
+            parser.error("--onboarding-questions needs the folder")
+        from understanding.command import onboarding_questions_folder
+        send = bool(args.accept_cloud_understanding and args.enable_cloud)
+        provider = _understanding_provider(out) if send else None
+        model_id = _understanding_model_id(out, role="reasoning") if send else ""
+        if args.accept_cloud_understanding:
+            _record_understanding_consent(args, out)
+        declared = set()
+        for item in args.declare_life or []:
+            if "=" in item:
+                declared.add(item.split("=", 1)[1].strip())
+        return onboarding_questions_folder(
+            args.directory, out=out, consent=bool(args.accept_cloud_understanding),
+            offline=not args.enable_cloud, provider=provider, model_id=model_id,
+            declared_areas=declared)
+
     # BEFORE the required-argument check, for the reason `--replay` is: reading
     # what a run recorded about one file needs no folder, no situation and no
     # label, and re-running the pipeline to answer it would scan a person's disk
@@ -28445,6 +28576,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     routing = model_route(out=out, on_usage=usage_recorder,
                           credential=provider_credential,
                           provider_choice=provider_choice)
+    if args.accept_cloud_understanding:
+        from understanding.store import record_consent
+        record_consent(conn, corpus_root=str(directory), user_id=args.user,
+                       decided_at=now())
     if args.enable_cloud:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
@@ -28999,6 +29134,20 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         for line in recorded_lines(args.record, recorded,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
+    if args.understand:
+        from understanding.attach import understand_unplaced
+        declared = set()
+        for item in args.declare_life or []:
+            if "=" in item:
+                declared.add(item.split("=", 1)[1].strip())
+        understand_unplaced(
+            conn, result.placement.decisions, directory=directory,
+            private_areas=set(args.private_area or []),
+            declared_areas=declared,
+            offline=operation_mode_for(consent) == "offline",
+            provider=_understanding_provider(out),
+            model_id=_understanding_model_id(out),
+            out=out)
     if not args.freeze:
         return 0
 
