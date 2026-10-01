@@ -109,6 +109,7 @@ models = [
 # gives its own `ArgumentParser`, so `--help` names the command that produced it.
 [project.scripts]
 database-agent = "cli:main"
+filesorter = "cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

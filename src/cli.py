@@ -3322,7 +3322,9 @@ def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
               file=out)
 
 
-def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
+def model_route(*, out, on_usage=None, discover=None,
+                credential: str | None = None,
+                provider_choice: dict | None = None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -3380,9 +3382,30 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     # environment still wins over the file when it is not set, which is unchanged.
     supplied = ({} if environ.get("GRAPH_AGENT_NO_DOTENV")
                 else _dotenv(ENV_FILE))
+    # A stored "none" means this folder asked for no cloud model, even if a
+    # DeepSeek key is sitting in the environment. Absent choice leaves the
+    # key in force, which is the default the suite and a fresh checkout use.
+    suppress_cloud = bool(
+        provider_choice and provider_choice.get("lane") == "none")
+    other_cloud = bool(
+        provider_choice and provider_choice.get("lane") == "byok"
+        and provider_choice.get("provider") in (
+            "openai", "anthropic", "openai-compatible"))
+    # A stored ChatGPT sign-in must not fall through to DeepSeek. The sign-in
+    # is a different lane, and it does not send until the flag and the token
+    # check both allow it.
+    subscription = bool(
+        provider_choice and provider_choice.get("lane") == "subscription")
 
     def value(name: str) -> str:
         # The environment first, then the file, then nothing. Never a literal.
+        # `credential` is a key the caller already resolved (the keychain). It
+        # replaces only the DeepSeek env key, and only when the caller passed
+        # one. Tests do not pass it, so this function's other reads are unchanged.
+        if suppress_cloud and name == CREDENTIAL_NAME:
+            return ""
+        if name == CREDENTIAL_NAME and credential:
+            return credential.strip()
         return (environ.get(name) or supplied.get(name) or "").strip()
 
     local_model = value(LOCAL_MODEL_NAME)
@@ -3393,7 +3416,7 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     installed: tuple[str, ...] = ()
     if not local_model:
         installed = (discover or _discover_local_models)(local_endpoint)
-    if not value(CREDENTIAL_NAME) and not local_model:
+    if not other_cloud and not subscription and not value(CREDENTIAL_NAME) and not local_model:
         if installed:
             # THE DEFECT, CLOSED. A person with models pulled and no name set
             # used to be told the product had nothing and be sent to `ollama
@@ -3437,7 +3460,26 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
             file=out)
         return None
     cloud: TierRouting | None = None
-    if value(CREDENTIAL_NAME):
+    if subscription:
+        from readers.model_siwc import begin_or_refuse
+        print(begin_or_refuse() or (
+            "Sign in with ChatGPT is flagged on. This build still will not "
+            "send a dossier until the ID token signature is verified. Use an "
+            "API key."), file=out)
+    elif other_cloud:
+        from readers.model_provider_cli import _keychain_run, route_byok
+        try:
+            cloud = route_byok(
+                provider_choice, tier_of_call_site=TIER_OF_CALL_SITE,
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS, out=out,
+                keychain_run=(_keychain_run()
+                              if provider_choice.get("credential") == "keychain"
+                              else None))
+        except (ValueError, RuntimeError) as refusal:
+            print(f"\nNo cloud model was consulted, and here is what it needed:\n"
+                  f"  {refusal}", file=out)
+    elif value(CREDENTIAL_NAME):
         try:
             cloud = deepseek_routing(
                 api_key=value(CREDENTIAL_NAME),
@@ -27734,6 +27776,17 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
+    asked = list(sys.argv[1:] if argv is None else argv)
+    # `providers` is a command, not a folder. It is recognised only as the first
+    # word, and only when the next word is one of its own commands, so a scan of
+    # a directory that happens to be named `providers` still scans.
+    if asked[:1] == ["providers"] and (
+            len(asked) == 1 or asked[1] in (
+                "list", "add", "remove", "use", "dry-run",
+                "sign-in-chatgpt", "claude-code", "session")
+            or asked[1].startswith("-")):
+        from readers.model_provider_cli import main as providers_main
+        return providers_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
@@ -28376,7 +28429,22 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
     # at the bottom that each read as a statement about one of their files.
-    routing = model_route(out=out, on_usage=usage_recorder)
+    provider_choice = None
+    provider_credential = None
+    try:
+        from providers.record import load_provider_choice
+        provider_choice = load_provider_choice(conn)
+    except sqlite3.OperationalError:
+        provider_choice = None
+    if (provider_choice and provider_choice.get("credential") == "keychain"
+            and provider_choice.get("provider") == "deepseek"):
+        from readers.model_provider_cli import _keychain_run, resolve_api_key
+        provider_credential = resolve_api_key(
+            "deepseek", credential="keychain", keychain_run=_keychain_run(),
+        ) or None
+    routing = model_route(out=out, on_usage=usage_recorder,
+                          credential=provider_credential,
+                          provider_choice=provider_choice)
     if args.enable_cloud:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
