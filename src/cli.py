@@ -27992,6 +27992,20 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # `providers` is a command, not a folder. It is recognised only as the first
     # word, and only when the next word is one of its own commands, so a scan of
     # a directory that happens to be named `providers` still scans.
+    if asked[:1] == ["sync"] and (
+            len(asked) == 1 or asked[1] in ("gmail", "calendar")
+            or asked[1].startswith("-")):
+        from items.commands import sync_main
+        return sync_main(asked[1:], out=out)
+    if asked[:1] == ["view"] and (
+            len(asked) == 1 or asked[1] in ("deadlines",)
+            or asked[1].startswith("-")):
+        from items.commands import view_main
+        return view_main(asked[1:], out=out)
+    if asked[:1] == ["suggest"] and (
+            len(asked) == 1 or asked[1].startswith("-")):
+        from items.commands import suggest_main
+        return suggest_main(asked[1:], out=out)
     if asked[:1] == ["onboard"] and (
             len(asked) == 1 or asked[1].startswith("-")):
         from onboarding.ask import main as onboard_main

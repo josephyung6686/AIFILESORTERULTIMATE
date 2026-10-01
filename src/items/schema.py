@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 
-ITEMS_SCHEMA_VERSION = 1
+ITEMS_SCHEMA_VERSION = 2
 
 ITEMS_DDL = """
 CREATE TABLE IF NOT EXISTS items_meta (
@@ -40,6 +40,44 @@ CREATE TABLE IF NOT EXISTS item_versions (
 CREATE INDEX IF NOT EXISTS items_by_type ON items(item_type);
 CREATE INDEX IF NOT EXISTS items_by_file_id ON items(file_id);
 CREATE INDEX IF NOT EXISTS items_by_external_key ON items(external_key);
+
+CREATE TABLE IF NOT EXISTS item_headers (
+    item_id            TEXT PRIMARY KEY,
+    kind               TEXT NOT NULL,
+    external_id        TEXT NOT NULL,
+    thread_id          TEXT,
+    account_label      TEXT,
+    happened_at        TEXT,
+    ended_at           TEXT,
+    address_from       TEXT,
+    address_to         TEXT,
+    calendar_id        TEXT,
+    status             TEXT,
+    attachment_names   TEXT,
+    attachment_hashes  TEXT
+);
+
+CREATE TABLE IF NOT EXISTS relationships (
+    relationship_id TEXT PRIMARY KEY,
+    rel_type        TEXT NOT NULL,
+    from_item_id    TEXT NOT NULL,
+    to_item_id      TEXT NOT NULL,
+    confidence      TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    evidence_refs   TEXT NOT NULL,
+    basis_key       TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    supersedes      TEXT,
+    superseded_by   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS relationships_from_type
+    ON relationships(from_item_id, rel_type, state);
+CREATE INDEX IF NOT EXISTS relationships_to_type
+    ON relationships(to_item_id, rel_type, state);
+CREATE INDEX IF NOT EXISTS relationships_by_basis
+    ON relationships(basis_key);
 """
 
 
@@ -50,5 +88,10 @@ def create_items_schema(conn: sqlite3.Connection) -> None:
     if existing is None:
         conn.execute(
             "INSERT INTO items_meta (version) VALUES (?)",
+            (ITEMS_SCHEMA_VERSION,),
+        )
+    elif existing[0] < ITEMS_SCHEMA_VERSION:
+        conn.execute(
+            "UPDATE items_meta SET version = ?",
             (ITEMS_SCHEMA_VERSION,),
         )

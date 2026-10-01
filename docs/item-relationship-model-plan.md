@@ -318,7 +318,7 @@ The stage order below. Done when the thin slice is the first build order in this
 
 ### Stage (b) — read-only Gmail and Calendar, stored locally as items
 
-**Not started.** Files, when it starts: `src/items/ingest_mailbox.py`, `tests/items/test_mailbox_local.py`. A fixture message and a fixture event, not a live account.
+**Fixture path is in.** Files: `src/items/mailbox.py`, `src/items/commands.py`, `tests/items/test_mailbox_local.py`. A fixture message and a fixture event, not a live account. Live Gmail and Calendar are not connected. See `docs/local-items-and-views.md`.
 
 **Check.** One message, one attachment whose hash matches a local file: an email item, stored locally, with the message id and the hash, and no body in any table the model-release path reads. One calendar event: an event item with the provider event id, start, end, and title, and no description. A protected local file matched by attachment hash: the email item's `typing_state` is `held`, and a model-request builder returns no body and no attachment text. The test double has no network and no send.
 
@@ -331,7 +331,7 @@ The stage order below. Done when the thin slice is the first build order in this
 
 ### Stage (c) — one deadline-to-files view
 
-**Not started.** One query, not the five views. Files, when it starts: `src/items/deadline_view.py`, `tests/items/test_deadline_view.py`.
+**One query is in.** Files: `src/items/deadline_view.py`, `tests/items/test_deadline_view.py`. The other four views are not started.
 
 **Check.** One event item with a start time, two file items with a witnessed or approved link to it, and one file the fixture expects at that deadline with no such link.
 
