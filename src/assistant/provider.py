@@ -1,4 +1,4 @@
-"""Thin BYOK chat client (OpenAI-compatible tool calling).
+"""Thin BYOK chat clients (OpenAI-compatible + Anthropic).
 
 Loads credentials from the environment only — never hardcodes keys.
 DeepSeek is the default provider shape used by this repo.
@@ -17,13 +17,13 @@ class ProviderConfig:
     api_key: str
     base_url: str
     model: str
+    provider: str = "deepseek"  # deepseek | openai | anthropic
 
 
 def load_dotenv(path: Path | None = None) -> None:
     """Load KEY=VALUE lines into os.environ if unset. Never prints values."""
     env_path = path or Path.cwd() / ".env"
     if not env_path.is_file():
-        # also try repo root relative to this file
         alt = Path(__file__).resolve().parents[2] / ".env"
         env_path = alt if alt.is_file() else env_path
     if not env_path.is_file():
@@ -41,6 +41,26 @@ def load_dotenv(path: Path | None = None) -> None:
 
 def resolve_provider() -> ProviderConfig:
     load_dotenv()
+    # Explicit override
+    forced = (os.environ.get("ASSISTANT_PROVIDER") or "").strip().lower()
+    if forced == "anthropic" or os.environ.get("ANTHROPIC_API_KEY"):
+        key = os.environ.get("ANTHROPIC_API_KEY")
+        if not key and forced == "anthropic":
+            raise RuntimeError(
+                "ASSISTANT_PROVIDER=anthropic but ANTHROPIC_API_KEY unset. "
+                "Nothing was sent."
+            )
+        if key:
+            return ProviderConfig(
+                api_key=key,
+                base_url=os.environ.get(
+                    "ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+                model=(
+                    os.environ.get("ANTHROPIC_MODEL")
+                    or "claude-sonnet-4-20250514"
+                ),
+                provider="anthropic",
+            )
     key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
     if not key:
         raise RuntimeError(
@@ -58,7 +78,123 @@ def resolve_provider() -> ProviderConfig:
         or os.environ.get("OPENAI_MODEL")
         or "deepseek-chat"
     )
-    return ProviderConfig(api_key=key, base_url=base.rstrip("/"), model=model)
+    provider = "openai" if "openai" in base.lower() else "deepseek"
+    if os.environ.get("OPENAI_API_KEY") and not os.environ.get(
+            "DEEPSEEK_API_KEY"):
+        provider = "openai"
+    return ProviderConfig(
+        api_key=key, base_url=base.rstrip("/"), model=model,
+        provider=provider)
+
+
+def _openai_tools_to_anthropic(tools: list[dict[str, Any]]) -> list[dict]:
+    out = []
+    for t in tools:
+        fn = t.get("function") or t
+        out.append({
+            "name": fn["name"],
+            "description": fn.get("description") or "",
+            "input_schema": fn.get("parameters") or {"type": "object"},
+        })
+    return out
+
+
+def _messages_to_anthropic(
+        messages: list[dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
+    system = ""
+    converted: list[dict[str, Any]] = []
+    for msg in messages:
+        role = msg.get("role")
+        if role == "system":
+            system = (msg.get("content") or "") + (
+                ("\n" + system) if system else "")
+            continue
+        if role == "tool":
+            converted.append({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": msg.get("tool_call_id") or "unknown",
+                    "content": msg.get("content") or "",
+                }],
+            })
+            continue
+        if role == "assistant" and msg.get("tool_calls"):
+            blocks: list[dict[str, Any]] = []
+            if msg.get("content"):
+                blocks.append({"type": "text", "text": msg["content"]})
+            for tc in msg["tool_calls"]:
+                args = tc["function"].get("arguments") or "{}"
+                if isinstance(args, str):
+                    try:
+                        args_obj = json.loads(args)
+                    except json.JSONDecodeError:
+                        args_obj = {}
+                else:
+                    args_obj = args
+                blocks.append({
+                    "type": "tool_use",
+                    "id": tc["id"],
+                    "name": tc["function"]["name"],
+                    "input": args_obj,
+                })
+            converted.append({"role": "assistant", "content": blocks})
+            continue
+        converted.append({
+            "role": "user" if role == "user" else "assistant",
+            "content": msg.get("content") or "",
+        })
+    return system.strip(), converted
+
+
+def chat_turn_anthropic(
+        *,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        config: ProviderConfig,
+        temperature: float = 0.2,
+) -> dict[str, Any]:
+    """Anthropic Messages API → OpenAI-shaped assistant message."""
+    import anthropic
+
+    system, converted = _messages_to_anthropic(messages)
+    client = anthropic.Anthropic(
+        api_key=config.api_key,
+        base_url=config.base_url or None,
+    )
+    kwargs: dict[str, Any] = {
+        "model": config.model,
+        "max_tokens": 2048,
+        "messages": converted,
+        "temperature": temperature,
+        "tools": _openai_tools_to_anthropic(tools),
+    }
+    if system:
+        kwargs["system"] = system
+    response = client.messages.create(**kwargs)
+    text_parts = []
+    tool_calls = []
+    for block in response.content:
+        btype = getattr(block, "type", None)
+        if btype == "text":
+            text_parts.append(block.text)
+        elif btype == "tool_use":
+            tool_calls.append({
+                "id": block.id,
+                "type": "function",
+                "function": {
+                    "name": block.name,
+                    "arguments": json.dumps(block.input or {}),
+                },
+            })
+    out: dict[str, Any] = {
+        "role": "assistant",
+        "content": "\n".join(text_parts) if text_parts else None,
+    }
+    if tool_calls:
+        out["tool_calls"] = tool_calls
+    return out
 
 
 def chat_turn(
@@ -68,10 +204,15 @@ def chat_turn(
         config: ProviderConfig | None = None,
         temperature: float = 0.2,
 ) -> dict[str, Any]:
-    """One chat.completions turn. Returns the assistant message dict."""
+    """One chat turn. Returns OpenAI-shaped assistant message dict."""
+    cfg = config or resolve_provider()
+    if cfg.provider == "anthropic":
+        return chat_turn_anthropic(
+            messages=messages, tools=tools, config=cfg,
+            temperature=temperature)
+
     from openai import OpenAI
 
-    cfg = config or resolve_provider()
     client = OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
     response = client.chat.completions.create(
         model=cfg.model,
@@ -101,7 +242,6 @@ def chat_turn(
 
 
 def message_to_openai(msg: dict[str, Any]) -> dict[str, Any]:
-    """Pass-through helper; keeps tool message shape stable."""
     return msg
 
 

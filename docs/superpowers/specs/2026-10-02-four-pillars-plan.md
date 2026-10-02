@@ -2,6 +2,7 @@
 
 **Date:** 2026-10-02  
 **Authority:** Supplements [`2026-10-02-local-file-assistant-architecture-report.md`](./2026-10-02-local-file-assistant-architecture-report.md)  
+**Agent + deep-dives:** [`2026-10-02-agent-design-and-deep-dives.md`](./2026-10-02-agent-design-and-deep-dives.md)  
 **Rule:** Embeddings never alone approve a life link or a move. File text is untrusted. No OpenClaw.  
 
 This document plans **all four pillars** end-to-end: contracts, schemas, tools, privacy, eval, phases, and what is already done.
@@ -19,6 +20,11 @@ This document plans **all four pillars** end-to-end: contracts, schemas, tools, 
 | I5 | Exact suppress always on; learned memory never shadows holds |
 | I6 | Write args come from **plan objects** + find `item_id`s, not free-form file text |
 | I7 | BYOK agent loop only — no OpenClaw / TencentDB npm |
+| I8 | Index excerpts are a honeypot → encrypt at rest (Keychain); held opens need local auth |
+| I9 | Every cloud turn appends an egress ledger row the user can view |
+| I10 | Labels/subjects/basenames in tool cards are untrusted (never write-arg sources) |
+| I11 | Approvals bind `plan_hash`; edit invalidates; full op list viewable before Approve |
+| I12 | T0 rename = template-rendered names only — never model free text |
 
 ---
 
@@ -190,9 +196,10 @@ user → model(tools≤10) → tool_calls
 
 1. P0: eval harness + injection fixtures + threat tags  
 2. P2: runner + read-only tools + egress ledger  
-3. P3: undo journal + dry-run  
+3. P3: undo journal `(plan_id, item_id, file_id, content_hash, src, dst, state)` + dry-run  
 4. P4: apply/undo/link tools behind plan approval  
 5. P6: wire heavy pipeline tools behind `request_tools`  
+6. Post-P2: index encryption + Touch ID for held detail opens  
 
 ## B.9 Exit criteria
 
@@ -306,9 +313,10 @@ Sessions that read untrusted files: write **L0 only** until human promotes.
 On frozen owner-labeled set:
 
 - **Precision ≥ 0.95** on proposals the system is willing to make  
-- Report **abstention rate**  
+- Report **abstention rate** + **coverage floor** (cannot pass by abstaining on everything — T-P4-01)  
 - Online: acceptance rate + **7-day undo rate**  
 - Must **beat rules-only (v1)** on both before atoms steer anything  
+- v1 steering waits until `propose_*` tools exist (T-P4-03); L0 capture may start earlier 
 
 Never steers recognition/filing while dark. Never shadows safety holds.
 
@@ -384,10 +392,10 @@ P0 eval/injection ──┬──► P1 Pillar A (hybrid find)
 
 | Pillar | Planned? | Built? | Next phase |
 |---|---|---|---|
-| **A Meaning-search** | Yes (this doc) | Shallow only | **P1** |
-| **B Assistant** | Yes (read-only then writes) | Spec only | **P0→P2** |
+| **A Meaning-search** | Yes | Hybrid FTS+CJK+chunks+RRF **in code**; bake-off/FSEvents live TBD | finish P1 scale |
+| **B Assistant** | Yes | Read-only loop+CLI+injection+egress+A1–A6 **landed** | P3–P4 writes |
 | **C People/projects** | Yes | Mint+connector+views **mostly done** | **P5** person/merge |
-| **D Correction memory** | Yes (v1→v2, precision gate) | Exact suppress only | **P7** |
+| **D Correction memory** | Yes | Exact suppress + L0 provenance capture | **P7** atoms/gate |
 
 ---
 

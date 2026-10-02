@@ -16,6 +16,7 @@ from items.mailbox import path_is_protected
 
 RRF_K = 60
 DEFAULT_LIMIT = 20
+CHUNK_CHARS = 800
 FTS_DDL = """
 CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(
     item_id UNINDEXED,
@@ -25,6 +26,21 @@ CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(
     tokenize = 'porter unicode61'
 );
 """
+CHUNKS_DDL = """
+CREATE TABLE IF NOT EXISTS item_chunks (
+    chunk_id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    char_start INTEGER NOT NULL,
+    char_end INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS item_chunks_by_item
+    ON item_chunks(item_id, ordinal);
+"""
+_CJK = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]+")
+_SAFE = re.compile(r"[^\w\s./\-]+", re.UNICODE)
+_ENCODER_CACHE: dict[str, object] = {}
 
 
 @dataclass(frozen=True)
@@ -51,18 +67,45 @@ class FindResult:
     moved: bool = False
 
 
-_SAFE = re.compile(r"[^\w\s./-]+", re.UNICODE)
-_ENCODER_CACHE: dict[str, object] = {}
-
-
 def ensure_fts(conn: sqlite3.Connection) -> None:
     conn.executescript(FTS_DDL)
+    conn.executescript(CHUNKS_DDL)
 
 
-def rebuild_fts(conn: sqlite3.Connection, *, evidence_chars: int = 800) -> int:
-    """Rebuild the FTS index from live items. Returns row count."""
+def cjk_bigrams(text: str) -> str:
+    """Space-separated CJK bigrams (+ unigrams) for unicode61 FTS."""
+    parts: list[str] = []
+    for run in _CJK.findall(text or ""):
+        if len(run) == 1:
+            parts.append(run)
+            continue
+        parts.extend(run[i:i + 2] for i in range(len(run) - 1))
+        parts.extend(list(run))  # unigrams for 1–2 char queries
+    return " ".join(parts)
+
+
+def _chunk_text(text: str, *, size: int = CHUNK_CHARS) -> list[tuple[int, int, str]]:
+    text = text or ""
+    if not text:
+        return []
+    out = []
+    i = 0
+    ord_n = 0
+    while i < len(text):
+        piece = text[i:i + size]
+        out.append((i, i + len(piece), piece))
+        i += size
+        ord_n += 1
+        if ord_n > 40:
+            break
+    return out
+
+
+def rebuild_fts(conn: sqlite3.Connection, *, evidence_chars: int = 4000) -> int:
+    """Rebuild FTS + item_chunks from live items. Returns FTS row count."""
     ensure_fts(conn)
     conn.execute("DELETE FROM item_fts")
+    conn.execute("DELETE FROM item_chunks")
     rows = conn.execute(
         "SELECT item_id, display_label, open_target, file_id FROM items "
         "WHERE presence = 'live' AND superseded_by IS NULL"
@@ -72,15 +115,26 @@ def rebuild_fts(conn: sqlite3.Connection, *, evidence_chars: int = 800) -> int:
         body = ""
         if row["file_id"]:
             body = _evidence_snippet(conn, row["file_id"], evidence_chars)
+        label = row["display_label"] or ""
+        path = row["open_target"] or ""
+        cjk_extra = cjk_bigrams(f"{label} {path} {body}")
+        indexed_body = body
+        if cjk_extra:
+            indexed_body = f"{body}\n{cjk_extra}".strip()
         conn.execute(
             "INSERT INTO item_fts (item_id, label, path, body) VALUES (?,?,?,?)",
-            (
-                row["item_id"],
-                row["display_label"] or "",
-                row["open_target"] or "",
-                body,
-            ),
+            (row["item_id"], f"{label} {cjk_bigrams(label)}".strip(),
+             f"{path} {cjk_bigrams(path)}".strip(), indexed_body),
         )
+        for ordinal, (start, end, piece) in enumerate(
+                _chunk_text(body or label)):
+            chunk_id = f"{row['item_id']}:{ordinal}"
+            conn.execute(
+                "INSERT INTO item_chunks ("
+                "chunk_id, item_id, ordinal, text, char_start, char_end) "
+                "VALUES (?,?,?,?,?,?)",
+                (chunk_id, row["item_id"], ordinal, piece, start, end),
+            )
         n += 1
     return n
 
@@ -186,27 +240,53 @@ def _evidence_snippet(conn, file_id: str, n: int) -> str:
 
 
 def _fts_search(conn, query: str, *, limit: int) -> dict[str, int]:
-    # Escape FTS5 special chars; OR tokens for recall.
-    tokens = [t for t in _SAFE.sub(" ", query).split() if t]
-    if not tokens:
-        return {}
-    match = " OR ".join(f'"{t}"' for t in tokens[:12])
-    try:
-        rows = conn.execute(
-            "SELECT item_id FROM item_fts WHERE item_fts MATCH ? "
-            "ORDER BY bm25(item_fts) LIMIT ?",
-            (match, limit),
-        ).fetchall()
-    except sqlite3.OperationalError:
-        # Fallback: prefix-less plain query
+    # Latin tokens + CJK bigrams/unigrams for unicode61 FTS.
+    latin = [t for t in _SAFE.sub(" ", query).split() if t]
+    cjk_terms = cjk_bigrams(query).split()
+    tokens = list(dict.fromkeys(latin + cjk_terms))[:24]
+    ranks: dict[str, int] = {}
+    if tokens:
+        match = " OR ".join(f'"{t}"' for t in tokens)
         try:
             rows = conn.execute(
-                "SELECT item_id FROM item_fts WHERE item_fts MATCH ? LIMIT ?",
-                (" OR ".join(tokens[:12]), limit),
+                "SELECT item_id FROM item_fts WHERE item_fts MATCH ? "
+                "ORDER BY bm25(item_fts) LIMIT ?",
+                (match, limit),
             ).fetchall()
+            ranks = {
+                row["item_id"]: rank for rank, row in enumerate(rows, start=1)
+            }
         except sqlite3.OperationalError:
-            return {}
-    return {row["item_id"]: rank for rank, row in enumerate(rows, start=1)}
+            try:
+                rows = conn.execute(
+                    "SELECT item_id FROM item_fts WHERE item_fts MATCH ? "
+                    "LIMIT ?",
+                    (" OR ".join(tokens), limit),
+                ).fetchall()
+                ranks = {
+                    row["item_id"]: rank
+                    for rank, row in enumerate(rows, start=1)
+                }
+            except sqlite3.OperationalError:
+                ranks = {}
+
+    # Kill criterion: 1–2 char CJK must not return empty when label contains them.
+    cjk_runs = _CJK.findall(query)
+    short = [r for r in cjk_runs if 1 <= len(r) <= 2]
+    if short and len(ranks) < limit:
+        for needle in short:
+            like = f"%{needle}%"
+            rows = conn.execute(
+                "SELECT item_id FROM items WHERE presence = 'live' "
+                "AND superseded_by IS NULL AND ("
+                "display_label LIKE ? OR IFNULL(open_target,'') LIKE ?) "
+                "LIMIT ?",
+                (like, like, limit),
+            ).fetchall()
+            for row in rows:
+                if row["item_id"] not in ranks:
+                    ranks[row["item_id"]] = len(ranks) + 1
+    return ranks
 
 
 def _vector_search(conn, query: str, *, limit: int,

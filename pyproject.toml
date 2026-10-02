@@ -147,3 +147,7 @@ pythonpath = ["src"]
 # and teardown whenever `thinc` is importable, and four agents rediscovered that
 # in one night. Order randomisation stays on; only the per-test reseed is off.
 addopts = "-p randomly --randomly-dont-reset-seed"
+markers = [
+    "assistant_gate: P0–P2 assistant CI gate",
+    "injection: prompt-injection structural fixtures",
+]

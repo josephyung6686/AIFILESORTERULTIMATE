@@ -1,0 +1,986 @@
+{
+  "version": "2026-10-02-synthetic-100zh",
+  "note": "Synthetic size fixture only — not for model winner decisions",
+  "queries": [
+    {
+      "id": "zh-000",
+      "lang": "zh-Hant",
+      "text": "作務",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-001",
+      "lang": "zh-Hant",
+      "text": "業講",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-002",
+      "lang": "zh-Hant",
+      "text": "稅義",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-003",
+      "lang": "zh-Hant",
+      "text": "務課",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-004",
+      "lang": "zh-Hant",
+      "text": "講程",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-005",
+      "lang": "zh-Hant",
+      "text": "義筆",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-006",
+      "lang": "zh-Hant",
+      "text": "課記",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-007",
+      "lang": "zh-Hant",
+      "text": "程概",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-008",
+      "lang": "zh-Hant",
+      "text": "筆率",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-009",
+      "lang": "zh-Hant",
+      "text": "記統",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-010",
+      "lang": "zh-Hant",
+      "text": "概計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-011",
+      "lang": "zh-Hant",
+      "text": "率經",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-012",
+      "lang": "zh-Hant",
+      "text": "統濟",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-013",
+      "lang": "zh-Hant",
+      "text": "計會",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-014",
+      "lang": "zh-Hant",
+      "text": "經計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-015",
+      "lang": "zh-Hant",
+      "text": "濟報",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-016",
+      "lang": "zh-Hant",
+      "text": "會告",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-017",
+      "lang": "zh-Hant",
+      "text": "計研",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-018",
+      "lang": "zh-Hant",
+      "text": "報究",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-019",
+      "lang": "zh-Hant",
+      "text": "告論",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-020",
+      "lang": "zh-Hant",
+      "text": "研文",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-021",
+      "lang": "zh-Hant",
+      "text": "究作",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-022",
+      "lang": "zh-Hant",
+      "text": "論業",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-023",
+      "lang": "zh-Hant",
+      "text": "文稅",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-024",
+      "lang": "zh-Hant",
+      "text": "作務",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-025",
+      "lang": "zh-Hant",
+      "text": "業講",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-026",
+      "lang": "zh-Hant",
+      "text": "稅義",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-027",
+      "lang": "zh-Hant",
+      "text": "務課",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-028",
+      "lang": "zh-Hant",
+      "text": "講程",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-029",
+      "lang": "zh-Hant",
+      "text": "義筆",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-030",
+      "lang": "zh-Hant",
+      "text": "課記",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-031",
+      "lang": "zh-Hant",
+      "text": "程概",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-032",
+      "lang": "zh-Hant",
+      "text": "筆率",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-033",
+      "lang": "zh-Hant",
+      "text": "記統",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-034",
+      "lang": "zh-Hant",
+      "text": "概計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-035",
+      "lang": "zh-Hant",
+      "text": "率經",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-036",
+      "lang": "zh-Hant",
+      "text": "統濟",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-037",
+      "lang": "zh-Hant",
+      "text": "計會",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-038",
+      "lang": "zh-Hant",
+      "text": "經計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-039",
+      "lang": "zh-Hant",
+      "text": "濟報",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-040",
+      "lang": "zh-Hant",
+      "text": "會告",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-041",
+      "lang": "zh-Hant",
+      "text": "計研",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-042",
+      "lang": "zh-Hant",
+      "text": "報究",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-043",
+      "lang": "zh-Hant",
+      "text": "告論",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-044",
+      "lang": "zh-Hant",
+      "text": "研文",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-045",
+      "lang": "zh-Hant",
+      "text": "究作",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-046",
+      "lang": "zh-Hant",
+      "text": "論業",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-047",
+      "lang": "zh-Hant",
+      "text": "文稅",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-048",
+      "lang": "zh-Hant",
+      "text": "作務",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-049",
+      "lang": "zh-Hant",
+      "text": "業講",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-050",
+      "lang": "zh-Hant",
+      "text": "稅義",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-051",
+      "lang": "zh-Hant",
+      "text": "務課",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-052",
+      "lang": "zh-Hant",
+      "text": "講程",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-053",
+      "lang": "zh-Hant",
+      "text": "義筆",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-054",
+      "lang": "zh-Hant",
+      "text": "課記",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-055",
+      "lang": "zh-Hant",
+      "text": "程概",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-056",
+      "lang": "zh-Hant",
+      "text": "筆率",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-057",
+      "lang": "zh-Hant",
+      "text": "記統",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-058",
+      "lang": "zh-Hant",
+      "text": "概計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-059",
+      "lang": "zh-Hant",
+      "text": "率經",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-060",
+      "lang": "zh-Hant",
+      "text": "統濟",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-061",
+      "lang": "zh-Hant",
+      "text": "計會",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-062",
+      "lang": "zh-Hant",
+      "text": "經計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-063",
+      "lang": "zh-Hant",
+      "text": "濟報",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-064",
+      "lang": "zh-Hant",
+      "text": "會告",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-065",
+      "lang": "zh-Hant",
+      "text": "計研",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-066",
+      "lang": "zh-Hant",
+      "text": "報究",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-067",
+      "lang": "zh-Hant",
+      "text": "告論",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-068",
+      "lang": "zh-Hant",
+      "text": "研文",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-069",
+      "lang": "zh-Hant",
+      "text": "究作",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-070",
+      "lang": "zh-Hant",
+      "text": "論業",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-071",
+      "lang": "zh-Hant",
+      "text": "文稅",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-072",
+      "lang": "zh-Hant",
+      "text": "作務",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-073",
+      "lang": "zh-Hant",
+      "text": "業講",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-074",
+      "lang": "zh-Hant",
+      "text": "稅義",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-075",
+      "lang": "zh-Hant",
+      "text": "務課",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-076",
+      "lang": "zh-Hant",
+      "text": "講程",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-077",
+      "lang": "zh-Hant",
+      "text": "義筆",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-078",
+      "lang": "zh-Hant",
+      "text": "課記",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-079",
+      "lang": "zh-Hant",
+      "text": "程概",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-080",
+      "lang": "zh-Hant",
+      "text": "筆率",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-081",
+      "lang": "zh-Hant",
+      "text": "記統",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-082",
+      "lang": "zh-Hant",
+      "text": "概計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-083",
+      "lang": "zh-Hant",
+      "text": "率經",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-084",
+      "lang": "zh-Hant",
+      "text": "統濟",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-085",
+      "lang": "zh-Hant",
+      "text": "計會",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-086",
+      "lang": "zh-Hant",
+      "text": "經計",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-087",
+      "lang": "zh-Hant",
+      "text": "濟報",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-088",
+      "lang": "zh-Hant",
+      "text": "會告",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-089",
+      "lang": "zh-Hant",
+      "text": "計研",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-090",
+      "lang": "zh-Hant",
+      "text": "報究",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-091",
+      "lang": "zh-Hant",
+      "text": "告論",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-092",
+      "lang": "zh-Hant",
+      "text": "研文",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-093",
+      "lang": "zh-Hant",
+      "text": "究作",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-094",
+      "lang": "zh-Hant",
+      "text": "論業",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-095",
+      "lang": "zh-Hant",
+      "text": "文稅",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-096",
+      "lang": "zh-Hant",
+      "text": "作務",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-097",
+      "lang": "zh-Hant",
+      "text": "業講",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-098",
+      "lang": "zh-Hant",
+      "text": "稅義",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "zh-099",
+      "lang": "zh-Hant",
+      "text": "務課",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-000",
+      "lang": "en",
+      "text": "lecture notes topic 0",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-001",
+      "lang": "en",
+      "text": "lecture notes topic 1",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-002",
+      "lang": "en",
+      "text": "lecture notes topic 2",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-003",
+      "lang": "en",
+      "text": "lecture notes topic 3",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-004",
+      "lang": "en",
+      "text": "lecture notes topic 4",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-005",
+      "lang": "en",
+      "text": "lecture notes topic 5",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-006",
+      "lang": "en",
+      "text": "lecture notes topic 6",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-007",
+      "lang": "en",
+      "text": "lecture notes topic 7",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-008",
+      "lang": "en",
+      "text": "lecture notes topic 8",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-009",
+      "lang": "en",
+      "text": "lecture notes topic 9",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-010",
+      "lang": "en",
+      "text": "lecture notes topic 10",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-011",
+      "lang": "en",
+      "text": "lecture notes topic 11",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-012",
+      "lang": "en",
+      "text": "lecture notes topic 12",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-013",
+      "lang": "en",
+      "text": "lecture notes topic 13",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-014",
+      "lang": "en",
+      "text": "lecture notes topic 14",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-015",
+      "lang": "en",
+      "text": "lecture notes topic 15",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-016",
+      "lang": "en",
+      "text": "lecture notes topic 16",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-017",
+      "lang": "en",
+      "text": "lecture notes topic 17",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-018",
+      "lang": "en",
+      "text": "lecture notes topic 18",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-019",
+      "lang": "en",
+      "text": "lecture notes topic 19",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-020",
+      "lang": "en",
+      "text": "lecture notes topic 20",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-021",
+      "lang": "en",
+      "text": "lecture notes topic 21",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-022",
+      "lang": "en",
+      "text": "lecture notes topic 22",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-023",
+      "lang": "en",
+      "text": "lecture notes topic 23",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-024",
+      "lang": "en",
+      "text": "lecture notes topic 24",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-025",
+      "lang": "en",
+      "text": "lecture notes topic 25",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-026",
+      "lang": "en",
+      "text": "lecture notes topic 26",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-027",
+      "lang": "en",
+      "text": "lecture notes topic 27",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-028",
+      "lang": "en",
+      "text": "lecture notes topic 28",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-029",
+      "lang": "en",
+      "text": "lecture notes topic 29",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-030",
+      "lang": "en",
+      "text": "lecture notes topic 30",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-031",
+      "lang": "en",
+      "text": "lecture notes topic 31",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-032",
+      "lang": "en",
+      "text": "lecture notes topic 32",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-033",
+      "lang": "en",
+      "text": "lecture notes topic 33",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-034",
+      "lang": "en",
+      "text": "lecture notes topic 34",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-035",
+      "lang": "en",
+      "text": "lecture notes topic 35",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-036",
+      "lang": "en",
+      "text": "lecture notes topic 36",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-037",
+      "lang": "en",
+      "text": "lecture notes topic 37",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-038",
+      "lang": "en",
+      "text": "lecture notes topic 38",
+      "relevant_item_ids": [],
+      "synthetic": true
+    },
+    {
+      "id": "en-039",
+      "lang": "en",
+      "text": "lecture notes topic 39",
+      "relevant_item_ids": [],
+      "synthetic": true
+    }
+  ]
+}

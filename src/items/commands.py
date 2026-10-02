@@ -177,6 +177,35 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     return 0
 
 
+def preview_main(argv: list[str] | None = None, *, out=None) -> int:
+    """Dry-run a plan (P3). Never moves."""
+    out = out if out is not None else sys.stdout
+    parser = argparse.ArgumentParser(prog="filesorter preview-plan")
+    parser.add_argument("plan_id")
+    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--full-list-viewed", action="store_true")
+    args = parser.parse_args(argv)
+    from assistant.place_preview import place_preview, preview_as_dict
+    conn = _open(args.database)
+    try:
+        prev = place_preview(
+            conn, args.plan_id, full_list_viewed=args.full_list_viewed)
+        d = preview_as_dict(prev)
+    finally:
+        conn.close()
+    print(f"plan {d['plan_id']} hash={d['plan_hash'][:12]}… "
+          f"ops={len(d['ops'])} can_apply={d['can_apply']} moved=no",
+          file=out)
+    for op in d["ops"]:
+        print(f"  {op['item_id']}: {op['src']} -> {op['dst']} "
+              f"hash_ok={op['hash_ok']}", file=out)
+    if d["blockers"]:
+        print("blockers:", file=out)
+        for b in d["blockers"]:
+            print(f"  - {b}", file=out)
+    return 0
+
+
 def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     """BYOK read-only chat over the local index. Product surface."""
     out = out if out is not None else sys.stdout
@@ -184,9 +213,20 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument("question")
     parser.add_argument("--database", type=Path, required=True)
     parser.add_argument("--rebuild-fts", action="store_true")
+    parser.add_argument(
+        "--show-trust", action="store_true",
+        help="Print per-provider retention/location facts (Addendum A4).")
+    parser.add_argument(
+        "--local-only", action="store_true",
+        help="Refuse cloud; use on-device model only (P2). Currently refuses "
+             "until Apple FM adapter is wired.")
     args = parser.parse_args(argv)
     from assistant.chat import ask, format_answer
+    from assistant.trust import onboarding_lines
     from items.hot_index import rebuild_fts
+    if args.show_trust:
+        for line in onboarding_lines("deepseek"):
+            print(line, file=out)
     conn = _open(args.database)
     try:
         if args.rebuild_fts:
@@ -194,7 +234,7 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
             conn.commit()
             print(f"Rebuilt item_fts: {n} rows.", file=out)
         try:
-            answer = ask(conn, args.question)
+            answer = ask(conn, args.question, local_only=args.local_only)
         except RuntimeError as problem:
             # Missing BYOK key / provider config — refuse cleanly, move nothing.
             print(str(problem), file=out)
@@ -203,6 +243,9 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     finally:
         conn.close()
     print(format_answer(answer), file=out)
+    # Local-only refuse is a clean product outcome (exit 0) with moved=no.
+    if args.local_only and answer.provider == "local" and not answer.citations:
+        return 0
     return 0
 
 

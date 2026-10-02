@@ -5,6 +5,7 @@
 **Audience:** Product owner  
 **Sources:** Item-relationship plan · Tencent memory pack (`~/Desktop/tencent memory/`) · owner direction · 2026-10-02 red-team critique  
 **Four pillars (full contracts):** [`2026-10-02-four-pillars-plan.md`](./2026-10-02-four-pillars-plan.md) — A search · B assistant · C people/projects · D correction memory  
+**Agent design + all critique deep-dives:** [`2026-10-02-agent-design-and-deep-dives.md`](./2026-10-02-agent-design-and-deep-dives.md) 
 
 ---
 
@@ -118,9 +119,10 @@ message → model(tools) → tool_calls
 ```
 
 - One runner over OpenAI/Anthropic-shaped APIs; **no OpenClaw**  
-- Tool registry = single source of truth  
+- Tool registry = single source of truth (can expose as MCP later without rewrite)  
 - Cheap model for execution turns; frontier for plan/recovery  
 - Parallel **read** tools only; serialize writes  
+- Tool descriptions follow Anthropic guidance: namespaced names, semantic return fields (not raw IDs only), concise/detailed response toggle, actionable errors  
 
 ### 4.4 Tool catalog
 
@@ -129,6 +131,8 @@ message → model(tools) → tool_calls
 
 **Deferred:**  
 `scan_refresh` · `extract_one` · `propose_groups` · `propose_tree` · `place_preview` · `freeze` · `apply_moves` · `undo_moves` · `propose_links` · `accept_link` · `reject_link` · `sync_mail` · `sync_calendar`
+
+**Injection patterns per class:** write tools = Plan-Then-Execute (args from plan + find `item_id`s only); bulk summarize/group = Map-Reduce (one constrained call per file); memory writes from untrusted sessions = L0 only (no auto-atoms).
 
 ### 4.5 People / projects
 
@@ -149,8 +153,9 @@ Sessions that read untrusted files: corrections stay **L0 evidence only** until 
 - Held / safety / `ALWAYS_LOCAL` never in cloud prompts  
 - **Per-turn egress ledger:** item_ids, byte counts, provider, model (user-viewable)  
 - Default: snippets, not whole bodies; byte budget per turn  
-- Onboarding states provider retention (~30 days; ZDR typically not available to BYOK students)  
+- **Per-provider onboarding** (not a generic “30 days”): DeepSeek (default) → processed/stored in **PRC**, retention “as long as necessary,” training opt-out may apply; OpenAI/Anthropic ~30-day notes only when selected. See agent-design Addendum A4.  
 - Optional **local-only mode** (e.g. Apple Foundation Models when available) for find/list/explain; cloud for multi-step organize with session consent  
+- INDEX card labels/subjects tagged **untrusted** (Addendum A1) 
 
 ### 4.8 Threat model — untrusted file text (critical)
 
@@ -165,7 +170,15 @@ Sessions that read untrusted files: corrections stay **L0 evidence only** until 
 
 ### 4.9 Writes & undo (P3–P4)
 
-Write-ahead journal: `(plan_id, item_id, content_hash, src, dst, state)`. Prefer Trash over delete. Undo idempotent + conflict-aware. Kill -9 mid-plan must recover cleanly.
+Write-ahead journal: `(plan_id, item_id, file_id, content_hash, src, dst, state)`. Prefer Trash over delete. Undo idempotent + conflict-aware (dest exists, file changed since plan). Kill -9 mid-plan must recover cleanly. Always confirm ops leaving the folder tree or touching held items.
+
+### 4.10 Index at rest (post-P2; not P0 blocker)
+
+The hybrid index holds excerpts → treat as a honeypot if stolen. Design (ship after read-only dogfood unless owner wants earlier):
+
+- Encrypt DB at rest; key in Keychain  
+- Held / safety-domain open paths gated behind local auth (Touch ID / password) before excerpt leaves the vault into any prompt or UI detail pane  
+- Egress ledger is the “delivery truck” audit — vault encryption alone is not enough  
 
 ---
 
@@ -188,8 +201,8 @@ Write-ahead journal: `(plan_id, item_id, content_hash, src, dst, state)`. Prefer
 | Phase | Content | Exit criterion |
 |---|---|---|
 | **P0** | Spec freeze · threat model · eval harness skeleton · bilingual golden set · injection fixtures | Harness in CI |
-| **P1** | Hot index: FSEvents feed · chunking · dual-tokenizer FTS · embedding bake-off · RRF→convex | Recall metrics beat FTS-only; p95 at 2k/50k/250k |
-| **P2** | Read-only agent loop · untrusted tagging · egress ledger · local-model mode option | Trajectories pass^3; 0 injection write calls |
+| **P1** | Hot index: FSEvents feed · chunking · dual-tokenizer FTS · embedding bake-off (≥100 ZH or bootstrap CI) · RRF→convex | Recall beats FTS-only; p95 ≤ caps 2k/50k/250k (see deep-dives T-P1-02) |
+| **P2** | Read-only agent loop · untrusted tagging (incl. cards) · egress ledger · per-provider trust copy · local-model option | Trajectories pass^3 ≥0.7; 0 injection write calls |
 | **P2.5** | Thin UI (menu-bar or local web) for dogfood | Daily use logs |
 | **P3** | Undo journal + dry-run / place_preview | Kill -9 mid-plan recovers |
 | **P4** | Writes with plan-level risk-tiered approval | 0 silent writes; 0 wrong moves |
@@ -220,6 +233,33 @@ OpenClaw / TencentDB npm · live Gmail OAuth as P0–P2 blocker · full Mac app 
 - [x] Memory gate = precision+abstention, not F1 0.65  
 - [x] Eval + undo before write tools  
 - [x] Four pillars fully planned ([four-pillars plan](./2026-10-02-four-pillars-plan.md))  
-- [ ] Owner confirms this revised report + four-pillars plan as authority  
+- [x] Agent design + ten critique deep-dives locked ([agent design](./2026-10-02-agent-design-and-deep-dives.md))  
+- [x] Addendum A (untrusted cards, T0 template rename, plan_hash, DeepSeek terms, full-list approve, DiffEvent provenance)  
+- [ ] Owner confirms report + four-pillars + agent/deep-dives **for P0–P2 build** (not “perfect” freeze)  
 
-**Owner:** confirm or edit.
+**Owner:** confirm to start P0–P2. Perfect freeze waits on Addendum B tickets.
+
+---
+
+## 10. Critique disposition (2026-10-02 red-team)
+
+This report **already adopts** that critique. Mapping:
+
+| Critique severity | Issue | Disposition | Where |
+|---|---|---|---|
+| Critical | Prompt injection from file contents | **Adopted** — threat model, untrusted tags, Plan-Then-Execute, Map-Reduce, injection fixtures, L0-only memory from dirty sessions | §4.8, §5, P0–P2; pillars B/D |
+| High | Cloud egress / retention under-specified | **Adopted** — egress ledger, snippet budget, onboarding retention facts, local-model option | §4.7, P2 |
+| High | English-only retrieval (MiniLM + FTS5) | **Adopted** — dual FTS (CJK), embedding bake-off, EN/ZH golden | §4.2, P1; pillar A |
+| High | One vector per item / long files | **Adopted** — chunking 512–1024; aggregate to item cards | §4.2; pillar A |
+| Med-high | SLO corpus too small (2k only) | **Adopted** — measure at 2k / 50k / 250k **after chunking**; re-decide sqlite-vec vs LanceDB only if p95 fails | §4.2, §5, P1 |
+| Med-high | Memory gate F1 ≥ 0.65 | **Replaced** — precision ≥ 0.95 + abstention; beat rules-only; ADD/supersede not fragile merge | §4.6, P7; pillar D |
+| Medium | Approval fatigue | **Adopted** — plan-level risk-tiered; &lt;2s fatigue signal; auto-allow only pre-auth reversible | §4.8, P4 |
+| Medium | Deterministic lane router | **Demoted** — optional cheap hint only | §2, §4.1 |
+| Medium | Spotlight / FSEvents ignored | **Adopted** — FSEvents + file ID/bookmarks; mdfind helper only | §4.2, P1 |
+| Medium-low | RRF-only fusion | **Adopted** — RRF then convex on ≥40 queries; recency/heat/path additives; reranker optional outside SLO | §4.2 |
+| Medium-low | Eval / undo too late | **Adopted** — P0 eval+injection; P3 undo before P4 writes | §6 |
+| Low-med | Index honeypot | **Adopted as design** — Keychain encryption + Touch ID for held; post-P2 unless owner pulls forward | §4.10 |
+
+**Keep (unchanged by critique):** BYOK hand-rolled loop · hybrid FTS+vec · progressive tools · no silent moves · embeddings never approve life links/moves · memory dark until gate · citations `item_id`+`source_ids` · FS as system of record.
+
+**Optional deep-dives** (write on request, not blocking authority): injection patterns per tool with fixtures · embedding/reranker bake-off protocol · sqlite-vec vs LanceDB vs usearch · FSEvents+bookmark design · memory systems comparison (Mem0/Letta/Zep/…) · entity-resolution protocol · cheap-vs-frontier cost model · approval UX / audit schema · product lessons (Recall/Rewind/…) · eval metrics cookbook.

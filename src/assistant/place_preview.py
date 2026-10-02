@@ -1,0 +1,142 @@
+"""P3 place_preview / dry-run — never moves files.
+
+Verifies content_hash when present; surfaces full op list for approval UI.
+"""
+from __future__ import annotations
+
+import hashlib
+import sqlite3
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from assistant.plans import (
+    approval_matches_plan,
+    plan_hash,
+    require_full_list_viewed,
+)
+
+
+@dataclass(frozen=True)
+class PreviewOp:
+    item_id: str
+    src: str
+    dst: str
+    content_hash: str | None
+    hash_ok: bool | None  # None if no hash recorded
+    exists_src: bool
+    dest_exists: bool
+
+
+@dataclass(frozen=True)
+class PlacePreview:
+    plan_id: str
+    plan_hash: str
+    ops: tuple[PreviewOp, ...]
+    approval_matches: bool
+    full_list_viewed_required: bool
+    can_apply: bool
+    blockers: tuple[str, ...]
+    moved: bool = False
+
+
+def _file_hash(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def place_preview(
+        conn: sqlite3.Connection,
+        plan_id: str,
+        *,
+        full_list_viewed: bool = False,
+) -> PlacePreview:
+    """Dry-run a plan. Nothing is moved."""
+    from assistant.plans import ensure_plans_schema
+    ensure_plans_schema(conn)
+    row = conn.execute(
+        "SELECT state FROM assistant_plans WHERE plan_id = ?", (plan_id,)
+    ).fetchone()
+    blockers: list[str] = []
+    if row is None:
+        return PlacePreview(
+            plan_id=plan_id, plan_hash="", ops=(),
+            approval_matches=False,
+            full_list_viewed_required=True,
+            can_apply=False,
+            blockers=("plan not found",),
+        )
+    h = plan_hash(conn, plan_id)
+    matches = approval_matches_plan(conn, plan_id)
+    if not matches:
+        blockers.append("approval missing or plan_hash mismatch")
+    if not require_full_list_viewed(full_list_viewed):
+        blockers.append("full list not viewed")
+    ops_out: list[PreviewOp] = []
+    for r in conn.execute(
+        "SELECT item_id, src, dst, content_hash FROM assistant_plan_ops "
+        "WHERE plan_id = ? ORDER BY item_id",
+        (plan_id,),
+    ):
+        src_p = Path(r["src"])
+        dst_p = Path(r["dst"])
+        exists_src = src_p.is_file()
+        dest_exists = dst_p.exists()
+        recorded = r["content_hash"]
+        hash_ok: bool | None = None
+        if recorded:
+            live = _file_hash(src_p) if exists_src else None
+            hash_ok = live == recorded
+            if hash_ok is False:
+                blockers.append(
+                    f"content_hash mismatch for {r['item_id']}")
+        if not exists_src:
+            blockers.append(f"missing src {r['src']}")
+        if dest_exists:
+            blockers.append(f"dest exists {r['dst']}")
+        ops_out.append(PreviewOp(
+            item_id=r["item_id"], src=r["src"], dst=r["dst"],
+            content_hash=recorded, hash_ok=hash_ok,
+            exists_src=exists_src, dest_exists=dest_exists,
+        ))
+    # Apply still dark in this build even if clean.
+    blockers.append("apply_moves not enabled in this build")
+    return PlacePreview(
+        plan_id=plan_id,
+        plan_hash=h,
+        ops=tuple(ops_out),
+        approval_matches=matches,
+        full_list_viewed_required=True,
+        can_apply=False,
+        blockers=tuple(dict.fromkeys(blockers)),
+        moved=False,
+    )
+
+
+def preview_as_dict(preview: PlacePreview) -> dict[str, Any]:
+    return {
+        "plan_id": preview.plan_id,
+        "plan_hash": preview.plan_hash,
+        "ops": [
+            {
+                "item_id": o.item_id,
+                "src": o.src,
+                "dst": o.dst,
+                "content_hash": o.content_hash,
+                "hash_ok": o.hash_ok,
+                "exists_src": o.exists_src,
+                "dest_exists": o.dest_exists,
+            }
+            for o in preview.ops
+        ],
+        "approval_matches": preview.approval_matches,
+        "full_list_viewed_required": preview.full_list_viewed_required,
+        "can_apply": preview.can_apply,
+        "blockers": list(preview.blockers),
+        "moved": False,
+    }

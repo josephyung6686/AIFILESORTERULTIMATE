@@ -1,0 +1,8 @@
+{
+  "version": "2026-10-02-stub",
+  "queries": [
+    {"id": "q1", "lang": "en", "text": "joint pmf lecture", "relevant_item_ids": []},
+    {"id": "q2", "lang": "zh", "text": "作業", "relevant_item_ids": []},
+    {"id": "q3", "lang": "zh-Hant", "text": "稅務", "relevant_item_ids": []}
+  ]
+}
