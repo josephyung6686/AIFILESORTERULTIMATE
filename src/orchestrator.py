@@ -728,9 +728,15 @@ def run_p1_p7(
     # The scan already resolved renames through `observe_path` and retired
     # gone paths. Point durable items at those rows. No second walk, no hash.
     # Absent item tables mean this connection never bootstrapped them.
-    from items.identity import project_after_scan
+    # Identity + profile mint only. Typing and the inferred connector need
+    # extracted evidence and run later via `items.project.project_after_recognition`
+    # (after the gist / recognition path in cli). Running them here typed files
+    # from filenames alone and lied about the graph.
+    from items.project import project_context_graph
     from scan_agent.selection import selection_sources
-    project_after_scan(conn, selection_sources(conn, selection_id), scan_state)
+    project_context_graph(
+        conn, selection_sources(conn, selection_id), scan_state,
+        run_typing=False, run_connector=False)
     versions = current_versions()
     written: list[str] = []
     roster: list[str] = []

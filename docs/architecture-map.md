@@ -111,9 +111,9 @@ These fail a stage or a PR if violated:
 
 ## 7. What is built vs open (architecture view)
 
-**Built (or on this working tree):** file `item_id` over `observe_path`; items schema; fixture mail/calendar; deadline + five view *queries*; witnessed duplicate/version projection; link decisions; profile package loader; read-only meaning search; declared-lives recognition gate; sorter apply/undo stack.
+**Built:** file `item_id`; typing projection; course/project mint from profile; witnessed + thin inferred connector; nudge/required_pairs; five view queries; fixture mail/calendar; profile packages (`student`, `files_only`, `job_seeker` stub); mutation boundary; never-move ruling ([`never-move-mode.md`](never-move-mode.md)); gate measure tool ([`real-data-gate.md`](real-data-gate.md)).
 
-**Open (architecture, not UI):** typing_state projection from recognition; minting course/project items from profile answers; inferred connector; full nudge/assistant modules; live mail/calendar ingester; turning apply off for a “never move” product mode; correction memory that generalizes (explicitly out of the thin link plan); researched non-student profile packages.
+**Still open:** live Gmail/Calendar; full assistant; Downloads re-measure on a real scan DB (tool ready, corpus DB absent); researched non-student templates beyond the stub; sorter apply left available (not deleted); agent one-liner and view release order (founder — do not invent).
 
 ---
 

@@ -1,7 +1,7 @@
 {
-  "profile_id": "student",
+  "profile_id": "job_seeker",
   "profile_version": "1",
-  "item_types": ["file", "folder", "project", "course", "email", "event"],
+  "item_types": ["file", "folder", "project", "email", "event"],
   "relationship_types": [
     "duplicate-of",
     "version-of",
@@ -11,17 +11,17 @@
     "occurs-on"
   ],
   "schema_to_item_type": {
-    "academic": "course",
+    "career": "project",
     "college_applications": "project"
   },
   "graph_cap": 40,
   "timeline_days": 90,
-  "default_view": "board",
+  "default_view": "table",
   "required_pairs": [
     {
-      "hub_type": "course",
+      "hub_type": "project",
       "need_rel": "member-of",
-      "need_type_schema": "academic",
+      "need_type_schema": "career",
       "with_future_event": true
     }
   ]

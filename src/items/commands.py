@@ -149,22 +149,60 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument("query")
     parser.add_argument("--database", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=25)
+    parser.add_argument("--rebuild-fts", action="store_true")
     args = parser.parse_args(argv)
+    from items.hot_index import rebuild_fts
     from items.search import meaning_search
     conn = _open(args.database)
     try:
+        if args.rebuild_fts:
+            n = rebuild_fts(conn)
+            conn.commit()
+            print(f"Rebuilt item_fts: {n} rows.", file=out)
         result = meaning_search(conn, args.query, limit=args.limit)
+        conn.commit()
     finally:
         conn.close()
     print(
         f"{len(result.hits)} hit(s). Protected present-but-unopened: "
-        f"{result.protected_count}. Moved: no.",
+        f"{result.protected_count}. Moved: no. "
+        f"latency fts={result.fts_ms:.1f}ms vec={result.vector_ms:.1f}ms "
+        f"total={result.total_ms:.1f}ms",
         file=out)
     for hit in result.hits:
         target = "(protected)" if hit.protected else (hit.open_target or "")
         print(
-            f"{hit.score:.1f}\t{hit.channel}\t{hit.display_label}\t{target}",
+            f"{hit.score:.4f}\t{hit.channel}\t{hit.display_label}\t{target}",
             file=out)
+    return 0
+
+
+def ask_main(argv: list[str] | None = None, *, out=None) -> int:
+    """BYOK read-only chat over the local index. Product surface."""
+    out = out if out is not None else sys.stdout
+    parser = argparse.ArgumentParser(prog="filesorter ask")
+    parser.add_argument("question")
+    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--rebuild-fts", action="store_true")
+    args = parser.parse_args(argv)
+    from assistant.chat import ask, format_answer
+    from items.hot_index import rebuild_fts
+    conn = _open(args.database)
+    try:
+        if args.rebuild_fts:
+            n = rebuild_fts(conn)
+            conn.commit()
+            print(f"Rebuilt item_fts: {n} rows.", file=out)
+        try:
+            answer = ask(conn, args.question)
+        except RuntimeError as problem:
+            # Missing BYOK key / provider config — refuse cleanly, move nothing.
+            print(str(problem), file=out)
+            return 2
+        conn.commit()
+    finally:
+        conn.close()
+    print(format_answer(answer), file=out)
     return 0
 
 
@@ -177,7 +215,8 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     if args.apply:
         print(APPLY_REFUSED, file=out)
         return 2
-    from items.suggest import proposals, render
+    from items.nudge import render
+    from items.suggest import proposals
     conn = _open(args.database)
     try:
         rows = proposals(conn)

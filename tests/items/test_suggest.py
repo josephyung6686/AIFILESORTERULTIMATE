@@ -61,9 +61,9 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
     before = _counts(conn)
     rows = proposals(conn, now="2026-10-01T00:00:00+00:00")
     assert len(rows) == 1
-    assert rows[0]["course"] == "CHEM 101"
-    assert rows[0]["event"] == "Office hours"
-    assert rows[0]["action"] == "none"
+    assert rows[0]["hub"] == "CHEM 101"
+    assert "Office hours" in rows[0]["message"]
+    assert rows[0]["kind"] == "missing_member_of"
     assert _counts(conn) == before
     out = io.StringIO()
     code = cli.main([

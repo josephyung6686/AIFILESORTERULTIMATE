@@ -89,7 +89,13 @@ The defensible combination is: **automatic structure from real data + learning c
 
 ## Open questions for the founder
 
-- What is the agent's one-sentence pitch? (placeholder above)
-- Which profile comes after students?
+- What is the agent's one-sentence pitch? (placeholder above — **do not invent**)
+- Which profile is researched after students? (`job_seeker` is a loadable stub only)
 - Does every link need user confirmation, or only low-confidence ones?
-- What is the release order of views?
+- What is the release order of views? (**do not invent**)
+
+## Architecture rulings since this write-up
+
+- Never-move for the graph path: [`docs/never-move-mode.md`](never-move-mode.md)
+- Layer map and kill rules: [`docs/architecture-map.md`](architecture-map.md)
+- Real-data gate measurement: [`docs/real-data-gate.md`](real-data-gate.md)

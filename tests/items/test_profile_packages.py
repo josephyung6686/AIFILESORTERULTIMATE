@@ -11,12 +11,16 @@ from items.profile_loader import ProfileRefused, allows_relationship, load_profi
 def test_student_and_files_only_load_through_one_loader():
     student = load_profile("student")
     files_only = load_profile("files_only")
+    job = load_profile("job_seeker")
     assert student.profile_id == "student"
     assert files_only.profile_id == "files_only"
+    assert job.profile_id == "job_seeker"
     assert "member-of" in student.relationship_types
     assert "member-of" not in files_only.relationship_types
     assert allows_relationship(files_only, "member-of") is False
     assert allows_relationship(files_only, "duplicate-of") is True
+    assert "course" not in job.item_types
+    assert job.raw.get("required_pairs")
 
 
 def test_hold_bypass_keys_are_ignored():

@@ -21542,6 +21542,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             names=file_names(conn, directory, *also_read),
             kind_of=_the_kind_the_rules_read, name_of=_kind_words)
         _print_gist(gist, heading="What you have", out=out)
+        # Context-graph typing + inferred links. After extraction (P1–P7) and
+        # after the rules gist, not after bare scan — otherwise items are typed
+        # from filenames alone. Never moves files.
+        try:
+            from items.project import project_after_recognition
+            project_after_recognition(conn)
+        except Exception as _items_projection_error:
+            print(
+                f"(context graph projection skipped: {_items_projection_error})",
+                file=out,
+            )
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
         _family_pass(p1_p7.scan_run_id)
@@ -27718,6 +27729,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # Reserved command word, same shape as `sync` / `view` / `suggest`.
         from items.commands import search_main
         return search_main(asked[1:], out=out)
+    if asked[:1] == ["ask"]:
+        # Product surface: BYOK read-only assistant over the hot index.
+        from items.commands import ask_main
+        return ask_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",

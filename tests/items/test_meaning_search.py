@@ -36,7 +36,13 @@ def test_protected_hit_is_counted_without_open_target(conn, tmp_path: Path):
     assert any(h.protected and h.open_target is None for h in result.hits)
 
 
-def test_semantic_neighbour_boosts_but_writes_no_relationship(conn, tmp_path: Path):
+def test_group_edge_never_becomes_life_link_and_search_still_readonly(
+        conn, tmp_path: Path):
+    """Semantic group edges must not become relationships; search writes nothing.
+
+    Hot-path find uses FTS(+vectors), not group_edges — so a neighbour boost via
+    mutual-semantic edges is no longer required for product find.
+    """
     root = tmp_path / "lib"
     root.mkdir()
     a = root / "lecture_notes.txt"
@@ -65,11 +71,22 @@ def test_semantic_neighbour_boosts_but_writes_no_relationship(conn, tmp_path: Pa
     result = meaning_search(conn, "lecture_notes")
     labels = {h.display_label for h in result.hits}
     assert "lecture_notes.txt" in labels
-    assert "problem_set.txt" in labels
+    assert result.moved is False
     after = conn.execute("SELECT COUNT(*) FROM relationships").fetchone()[0]
     assert after == before
     project_witnessed_links(conn)
-    # Semantic edge still must not become a life link.
     assert conn.execute(
         "SELECT COUNT(*) FROM relationships WHERE evidence_refs LIKE '%sem-1%'"
     ).fetchone()[0] == 0
+
+
+def test_empty_and_special_queries_do_not_crash(conn, tmp_path: Path):
+    root = tmp_path / "lib"
+    root.mkdir()
+    (root / "notes.txt").write_text("hello", encoding="utf-8")
+    reconcile_tree(conn, root)
+    assert meaning_search(conn, "").hits == ()
+    assert meaning_search(conn, "   ").hits == ()
+    for q in ('OR OR', '""""', "'; DROP TABLE items;--", "中文", "***"):
+        result = meaning_search(conn, q)
+        assert result.moved is False
