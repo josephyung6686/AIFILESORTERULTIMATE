@@ -6,6 +6,8 @@ destination tree, and does not move anything until you freeze that tree and appl
 Undo puts the bytes back. A file it is not sure about stays where it is. Sensitive files
 are held and are not sent to a cloud model.
 
+Product direction → [`docs/product-one-pager.md`](docs/product-one-pager.md).
+
 The design this implements is
 [`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).
 Search and the folder watcher are not part of this path.
