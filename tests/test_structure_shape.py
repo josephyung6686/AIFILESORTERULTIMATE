@@ -253,6 +253,36 @@ def test_a_tree_without_those_patterns_keeps_its_folders():
             ]
 
 
+def test_the_structure_file_is_the_shaped_walk_not_the_scan_names():
+    """`--structure-out` writes `structure_rows`, and that walk is already shaped.
+
+    The screen and the file are the same rows. A Finder copy that survives
+    in the file would be a folder the person is invited to edit.
+    """
+    from structure_file import render
+
+    nodes = (
+        _node("n_export", "Class_notes_export"),
+        _node("n_copy", "Class_notes_export (1)"),
+        _node("n_bare", "Class notes"),
+        _node("n_lec", "Lectures"),
+    )
+    rows = cli.structure_rows(
+        SimpleNamespace(
+            tree=SimpleNamespace(tree=SimpleNamespace(nodes=nodes)),
+            placement=SimpleNamespace(decisions=())),
+        situations={}, words_of=lambda _situation: "",
+        holds={"n_lec": ["f1"]})
+    text = render(tuple(rows), path="/tmp/proposed-structure.txt", plan="plan-1")
+    # The file is the shaped walk: Lectures stays, the export names are gone,
+    # and the empty copy is parked under the archive rather than left as a peer.
+    assert {row.label for row in rows if row.depth == 0} == {"Lectures", "99 Archive"}
+    assert all(row.depth > 0 for row in rows if row.label == "Class notes")
+    assert "Lectures" in text
+    assert "99 Archive" in text
+    assert "Class_notes_export" not in text
+
+
 def test_the_outline_does_not_list_finder_copies_as_top_level_peers():
     """`--structure-out` walks the shaped tree, not the scan's own names."""
     nodes = (

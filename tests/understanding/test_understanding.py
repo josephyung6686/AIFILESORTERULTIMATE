@@ -209,6 +209,58 @@ def test_cache_hit_does_not_call_the_provider_again():
     assert provider.calls and len(provider.calls) == 1
 
 
+def test_default_budget_admits_a_downloads_sized_corpus():
+    """About 1800 files, each its own call, must fit the default ceiling.
+
+    A long excerpt stays under the word cap and still exceeds the batch
+    token cap, so the pass cannot hide the cost inside a batch of eight.
+    The old ceiling, 200 calls and 200,000 estimated input tokens, stopped
+    a Downloads copy mid-pass.
+    """
+    from understanding.dossier import build_dossier, estimate_input_tokens
+
+    text = " ".join(["longwordxx"] * 400)
+    sample = build_dossier(_view(text=text), private_areas=set())
+    tokens = estimate_input_tokens(sample)
+    corpus = 1800
+    budget = Budget()
+    assert budget.max_calls >= corpus
+    assert budget.max_input_tokens >= corpus * tokens
+    views = [
+        _view(f"{i}.txt", file_id=f"id-{i}", text=text) for i in range(corpus)
+    ]
+    payload = _completion(_answer())
+
+    class Endless(Fake):
+        def complete(self, request):
+            self.calls.append(request)
+            return payload
+
+    report = run_understanding(
+        conn=_conn(), views=views, declared_areas={"academic"},
+        private_areas=set(), provider=Endless([]), model_id="deepseek-flash",
+        offline=False, consent=True, budget=budget, now="t", workers=1,
+        sleep=lambda _seconds: None)
+    assert report.budget_stopped == 0
+    assert report.called_complete == corpus
+    assert report.sent == corpus
+
+
+def test_a_token_ceiling_stops_when_calls_remain():
+    """The input-token cap is its own stop, not a second name for max_calls."""
+    conn = _conn()
+    provider = Fake([_completion(_answer())])
+    report = run_understanding(
+        conn=conn, views=[_view("a.txt", file_id="a"), _view("b.txt", file_id="b")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True,
+        budget=Budget(max_calls=10, max_input_tokens=1), now="t",
+        sleep=lambda _seconds: None)
+    assert report.called_complete == 0
+    assert report.budget_stopped == 2
+    assert provider.calls == []
+
+
 def test_budget_stop_and_low_confidence_need_review():
     conn = _conn()
     provider = Fake([_completion(_answer(confidence=0.2))])
@@ -674,6 +726,57 @@ def test_a_stored_excerpt_is_capped_before_it_can_leave():
     assert stored_excerpt(conn, "f").split()[0] == "w0"
 
 
+def test_concerns_that_are_not_one_string_are_rejected_without_a_type_error():
+    """A list, a dict, or an empty list is an answer failure, not a crash."""
+    for concerns in ([], ["user", "someone_else"], {"who": "user"}, [["user"]], None, 1):
+        with pytest.raises(Exception) as raised:
+            interpret_answer(
+                _answer(concerns=concerns), file_id="f",
+                declared_areas={"academic"})
+        assert type(raised.value).__name__ == "AnswerRejected"
+        assert not isinstance(raised.value, TypeError)
+
+
+def test_a_fault_reading_one_cached_answer_does_not_drop_the_next_file(monkeypatch):
+    """The cache is read on the main thread. One bad row must not abort the pass."""
+    from understanding.run import interpret_answer as real_interpret
+
+    payload = {"files": [json.loads(_answer()), json.loads(_answer())]}
+    conn = _conn()
+    first = run_understanding(
+        conn=conn,
+        views=[_view("a.txt", file_id="a.txt"), _view("b.txt", file_id="b.txt")],
+        declared_areas={"academic"}, private_areas=set(),
+        provider=Fake([_completion(json.dumps(payload))]),
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        sleep=lambda _seconds: None)
+    assert first.sent == 2
+    assert first.cache_hits == 0
+
+    def flaky(raw, *, file_id, declared_areas):
+        if file_id == "a.txt":
+            raise RuntimeError(SECRET)
+        return real_interpret(raw, file_id=file_id, declared_areas=declared_areas)
+
+    monkeypatch.setattr("understanding.run.interpret_answer", flaky)
+    second = run_understanding(
+        conn=conn,
+        views=[_view("a.txt", file_id="a.txt"), _view("b.txt", file_id="b.txt")],
+        declared_areas={"academic"}, private_areas=set(), provider=Fake([]),
+        model_id="deepseek-flash", offline=False, consent=True, now="t2",
+        sleep=lambda _seconds: None)
+    by_id = {item.file_id: item for item in second.results}
+    assert by_id["a.txt"].status == "needs_review"
+    assert SECRET not in by_id["a.txt"].reason
+    assert by_id["b.txt"].status == "cache"
+    assert by_id["b.txt"].understanding.life_area == "academic"
+    rows = conn.execute(
+        "SELECT file_id, exception_class FROM understanding_audit "
+        "WHERE cache_hit = 1 ORDER BY audit_id"
+    ).fetchall()
+    assert ("a.txt", "RuntimeError") in rows
+
+
 def test_a_one_element_concerns_list_is_not_a_type_error():
     understood = interpret_answer(
         _answer(concerns=["user"]), file_id="f", declared_areas={"academic"})
@@ -922,3 +1025,192 @@ def test_the_facts_summary_prints_an_empty_balance_without_the_body():
     assert "1 refused: the call did not come back (CallFailed)." in text
     assert "Insufficient Balance" not in text
     assert SECRET not in text
+
+
+def _files_db(directory):
+    """The columns `indexed_views` reads, plus a placement the residual pass can see."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE files (file_id TEXT, current_path TEXT, filename TEXT)")
+    conn.execute(
+        "CREATE TABLE plan_versions (plan_version_id TEXT, created_at TEXT)")
+    conn.execute(
+        "CREATE TABLE placement_decisions ("
+        "subject_ref TEXT, plan_version TEXT, outcome TEXT, superseded_by TEXT)")
+    return conn
+
+
+def _seed_file(conn, directory, file_id, name):
+    path = str(directory / name)
+    conn.execute(
+        "INSERT INTO files (file_id, current_path, filename) VALUES (?, ?, ?)",
+        (file_id, path, name))
+    return path
+
+
+def test_residuals_ask_only_unplaced_files_the_budget_never_settled(tmp_path):
+    """A second pass spends calls on budget stops, not on settled or placed files.
+
+    A cached needs-review answer was already asked. It stays in the review
+    pile and is not sent again.
+    """
+    from understanding.attach import residual_views
+    from understanding.store import cache_put, ensure_schema
+    from understanding.dossier import build_dossier, dossier_hash
+
+    directory = tmp_path / "inbox"
+    directory.mkdir()
+    conn = _files_db(directory)
+    ensure_schema(conn)
+    stopped = _seed_file(conn, directory, "stopped", "stopped.txt")
+    settled = _seed_file(conn, directory, "settled", "settled.txt")
+    reviewed = _seed_file(conn, directory, "reviewed", "reviewed.txt")
+    placed = _seed_file(conn, directory, "placed", "placed.txt")
+    (directory / "stopped.txt").write_text("office hours\n")
+    conn.execute(
+        "INSERT INTO plan_versions VALUES ('plan-1', '2026-10-02T00:00:00Z')")
+    conn.execute(
+        "INSERT INTO placement_decisions VALUES (?, 'plan-1', 'place', NULL)",
+        (f"file:placed:hash",))
+    conn.execute(
+        "INSERT INTO placement_decisions VALUES (?, 'plan-1', 'abstain', NULL)",
+        ("file:stopped:hash",))
+    note = ""
+    model_id = "deepseek-flash"
+
+    def _store(file_id, path, name, body):
+        # No extraction tables: the pass reads an empty excerpt, and the
+        # cache key has to be that same dossier.
+        view = FileView(file_id=file_id, path=path, filename=name, text="")
+        key = dossier_hash(
+            build_dossier(view, private_areas=set()),
+            model_id=model_id, profile_note=note)
+        cache_put(conn, cache_key=key, model_id=model_id,
+                  response_json=body, stored_at="t")
+
+    _store("settled", settled, "settled.txt", _answer())
+    _store("reviewed", reviewed, "reviewed.txt", _answer(confidence=0.2))
+    selection = residual_views(
+        conn, directory, private_areas=set(), declared_areas={"academic"},
+        model_id=model_id, profile_note=note)
+    assert [view.file_id for view in selection.pending] == ["stopped"]
+    assert selection.settled == 1
+    assert selection.already_review == 1
+    provider = Fake([_completion(_answer())])
+    from understanding.attach import understand_residuals
+    out = io.StringIO()
+    from understanding.store import record_consent
+    record_consent(conn, corpus_root=str(directory), user_id="t", decided_at="t")
+    understand_residuals(
+        conn, directory=directory, private_areas=set(),
+        declared_areas={"academic"}, offline=False, out=out,
+        provider=provider, model_id=model_id, now="t2", profile_note=note,
+        budget=Budget(max_calls=5, max_input_tokens=100_000))
+    text = out.getvalue()
+    assert len(provider.calls) == 1
+    assert "stopped" in provider.calls[0].prompt
+    assert "settled.txt" not in provider.calls[0].prompt
+    assert "placed.txt" not in provider.calls[0].prompt
+    assert "reviewed.txt" not in provider.calls[0].prompt
+    assert "still to ask" in text
+    assert "stopped by the budget" in text
+
+
+def test_understand_max_calls_zero_sends_nothing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-max-calls", "0",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert fake.calls == []
+    assert "stopped by the budget" in said
+    assert "0 of 0 calls" in said
+
+
+def test_a_negative_understand_budget_is_refused(tmp_path, monkeypatch, capsys):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    with pytest.raises(SystemExit) as exited:
+        cli.main([
+            str(folder), "--database", str(database), "--user", "t",
+            "--answers", str(answers), "--understand-max-calls", "-3",
+        ], out=io.StringIO())
+    assert exited.value.code == 2
+    assert "cannot be negative" in capsys.readouterr().err
+
+
+def test_understand_residuals_does_not_scan_or_resend_settled_files(
+        tmp_path, monkeypatch):
+    """The second command spends calls only on what the first pass left open."""
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-max-calls", "0",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert fake.calls == []
+    assert "stopped by the budget" in said
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("residuals scanned the folder again")
+
+    monkeypatch.setattr(cli, "run", boom)
+    out2 = io.StringIO()
+    code2 = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out2)
+    said2 = out2.getvalue()
+    assert code2 == 0, said2[-1200:]
+    assert len(fake.calls) == 1, said2[-800:]
+    assert "still to ask" in said2
+    out3 = io.StringIO()
+    code3 = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out3)
+    said3 = out3.getvalue()
+    assert code3 == 0, said3[-800:]
+    assert len(fake.calls) == 1, said3[-800:]
+    assert "already settled" in said3
+
+
+def test_residuals_without_a_plan_database_sends_nothing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 2, said[-800:]
+    assert "plan database" in said.lower()
+    assert not database.exists()
