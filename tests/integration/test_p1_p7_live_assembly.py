@@ -28,6 +28,7 @@ from extractors.structured_text import TextDocument
 from facts.schema import create_facts_schema
 from facts.usable import passes_for, record_pass, targeted_ocr_needed_for
 from extraction_pool import ExtractionContext, InlinePool
+import orchestrator
 from orchestrator import P1P7Run, run_p1_p7
 from privacy.classification import ClassificationRecord
 from privacy.authorship import CLASSIFICATION_ASSIGNED
@@ -753,6 +754,64 @@ def test_a_native_pass_with_no_citable_strings_reuses_and_terminates(
     assert third_ocr == []
     assert len(third_fact_passes) == 1
     assert len(third.fact_results_by_file) == 1
+
+
+def test_targeted_ocr_passes_the_file_row_into_the_pool(live_db, tmp_path, monkeypatch):
+    """The Mac crash: `_pool_result` requires the file row, and this pass omitted it.
+
+    OCR is not wired on Linux, so the suite never entered this call. A spy with
+    the same three parameters is what fails if a later edit drops the row again.
+    """
+    root = tmp_path / "targeted"
+    root.mkdir()
+    (root / "broken.pdf").write_bytes(b"%PDF broken")
+    seen = []
+    real = orchestrator._pool_result
+
+    def spy(pool, handle, file_row):
+        seen.append(dict(file_row))
+        return real(pool, handle, file_row)
+
+    monkeypatch.setattr(orchestrator, "_pool_result", spy)
+    ocr_calls = []
+    _call(
+        live_db, root, supplied_readers=_readers(ocr_calls),
+        resolve_native=lambda conn, file_id, content_hash: None,
+        targeted_ocr_needed=lambda file_id, content_hash: True,
+        resolve_with_ocr=lambda conn, file_id, content_hash: None,
+        classify=lambda conn, file_id, content_hash: None)
+    assert len(ocr_calls) == 1
+    assert seen
+    assert all(str(row["current_path"]).endswith("broken.pdf") for row in seen)
+
+
+def test_a_second_copy_of_the_same_bytes_is_not_read_again(live_db, tmp_path):
+    """A later path with the same content hash reuses the stored OCR run."""
+    root = tmp_path / "copies"
+    root.mkdir()
+    body = b"%PDF-same-bytes"
+    (root / "one.pdf").write_bytes(body)
+    first_calls = []
+    _call(
+        live_db, root, supplied_readers=_readers(first_calls, pdf_text=""),
+        resolve_native=lambda *args: pytest.fail(
+            "successful direct OCR is already OCR-covered"),
+        targeted_ocr_needed=lambda *args: pytest.fail(
+            "direct OCR must not ask the targeted predicate"),
+        resolve_with_ocr=lambda conn, file_id, content_hash: "first",
+        classify=lambda conn, file_id, content_hash: None)
+    assert len(first_calls) == 1
+    (root / "two.pdf").write_bytes(body)
+    second_calls = []
+    _call(
+        live_db, root, supplied_readers=_readers(second_calls, pdf_text=""),
+        resolve_native=lambda *args: pytest.fail(
+            "the same bytes already have an OCR run"),
+        targeted_ocr_needed=lambda *args: pytest.fail(
+            "the same bytes must not become a targeted read"),
+        resolve_with_ocr=lambda conn, file_id, content_hash: "reuse",
+        classify=lambda conn, file_id, content_hash: None)
+    assert second_calls == []
 
 
 def test_protected_refusal_never_reaches_facts_or_classification(live_db, tmp_path):

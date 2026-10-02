@@ -42,10 +42,10 @@ from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import unrouted_result
 from extractors.image import extract_image
 from extractors.long_tail import LONG_TAIL_SOURCE_TYPES, extract_long_tail
-from extractors.ocr import extract_ocr
+from extractors.ocr import OcrOutput, extract_ocr
 from extractors.ocr_policy import (
-    direct_document_ocr_needed, document_ocr_decision, image_ocr_decision,
-    sparse_pages,
+    direct_document_ocr_needed, document_ocr_decision,
+    image_ocr_decision, metadata_words, sparse_pages, text_meets_word_floor,
 )
 from extractors.pdf import extract_pdf
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
@@ -233,6 +233,30 @@ def _ocr(*, file_row, path, policy, readers, now, context_window,
             analysis_tier=ocr.ANALYSIS_TIER), time.monotonic() - started
 
 
+def _ocr_not_called(*, readers: Readers, pages_total: int,
+                    pages_not_read: tuple, reason: str,
+                    file_row: Mapping[str, Any], path: Path, policy,
+                    now: str, context_window: int) -> ExtractionResult:
+    """An OCR run that names what was not read. The engine is not called.
+
+    A file that already has enough text is not dropped. The run is `capped`,
+    with the pages left unread on its config, so a later pass can see them and
+    a scan cannot mistake the skip for a complete reading.
+    """
+    output = OcrOutput(
+        provider="not-called", provider_version=ocr.VERSION,
+        regions=(), pages_processed=0, pages_total=pages_total, capped=True)
+    config = dict(readers.ocr_config or {})
+    config["not_called"] = reason
+    config["pages_not_read"] = list(pages_not_read)
+    return extract_ocr(
+        file_row=file_row, path=path, policy=policy,
+        ocr_engine=lambda _path, config=None: output,
+        config=config,
+        find_structured_strings=readers.find_structured_strings,
+        now=now, context_window=context_window)
+
+
 def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy,
                     readers: Readers, now: str, context_window: int,
                     transcription_authorized: Callable[[], bool],
@@ -273,9 +297,22 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
         # "a text layer" and the thirteen pages were never read. None means the
         # whole document has none (every page, as before); an empty tuple means
         # every page has text and P6 decides later, through `document_ocr_decision`.
-        pages = sparse_pages(
-            result=first,
-            word_floor=(readers.ocr_config or {}).get("sparse_page_words"))
+        floor = (readers.ocr_config or {}).get("sparse_page_words")
+        pages = sparse_pages(result=first, word_floor=floor)
+        # A page that already meets the deployment's word floor is enough to
+        # classify. The sparse pages are named on a capped run and the engine
+        # is not called. A document with no such page still goes to OCR.
+        if text_meets_word_floor(result=first, word_floor=floor):
+            if pages:
+                total = (first.run.get("coverage") or {}).get("total") or len(pages)
+                second = _ocr_not_called(
+                    readers=readers, pages_total=int(total),
+                    pages_not_read=pages,
+                    reason=("the text layer has enough words to classify; "
+                            "the pages named here were not OCR'd"),
+                    **common)
+                return Dispatched((first, second), signals, 0, 0.0)
+            return Dispatched((first,), signals, 0)
         if pages is None or pages:
             second, seconds = _ocr(readers=readers, budget_spent=ocr_budget_spent,
                                    alongside=first, pages=pages, **common)
@@ -301,8 +338,11 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
                                  dimension_signal=readers.dimension_signal,
                                  filename_pattern=readers.filename_pattern, **common)
         first = produced.extraction
-        # §2.7's trigger: no usable text AND no usable metadata.
-        if image_ocr_decision(result=first).run_ocr:
+        floor = (readers.ocr_config or {}).get("sparse_page_words")
+        # A camera tag is not a reason to skip. A caption that already meets the
+        # deployment's word floor is. The skipped image is a capped run, not an
+        # absence.
+        if image_ocr_decision(result=first, word_floor=floor).run_ocr:
             second, seconds = _ocr(readers=readers, budget_spent=ocr_budget_spent,
                                    alongside=first, **common)
             if second is not None:
@@ -312,6 +352,13 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
                 # the batch is exactly how a GPS tag would go unmarked on the one
                 # file that had both.
                 return Dispatched((first, second), produced.sensitivity, 0, seconds)
+        elif floor is not None and metadata_words(first) >= floor:
+            second = _ocr_not_called(
+                readers=readers, pages_total=1, pages_not_read=(),
+                reason=("image metadata already has enough words to classify; "
+                        "OCR was not run"),
+                **common)
+            return Dispatched((first, second), produced.sensitivity, 0, 0.0)
         return Dispatched((first,), produced.sensitivity, 0)
 
     if decision.extractor_name == structured_text.EXTRACTOR_NAME:

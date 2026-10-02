@@ -388,3 +388,7 @@ Deadline-aware packet readiness is a suggest/prepare behaviour over facts the ex
 - `planning/75`'s missing link from an edited answer to a draft plan diff was not re-verified. If it is still missing, changing lives will change the next run with no diff. Stage 2 should not claim a diff it does not write.
 - Ruling 80's enforcement suspension for self-description must not be the privacy story for this product. The classification (`user_edits`, always local) stands.
 - This note did not re-run the 1,833-file corpus and did not re-run the full test suite. It is a reading of the code plus one local phrase-index replay.
+
+## (h) The provider step, after the profile questions
+
+The profile questions in this note stay the first step. The implemented step that follows them, and that runs before a scan is the moment a model is chosen, is `filesorter providers`. It is documented in `docs/model-providers.md`. A folder can finish that step with "no cloud model". DeepSeek remains the default when its key is set and no other choice is stored. The provider step does not skip the profile questions and does not send a file.

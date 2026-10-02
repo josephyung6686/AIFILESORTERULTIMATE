@@ -200,9 +200,47 @@ def observation_keys_for_run(conn: sqlite3.Connection, run_id: str) -> list[str]
         (run_id,))]
 
 
+def _attribute_cache(conn: sqlite3.Connection, name: str) -> dict | None:
+    """A dict stored on `conn`, or None when this handle cannot carry one.
+
+    `open_database` returns a connection subclass that accepts attributes.
+    A base `sqlite3.Connection` does not, and a cache kept in a side table
+    would have to retain the connection after `cli.main` dropped it.
+    """
+    from database_agent.db import connection_cache
+
+    return connection_cache(conn, name)
+
+
+def _evidence_stamp(conn: sqlite3.Connection, file_id: str) -> tuple:
+    """Changes when a row is inserted, superseded, or its key is rewritten.
+
+    `raw_value` and the other provenance columns cannot be updated: the schema
+    trigger refuses them. Supersede is the legal update, and it moves
+    `COUNT(superseded_by)`. A rewritten `observation_key` moves the min or the
+    max when it is either extreme; a middle key of three or more is outside
+    the published writer.
+    """
+    row = conn.execute(
+        "SELECT COUNT(*), IFNULL(MAX(rowid), 0), COUNT(superseded_by), "
+        "IFNULL(MIN(observation_key), ''), IFNULL(MAX(observation_key), '') "
+        "FROM evidence WHERE file_id = ?",
+        (file_id,)).fetchone()
+    return tuple(row)
+
+
 def observations_for_file(conn: sqlite3.Connection, file_id: str) -> list[Observation]:
-    return [_observation_from_row(row) for row in conn.execute(
-        "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,))]
+    stamp = _evidence_stamp(conn, file_id)
+    cache = _attribute_cache(conn, "_observation_cache")
+    if cache is not None:
+        slot = cache.get(file_id)
+        if slot is not None and slot[0] == stamp:
+            return list(slot[1])
+    rows = tuple(_observation_from_row(row) for row in conn.execute(
+        "SELECT * FROM evidence WHERE file_id = ? ORDER BY rowid", (file_id,)))
+    if cache is not None:
+        cache[file_id] = (stamp, rows)
+    return list(rows)
 
 
 def observations_by_key(conn: sqlite3.Connection,

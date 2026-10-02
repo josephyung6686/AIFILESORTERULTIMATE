@@ -84,7 +84,7 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -148,6 +148,13 @@ class ExtractionRequest:
     #: Defaulted, like `Dispatched.ocr_seconds`, so every existing construction
     #: means what it meant: no ceiling stored is no ceiling.
     ocr_budget_spent: bool = False
+    #: Opt-in scan profile. Default off: `perform` does not time the read and
+    #: the outcome's timing fields stay at their defaults.
+    profile: bool = False
+    #: A reading already stored for this content hash under the current engine
+    #: settings. None means the worker calls the engine. The worker holds no
+    #: connection, so the parent attaches the output and the worker replays it.
+    cached_ocr: Any = None
 
 
 @dataclass(frozen=True)
@@ -177,18 +184,58 @@ class TargetedOcrRequest:
     #: §8.6's OCR clock between the two, and a flag computed once at submission
     #: would let the targeted pass overspend a ceiling the scan had already met.
     ocr_budget_spent: bool = False
+    #: See `ExtractionRequest.profile`. Same default, same meaning.
+    profile: bool = False
+    #: See `ExtractionRequest.cached_ocr`.
+    cached_ocr: Any = None
 
 
 @dataclass(frozen=True)
 class ExtractionOutcome:
-    """What `perform` decided, in a form that survives a process boundary."""
+    """What `perform` decided, in a form that survives a process boundary.
+
+    `work_seconds` and `readers` are filled only when the request asked for a
+    scan profile. They are not written to the database. A request that did not
+    ask leaves both at the defaults, so an outcome still compares equal to one
+    built the way every existing caller builds one.
+    """
     kind: str
     dispatched: Dispatched | None = None
     message: str = ""
+    work_seconds: float = 0.0
+    readers: tuple[str, ...] = ()
+
+
+def _with_cached_reading(request, context: ExtractionContext) -> ExtractionContext:
+    """The context the worker should use.
+
+    A stored reading replaces the engine for this one file. Every other reader
+    stays the one the deployment wired. No stored reading leaves the context
+    alone, which is every first scan.
+    """
+    cached = request.cached_ocr
+    if cached is None:
+        return context
+    readers = replace(
+        context.readers,
+        ocr_engine=lambda _path, config=None, _cached=cached: _cached)
+    return replace(context, readers=readers)
 
 
 def perform(request: ExtractionRequest | TargetedOcrRequest,
             context: ExtractionContext) -> ExtractionOutcome:
+    """`_perform`, and a clock only when this request asked for one."""
+    if not request.profile:
+        return _perform(request, context)
+    started = time.perf_counter()
+    outcome = _perform(request, context)
+    from scan_profile import annotate_extraction
+    return annotate_extraction(
+        outcome, context.readers, time.perf_counter() - started)
+
+
+def _perform(request: ExtractionRequest | TargetedOcrRequest,
+             context: ExtractionContext) -> ExtractionOutcome:
     """`extract_initial` plus the caller's inner `except`, named rather than raised.
 
     The two blocks this mirrors live in `orchestrator.run_p1_p7` and this function is
@@ -204,6 +251,7 @@ def perform(request: ExtractionRequest | TargetedOcrRequest,
     -- and the pool's whole shape is that a handle is a handle. The request knows
     what it is; nothing else has to.
     """
+    context = _with_cached_reading(request, context)
     if isinstance(request, TargetedOcrRequest):
         return _perform_targeted(request, context)
     try:

@@ -83,6 +83,10 @@ def record_basic_record(conn: sqlite3.Connection, observed, *,
         scan_state=scan_state,
         materialized=not observed.dataless,
     )
+    from scan_profile import active_scan_profile
+    profile = active_scan_profile()
+    if profile is not None:
+        profile.bind(str(path), file_id)
     content_hash = get_file(conn, file_id)["content_hash"]
 
     if not _already_discovered(conn, file_id):

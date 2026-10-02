@@ -143,11 +143,29 @@ class OcrOutput:
     pages_total: int = 0
     capped: bool = False
     detects_language: bool = True
+    #: True when the engine shrank an image before recognition. Default false so
+    #: every existing construction means an image that was read at its own size.
+    scaled: bool = False
 
 
 #: The characters a provider may spell a word break with. Folded to `_` so that one
 #: engine has one name.
 _WORD_BREAKS = (" ", "-", ".")
+
+
+def pages_within_cap(numbers: Sequence[int],
+                     cap: int | None) -> tuple[tuple[int, ...], bool]:
+    """The pages a classification pass reads, and whether a later page was left.
+
+    `cap` is the caller's. This function holds no number of its own. A `None` cap
+    reads every page it was given. The boolean is true when the list was longer
+    than the cap, so a caller can record a partial read instead of calling it
+    complete.
+    """
+    chosen = tuple(numbers)
+    if cap is None:
+        return chosen, False
+    return chosen[:cap], len(chosen) > cap
 
 
 def passage_region(regions: Sequence[OcrRegion]) -> Mapping[str, Any] | None:
@@ -431,11 +449,13 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     # cache misses and every image it read as blank is read again. The caveat expires
     # by itself on the run that no longer needs it.
     caveat = {} if output.detects_language else {"language_detection": False}
+    scaled = {"image_scaled": True} if output.scaled else {}
     return ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=name, extractor_version=output.provider_version,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
-                config={**config, "context_window": context_window, **caveat},
+                config={**config, "context_window": context_window, **caveat,
+                        **scaled},
                 completeness="capped" if output.capped else "complete",
                 coverage=coverage("pages", output.pages_processed,
                                   output.pages_total),

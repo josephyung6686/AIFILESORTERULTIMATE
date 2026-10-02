@@ -55,6 +55,28 @@ def default_database_path(bundle_id: str) -> Path:
     return Path.home() / "Library" / "Application Support" / bundle_id / "agent.sqlite"
 
 
+class _Database(sqlite3.Connection):
+    """The product's connection. Attributes on this subclass hold read caches."""
+
+
+def connection_cache(conn: sqlite3.Connection, name: str) -> dict | None:
+    """A dict stored on `conn`, or None when this handle cannot carry one.
+
+    `open_database` returns `_Database`, which accepts attributes. A base
+    `sqlite3.Connection` does not. A cache kept in a side table would have to
+    retain the connection after `cli.main` dropped it.
+    """
+    cache = getattr(conn, name, None)
+    if isinstance(cache, dict):
+        return cache
+    try:
+        cache = {}
+        setattr(conn, name, cache)
+    except AttributeError:
+        return None
+    return cache
+
+
 def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Connection:
     """Open (creating if absent) the single local database (§0).
 
@@ -77,8 +99,13 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     # database can see, and a setting nobody can read back is one that exists only
     # in the source. `tests/test_database_contention.py` asks SQLite rather than
     # this file.
+    # A subclass so a read cache can live on the handle the caller already
+    # holds. The base connection accepts no attributes. A cache kept beside
+    # it would have to retain the connection, and `cli.main` drops its
+    # reference at the end of a run.
     conn = sqlite3.connect(path, isolation_level=None,
-                           timeout=BUSY_TIMEOUT_MS / 1000)
+                           timeout=BUSY_TIMEOUT_MS / 1000,
+                           factory=_Database)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     conn.execute("PRAGMA foreign_keys = ON")
@@ -191,6 +218,45 @@ def transaction(conn: sqlite3.Connection, *, on_wait=None):
         conn.execute("ROLLBACK")
         raise
     conn.execute("COMMIT")
+
+
+@contextmanager
+def rebuildable_durability(conn: sqlite3.Connection):
+    """WAL index writes a rescan can rebuild, at `synchronous=NORMAL`.
+
+    `open_database` leaves the connection at `FULL`. This block lowers it for
+    rows the next scan can write again — file rows, extraction, recognition,
+    groups, memberships — and restores the previous mode before returning, so
+    a decision the person made is not covered by it.
+
+    Those decisions stay at `FULL`: an answer, a refusal, a profile sentence,
+    an approval, a privacy policy, an acceptance, a link the person chose.
+    Callers write them outside this block. NORMAL is per connection and is
+    not a second database.
+
+    A block entered while a transaction is already open does not change the
+    mode. SQLite applies `synchronous` at the next transaction boundary, and
+    an inner change would not be the boundary the caller chose.
+    """
+    if conn.in_transaction:
+        yield
+        return
+    previous = conn.execute("PRAGMA synchronous").fetchone()[0]
+    if previous != 1:
+        conn.execute("PRAGMA synchronous = NORMAL")
+    try:
+        yield
+    finally:
+        if previous == 2:
+            conn.execute("PRAGMA synchronous = FULL")
+        elif previous == 1:
+            pass
+        elif previous == 0:
+            conn.execute("PRAGMA synchronous = OFF")
+        elif previous == 3:
+            conn.execute("PRAGMA synchronous = EXTRA")
+        else:
+            conn.execute(f"PRAGMA synchronous = {int(previous)}")
 
 
 @contextmanager

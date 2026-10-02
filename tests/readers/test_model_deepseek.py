@@ -5,20 +5,16 @@ The twin of `test_model_anthropic.py`, and it exists for the same reason: this i
 a module that can put a byte on the internet, and everything above it has only
 ever been proven against a recorded-bytes stand-in.
 
-**The socket is injected.** `_send` is two statements: import the SDK, call
-`chat.completions.create`. Everything else -- the credential refusal, the endpoint
-refusal, the target check, the decode, the response handling -- is pure and every
-line of it is exercised here. What is untested-by-default is exactly the two
-statements that cannot run without a key and a bill.
+**The socket is injected here.** `deepseek_invoke` takes `send`, and these tests
+replace it. The credential refusal, the endpoint refusal, the target check, the
+decode and the response handling are pure and exercised here. The real POST is
+`http.client` to `{base}/chat/completions`, covered by
+`test_model_deepseek_stdlib_send.py` and `test_model_deepseek_deadline.py`.
 
-**What is DIFFERENT from the Anthropic twin, and why it is tested here.** The
-OpenAI-compatible client defaults its `base_url` to OpenAI's own endpoint. A
-DeepSeek transport handed no endpoint would therefore call a DIFFERENT COMPANY
-while the release ledger, the audit record and the screen all say `deepseek` --
-the same class of falsehood `test_a_local_target_is_refused` exists to prevent,
-pointed at the provider field instead of the locality field. So an absent endpoint
-is a refusal here, and it is not one in the Anthropic module because there the SDK
-has nowhere else to go.
+**What is DIFFERENT from the Anthropic twin, and why it is tested here.** An
+empty endpoint is a refusal. This module does not choose a host, so a missing
+`base_url` cannot silently become some other company's API while the release
+ledger, the audit record and the screen all say `deepseek`.
 """
 from __future__ import annotations
 
@@ -281,36 +277,33 @@ def _module_source() -> str:
 
 def test_the_module_opens_exactly_one_request_to_the_provider():
     """`privacy.transport_guard.assert_single_call_site` asks this of the
-    transport's sink. It has to be asked one layer down too: a second
-    `completions.create` here is a second thing leaving the device with no second
-    release spent, no second budget call reserved and no second audit record."""
+    transport's sink. It has to be asked one layer down too: a second POST here
+    is a second thing leaving the device with no second release spent, no second
+    budget call reserved and no second audit record."""
     calls = [
         node for node in ast.walk(ast.parse(_module_source()))
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "create"
+        and node.func.attr == "request"
     ]
     assert len(calls) == 1, [node.lineno for node in calls]
+    assert any(isinstance(arg, ast.Constant) and arg.value == "POST"
+               for arg in calls[0].args)
 
 
-def test_the_sdk_is_imported_in_exactly_one_function_and_not_at_module_level():
-    """`pyproject.toml`'s `dependencies` is empty on purpose -- P5's SPEC says a
-    part "adds no third-party runtime dependency" and the libraries belong to the
-    deployment that chose them. Importing this module must therefore not require
-    the SDK, or the pure half stops being testable on a machine that has neither
-    the package nor a key."""
+def test_the_fact_path_does_not_import_an_sdk():
+    """A `readers` install has no `openai` and no `httpx`. Importing this module,
+    and the one function that posts, must not require either, or the fact path
+    raises `ModuleNotFoundError` on the install a person actually has."""
     tree = ast.parse(_module_source())
-    module_level = {
-        alias.name for node in tree.body
-        if isinstance(node, ast.Import) for alias in node.names
-    }
-    assert "openai" not in module_level
-    sites = [
-        node for node in ast.walk(tree)
-        if isinstance(node, ast.Import)
-        and any(alias.name == "openai" for alias in node.names)
-    ]
-    assert len(sites) == 1, [node.lineno for node in sites]
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names.add(node.module.split(".")[0])
+    assert "openai" not in names
+    assert "httpx" not in names
 
 
 def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
@@ -319,10 +312,10 @@ def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
     The failure this prevents is a convenience somebody adds later.
 
     **The guard moved one function out with `104` R-14 and did not weaken.** The
-    outbound `create` used to carry three literal keywords and now carries exactly
-    one `**request_body(...)`, so the AST half asserts that -- a knob added beside
-    it fails here -- and the term list is asserted against `request_body`'s actual
-    output, which is stronger than reading it off the call site.
+    outbound POST carries `request_body(...)` and nothing else, so the AST half
+    asserts that -- a knob added beside it fails here -- and the term list is
+    asserted against `request_body`'s actual output, which is stronger than
+    reading it off the call site.
 
     `response_format` is the fourth term and the module docstring carries the whole
     argument for it: the ratified template already demands one JSON object in the
@@ -332,22 +325,15 @@ def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
     """
     from readers.model_deepseek import request_body
 
-    create = next(
+    bodies = [
         node for node in ast.walk(ast.parse(_module_source()))
         if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "create"
-    )
-    assert [keyword.arg for keyword in create.keywords] == [None], (
-        "the outbound call takes its terms from `request_body` and nothing else; "
-        "a keyword beside it would be a term no pure function checks")
-    # 14 Sep 2026: the one splat is `_as_the_sdk_takes_it(request_body(...))` --
-    # the same terms, with the provider-only ones moved under `extra_body`
-    # because the SDK has no keyword for them. Still one call, still one source.
-    splat = create.keywords[0].value
-    assert isinstance(splat, ast.Call) and splat.func.id == "_as_the_sdk_takes_it"
-    assert isinstance(splat.args[0], ast.Call)
-    assert splat.args[0].func.id == "request_body"
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "request_body"
+    ]
+    assert len(bodies) == 1, [node.lineno for node in bodies]
+    assert {keyword.arg for keyword in bodies[0].keywords} == {
+        "model_id", "max_tokens", "prompt", "temperature"}
 
     body = request_body(model_id="a-model", max_tokens=1,
                         prompt="answer with one JSON object")
