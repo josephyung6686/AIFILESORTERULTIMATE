@@ -1,0 +1,8 @@
+{
+  "files": 500,
+  "chunks": 2500,
+  "p50_ms": 2.410207991488278,
+  "p95_ms": 2.7257910114713013,
+  "n_samples": 24,
+  "kind": "real_files_with_evidence_chunks"
+}

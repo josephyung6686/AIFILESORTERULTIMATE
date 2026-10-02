@@ -392,9 +392,9 @@ P0 eval/injection ──┬──► P1 Pillar A (hybrid find)
 
 | Pillar | Planned? | Built? | Next phase |
 |---|---|---|---|
-| **A Meaning-search** | Yes | Hybrid FTS+CJK+chunks+RRF **in code**; bake-off/FSEvents live TBD | finish P1 scale |
-| **B Assistant** | Yes | Read-only loop+CLI+injection+egress+A1–A6 **landed** | P3–P4 writes |
-| **C People/projects** | Yes | Mint+connector+views **mostly done** | **P5** person/merge |
+| **A Meaning-search** | Yes | Hybrid+CJK+chunks+RRF; ZH bake-off decided; live FSEvents | P1 scale polish |
+| **B Assistant** | Yes | Read-only + **P4 plan apply/undo CLI** (env-gated) + P6 deferred tools | dogfood writes |
+| **C People/projects** | Yes | Mint+connector+views + **person/aliases/merge** | merge eval set |
 | **D Correction memory** | Yes | Exact suppress + L0 provenance capture | **P7** atoms/gate |
 
 ---

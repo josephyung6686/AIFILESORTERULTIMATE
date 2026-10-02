@@ -1,0 +1,1202 @@
+{
+  "version": "2026-10-02-labeled-zh-v1",
+  "note": "Labeled ZH golden for bake-off decisions (not empty stubs)",
+  "corpus_items": [
+    {
+      "key": "zh-item-000",
+      "label": "作業資料_00.pdf",
+      "stem": "作業"
+    },
+    {
+      "key": "zh-item-001",
+      "label": "講義資料_01.pdf",
+      "stem": "講義"
+    },
+    {
+      "key": "zh-item-002",
+      "label": "考試資料_02.pdf",
+      "stem": "考試"
+    },
+    {
+      "key": "zh-item-003",
+      "label": "報告資料_03.pdf",
+      "stem": "報告"
+    },
+    {
+      "key": "zh-item-004",
+      "label": "論文資料_04.pdf",
+      "stem": "論文"
+    },
+    {
+      "key": "zh-item-005",
+      "label": "稅務資料_05.pdf",
+      "stem": "稅務"
+    },
+    {
+      "key": "zh-item-006",
+      "label": "發票資料_06.pdf",
+      "stem": "發票"
+    },
+    {
+      "key": "zh-item-007",
+      "label": "收據資料_07.pdf",
+      "stem": "收據"
+    },
+    {
+      "key": "zh-item-008",
+      "label": "合約資料_08.pdf",
+      "stem": "合約"
+    },
+    {
+      "key": "zh-item-009",
+      "label": "履歷資料_09.pdf",
+      "stem": "履歷"
+    },
+    {
+      "key": "zh-item-010",
+      "label": "面試資料_10.pdf",
+      "stem": "面試"
+    },
+    {
+      "key": "zh-item-011",
+      "label": "申請資料_11.pdf",
+      "stem": "申請"
+    },
+    {
+      "key": "zh-item-012",
+      "label": "課程資料_12.pdf",
+      "stem": "課程"
+    },
+    {
+      "key": "zh-item-013",
+      "label": "筆記資料_13.pdf",
+      "stem": "筆記"
+    },
+    {
+      "key": "zh-item-014",
+      "label": "練習資料_14.pdf",
+      "stem": "練習"
+    },
+    {
+      "key": "zh-item-015",
+      "label": "實驗資料_15.pdf",
+      "stem": "實驗"
+    },
+    {
+      "key": "zh-item-016",
+      "label": "專題資料_16.pdf",
+      "stem": "專題"
+    },
+    {
+      "key": "zh-item-017",
+      "label": "簡報資料_17.pdf",
+      "stem": "簡報"
+    },
+    {
+      "key": "zh-item-018",
+      "label": "會議資料_18.pdf",
+      "stem": "會議"
+    },
+    {
+      "key": "zh-item-019",
+      "label": "行程資料_19.pdf",
+      "stem": "行程"
+    },
+    {
+      "key": "zh-item-020",
+      "label": "預算資料_20.pdf",
+      "stem": "預算"
+    },
+    {
+      "key": "zh-item-021",
+      "label": "發票資料_21.pdf",
+      "stem": "發票"
+    },
+    {
+      "key": "zh-item-022",
+      "label": "保險資料_22.pdf",
+      "stem": "保險"
+    },
+    {
+      "key": "zh-item-023",
+      "label": "醫療資料_23.pdf",
+      "stem": "醫療"
+    },
+    {
+      "key": "zh-item-024",
+      "label": "處方資料_24.pdf",
+      "stem": "處方"
+    },
+    {
+      "key": "zh-item-025",
+      "label": "證明資料_25.pdf",
+      "stem": "證明"
+    },
+    {
+      "key": "zh-item-026",
+      "label": "護照資料_26.pdf",
+      "stem": "護照"
+    },
+    {
+      "key": "zh-item-027",
+      "label": "簽證資料_27.pdf",
+      "stem": "簽證"
+    },
+    {
+      "key": "zh-item-028",
+      "label": "機票資料_28.pdf",
+      "stem": "機票"
+    },
+    {
+      "key": "zh-item-029",
+      "label": "住宿資料_29.pdf",
+      "stem": "住宿"
+    },
+    {
+      "key": "zh-item-030",
+      "label": "研究資料_30.pdf",
+      "stem": "研究"
+    },
+    {
+      "key": "zh-item-031",
+      "label": "數據資料_31.pdf",
+      "stem": "數據"
+    },
+    {
+      "key": "zh-item-032",
+      "label": "圖表資料_32.pdf",
+      "stem": "圖表"
+    },
+    {
+      "key": "zh-item-033",
+      "label": "程式資料_33.pdf",
+      "stem": "程式"
+    },
+    {
+      "key": "zh-item-034",
+      "label": "專案資料_34.pdf",
+      "stem": "專案"
+    },
+    {
+      "key": "zh-item-035",
+      "label": "設計資料_35.pdf",
+      "stem": "設計"
+    },
+    {
+      "key": "zh-item-036",
+      "label": "草稿資料_36.pdf",
+      "stem": "草稿"
+    },
+    {
+      "key": "zh-item-037",
+      "label": "定稿資料_37.pdf",
+      "stem": "定稿"
+    },
+    {
+      "key": "zh-item-038",
+      "label": "附錄資料_38.pdf",
+      "stem": "附錄"
+    },
+    {
+      "key": "zh-item-039",
+      "label": "摘要資料_39.pdf",
+      "stem": "摘要"
+    },
+    {
+      "key": "zh-item-040",
+      "label": "目錄資料_40.pdf",
+      "stem": "目錄"
+    },
+    {
+      "key": "zh-item-041",
+      "label": "索引資料_41.pdf",
+      "stem": "索引"
+    },
+    {
+      "key": "zh-item-042",
+      "label": "參考資料_42.pdf",
+      "stem": "參考"
+    },
+    {
+      "key": "zh-item-043",
+      "label": "文獻資料_43.pdf",
+      "stem": "文獻"
+    },
+    {
+      "key": "zh-item-044",
+      "label": "翻譯資料_44.pdf",
+      "stem": "翻譯"
+    },
+    {
+      "key": "zh-item-045",
+      "label": "原文資料_45.pdf",
+      "stem": "原文"
+    },
+    {
+      "key": "zh-item-046",
+      "label": "複習資料_46.pdf",
+      "stem": "複習"
+    },
+    {
+      "key": "zh-item-047",
+      "label": "小考資料_47.pdf",
+      "stem": "小考"
+    },
+    {
+      "key": "zh-item-048",
+      "label": "期中資料_48.pdf",
+      "stem": "期中"
+    },
+    {
+      "key": "zh-item-049",
+      "label": "期末資料_49.pdf",
+      "stem": "期末"
+    },
+    {
+      "key": "en-0",
+      "label": "Joint PMFs.pdf",
+      "stem": "joint probability"
+    },
+    {
+      "key": "en-1",
+      "label": "resume.pdf",
+      "stem": "resume cv"
+    },
+    {
+      "key": "en-2",
+      "label": "annual_report.pdf",
+      "stem": "annual report"
+    }
+  ],
+  "queries": [
+    {
+      "id": "zh-q-000-a",
+      "lang": "zh-Hant",
+      "text": "作業",
+      "relevant_labels": [
+        "作業資料_00.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-000-b",
+      "lang": "zh-Hant",
+      "text": "作業",
+      "relevant_labels": [
+        "作業資料_00.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-001-a",
+      "lang": "zh-Hant",
+      "text": "講義",
+      "relevant_labels": [
+        "講義資料_01.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-001-b",
+      "lang": "zh-Hant",
+      "text": "講義",
+      "relevant_labels": [
+        "講義資料_01.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-002-a",
+      "lang": "zh-Hant",
+      "text": "考試",
+      "relevant_labels": [
+        "考試資料_02.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-002-b",
+      "lang": "zh-Hant",
+      "text": "考試",
+      "relevant_labels": [
+        "考試資料_02.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-003-a",
+      "lang": "zh-Hant",
+      "text": "報告",
+      "relevant_labels": [
+        "報告資料_03.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-003-b",
+      "lang": "zh-Hant",
+      "text": "報告",
+      "relevant_labels": [
+        "報告資料_03.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-004-a",
+      "lang": "zh-Hant",
+      "text": "論文",
+      "relevant_labels": [
+        "論文資料_04.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-004-b",
+      "lang": "zh-Hant",
+      "text": "論文",
+      "relevant_labels": [
+        "論文資料_04.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-005-a",
+      "lang": "zh-Hant",
+      "text": "稅務",
+      "relevant_labels": [
+        "稅務資料_05.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-005-b",
+      "lang": "zh-Hant",
+      "text": "稅務",
+      "relevant_labels": [
+        "稅務資料_05.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-006-a",
+      "lang": "zh-Hant",
+      "text": "發票",
+      "relevant_labels": [
+        "發票資料_06.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-006-b",
+      "lang": "zh-Hant",
+      "text": "發票",
+      "relevant_labels": [
+        "發票資料_06.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-007-a",
+      "lang": "zh-Hant",
+      "text": "收據",
+      "relevant_labels": [
+        "收據資料_07.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-007-b",
+      "lang": "zh-Hant",
+      "text": "收據",
+      "relevant_labels": [
+        "收據資料_07.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-008-a",
+      "lang": "zh-Hant",
+      "text": "合約",
+      "relevant_labels": [
+        "合約資料_08.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-008-b",
+      "lang": "zh-Hant",
+      "text": "合約",
+      "relevant_labels": [
+        "合約資料_08.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-009-a",
+      "lang": "zh-Hant",
+      "text": "履歷",
+      "relevant_labels": [
+        "履歷資料_09.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-009-b",
+      "lang": "zh-Hant",
+      "text": "履歷",
+      "relevant_labels": [
+        "履歷資料_09.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-010-a",
+      "lang": "zh-Hant",
+      "text": "面試",
+      "relevant_labels": [
+        "面試資料_10.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-010-b",
+      "lang": "zh-Hant",
+      "text": "面試",
+      "relevant_labels": [
+        "面試資料_10.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-011-a",
+      "lang": "zh-Hant",
+      "text": "申請",
+      "relevant_labels": [
+        "申請資料_11.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-011-b",
+      "lang": "zh-Hant",
+      "text": "申請",
+      "relevant_labels": [
+        "申請資料_11.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-012-a",
+      "lang": "zh-Hant",
+      "text": "課程",
+      "relevant_labels": [
+        "課程資料_12.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-012-b",
+      "lang": "zh-Hant",
+      "text": "課程",
+      "relevant_labels": [
+        "課程資料_12.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-013-a",
+      "lang": "zh-Hant",
+      "text": "筆記",
+      "relevant_labels": [
+        "筆記資料_13.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-013-b",
+      "lang": "zh-Hant",
+      "text": "筆記",
+      "relevant_labels": [
+        "筆記資料_13.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-014-a",
+      "lang": "zh-Hant",
+      "text": "練習",
+      "relevant_labels": [
+        "練習資料_14.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-014-b",
+      "lang": "zh-Hant",
+      "text": "練習",
+      "relevant_labels": [
+        "練習資料_14.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-015-a",
+      "lang": "zh-Hant",
+      "text": "實驗",
+      "relevant_labels": [
+        "實驗資料_15.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-015-b",
+      "lang": "zh-Hant",
+      "text": "實驗",
+      "relevant_labels": [
+        "實驗資料_15.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-016-a",
+      "lang": "zh-Hant",
+      "text": "專題",
+      "relevant_labels": [
+        "專題資料_16.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-016-b",
+      "lang": "zh-Hant",
+      "text": "專題",
+      "relevant_labels": [
+        "專題資料_16.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-017-a",
+      "lang": "zh-Hant",
+      "text": "簡報",
+      "relevant_labels": [
+        "簡報資料_17.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-017-b",
+      "lang": "zh-Hant",
+      "text": "簡報",
+      "relevant_labels": [
+        "簡報資料_17.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-018-a",
+      "lang": "zh-Hant",
+      "text": "會議",
+      "relevant_labels": [
+        "會議資料_18.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-018-b",
+      "lang": "zh-Hant",
+      "text": "會議",
+      "relevant_labels": [
+        "會議資料_18.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-019-a",
+      "lang": "zh-Hant",
+      "text": "行程",
+      "relevant_labels": [
+        "行程資料_19.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-019-b",
+      "lang": "zh-Hant",
+      "text": "行程",
+      "relevant_labels": [
+        "行程資料_19.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-020-a",
+      "lang": "zh-Hant",
+      "text": "預算",
+      "relevant_labels": [
+        "預算資料_20.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-020-b",
+      "lang": "zh-Hant",
+      "text": "預算",
+      "relevant_labels": [
+        "預算資料_20.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-021-a",
+      "lang": "zh-Hant",
+      "text": "發票",
+      "relevant_labels": [
+        "發票資料_21.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-021-b",
+      "lang": "zh-Hant",
+      "text": "發票",
+      "relevant_labels": [
+        "發票資料_21.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-022-a",
+      "lang": "zh-Hant",
+      "text": "保險",
+      "relevant_labels": [
+        "保險資料_22.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-022-b",
+      "lang": "zh-Hant",
+      "text": "保險",
+      "relevant_labels": [
+        "保險資料_22.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-023-a",
+      "lang": "zh-Hant",
+      "text": "醫療",
+      "relevant_labels": [
+        "醫療資料_23.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-023-b",
+      "lang": "zh-Hant",
+      "text": "醫療",
+      "relevant_labels": [
+        "醫療資料_23.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-024-a",
+      "lang": "zh-Hant",
+      "text": "處方",
+      "relevant_labels": [
+        "處方資料_24.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-024-b",
+      "lang": "zh-Hant",
+      "text": "處方",
+      "relevant_labels": [
+        "處方資料_24.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-025-a",
+      "lang": "zh-Hant",
+      "text": "證明",
+      "relevant_labels": [
+        "證明資料_25.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-025-b",
+      "lang": "zh-Hant",
+      "text": "證明",
+      "relevant_labels": [
+        "證明資料_25.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-026-a",
+      "lang": "zh-Hant",
+      "text": "護照",
+      "relevant_labels": [
+        "護照資料_26.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-026-b",
+      "lang": "zh-Hant",
+      "text": "護照",
+      "relevant_labels": [
+        "護照資料_26.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-027-a",
+      "lang": "zh-Hant",
+      "text": "簽證",
+      "relevant_labels": [
+        "簽證資料_27.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-027-b",
+      "lang": "zh-Hant",
+      "text": "簽證",
+      "relevant_labels": [
+        "簽證資料_27.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-028-a",
+      "lang": "zh-Hant",
+      "text": "機票",
+      "relevant_labels": [
+        "機票資料_28.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-028-b",
+      "lang": "zh-Hant",
+      "text": "機票",
+      "relevant_labels": [
+        "機票資料_28.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-029-a",
+      "lang": "zh-Hant",
+      "text": "住宿",
+      "relevant_labels": [
+        "住宿資料_29.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-029-b",
+      "lang": "zh-Hant",
+      "text": "住宿",
+      "relevant_labels": [
+        "住宿資料_29.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-030-a",
+      "lang": "zh-Hant",
+      "text": "研究",
+      "relevant_labels": [
+        "研究資料_30.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-030-b",
+      "lang": "zh-Hant",
+      "text": "研究",
+      "relevant_labels": [
+        "研究資料_30.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-031-a",
+      "lang": "zh-Hant",
+      "text": "數據",
+      "relevant_labels": [
+        "數據資料_31.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-031-b",
+      "lang": "zh-Hant",
+      "text": "數據",
+      "relevant_labels": [
+        "數據資料_31.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-032-a",
+      "lang": "zh-Hant",
+      "text": "圖表",
+      "relevant_labels": [
+        "圖表資料_32.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-032-b",
+      "lang": "zh-Hant",
+      "text": "圖表",
+      "relevant_labels": [
+        "圖表資料_32.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-033-a",
+      "lang": "zh-Hant",
+      "text": "程式",
+      "relevant_labels": [
+        "程式資料_33.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-033-b",
+      "lang": "zh-Hant",
+      "text": "程式",
+      "relevant_labels": [
+        "程式資料_33.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-034-a",
+      "lang": "zh-Hant",
+      "text": "專案",
+      "relevant_labels": [
+        "專案資料_34.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-034-b",
+      "lang": "zh-Hant",
+      "text": "專案",
+      "relevant_labels": [
+        "專案資料_34.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-035-a",
+      "lang": "zh-Hant",
+      "text": "設計",
+      "relevant_labels": [
+        "設計資料_35.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-035-b",
+      "lang": "zh-Hant",
+      "text": "設計",
+      "relevant_labels": [
+        "設計資料_35.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-036-a",
+      "lang": "zh-Hant",
+      "text": "草稿",
+      "relevant_labels": [
+        "草稿資料_36.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-036-b",
+      "lang": "zh-Hant",
+      "text": "草稿",
+      "relevant_labels": [
+        "草稿資料_36.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-037-a",
+      "lang": "zh-Hant",
+      "text": "定稿",
+      "relevant_labels": [
+        "定稿資料_37.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-037-b",
+      "lang": "zh-Hant",
+      "text": "定稿",
+      "relevant_labels": [
+        "定稿資料_37.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-038-a",
+      "lang": "zh-Hant",
+      "text": "附錄",
+      "relevant_labels": [
+        "附錄資料_38.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-038-b",
+      "lang": "zh-Hant",
+      "text": "附錄",
+      "relevant_labels": [
+        "附錄資料_38.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-039-a",
+      "lang": "zh-Hant",
+      "text": "摘要",
+      "relevant_labels": [
+        "摘要資料_39.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-039-b",
+      "lang": "zh-Hant",
+      "text": "摘要",
+      "relevant_labels": [
+        "摘要資料_39.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-040-a",
+      "lang": "zh-Hant",
+      "text": "目錄",
+      "relevant_labels": [
+        "目錄資料_40.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-040-b",
+      "lang": "zh-Hant",
+      "text": "目錄",
+      "relevant_labels": [
+        "目錄資料_40.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-041-a",
+      "lang": "zh-Hant",
+      "text": "索引",
+      "relevant_labels": [
+        "索引資料_41.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-041-b",
+      "lang": "zh-Hant",
+      "text": "索引",
+      "relevant_labels": [
+        "索引資料_41.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-042-a",
+      "lang": "zh-Hant",
+      "text": "參考",
+      "relevant_labels": [
+        "參考資料_42.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-042-b",
+      "lang": "zh-Hant",
+      "text": "參考",
+      "relevant_labels": [
+        "參考資料_42.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-043-a",
+      "lang": "zh-Hant",
+      "text": "文獻",
+      "relevant_labels": [
+        "文獻資料_43.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-043-b",
+      "lang": "zh-Hant",
+      "text": "文獻",
+      "relevant_labels": [
+        "文獻資料_43.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-044-a",
+      "lang": "zh-Hant",
+      "text": "翻譯",
+      "relevant_labels": [
+        "翻譯資料_44.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-044-b",
+      "lang": "zh-Hant",
+      "text": "翻譯",
+      "relevant_labels": [
+        "翻譯資料_44.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-045-a",
+      "lang": "zh-Hant",
+      "text": "原文",
+      "relevant_labels": [
+        "原文資料_45.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-045-b",
+      "lang": "zh-Hant",
+      "text": "原文",
+      "relevant_labels": [
+        "原文資料_45.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-046-a",
+      "lang": "zh-Hant",
+      "text": "複習",
+      "relevant_labels": [
+        "複習資料_46.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-046-b",
+      "lang": "zh-Hant",
+      "text": "複習",
+      "relevant_labels": [
+        "複習資料_46.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-047-a",
+      "lang": "zh-Hant",
+      "text": "小考",
+      "relevant_labels": [
+        "小考資料_47.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-047-b",
+      "lang": "zh-Hant",
+      "text": "小考",
+      "relevant_labels": [
+        "小考資料_47.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-048-a",
+      "lang": "zh-Hant",
+      "text": "期中",
+      "relevant_labels": [
+        "期中資料_48.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-048-b",
+      "lang": "zh-Hant",
+      "text": "期中",
+      "relevant_labels": [
+        "期中資料_48.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-049-a",
+      "lang": "zh-Hant",
+      "text": "期末",
+      "relevant_labels": [
+        "期末資料_49.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "zh-q-049-b",
+      "lang": "zh-Hant",
+      "text": "期末",
+      "relevant_labels": [
+        "期末資料_49.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "en-0",
+      "lang": "en",
+      "text": "joint probability",
+      "relevant_labels": [
+        "Joint PMFs.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "en-1",
+      "lang": "en",
+      "text": "resume cv",
+      "relevant_labels": [
+        "resume.pdf"
+      ],
+      "synthetic": false
+    },
+    {
+      "id": "en-2",
+      "lang": "en",
+      "text": "annual report",
+      "relevant_labels": [
+        "annual_report.pdf"
+      ],
+      "synthetic": false
+    }
+  ],
+  "n_zh": 100,
+  "n_queries": 103
+}

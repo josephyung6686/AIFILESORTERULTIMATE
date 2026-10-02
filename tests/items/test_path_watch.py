@@ -42,3 +42,32 @@ def test_own_move_echo_skipped(tmp_path: Path):
     assert watcher.policy.accept(FsEvent(str(target))) is False
     watcher.policy.clear_own_move(str(target), str(root / "d.txt"))
     assert watcher.policy.accept(FsEvent(str(target))) is True
+
+
+def test_tick_follows_inode_rename(conn, tmp_path: Path):
+    root = tmp_path / "lib"
+    root.mkdir()
+    src = root / "essay.pdf"
+    src.write_text("same inode body", encoding="utf-8")
+    create_items_schema(conn)
+    reconcile_tree(conn, root)
+    watcher = PathWatcher(root)
+    watcher.scan_events()  # prime
+    # Bookmarks after first tick with a noop change
+    (root / "touch.txt").write_text("x", encoding="utf-8")
+    watcher.tick(conn)
+    row = conn.execute(
+        "SELECT item_id, open_target FROM items "
+        "WHERE display_label='essay.pdf'"
+    ).fetchone()
+    assert row is not None
+    item_id = row["item_id"]
+    dst = root / "essay-renamed.pdf"
+    src.rename(dst)
+    result = watcher.tick(conn)
+    assert result.renames_followed >= 1 or result.reindexed is True
+    updated = conn.execute(
+        "SELECT open_target FROM items WHERE item_id=?", (item_id,)
+    ).fetchone()
+    assert updated is not None
+    assert Path(updated["open_target"]) == dst

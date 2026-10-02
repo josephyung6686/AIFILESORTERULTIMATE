@@ -49,7 +49,7 @@ def test_draft_plan_and_journal_without_move(conn):
         full_list_viewed=True)
     assert ok.ok is True
     msg3 = refuse_apply_without_approval(conn, plan.plan_id)
-    assert "not enabled" in msg3
+    assert "ASSISTANT_ENABLE_APPLY" in msg3 or "apply is enabled" in msg3
     assert "Nothing moved" in msg3
 
     rt = ToolRuntime(conn)

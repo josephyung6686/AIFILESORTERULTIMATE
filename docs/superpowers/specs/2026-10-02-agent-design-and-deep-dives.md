@@ -184,21 +184,23 @@ tests/assistant/
 | `source_ids` in citations | **Done** |
 | CLI `ask` / `search` product path | **Done** |
 | Injection INJ-01..09 + pass^3 | **Done** (structural + mocked loop) |
-| plan_hash · full-list approve · T0 template | **Done** (apply still dark) |
+| plan_hash · full-list approve · T0 template | **Done** |
 | Per-provider trust (DeepSeek A4) | **Done** (`trust.py`, `--show-trust`) |
 | L0 DiffEvent provenance (A6) | **Done** (atoms dark) |
 | Heat user vs agent (T-P4-02) | **Done** |
-| FSEvents policy (debounce/own-move) | **Done** (watcher backend still TODO) |
+| FSEvents policy (debounce/own-move) | **Done** |
 | Anthropic provider adapter | **Done** (normalize + mock-tested) |
-| Local-model mode | **Stub** — refuses until FM wired |
-| PathWatcher polling + FSEvents policy | **Done** |
-| Live macOS FSEvents subscription | **Missing** (polling backend works) |
-| Embedding bake-off ≥100 ZH | **Protocol only** — golden stub too small |
+| Local-model mode | **Done (index path)** — `--local-only` / `--show-local-capability`; Apple FM gen still not wired |
+| PathWatcher + inode rename-follow | **Done** (`path_watch.tick` + bookmarks) |
+| Live macOS FSEvents subscription | **Partial** — polling/kqueue + rename feed events; native FSEvents optional |
+| Embedding bake-off EN+ZH | **Done** — n_zh=100 winner `minilm_hybrid_plus_cjk_fts` ([decision](../measurements/2026-10-02-embedding-bakeoff-decision.json)) |
 | Cheap vs frontier hint | **Done** (advisory preload) |
 | place_preview dry-run | **Done** |
-| Apply / undo | **Done behind `ASSISTANT_ENABLE_APPLY=1`** + plan_hash/full-list/hash gates; tool `apply_moves` stays refused |
+| Apply / undo tool path | **Done** — `ASSISTANT_ENABLE_APPLY=1` + `request_tools(organize_apply)`; default locked |
+| Memory v1 rules steering | **Done** — explicit rules inject into system prompt; atoms stay dark |
+| Live BYOK dogfood | **Done** — 4 live DeepSeek turns EN+ZH ([dogfood](../measurements/2026-10-02-live-byok-dogfood.json)) |
 
-**Verified (2026-10-02):** `bash tools/run_assistant_gates.sh` green — **146+** assistant/items tests; injection/held/local-only **pass^3**; find p95 **0.6ms @2k / 12ms @50k / 62ms @250k** ([measurement](../measurements/2026-10-02-find-latency-2k-50k-250k.json)); CI harness + `tests/fixtures/injection/`.
+**Verified (2026-10-02):** gates green; padded-row find p95 **0.6ms @2k / 12ms @50k / 62ms @250k** ([padded](../measurements/2026-10-02-find-latency-2k-50k-250k.json)); **real files+chunks** p95 **~19ms @500 files / 20.5k chunks (~41/file, 40KB bodies)** ([pdf-scale](../measurements/2026-10-02-chunked-find-500-pdfscale.json)). Do **not** treat 250k padded p95 as Downloads-library proof. Organize/apply stays opt-in.
 
 ---
 

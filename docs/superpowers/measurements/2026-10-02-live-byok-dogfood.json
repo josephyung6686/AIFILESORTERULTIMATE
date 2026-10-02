@@ -1,0 +1,145 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "base_url": "https://api.deepseek.com",
+  "capability": [
+    "apple_foundation_models: no",
+    "index_find_local: yes",
+    "reason: Apple Foundation Models adapter not wired yet — local-only uses hybrid index find (no cloud)"
+  ],
+  "turns": [
+    {
+      "question": "Where is the Joint PMFs lecture PDF?",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "total_ms": 6440.676000027452,
+      "wall_ms": 6442.162459017709,
+      "citations": [
+        "cddad419-9e38-41ad-985a-4f59f037ebff",
+        "89fd7bff-9276-4c7b-a7cc-75393cda16b8",
+        "6efc5826-c960-4f53-85a8-c305c5b19315",
+        "ac765acd-464b-49e6-9759-c7d97339c5a6",
+        "3af52599-b2e3-4b46-97df-ea476a73fb07",
+        "1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12"
+      ],
+      "tools": [
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.7743329915683717
+        }
+      ],
+      "moved": false,
+      "egress_bytes": 1960,
+      "text_head": "Found it — the lecture file is **03-09-Joint PMFs.pdf**.\n\n- Location (open target): `/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf`\n- Status: unplaced (no folder/course assignment in the index yet)\n\nA possibly related stats handout is also nearby: `作業講義_統計.pdf`, but the exact \"Joint PMFs\" title matches the first file.\n\nCitations: cddad419-9e38-41ad-9"
+    },
+    {
+      "question": "Find my resume",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "total_ms": 4319.315457978519,
+      "wall_ms": 4319.6508749970235,
+      "citations": [
+        "6efc5826-c960-4f53-85a8-c305c5b19315"
+      ],
+      "tools": [
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.2786249970085919
+        },
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.21150000975467265
+        },
+        {
+          "tool": "explain_file",
+          "ok": true,
+          "ms": 0.5556670075748116
+        }
+      ],
+      "moved": false,
+      "egress_bytes": 1346,
+      "text_head": "Found one match:\n\n**Joseph Yung resume updated.pdf** — `item_id: 6efc5826-c960-4f53-85a8-c305c5b19315`\n- Status: unplaced (no folder assigned in the index)\n- Open target: `/var/folders/.../lib/Joseph Yung resume updated.pdf`\n- Snippet (untrusted file text): mentions \"resume georgetown prep joseph yung\"\n\nSearching \"curriculum vitae / CV / job application\" returned nothing, so this appears to be you"
+    },
+    {
+      "question": "找作業講義",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "total_ms": 3926.550167001551,
+      "wall_ms": 3927.0608340157196,
+      "citations": [
+        "1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12",
+        "cddad419-9e38-41ad-985a-4f59f037ebff",
+        "89fd7bff-9276-4c7b-a7cc-75393cda16b8"
+      ],
+      "tools": [
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.5777500045951456
+        },
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.287750008283183
+        },
+        {
+          "tool": "explain_file",
+          "ok": true,
+          "ms": 0.43750001350417733
+        }
+      ],
+      "moved": false,
+      "egress_bytes": 2223,
+      "text_head": "找到最符合的一筆：\n\n**作業講義_統計.pdf** — 目前狀態是 `unplaced`（已索引、未歸位）。\n- 路徑：`…/lib/作業講義_統計.pdf`\n- 內容線索（未信任檔案文字）：homework 作業 講義 probability course\n\n另外兩筆同主題但非「講義」命名的檔案，可能是相關課程教材：\n- `03-09-Joint PMFs.pdf`\n- `Conditioning RV.pdf`\n\n注意：`作業講義` 可能指「作業題目」或「上課講義」，我只找到這一份命名的檔案；要不要我依主題（機率／統計）再擴大搜尋？\n\nCitations: 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12 (source_ids: e-1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12), cddad419-9e38-41ad-985a-"
+    },
+    {
+      "question": "稅務報表在哪",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "total_ms": 3355.1555419981014,
+      "wall_ms": 3355.7556249725167,
+      "citations": [
+        "3af52599-b2e3-4b46-97df-ea476a73fb07"
+      ],
+      "tools": [
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.42983400635421276
+        },
+        {
+          "tool": "find_files",
+          "ok": true,
+          "ms": 0.43162499787285924
+        },
+        {
+          "tool": "explain_file",
+          "ok": true,
+          "ms": 0.18637499306350946
+        },
+        {
+          "tool": "list_related",
+          "ok": true,
+          "ms": 0.1287079940084368
+        }
+      ],
+      "moved": false,
+      "egress_bytes": 1733,
+      "text_head": "找到一份：\n\n- **稅務報表_2024.pdf** — 目前狀態是 `unplaced`（尚未歸入任何資料夾），檔案位置在索引的 lib 目錄下。\n  - item_id: `3af52599-b2e3-4b46-97df-ea476a73fb07`\n  - source_id: `e-3af52599-b2e3-4b46-97df-ea476a73fb07`\n\n只搜到這一個符合的項目，沒有相關聯的其他檔案或截止日。\n\nCitations: `3af52599-b2e3-4b46-97df-ea476a73fb07`"
+    }
+  ],
+  "local_only": {
+    "provider": "local",
+    "model": "index-only",
+    "citations": [
+      "cddad419-9e38-41ad-985a-4f59f037ebff"
+    ],
+    "moved": false,
+    "text_head": "Local-only find (no cloud). Apple FM not available — answered from the hybrid index only.\n\n1 hit(s):\n- 03-09-Joint PMFs.pdf  /var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf"
+  },
+  "api_calls": true,
+  "ok": true
+}

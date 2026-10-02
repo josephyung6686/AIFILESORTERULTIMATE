@@ -1,0 +1,103 @@
+{
+  "golden": "/Users/jy/GRAPH AGENT/tests/fixtures/bakeoff_golden_labeled_zh.json",
+  "n_zh": 100,
+  "n_en": 3,
+  "zh_recall_at_10_hybrid": 1.0,
+  "zh_recall_at_10_fts": 1.0,
+  "en_recall_at_10_hybrid": 1.0,
+  "en_recall_at_10_fts": 1.0,
+  "zh_hybrid_minus_fts_mean": 0.0,
+  "zh_hybrid_minus_fts_ci95": [
+    0.0,
+    0.0
+  ],
+  "winner": "minilm_hybrid_plus_cjk_fts",
+  "reason": "CJK FTS already carries ZH (≥0.85 Recall@10); keep MiniLM for EN semantic; no larger multilingual model required yet",
+  "model_dir": "/Users/jy/.graph-agent/models/minilm",
+  "per_query_sample": [
+    {
+      "id": "zh-q-000-a",
+      "lang": "zh-Hant",
+      "text": "作業",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-000-b",
+      "lang": "zh-Hant",
+      "text": "作業",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-001-a",
+      "lang": "zh-Hant",
+      "text": "講義",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-001-b",
+      "lang": "zh-Hant",
+      "text": "講義",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-002-a",
+      "lang": "zh-Hant",
+      "text": "考試",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-002-b",
+      "lang": "zh-Hant",
+      "text": "考試",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-003-a",
+      "lang": "zh-Hant",
+      "text": "報告",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-003-b",
+      "lang": "zh-Hant",
+      "text": "報告",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-004-a",
+      "lang": "zh-Hant",
+      "text": "論文",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-004-b",
+      "lang": "zh-Hant",
+      "text": "論文",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-005-a",
+      "lang": "zh-Hant",
+      "text": "稅務",
+      "hybrid": 1.0,
+      "fts": 1.0
+    },
+    {
+      "id": "zh-q-005-b",
+      "lang": "zh-Hant",
+      "text": "稅務",
+      "hybrid": 1.0,
+      "fts": 1.0
+    }
+  ]
+}

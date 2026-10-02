@@ -206,27 +206,137 @@ def preview_main(argv: list[str] | None = None, *, out=None) -> int:
     return 0
 
 
+def plan_main(argv: list[str] | None = None, *, out=None) -> int:
+    """P4 product path: show / approve / apply / undo assistant plans."""
+    out = out if out is not None else sys.stdout
+    parser = argparse.ArgumentParser(prog="filesorter plan")
+    parser.add_argument(
+        "action", choices=("show", "approve", "apply", "undo", "create"))
+    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--plan-id", default=None)
+    parser.add_argument("--full-list-viewed", action="store_true")
+    parser.add_argument("--item-id", default=None)
+    parser.add_argument("--dst", default=None, help="destination path for create")
+    args = parser.parse_args(argv)
+
+    from assistant.apply import apply_enabled, apply_plan
+    from assistant.place_preview import place_preview, preview_as_dict
+    from assistant.plans import PlanOp, approve_plan, create_draft_plan, plan_hash
+    from assistant.undo import undo_plan
+
+    conn = _open(args.database)
+    try:
+        if args.action == "create":
+            if not args.item_id or not args.dst:
+                print("create requires --item-id and --dst", file=out)
+                return 2
+            row = conn.execute(
+                "SELECT item_id, open_target, file_id FROM items "
+                "WHERE item_id=?", (args.item_id,),
+            ).fetchone()
+            if row is None or not row["open_target"]:
+                print("item not found or has no open_target", file=out)
+                return 2
+            plan = create_draft_plan(conn, ops=[PlanOp(
+                item_id=row["item_id"], src=row["open_target"],
+                dst=args.dst, file_id=row["file_id"],
+            )])
+            conn.commit()
+            print(f"created draft plan {plan.plan_id}", file=out)
+            return 0
+
+        if not args.plan_id:
+            print("--plan-id required", file=out)
+            return 2
+
+        if args.action == "show":
+            prev = place_preview(
+                conn, args.plan_id,
+                full_list_viewed=args.full_list_viewed)
+            d = preview_as_dict(prev)
+            print(
+                f"plan {d['plan_id']} hash={d['plan_hash'][:16]}… "
+                f"ops={len(d['ops'])} can_apply={d['can_apply']} "
+                f"apply_env={apply_enabled()} moved=no",
+                file=out)
+            for op in d["ops"]:
+                print(
+                    f"  {op['item_id']}: {op['src']} -> {op['dst']}",
+                    file=out)
+            return 0
+
+        if args.action == "approve":
+            result = approve_plan(
+                conn, args.plan_id,
+                full_list_viewed=args.full_list_viewed)
+            conn.commit()
+            if not result.ok:
+                print(result.error, file=out)
+                return 2
+            print(
+                f"approved plan {args.plan_id} hash={result.plan_hash[:16]}… "
+                f"moved=no",
+                file=out)
+            return 0
+
+        if args.action == "apply":
+            result = apply_plan(
+                conn, args.plan_id,
+                full_list_viewed=args.full_list_viewed)
+            conn.commit()
+            print(
+                f"apply ok={result.ok} moved={result.moved} "
+                f"applied={list(result.applied)} error={result.error}",
+                file=out)
+            return 0 if result.ok else 2
+
+        if args.action == "undo":
+            result = undo_plan(conn, args.plan_id)
+            conn.commit()
+            print(
+                f"undo ok={result.ok} moved={result.moved} "
+                f"undone={list(result.undone)} error={result.error}",
+                file=out)
+            return 0 if result.ok else 2
+    finally:
+        conn.close()
+    return 2
+
+
 def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     """BYOK read-only chat over the local index. Product surface."""
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter ask")
-    parser.add_argument("question")
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("question", nargs="?", default=None)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--rebuild-fts", action="store_true")
     parser.add_argument(
         "--show-trust", action="store_true",
         help="Print per-provider retention/location facts (Addendum A4).")
     parser.add_argument(
         "--local-only", action="store_true",
-        help="Refuse cloud; use on-device model only (P2). Currently refuses "
-             "until Apple FM adapter is wired.")
+        help="No cloud: answer find questions from the hybrid index. "
+             "Apple FM generation is used when available (not wired yet).")
+    parser.add_argument(
+        "--show-local-capability", action="store_true",
+        help="Print Apple FM / index-find capability probe and exit.")
     args = parser.parse_args(argv)
     from assistant.chat import ask, format_answer
+    from assistant.local_model import capability_lines
     from assistant.trust import onboarding_lines
     from items.hot_index import rebuild_fts
+    if args.show_local_capability:
+        for line in capability_lines():
+            print(line, file=out)
+        return 0
     if args.show_trust:
         for line in onboarding_lines("deepseek"):
             print(line, file=out)
+        if not args.question:
+            return 0
+    if not args.question or args.database is None:
+        parser.error("question and --database are required "
+                     "(unless --show-local-capability / --show-trust alone)")
     conn = _open(args.database)
     try:
         if args.rebuild_fts:

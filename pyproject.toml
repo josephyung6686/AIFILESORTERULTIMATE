@@ -34,6 +34,8 @@ classifiers = [
 # teardown, which reads as thousands of failures and is none of them. Order
 # randomisation is what this suite wants; seed resetting is what it does not.
 dev = ["pytest>=8", "pytest-randomly>=3.15", "jsonschema>=4"]
+# Optional live macOS FSEvents backend for PathWatcher (P1). Polling works without it.
+watch = ["watchdog>=4; sys_platform == 'darwin'"]
 # The deployment layer (`src/readers/`) and ONLY it. `dependencies` above stays
 # empty on purpose: P5's SPEC says it "adds no third-party runtime dependency" and
 # every format reader is a caller-supplied callable, so the libraries are installed

@@ -63,10 +63,11 @@ def apply_plan(
         )
     preview = place_preview(
         conn, plan_id, full_list_viewed=True)
-    # place_preview always adds "apply not enabled" — filter that for this path
+    # Drop env-gate wording from preview when we already passed apply_enabled().
     real_blockers = [
         b for b in preview.blockers
         if "not enabled in this build" not in b
+        and "ASSISTANT_ENABLE_APPLY" not in b
     ]
     if real_blockers:
         return ApplyResult(

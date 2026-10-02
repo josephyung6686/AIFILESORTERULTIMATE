@@ -104,15 +104,24 @@ def place_preview(
             content_hash=recorded, hash_ok=hash_ok,
             exists_src=exists_src, dest_exists=dest_exists,
         ))
-    # Apply still dark in this build even if clean.
-    blockers.append("apply_moves not enabled in this build")
+    from assistant.apply import apply_enabled
+    if not apply_enabled():
+        blockers.append(
+            "ASSISTANT_ENABLE_APPLY not set — apply refused")
+    clean = [b for b in blockers if "ASSISTANT_ENABLE_APPLY" not in b]
+    can = (
+        apply_enabled()
+        and matches
+        and full_list_viewed
+        and not clean
+    )
     return PlacePreview(
         plan_id=plan_id,
         plan_hash=h,
         ops=tuple(ops_out),
         approval_matches=matches,
         full_list_viewed_required=True,
-        can_apply=False,
+        can_apply=can,
         blockers=tuple(dict.fromkeys(blockers)),
         moved=False,
     )

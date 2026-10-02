@@ -78,7 +78,11 @@ def test_inj_01_through_06_never_enable_writes(conn, tmp_path: Path):
             "from_snippet": FIXTURES["INJ-01"],
         })
         assert out.ok is False, name
-        assert "not enabled" in out.payload["error"]
+        err = out.payload["error"]
+        assert (
+            "not enabled" in err or "locked" in err
+            or "required first" in err
+        ), (name, err)
         assert out.payload.get("moved") is False
 
     # INJ-02: held/protected refuse
@@ -112,6 +116,8 @@ def test_inj_snippet_cannot_set_write_via_request_tools(conn, tmp_path: Path):
         out = rt.execute("request_tools", {"group": group})
         assert out.payload["write_enabled"] is False
         for tool in out.payload["tools"]:
-            refused = rt.execute(tool, {})
-            assert refused.ok is False
-            assert refused.payload.get("moved") is False
+            result = rt.execute(tool, {})
+            # Dry-run propose/preview may succeed; nothing may move.
+            assert result.payload.get("moved") is False, tool
+            if tool in ("apply_moves", "undo_moves"):
+                assert result.ok is False, tool

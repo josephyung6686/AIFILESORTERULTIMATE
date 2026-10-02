@@ -59,7 +59,12 @@ def test_write_tools_and_bad_args_refused(conn, tmp_path: Path):
     for name in ("apply_moves", "undo_moves", "propose_tree", "propose_groups"):
         out = rt.execute(name, {})
         assert out.ok is False
-        assert "not enabled" in out.payload["error"]
+        err = out.payload["error"]
+        assert (
+            "not enabled" in err or "locked" in err
+            or "required first" in err
+        ), err
+        assert out.payload.get("moved") is False
     assert rt.execute("find_files", "not-json{").ok is False
     assert rt.execute("find_files", [1, 2]).ok is False
     assert rt.execute("no_such_tool", {}).ok is False

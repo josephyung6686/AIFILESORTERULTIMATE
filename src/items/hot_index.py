@@ -232,8 +232,13 @@ def _evidence_snippet(conn, file_id: str, n: int) -> str:
         text = (row["raw_value"] or "").strip()
         if len(text) < 8:
             continue
-        parts.append(text[:400])
-        size += len(text)
+        # Take as much of this row as remaining budget allows (was capped at
+        # 400 chars/row, which collapsed long PDFs to one chunk).
+        take = text[: max(0, n - size)]
+        if not take:
+            break
+        parts.append(take)
+        size += len(take)
         if size >= n:
             break
     return "\n".join(parts)[:n]

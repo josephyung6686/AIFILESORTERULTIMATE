@@ -1,0 +1,88 @@
+# Live BYOK dogfood 2026-10-02 16:31:28
+provider=deepseek model=deepseek-v4-flash
+capability: apple_foundation_models: no; index_find_local: yes; reason: Apple Foundation Models adapter not wired yet — local-only uses hybrid index find (no cloud)
+
+## local-only (no cloud)
+Local-only find (no cloud). Apple FM not available — answered from the hybrid index only.
+
+1 hit(s):
+- 03-09-Joint PMFs.pdf  /var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf
+
+Citations: cddad419-9e38-41ad-985a-4f59f037ebff
+Tools: 1 call(s); egress 0 B session=local; 1 ms; moved: no.
+  - find_files [ok] 0ms cites=['cddad419-9e38-41ad-985a-4f59f037ebff']
+
+## turn 1: Where is the Joint PMFs lecture PDF?
+Found it — the lecture file is **03-09-Joint PMFs.pdf**.
+
+- Location (open target): `/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf`
+- Status: unplaced (no folder/course assignment in the index yet)
+
+A possibly related stats handout is also nearby: `作業講義_統計.pdf`, but the exact "Joint PMFs" title matches the first file.
+
+Citations: cddad419-9e38-41ad-985a-4f59f037ebff, 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12
+
+Citations: cddad419-9e38-41ad-985a-4f59f037ebff, 89fd7bff-9276-4c7b-a7cc-75393cda16b8, 6efc5826-c960-4f53-85a8-c305c5b19315, ac765acd-464b-49e6-9759-c7d97339c5a6, 3af52599-b2e3-4b46-97df-ea476a73fb07, 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12
+Tools: 1 call(s); egress 1960 B session=dogfood-; 6441 ms; moved: no.
+  - find_files [ok] 1ms cites=['cddad419-9e38-41ad-985a-4f59f037ebff', '89fd7bff-9276-4c7b-a7cc-75393cda16b8', '6efc5826-c960-4f53-85a8-c305c5b19315', 'ac765acd-464b-49e6-9759-c7d97339c5a6', '3af52599-b2e3-4b46-97df-ea476a73fb07', '1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12']
+
+## turn 2: Find my resume
+Found one match:
+
+**Joseph Yung resume updated.pdf** — `item_id: 6efc5826-c960-4f53-85a8-c305c5b19315`
+- Status: unplaced (no folder assigned in the index)
+- Open target: `/var/folders/.../lib/Joseph Yung resume updated.pdf`
+- Snippet (untrusted file text): mentions "resume georgetown prep joseph yung"
+
+Searching "curriculum vitae / CV / job application" returned nothing, so this appears to be your only resume in the index.
+
+Note: its snippet mentions Georgetown, so if it's a Georgetown-related PDF you may want it under `Coursework/Georgetown` per your rule — but I can't verify that from a snippet, and I can't move files in this build. Want me to look for related documents (e.g., cover letters)?
+
+Citations: 6efc5826-c960-4f53-85a8-c305c5b19315 (source_ids: e-6efc5826-c960-4f53-85a8-c305c5b19315)
+
+Citations: 6efc5826-c960-4f53-85a8-c305c5b19315, 6efc5826-c960-4f53-85a8-c305c5b19315[src=e-6efc5826-c960-4f53-85a8-c305c5b19315]
+Tools: 3 call(s); egress 1346 B session=dogfood-; 4319 ms; moved: no.
+  - find_files [ok] 0ms cites=['6efc5826-c960-4f53-85a8-c305c5b19315']
+  - find_files [ok] 0ms cites=[]
+  - explain_file [ok] 1ms cites=['6efc5826-c960-4f53-85a8-c305c5b19315'] src=['e-6efc5826-c960-4f53-85a8-c305c5b19315']
+
+## turn 3: 找作業講義
+找到最符合的一筆：
+
+**作業講義_統計.pdf** — 目前狀態是 `unplaced`（已索引、未歸位）。
+- 路徑：`…/lib/作業講義_統計.pdf`
+- 內容線索（未信任檔案文字）：homework 作業 講義 probability course
+
+另外兩筆同主題但非「講義」命名的檔案，可能是相關課程教材：
+- `03-09-Joint PMFs.pdf`
+- `Conditioning RV.pdf`
+
+注意：`作業講義` 可能指「作業題目」或「上課講義」，我只找到這一份命名的檔案；要不要我依主題（機率／統計）再擴大搜尋？
+
+Citations: 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12 (source_ids: e-1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12), cddad419-9e38-41ad-985a-4f59f037ebff, 89fd7bff-9276-4c7b-a7cc-75393cda16b8
+
+Citations: 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12, cddad419-9e38-41ad-985a-4f59f037ebff, 89fd7bff-9276-4c7b-a7cc-75393cda16b8, 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12[src=e-1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12]
+Tools: 3 call(s); egress 2223 B session=dogfood-; 3927 ms; moved: no.
+  - find_files [ok] 1ms cites=['1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12']
+  - find_files [ok] 0ms cites=['cddad419-9e38-41ad-985a-4f59f037ebff', '1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12', '89fd7bff-9276-4c7b-a7cc-75393cda16b8']
+  - explain_file [ok] 0ms cites=['1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12'] src=['e-1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12']
+
+## turn 4: 稅務報表在哪
+找到一份：
+
+- **稅務報表_2024.pdf** — 目前狀態是 `unplaced`（尚未歸入任何資料夾），檔案位置在索引的 lib 目錄下。
+  - item_id: `3af52599-b2e3-4b46-97df-ea476a73fb07`
+  - source_id: `e-3af52599-b2e3-4b46-97df-ea476a73fb07`
+
+只搜到這一個符合的項目，沒有相關聯的其他檔案或截止日。
+
+Citations: `3af52599-b2e3-4b46-97df-ea476a73fb07`
+
+Citations: 3af52599-b2e3-4b46-97df-ea476a73fb07, 3af52599-b2e3-4b46-97df-ea476a73fb07[src=e-3af52599-b2e3-4b46-97df-ea476a73fb07]
+Tools: 4 call(s); egress 1733 B session=dogfood-; 3355 ms; moved: no.
+  - find_files [ok] 0ms cites=['3af52599-b2e3-4b46-97df-ea476a73fb07']
+  - find_files [ok] 0ms cites=['3af52599-b2e3-4b46-97df-ea476a73fb07']
+  - explain_file [ok] 0ms cites=['3af52599-b2e3-4b46-97df-ea476a73fb07'] src=['e-3af52599-b2e3-4b46-97df-ea476a73fb07']
+  - list_related [ok] 0ms cites=['3af52599-b2e3-4b46-97df-ea476a73fb07']
+
+## summary ok=True live_turns=4

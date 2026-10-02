@@ -350,8 +350,13 @@ def refuse_apply_without_approval(conn: sqlite3.Connection, plan_id: str) -> str
             f"plan {plan_id} approval plan_hash mismatch — re-approve after "
             f"edit. Nothing moved."
         )
-    # Even approved: this build has no apply executor yet.
+    from assistant.apply import apply_enabled
+    if not apply_enabled():
+        return (
+            f"plan {plan_id} is approved but ASSISTANT_ENABLE_APPLY is not set. "
+            f"Nothing moved."
+        )
     return (
-        f"plan {plan_id} is approved but apply_moves is not enabled in "
-        f"this build. Nothing moved."
+        f"plan {plan_id} is approved and apply is enabled — call apply_plan "
+        f"/ CLI plan apply with --full-list-viewed. Nothing moved yet."
     )

@@ -27736,6 +27736,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if asked[:1] == ["preview-plan"]:
         from items.commands import preview_main
         return preview_main(asked[1:], out=out)
+    if asked[:1] == ["plan"]:
+        from items.commands import plan_main
+        return plan_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",

@@ -48,7 +48,7 @@ def test_preview_never_moves_and_lists_all_ops(conn, tmp_path: Path):
     assert prev.can_apply is False
     assert len(prev.ops) == 2
     assert any("missing" in b for b in prev.blockers)
-    assert any("not enabled" in b for b in prev.blockers)
+    assert any("ASSISTANT_ENABLE_APPLY" in b for b in prev.blockers)
     d = preview_as_dict(prev)
     assert d["moved"] is False
     assert len(d["ops"]) == 2

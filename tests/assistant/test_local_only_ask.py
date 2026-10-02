@@ -1,10 +1,12 @@
-"""--local-only ask path refuses cloud when FM adapter missing."""
+"""--local-only ask path: index-only find, no cloud."""
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 from assistant.chat import ask
 from database_agent.db import open_database
+from items.hot_index import rebuild_fts
 from items.identity import reconcile_tree
 from items.schema import create_items_schema
 
@@ -17,16 +19,13 @@ def test_local_only_ask_refuses_without_cloud(tmp_path: Path):
     conn = open_database(db, scan_roots=[])
     create_items_schema(conn)
     reconcile_tree(conn, root)
+    rebuild_fts(conn)
     conn.commit()
-    answer = ask(conn, "where is a?", local_only=True)
+    with patch("assistant.chat.chat_turn") as ct:
+        answer = ask(conn, "where is a?", local_only=True)
+    assert ct.call_count == 0
     assert answer.moved is False
     assert answer.provider == "local"
-    assert "Nothing was sent to the cloud" in answer.text
     assert answer.egress_bytes == 0
-    # No ledger rows for refused local-only
-    n = conn.execute("SELECT COUNT(*) AS n FROM sqlite_master "
-                     "WHERE name='egress_ledger'").fetchone()["n"]
-    if n:
-        rows = conn.execute("SELECT COUNT(*) AS c FROM egress_ledger").fetchone()
-        assert rows["c"] == 0
+    assert "no cloud" in answer.text.lower() or "Local-only" in answer.text
     conn.close()

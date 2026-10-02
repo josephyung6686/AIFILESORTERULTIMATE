@@ -1,0 +1,164 @@
+{
+  "model_dir": "/Users/jy/.graph-agent/models/minilm",
+  "vector_enabled": true,
+  "n_queries": 8,
+  "n_zh": 3,
+  "recall_at_10_hybrid": 1.0,
+  "recall_at_10_fts": 1.0,
+  "per_query": [
+    {
+      "lang": "en",
+      "text": "joint probability mass function",
+      "needle": "Joint",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "en",
+      "text": "resume joseph",
+      "needle": "resume",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "en",
+      "text": "conditioning random variables",
+      "needle": "Conditioning",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "zh",
+      "text": "作業",
+      "needle": "作業",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "zh",
+      "text": "稅務",
+      "needle": "稅務",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "zh-Hant",
+      "text": "講義",
+      "needle": "講義",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "en",
+      "text": "annual report finance",
+      "needle": "annual",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    },
+    {
+      "lang": "en",
+      "text": "suture retention",
+      "needle": "suture",
+      "hybrid_hit": 1.0,
+      "fts_hit": 1.0,
+      "hybrid_channels": [
+        [
+          "fts",
+          "vector"
+        ],
+        [
+          "vector"
+        ],
+        [
+          "vector"
+        ]
+      ]
+    }
+  ],
+  "winner": "hybrid(minilm+fts)",
+  "note": "Small labeled set (n=8). For ship decision use ≥100 ZH with bootstrap CI (T-P1-01)."
+}
