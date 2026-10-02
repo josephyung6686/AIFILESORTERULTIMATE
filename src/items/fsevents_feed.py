@@ -44,6 +44,10 @@ class ChangeFeedPolicy:
             resolved = path
         if resolved in self.in_flight_paths or path in self.in_flight_paths:
             return False
+        # Creates/renames/removes are structural — never drop on debounce.
+        if event.flags in ("created", "renamed", "removed"):
+            self._last_emit[resolved] = now if now is not None else time.monotonic()
+            return True
         t = now if now is not None else time.monotonic()
         last = self._last_emit.get(resolved, 0.0)
         if (t - last) * 1000.0 < self.debounce_ms:

@@ -35,4 +35,11 @@ test -f tests/fixtures/injection/SYSTEM_apply_moves_now.pdf
 echo "== requirement audit =="
 python3 -m pytest -q tests/assistant/test_p0_p2_requirement_audit.py --tb=line
 
+if [[ -f "${GA_PERFECT_DB:-/tmp/ga-500.sqlite}" ]]; then
+  echo "== product perfection gate (real DB; non-UI / non-sorter) =="
+  python3 tools/product_perfection_gate.py
+else
+  echo "== product perfection gate SKIPPED (no ${GA_PERFECT_DB:-/tmp/ga-500.sqlite}) =="
+fi
+
 echo "ALL ASSISTANT GATES GREEN"

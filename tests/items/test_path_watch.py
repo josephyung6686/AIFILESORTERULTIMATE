@@ -23,13 +23,35 @@ def test_tick_reindexes_on_new_file(conn, tmp_path: Path):
     (root / "b.txt").write_text("two new", encoding="utf-8")
     result = watcher.tick(conn)
     assert result.moved is False
-    assert result.accepted >= 1
+    # accepted>=1 from feed, or drift catch when FSEvents/debounce races
     assert result.reindexed is True
     labels = [
         r["display_label"]
         for r in conn.execute("SELECT display_label FROM items")
     ]
     assert "b.txt" in labels
+
+
+def test_tick_reindexes_via_drift_when_feed_quiet(conn, tmp_path: Path):
+    """Even if the change feed misses a create, disk≠DB forces reindex."""
+    root = tmp_path / "lib"
+    root.mkdir()
+    (root / "a.txt").write_text("one", encoding="utf-8")
+    create_items_schema(conn)
+    reconcile_tree(conn, root)
+    watcher = PathWatcher(root, prefer_fsevents=False)
+    watcher.scan_events()
+    (root / "sneaky.txt").write_text("hidden create", encoding="utf-8")
+    # Poison the mtime index so polling thinks sneaky was already seen.
+    key = str(root / "sneaky.txt")
+    watcher._mtime_index[key] = (root / "sneaky.txt").stat().st_mtime
+    result = watcher.tick(conn)
+    assert result.reindexed is True
+    labels = {
+        r["display_label"]
+        for r in conn.execute("SELECT display_label FROM items")
+    }
+    assert "sneaky.txt" in labels
 
 
 def test_own_move_echo_skipped(tmp_path: Path):

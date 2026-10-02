@@ -54,12 +54,18 @@ We are building a **laptop-resident file assistant**: chat + tool calling, power
 | Nudge warnings | Built |
 | Views (folder/table/board/timeline/graph queries) | Built (CLI) |
 | Fixture mail/calendar + deadlines + suggest | Built |
-| Shallow CLI search | Built (not true hybrid yet) |
-| `tests/items/` | **70 passed** (2026-10-02) |
+| Hybrid find (FTS5+vec+RRF+chunks+CJK) | Built · bake-off decided · real-file dogfood |
+| FSEvents live feed (+ polling fallback) | Built (`.[watch]`) |
+| BYOK ask/chat + ToolRuntime + egress | Built · injection pass^3 |
+| Plan approve / apply / undo (env-gated) | Built |
+| Deferred organize tools (`request_tools`) | Built |
+| Person items + aliases + merge precision | Built |
+| Memory L0/v1 + L1 atoms (dark + gate) | Built |
+| `tests/items/` + `tests/assistant/` | **161+ passed** (2026-10-02) |
 
-### Not built (this report’s remaining phases)
+### Explicitly deferred (not blocking “everything else”)
 
-True hybrid index · agent chat loop · egress ledger · injection threat controls · bilingual/chunked retrieval · undo journal for plans · plan-level write approvals · Tencent L0–L3 memory · Mac UI · live Gmail/Calendar · index encryption  
+Mac UI · full sorter pipeline polish · live Gmail/Calendar · L2/L3 Markdown rollups · index encryption · Touch ID for held opens · 250k cold SLO 
 
 ---
 

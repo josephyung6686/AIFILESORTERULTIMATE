@@ -80,12 +80,22 @@ def retrieve_for_proposal(
     scored.sort(key=lambda x: -x[0])
     top_rules = [r for _, r in scored[:limit_rules]]
     shots = few_shot_index(conn, limit=limit_shots)
+    atoms_pack: dict[str, Any] = {
+        "atoms": [], "atoms_steering": False, "dark": True, "atoms_available": 0,
+    }
+    try:
+        from assistant.memory_v2 import retrieve_atoms_for_proposal
+        atoms_pack = retrieve_atoms_for_proposal(conn, query=query)
+    except Exception:
+        pass
     return {
         "rules": top_rules,
         "few_shot": shots,
         "rules_steering": bool(top_rules),
-        "atoms_steering": False,
-        "steering": bool(top_rules),  # alias: rules may steer; atoms never
+        "atoms_steering": bool(atoms_pack.get("atoms_steering")),
+        "atoms": atoms_pack.get("atoms") or [],
+        "atoms_dark": bool(atoms_pack.get("dark", True)),
+        "steering": bool(top_rules),  # v1 alias: rules may steer
         "query": query,
     }
 
@@ -106,4 +116,12 @@ def format_rules_block(pack: dict[str, Any]) -> str:
             lines.append(
                 f"- action={exp.get('action')} reason={exp.get('reason')}"
             )
+    atoms = pack.get("atoms") or []
+    if atoms and pack.get("atoms_steering"):
+        lines.append("Memory atoms (gate open — proposal prior only, never override holds):")
+        for a in atoms[:3]:
+            text = a.get("rule_text") or a.get("claim") or ""
+            lines.append(f"- [{a.get('kind', 'atom')}] {text}")
+    elif pack.get("atoms_dark", True):
+        lines.append("Memory atoms: dark (not steering).")
     return "\n".join(lines)

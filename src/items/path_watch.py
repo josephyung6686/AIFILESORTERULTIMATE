@@ -63,9 +63,7 @@ class PathWatcher:
             self._live = None
             self.backend = "polling"
 
-    def scan_events(self) -> list[FsEvent]:
-        if self._live is not None:
-            return list(self._live.drain())
+    def _scan_polling(self) -> list[FsEvent]:
         events: list[FsEvent] = []
         root = self.root
         if not root.is_dir():
@@ -88,7 +86,6 @@ class PathWatcher:
             elif mtime > prev:
                 self._mtime_index[key] = mtime
                 events.append(FsEvent(path=key, flags="modified"))
-        # Paths that vanished from the tree → renamed/removed feed events.
         for key in list(self._mtime_index):
             if key not in seen:
                 del self._mtime_index[key]
@@ -96,6 +93,21 @@ class PathWatcher:
                     events.append(FsEvent(path=key, flags="renamed"))
         self._primed = True
         return events
+
+    def scan_events(self) -> list[FsEvent]:
+        # Live FSEvents can lag; always merge a polling pass so creates/renames
+        # are not missed when the observer queue is empty.
+        poll = self._scan_polling()
+        if self._live is None:
+            return poll
+        live = list(self._live.drain())
+        if not live:
+            return poll
+        seen = {(e.path, e.flags) for e in live}
+        for e in poll:
+            if (e.path, e.flags) not in seen:
+                live.append(e)
+        return live
 
     def _remember_live(self, conn: sqlite3.Connection) -> None:
         rows = conn.execute(
@@ -129,7 +141,38 @@ class PathWatcher:
                 followed += 1
         return followed
 
+    def ensure_best_backend(self) -> str:
+        """Prefer live FSEvents; leave polling if unavailable."""
+        if self.backend == "fsevents" and self._live is not None:
+            return self.backend
+        if self.prefer_fsevents:
+            self.start_live()
+        return self.backend
+
+    def _tree_drift(self, conn: sqlite3.Connection) -> bool:
+        """True when disk has a live file the DB does not know (or vice versa)."""
+        if not self.root.is_dir():
+            return False
+        disk = {
+            str(p.resolve())
+            for p in self.root.rglob("*")
+            if p.is_file()
+        }
+        rows = conn.execute(
+            "SELECT open_target FROM items "
+            "WHERE presence='live' AND open_target IS NOT NULL "
+            "AND item_type='file'"
+        ).fetchall()
+        known: set[str] = set()
+        for r in rows:
+            try:
+                known.add(str(Path(r["open_target"]).resolve()))
+            except Exception:
+                known.add(r["open_target"])
+        return disk != known
+
     def tick(self, conn: sqlite3.Connection) -> WatchTickResult:
+        self.ensure_best_backend()
         raw = self.scan_events()
         accepted = self.policy.filter_batch(raw)
         # Bookmarks before reconcile so inode identity survives Path.rename.
@@ -137,7 +180,14 @@ class PathWatcher:
             self._remember_live(conn)
         except Exception:
             pass
+        # FSEvents lag / debounce can drop creates; polling merge + drift catch.
+        drift = False
         if not accepted:
+            try:
+                drift = self._tree_drift(conn)
+            except Exception:
+                drift = False
+        if not accepted and not drift:
             # Still attempt rename-follow when feed was quiet (race / debounce).
             try:
                 n = self._follow_renames(conn)

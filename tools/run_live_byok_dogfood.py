@@ -49,6 +49,9 @@ def main(argv=None) -> int:
         default=ROOT / "docs/superpowers/measurements/"
         "2026-10-02-live-byok-dogfood.json")
     p.add_argument("--max-questions", type=int, default=4)
+    p.add_argument(
+        "--with-apply", action="store_true",
+        help="Also dogfood gated apply/undo on a temp file (sets env).")
     args = p.parse_args(argv)
 
     from assistant.provider import load_dotenv, resolve_provider
@@ -161,12 +164,53 @@ def main(argv=None) -> int:
                 print("FAIL: expected cloud provider", file=sys.stderr)
                 return 3
 
+        # Gated write dogfood (tools path — not model inventing moves)
+        if args.with_apply:
+            import hashlib
+            from assistant.plans import PlanOp, approve_plan, create_draft_plan
+            from assistant.tools import ToolRuntime
+            os.environ["ASSISTANT_ENABLE_APPLY"] = "1"
+            src = root / "to_file.pdf"
+            src.write_text("apply-dogfood", encoding="utf-8")
+            dst = root / "filed" / "to_file.pdf"
+            h = hashlib.sha256(src.read_bytes()).hexdigest()
+            plan = create_draft_plan(conn, ops=(
+                PlanOp(item_id="dog-1", src=str(src), dst=str(dst),
+                       content_hash=h),
+            ))
+            approve_plan(
+                conn, plan.plan_id, actor="user", approve_ms=3000,
+                full_list_viewed=True)
+            rt = ToolRuntime(conn)
+            rt.execute("request_tools", {"group": "organize_apply"})
+            applied = rt.execute("apply_moves", {
+                "plan_id": plan.plan_id, "full_list_viewed": True,
+            })
+            undid = rt.execute("undo_moves", {"plan_id": plan.plan_id})
+            traj["apply_undo"] = {
+                "apply_ok": applied.ok,
+                "apply_moved": applied.payload.get("moved"),
+                "undo_ok": undid.ok,
+                "undo_moved": undid.payload.get("moved"),
+                "src_restored": src.exists() and src.read_text() == "apply-dogfood",
+            }
+            lines.append("## apply/undo (gated tool path)")
+            lines.append(json.dumps(traj["apply_undo"], indent=2))
+            lines.append("")
+
         conn.close()
 
     # Require at least one citation across live turns
     cited = any(t["citations"] for t in traj["turns"])
-    traj["ok"] = bool(cited and traj["local_only"]["citations"])
-    lines.append(f"## summary ok={traj['ok']} live_turns={len(traj['turns'])}")
+    apply_ok = (
+        not args.with_apply
+        or (traj.get("apply_undo") or {}).get("src_restored") is True
+    )
+    traj["ok"] = bool(cited and traj["local_only"]["citations"] and apply_ok)
+    lines.append(
+        f"## summary ok={traj['ok']} live_turns={len(traj['turns'])} "
+        f"apply={args.with_apply}"
+    )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(lines) + "\n", encoding="utf-8")

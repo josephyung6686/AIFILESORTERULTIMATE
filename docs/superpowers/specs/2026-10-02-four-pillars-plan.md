@@ -89,9 +89,9 @@ Protected/held: counted **present-but-unopened**; `open_target` / excerpt omitte
 |---|---|
 | Shallow `meaning_search` (substring + edge boost) | **Done** |
 | MiniLM resolve-when-present | **Done** |
-| True FTS5 + vec + RRF + chunking + CJK | **Not built** |
-| FSEvents feed | **Not built** |
-| SLO @ 50k/250k | **Not built** |
+| True FTS5 + vec + RRF + chunking + CJK | **Done** (`hot_index`; ZH bake-off winner) |
+| FSEvents feed | **Done** (`fsevents_live` + polling fallback) |
+| SLO @ 50k/250k | **Partial** — 2k measured in CI; 50k offline; 250k not yet |
 
 ## A.7 Build tasks
 
@@ -187,10 +187,10 @@ user → model(tools≤10) → tool_calls
 | Piece | Status |
 |---|---|
 | Architecture | **Done (this + parent report)** |
-| Tool runtime / `chat` CLI | **Not built** |
-| Egress ledger | **Not built** |
-| Injection golden trajectories | **Not built** |
-| Write tools + plan approval | **Not built** |
+| Tool runtime / `chat` / `ask` CLI | **Done** (read-only default) |
+| Egress ledger | **Done** |
+| Injection golden trajectories | **Done** (pass^3 gates) |
+| Write tools + plan approval | **Done** (env-gated apply/undo + deferred P6) |
 
 ## B.8 Build tasks
 
@@ -254,9 +254,9 @@ Semantic `group_edges` **never** projected into life relationships.
 | Connector `member-of` / `about` proposed | **Done** |
 | Typing + declared lives | **Done** |
 | Board/graph query use hubs | **Done** (CLI) |
-| Person items + aliases | **Not built** |
-| Entity merge precision suite | **Not built** |
-| Graph/Board GUI | **Not built** |
+| Person items + aliases | **Done** (`people`) |
+| Entity merge precision suite | **Done** (`test_people_merge_precision`) |
+| Graph/Board GUI | **Out of scope now** (CLI views remain) |
 
 ## C.5 Build tasks
 
@@ -333,11 +333,12 @@ Never steers recognition/filing while dark. Never shadows safety holds.
 | Piece | Status |
 |---|---|
 | Exact suppress (facts/links) | **Done** |
-| DiffEvent / Atom tables | **Not built** |
-| v1 rules + few-shot | **Not built** |
-| v2 atoms + MAINTAIN | **Not built** |
-| L2/L3 Markdown rollups | **Not built** |
-| Precision gate harness | **Not built** |
+| DiffEvent table (L0) | **Done** (`memory_l0`) |
+| Atom table (L1) + ADD/supersede | **Done** (`memory_v2`) — dark by default |
+| v1 rules + few-shot | **Done** (`memory_v1` injects into system prompt) |
+| v2 atoms steering | **Done dark** — needs `ASSISTANT_ATOMS_STEER=1` + passing gate |
+| L2/L3 Markdown rollups | **Not built** (post-gate; atoms stay dark) |
+| Precision gate harness | **Done** (`memory_v2.evaluate_gate` + CI tests; atoms dark until pass) |
 
 ## D.7 Build tasks
 
@@ -392,10 +393,10 @@ P0 eval/injection ──┬──► P1 Pillar A (hybrid find)
 
 | Pillar | Planned? | Built? | Next phase |
 |---|---|---|---|
-| **A Meaning-search** | Yes | Hybrid+CJK+chunks+RRF; ZH bake-off decided; live FSEvents | P1 scale polish |
-| **B Assistant** | Yes | Read-only + **P4 plan apply/undo CLI** (env-gated) + P6 deferred tools | dogfood writes |
-| **C People/projects** | Yes | Mint+connector+views + **person/aliases/merge** | merge eval set |
-| **D Correction memory** | Yes | Exact suppress + L0 provenance capture | **P7** atoms/gate |
+| **A Meaning-search** | Yes | Hybrid+CJK+chunks+RRF; ZH bake-off; live FSEvents | 250k SLO; live Downloads scale |
+| **B Assistant** | Yes | Read-only + P4 apply/undo (env-gated) + P6 deferred tools | more write dogfood |
+| **C People/projects** | Yes | Mint+connector+views + person/aliases/merge + precision suite | live mailbox person mint |
+| **D Correction memory** | Yes | L0 + v1 + L1 atoms dark + gate in CI | L2/L3 after production gate pass |
 
 ---
 

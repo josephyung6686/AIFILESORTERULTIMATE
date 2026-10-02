@@ -12,134 +12,146 @@
       "question": "Where is the Joint PMFs lecture PDF?",
       "provider": "deepseek",
       "model": "deepseek-v4-flash",
-      "total_ms": 6440.676000027452,
-      "wall_ms": 6442.162459017709,
+      "total_ms": 6631.149624998216,
+      "wall_ms": 6631.417917000363,
       "citations": [
-        "cddad419-9e38-41ad-985a-4f59f037ebff",
-        "89fd7bff-9276-4c7b-a7cc-75393cda16b8",
-        "6efc5826-c960-4f53-85a8-c305c5b19315",
-        "ac765acd-464b-49e6-9759-c7d97339c5a6",
-        "3af52599-b2e3-4b46-97df-ea476a73fb07",
-        "1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12"
+        "eb0c773e-874a-4424-8ec3-cd965ca4ce4b",
+        "f63fee0c-1b11-4dd0-9939-aa19db0685fd",
+        "6a5fd603-84a9-44d5-8e62-b194f7186d4c",
+        "7864b9cc-65e2-4d4d-96b6-40c671de2df9",
+        "80c6ac43-a833-43bd-9c62-c04c95320fd0",
+        "eb8c4351-2be0-48ae-a9c0-987829b0dce2"
       ],
       "tools": [
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.7743329915683717
+          "ms": 0.7649170001968741
+        },
+        {
+          "tool": "explain_file",
+          "ok": true,
+          "ms": 0.30683400109410286
         }
       ],
       "moved": false,
-      "egress_bytes": 1960,
-      "text_head": "Found it — the lecture file is **03-09-Joint PMFs.pdf**.\n\n- Location (open target): `/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf`\n- Status: unplaced (no folder/course assignment in the index yet)\n\nA possibly related stats handout is also nearby: `作業講義_統計.pdf`, but the exact \"Joint PMFs\" title matches the first file.\n\nCitations: cddad419-9e38-41ad-9"
+      "egress_bytes": 2704,
+      "text_head": "Found it.\n\n**03-09-Joint PMFs.pdf** — a lecture PDF (snippet mentions joint probability mass function / conditioning notes). It's currently **unplaced** (not in any folder), in the local library directory.\n\nLocation: `/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-nco42ds6/lib/03-09-Joint PMFs.pdf`\n\nI can't file it for you — writes are locked in this build. There's a related hit, \"Con"
     },
     {
       "question": "Find my resume",
       "provider": "deepseek",
       "model": "deepseek-v4-flash",
-      "total_ms": 4319.315457978519,
-      "wall_ms": 4319.6508749970235,
+      "total_ms": 2383.0399999860674,
+      "wall_ms": 2383.629292016849,
       "citations": [
-        "6efc5826-c960-4f53-85a8-c305c5b19315"
+        "6a5fd603-84a9-44d5-8e62-b194f7186d4c"
       ],
       "tools": [
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.2786249970085919
+          "ms": 0.38520898669958115
         },
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.21150000975467265
-        },
-        {
-          "tool": "explain_file",
-          "ok": true,
-          "ms": 0.5556670075748116
+          "ms": 0.1809170062188059
         }
       ],
       "moved": false,
-      "egress_bytes": 1346,
-      "text_head": "Found one match:\n\n**Joseph Yung resume updated.pdf** — `item_id: 6efc5826-c960-4f53-85a8-c305c5b19315`\n- Status: unplaced (no folder assigned in the index)\n- Open target: `/var/folders/.../lib/Joseph Yung resume updated.pdf`\n- Snippet (untrusted file text): mentions \"resume georgetown prep joseph yung\"\n\nSearching \"curriculum vitae / CV / job application\" returned nothing, so this appears to be you"
+      "egress_bytes": 595,
+      "text_head": "Found one resume file:\n\n- **Joseph Yung resume updated.pdf** — item `6a5fd603-84a9-44d5-8e62-b194f7186d4c`\n  - Location: `/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-nco42ds6/lib/Joseph Yung resume updated.pdf`\n  - Status: unplaced (not yet in a folder category)\n\nNote: it lives in a temp/scratch directory, so if you expect it filed under coursework or a documents folder, it may jus"
     },
     {
       "question": "找作業講義",
       "provider": "deepseek",
       "model": "deepseek-v4-flash",
-      "total_ms": 3926.550167001551,
-      "wall_ms": 3927.0608340157196,
+      "total_ms": 4055.437916016672,
+      "wall_ms": 4055.8924170036335,
       "citations": [
-        "1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12",
-        "cddad419-9e38-41ad-985a-4f59f037ebff",
-        "89fd7bff-9276-4c7b-a7cc-75393cda16b8"
+        "eb8c4351-2be0-48ae-a9c0-987829b0dce2",
+        "eb0c773e-874a-4424-8ec3-cd965ca4ce4b",
+        "f63fee0c-1b11-4dd0-9939-aa19db0685fd"
       ],
       "tools": [
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.5777500045951456
+          "ms": 1.396124978782609
         },
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.287750008283183
+          "ms": 0.8283329952973872
         },
         {
           "tool": "explain_file",
           "ok": true,
-          "ms": 0.43750001350417733
+          "ms": 0.5596669798251241
+        },
+        {
+          "tool": "read_item",
+          "ok": true,
+          "ms": 0.8921250118874013
         }
       ],
       "moved": false,
-      "egress_bytes": 2223,
-      "text_head": "找到最符合的一筆：\n\n**作業講義_統計.pdf** — 目前狀態是 `unplaced`（已索引、未歸位）。\n- 路徑：`…/lib/作業講義_統計.pdf`\n- 內容線索（未信任檔案文字）：homework 作業 講義 probability course\n\n另外兩筆同主題但非「講義」命名的檔案，可能是相關課程教材：\n- `03-09-Joint PMFs.pdf`\n- `Conditioning RV.pdf`\n\n注意：`作業講義` 可能指「作業題目」或「上課講義」，我只找到這一份命名的檔案；要不要我依主題（機率／統計）再擴大搜尋？\n\nCitations: 1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12 (source_ids: e-1dd3bc14-25d6-43cf-bdbc-8d0ce129fb12), cddad419-9e38-41ad-985a-"
+      "egress_bytes": 3057,
+      "text_head": "找到最符合的：\n\n- **作業講義_統計.pdf** — 內容標記為 homework／作業／講義、probability course。目前狀態 unplaced（未歸位）。\n- **03-09-Joint PMFs.pdf** — joint PMF 講義筆記（probability）。\n- **Conditioning RV.pdf** — 條件隨機變數講義。\n\n三份看起來都是機率／統計課的講義。若這批是 Georgetown 課程的 PDF，依你的規則應放到 `Coursework/Georgetown`；但我沒有實際搬移權限（寫入工具預設鎖定），需要你確認是否要提出整理計畫。\n\n要我把某一份的內容摘要一下，或幫你列出這些講義的關聯嗎？\n\nCitations: eb8c4351-2be0-48ae-a9c0-987829b0dce2, eb0c773e-874a-4424-8ec3"
     },
     {
       "question": "稅務報表在哪",
       "provider": "deepseek",
       "model": "deepseek-v4-flash",
-      "total_ms": 3355.1555419981014,
-      "wall_ms": 3355.7556249725167,
+      "total_ms": 3747.1639169962145,
+      "wall_ms": 3747.4978750105947,
       "citations": [
-        "3af52599-b2e3-4b46-97df-ea476a73fb07"
+        "80c6ac43-a833-43bd-9c62-c04c95320fd0"
       ],
       "tools": [
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.42983400635421276
+          "ms": 1.2497499992605299
         },
         {
           "tool": "find_files",
           "ok": true,
-          "ms": 0.43162499787285924
+          "ms": 0.3762500127777457
         },
         {
           "tool": "explain_file",
           "ok": true,
-          "ms": 0.18637499306350946
+          "ms": 0.3711669996846467
         },
         {
           "tool": "list_related",
           "ok": true,
-          "ms": 0.1287079940084368
+          "ms": 0.1262500009033829
         }
       ],
       "moved": false,
       "egress_bytes": 1733,
-      "text_head": "找到一份：\n\n- **稅務報表_2024.pdf** — 目前狀態是 `unplaced`（尚未歸入任何資料夾），檔案位置在索引的 lib 目錄下。\n  - item_id: `3af52599-b2e3-4b46-97df-ea476a73fb07`\n  - source_id: `e-3af52599-b2e3-4b46-97df-ea476a73fb07`\n\n只搜到這一個符合的項目，沒有相關聯的其他檔案或截止日。\n\nCitations: `3af52599-b2e3-4b46-97df-ea476a73fb07`"
+      "text_head": "找到一份，狀態是「未歸位」（unplaced）：\n\n- **稅務報表_2024.pdf** — item_id `80c6ac43-a833-43bd-9c62-c04c95320fd0`\n- 位置：`/var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-nco42ds6/lib/稅務報表_2024.pdf`\n- 內容摘要（未受信任檔案文字，僅供辨識）：tax filing 稅務 報表 annual\n- 無任何關聯項目，也未連結到分類資料夾。\n\n要我幫你先做歸位預覽（dry-run）嗎？如果要指定目標資料夾也可以說一聲（我不會實際搬動，除非你啟用套用）。\n\nCitations: `80c6ac43-a833-43bd-9c62-c04c95320fd0` (source_id `e-80c6ac43-a833-43bd-9c"
     }
   ],
   "local_only": {
     "provider": "local",
     "model": "index-only",
     "citations": [
-      "cddad419-9e38-41ad-985a-4f59f037ebff"
+      "eb0c773e-874a-4424-8ec3-cd965ca4ce4b"
     ],
     "moved": false,
-    "text_head": "Local-only find (no cloud). Apple FM not available — answered from the hybrid index only.\n\n1 hit(s):\n- 03-09-Joint PMFs.pdf  /var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-n5h79uys/lib/03-09-Joint PMFs.pdf"
+    "text_head": "Local-only find (no cloud). Apple FM not available — answered from the hybrid index only.\n\n1 hit(s):\n- 03-09-Joint PMFs.pdf  /var/folders/7q/x8511m8j6gn5px_hykwybm280000gn/T/ga-dogfood-nco42ds6/lib/03-09-Joint PMFs.pdf"
   },
   "api_calls": true,
+  "apply_undo": {
+    "apply_ok": true,
+    "apply_moved": true,
+    "undo_ok": true,
+    "undo_moved": true,
+    "src_restored": true
+  },
   "ok": true
 }

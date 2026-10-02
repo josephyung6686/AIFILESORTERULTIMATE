@@ -67,10 +67,22 @@ def propose_tree(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]
             "item_id": r["item_id"],
             "display_label": r["display_label"],
         })
+    memory = {}
+    try:
+        from assistant.memory_v1 import retrieve_for_proposal
+        memory = retrieve_for_proposal(conn, query="propose tree organize")
+    except Exception:
+        memory = {}
     return {
         "ok": True,
         "outline": folders,
         "moved": False,
+        "memory": {
+            "rules_steering": memory.get("rules_steering"),
+            "atoms_steering": memory.get("atoms_steering"),
+            "rules": memory.get("rules") or [],
+            "atoms_dark": memory.get("atoms_dark", True),
+        },
         "note": "dry outline only — use place_preview + approve to move",
     }
 
