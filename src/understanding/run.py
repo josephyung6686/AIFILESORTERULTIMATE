@@ -37,6 +37,13 @@ CLASSIFICATION_MAX_TOKENS: int = 512
 BATCH_LIMIT: int = 8
 OUTPUT_TOKENS_PER_FILE: int = CLASSIFICATION_MAX_TOKENS
 
+# A Downloads copy is about 1800 files. A long excerpt is its own call,
+# because the batch cap is 800 estimated tokens, so 200 calls stops that
+# pass in the middle. These ceilings cover that folder with each file its
+# own call, and a second send of the same dossier still fits.
+DEFAULT_MAX_CALLS: int = 4000
+DEFAULT_MAX_INPUT_TOKENS: int = 4_000_000
+
 # chars/4 for the dossier JSON. The excerpt is already capped at 400 words
 # inside the dossier, so this bound cannot grow with the file.
 TOKEN_CHARS: int = 4
@@ -52,10 +59,24 @@ class OfflineRefused(RuntimeError):
 
 @dataclass
 class Budget:
-    max_calls: int = 200
-    max_input_tokens: int = 200_000
+    """How many understanding calls this pass may still make.
+
+    ``max_calls`` counts calls, not files. A cache hit does not spend one.
+    ``max_input_tokens`` is ``len(dossier_json) / 4`` summed across calls,
+    the same estimate the dry-run prints. Either ceiling stops the rest of
+    the pass. The defaults cover about 1800 files when each file is its own
+    call. Pass a lower pair to stop a short demo early.
+    """
+
+    max_calls: int = DEFAULT_MAX_CALLS
+    max_input_tokens: int = DEFAULT_MAX_INPUT_TOKENS
     calls: int = 0
     input_tokens: int = 0
+
+    def __post_init__(self) -> None:
+        if (self.max_calls < 0 or self.max_input_tokens < 0
+                or self.calls < 0 or self.input_tokens < 0):
+            raise ValueError("an understanding budget cannot be negative")
 
     def room_for(self, tokens: int) -> bool:
         return (self.calls + 1 <= self.max_calls
@@ -244,12 +265,23 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
         cached = cache_get(conn, key)
         if cached is not None:
             report.cache_hits += 1
+            # This read is on the calling thread, before any worker starts.
+            # One stored row that the interpreter did not expect must not
+            # abandon the files that follow it.
+            exception_class = None
             try:
                 understood = interpret_answer(
                     cached, file_id=view.file_id, declared_areas=declared_areas)
             except AnswerRejected as refusal:
                 report.needs_review += 1
-                report.results.append(FileResult(view.file_id, "needs_review", str(refusal)))
+                report.results.append(FileResult(
+                    view.file_id, "needs_review", str(refusal)))
+                exception_class = "AnswerRejected"
+            except Exception as problem:  # noqa: BLE001 -- one cached row, not the pass
+                reason, exception_class = _fault_from(problem)
+                report.needs_review += 1
+                report.results.append(FileResult(
+                    view.file_id, "needs_review", reason=reason))
             else:
                 if understood.needs_review:
                     report.needs_review += 1
@@ -257,7 +289,7 @@ def run_understanding(*, conn, views: list[FileView], declared_areas: set[str],
                     view.file_id, "cache", understanding=understood))
             audit(conn, file_id=view.file_id, fields=FIELDS_THAT_LEAVE,
                   model_id=model_id, prompt_tokens=None, completion_tokens=None,
-                  cache_hit=True, recorded_at=now)
+                  cache_hit=True, recorded_at=now, exception_class=exception_class)
             continue
         tokens = estimate_input_tokens(dossier)
         waiting.append((view, dossier, key, tokens))
@@ -394,8 +426,9 @@ def _ask_members(provider, *, model_id, members, declared, tokens, sleep,
         }
     items = []
     for (view, dossier, key, _tokens), item in zip(members, files):
-        raw = json.dumps(item)
+        raw = ""
         try:
+            raw = json.dumps(item)
             understood = interpret_answer(
                 raw, file_id=view.file_id, declared_areas=declared)
         except AnswerRejected as refusal:

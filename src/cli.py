@@ -27887,19 +27887,15 @@ def _understanding_wanted(args) -> bool:
     """
     if getattr(args, "no_understand", False):
         return False
-    if getattr(args, "understand", False):
+    if getattr(args, "understand", False) or getattr(
+            args, "understand_residuals", False):
         return True
     return os.environ.get("FILESORTER_SKIP_UNDERSTANDING") != "1"
 
 
-def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> int:
-    """Ask about files this scan did not place. A missing plan places none.
-
-    A cloud understanding pass with no provider returns 2 before any call.
-    Offline stays on this device and returns 0.
-    """
+def _understanding_context(args, conn, directory):
+    """Declared lives, private areas, and the profile note for one folder."""
     from onboarding.answers import model_context, stored_answers
-    from understanding.attach import understand_unplaced
     declared = set()
     private = set(args.private_area or [])
     for item in args.declare_life or []:
@@ -27915,6 +27911,31 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
             if isinstance(area, str) and area.strip():
                 private.add(area.strip())
         note = model_context(stored)
+    return declared, private, note
+
+
+def _understanding_budget(args):
+    """The ceiling for this run. Flags override the Downloads-sized default."""
+    from understanding.run import (
+        DEFAULT_MAX_CALLS, DEFAULT_MAX_INPUT_TOKENS, Budget,
+    )
+    calls = getattr(args, "understand_max_calls", None)
+    tokens = getattr(args, "understand_max_input_tokens", None)
+    return Budget(
+        max_calls=DEFAULT_MAX_CALLS if calls is None else calls,
+        max_input_tokens=(
+            DEFAULT_MAX_INPUT_TOKENS if tokens is None else tokens),
+    )
+
+
+def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> int:
+    """Ask about files this scan did not place. A missing plan places none.
+
+    A cloud understanding pass with no provider returns 2 before any call.
+    Offline stays on this device and returns 0.
+    """
+    from understanding.attach import understand_unplaced
+    declared, private, note = _understanding_context(args, conn, directory)
     offline = operation_mode_for(consent) == OPERATION_MODE
     if offline:
         understand_unplaced(
@@ -27940,7 +27961,34 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
         provider=provider,
         model_id=model_id,
         profile_note=note,
+        budget=_understanding_budget(args),
         out=out)
+    return 0
+
+
+def _continue_understanding(args, conn, directory, *, consent, out) -> int:
+    """Ask about residuals only. The scan has already been done.
+
+    Does not call ``run``. A missing provider is the same refusal as a scan.
+    """
+    from understanding.attach import understand_residuals
+    declared, private, note = _understanding_context(args, conn, directory)
+    offline = operation_mode_for(consent) == OPERATION_MODE
+    resolved = getattr(args, "understanding_resolved", None)
+    if resolved is None:
+        from providers.record import load_provider_choice
+        provider, model_id = _understanding_selection(
+            out, load_provider_choice(conn), role="fast")
+    else:
+        provider, model_id = resolved
+    if not offline and (provider is None or not model_id):
+        print(NO_UNDERSTANDING_PROVIDER, file=out)
+        return 2
+    understand_residuals(
+        conn, directory=directory, private_areas=private,
+        declared_areas=declared, offline=offline, out=out,
+        provider=provider, model_id=model_id or "", profile_note=note,
+        budget=_understanding_budget(args))
     return 0
 
 
@@ -28414,6 +28462,26 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         help="developer: skip the understanding pass on this scan. "
              "FILESORTER_SKIP_UNDERSTANDING=1 does the same for the process. "
              "A normal scan runs the pass.")
+    from understanding.run import DEFAULT_MAX_CALLS, DEFAULT_MAX_INPUT_TOKENS
+    parser.add_argument(
+        "--understand-max-calls", type=int, default=None, metavar="N",
+        help="how many understanding calls this run may make. "
+             f"The default is {DEFAULT_MAX_CALLS:,}, enough for a folder of "
+             "about 1800 files when each file is its own call. "
+             "Cache hits do not count. Files past the cap need review. "
+             "Ask about those later with --understand-residuals.")
+    parser.add_argument(
+        "--understand-max-input-tokens", type=int, default=None, metavar="N",
+        help="estimated input-token ceiling for the understanding pass "
+             f"(len(dossier json) / 4). The default is {DEFAULT_MAX_INPUT_TOKENS:,}. "
+             "When the next call would not fit, the remaining files need review.")
+    parser.add_argument(
+        "--understand-residuals", action="store_true",
+        help="ask only about files that are still unplaced and were not "
+             "settled by an earlier understanding answer. Does not scan the "
+             "folder again. Needs the plan database from a scan. A file the "
+             "model already marked needs-review is left there and is not sent "
+             "again. A budget stop is sent again, under this run's budget.")
     parser.add_argument(
         "--accept-cloud-understanding", action="store_true",
         help="record that dossier text (not whole files) may go to the "
@@ -28560,6 +28628,23 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # picking one would decide what may leave the device by argument order.
         parser.error("--enable-cloud and --disable-cloud say opposite things "
                      "about the same folder; pass one")
+
+    if args.understand_max_calls is not None and args.understand_max_calls < 0:
+        parser.error("--understand-max-calls cannot be negative")
+    if (args.understand_max_input_tokens is not None
+            and args.understand_max_input_tokens < 0):
+        parser.error("--understand-max-input-tokens cannot be negative")
+    if args.understand_residuals and args.no_understand:
+        parser.error("--understand-residuals runs a pass and --no-understand "
+                     "skips it; pass one")
+    if args.understand_residuals and args.model_dry_run:
+        parser.error("--understand-residuals sends dossiers and "
+                     "--model-dry-run sends nothing; pass one")
+    if args.understand_residuals and (
+            bool(args.apply) or args.apply_everything
+            or bool(args.undo) or args.undo_everything):
+        parser.error("--understand-residuals does not move files; "
+                     "pass it without --apply or --undo")
 
     # `84` §6 again, and BEFORE the `--apply` dispatch below because that one
     # returns: a `--stop-after --apply` checked after it would move a person's
@@ -28725,6 +28810,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         print(f"{directory} is not a folder", file=out)
         return 2
 
+    if args.understand_residuals:
+        # Before the answers gate, which opens (and would create) the database.
+        # A second pass has nothing to continue if the scan never wrote one.
+        residual_database = (
+            args.database or (Path.cwd() / "database-agent-plan.sqlite"))
+        if not Path(residual_database).expanduser().is_file():
+            print("Understanding residuals needs a plan database from a scan "
+                  "of this folder. Nothing was sent.", file=out)
+            return 2
+
     # Before any file in the folder is opened. A person's run refuses until a
     # completed answers file is stored for this folder. The suite sets
     # FILESORTER_ONBOARDING_OPTIONAL=1 and skips this unless --answers is
@@ -28855,6 +28950,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
+    if args.understand_residuals:
+        return _continue_understanding(
+            args, conn, directory, consent=consent, out=out)
     scan_profile_run = None
     if args.scan_profile:
         from scan_profile import arm_scan_profile

@@ -60,10 +60,15 @@ same sentence.
 The cache key is the SHA-256 of the dossier, the model id, and the prompt
 version `understanding-1`. A hit does not call the provider.
 
-The budget defaults to 200 calls and 200,000 estimated input tokens. When
+The budget defaults to 4000 calls and 4,000,000 estimated input tokens.
+That covers a Downloads copy of about 1800 files even when each file is
+its own call. `--understand-max-calls` and
+`--understand-max-input-tokens` override the defaults for one run. When
 the next call would not fit, the remaining files are needs-review with
-reason `budget stop`. The budget is reserved before a call is launched, so
-a pool cannot start more calls than the cap.
+reason `budget stop` and are not cached. The budget is reserved before a
+call is launched, so a pool cannot start more calls than the cap.
+`--understand-residuals` asks only about files that are still unplaced and
+were not settled, and it does not scan again. See `docs/demo-run.md`.
 
 Small dossiers share a call, up to 8. Separate batches run together, up to
 4 at a time. A response of HTTP 429 is not an answer: the call waits for

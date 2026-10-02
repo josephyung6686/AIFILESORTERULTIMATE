@@ -7,11 +7,16 @@ open a socket and does not read a key.
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
-from understanding.dossier import WORD_CAP, FileView, excerpt, path_is_protected
+from understanding.answer import interpret_answer
+from understanding.dossier import (
+    WORD_CAP, FileView, NotSendable, build_dossier, dossier_hash, excerpt,
+    path_is_protected,
+)
 from understanding.run import Budget, run_understanding
-from understanding.store import STATEMENT, consent_recorded
+from understanding.store import STATEMENT, cache_get, consent_recorded
 
 # More characters than 400 words, so the word cap is what truncates, and
 # fewer than a whole document. The SQL `substr` is the bound.
@@ -99,10 +104,122 @@ def unplaced_views(conn, decisions, *, private_areas: set[str]) -> list[FileView
     return views
 
 
+@dataclass(frozen=True)
+class ResidualSelection:
+    """What a second pass may still send.
+
+    ``pending`` has not been settled: no cached answer, or the rules never
+    placed the file and the first pass did not reach it. ``settled`` already
+    has a life area. ``already_review`` was asked and the answer was
+    needs-review; it is not sent again. ``excluded`` is protected or private.
+    """
+
+    pending: tuple[FileView, ...]
+    settled: int
+    already_review: int
+    excluded: int
+
+
+def placed_file_ids(conn) -> set[str]:
+    """File ids the latest plan placed. Empty when this database has no plan.
+
+    A missing table is an unscanned database, not a placed file. The subject
+    address is ``file:<file id>:<content hash>``; the hash is the last field.
+    """
+    from placement.vocabulary import FILE, PLACE
+    try:
+        row = conn.execute(
+            "SELECT plan_version_id FROM plan_versions "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1"
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return set()
+    if row is None:
+        return set()
+    try:
+        rows = conn.execute(
+            "SELECT subject_ref, outcome FROM placement_decisions "
+            "WHERE plan_version = ? AND superseded_by IS NULL",
+            (row[0],),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return set()
+    placed: set[str] = set()
+    prefix = f"{FILE}:"
+    for subject_ref, outcome in rows:
+        if outcome != PLACE:
+            continue
+        ref = "" if subject_ref is None else str(subject_ref)
+        if not ref.startswith(prefix):
+            continue
+        file_id, sep, _digest = ref[len(prefix):].rpartition(":")
+        if sep and file_id:
+            placed.add(file_id)
+    return placed
+
+
+def residual_views(conn, directory, *, private_areas: set[str],
+                   declared_areas: set[str], model_id: str,
+                   profile_note: str = "") -> ResidualSelection:
+    """Unplaced files that still need a call.
+
+    A placed file is not asked again. A cached answer that names a life area
+    is not asked again. A cached needs-review answer was already paid for
+    and stays in the review pile. A file with no cache row — a budget stop,
+    a rejected call, a file the first pass never reached — is pending.
+    """
+    placed = placed_file_ids(conn)
+    pending: list[FileView] = []
+    settled = 0
+    already_review = 0
+    excluded = 0
+    for view in indexed_views(conn, directory):
+        if view.file_id in placed:
+            continue
+        try:
+            dossier = build_dossier(view, private_areas=private_areas)
+        except NotSendable:
+            excluded += 1
+            continue
+        cached = cache_get(
+            conn, dossier_hash(
+                dossier, model_id=model_id, profile_note=profile_note))
+        if cached is None:
+            pending.append(view)
+            continue
+        try:
+            understood = interpret_answer(
+                cached, file_id=view.file_id, declared_areas=declared_areas)
+        except Exception:  # noqa: BLE001 -- an unreadable row is not a new call
+            already_review += 1
+            continue
+        if understood.needs_review:
+            already_review += 1
+        else:
+            settled += 1
+    return ResidualSelection(
+        pending=tuple(pending), settled=settled,
+        already_review=already_review, excluded=excluded)
+
+
+def _print_understanding_summary(report, budget: Budget, out) -> None:
+    print(f"Understanding: {report.sent} sent, {report.cache_hits} from cache, "
+          f"{report.excluded} excluded, {report.needs_review} need review, "
+          f"{report.budget_stopped} stopped by the budget "
+          f"({budget.calls} of {budget.max_calls} calls, "
+          f"{budget.input_tokens} of {budget.max_input_tokens} "
+          f"estimated input tokens).", file=out)
+    if report.budget_stopped:
+        print("Those files were not sent. Raise --understand-max-calls, "
+              "or run the same folder again with --understand-residuals "
+              "to ask only about what is still open.", file=out)
+    print_after_understanding(report, out)
+
+
 def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
                         declared_areas: set[str], offline: bool, out,
                         provider=None, model_id: str = "", now: str = "",
-                        profile_note: str = "") -> None:
+                        profile_note: str = "", budget: Budget | None = None) -> None:
     if offline:
         print("offline: the understanding pass sent nothing.", file=out)
         return
@@ -125,15 +242,63 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
         print("Understanding did not run: no model is configured. "
               "Nothing was sent.", file=out)
         return
+    budget = budget or Budget()
     report = run_understanding(
         conn=conn, views=views, declared_areas=declared_areas,
         private_areas=private_areas, provider=provider, model_id=model_id,
-        offline=False, consent=True, budget=Budget(), now=now,
+        offline=False, consent=True, budget=budget, now=now,
         profile_note=profile_note)
-    print(f"Understanding: {report.sent} sent, {report.cache_hits} from cache, "
-          f"{report.excluded} excluded, {report.needs_review} need review, "
-          f"{report.budget_stopped} stopped by the budget.", file=out)
-    print_after_understanding(report, out)
+    _print_understanding_summary(report, budget, out)
+
+
+def understand_residuals(conn, *, directory, private_areas: set[str],
+                         declared_areas: set[str], offline: bool, out,
+                         provider=None, model_id: str = "", now: str = "",
+                         profile_note: str = "",
+                         budget: Budget | None = None) -> None:
+    """Ask only about files a previous pass left open. Does not scan.
+
+    The caller has already opened the plan database. This reads the indexed
+    files and the understanding cache. It does not walk the folder.
+    """
+    if offline:
+        print("offline: the understanding pass sent nothing.", file=out)
+        return
+    root = str(directory)
+    if not consent_recorded(conn, root):
+        print(STATEMENT, file=out)
+        print("Understanding did not run. This folder has no record that "
+              "dossier text may be sorted with the model provider. "
+              "Run `filesorter onboard` for this folder. Nothing was sent.",
+              file=out)
+        return
+    if provider is None or not model_id:
+        print("Understanding did not run: no model is configured. "
+              "Nothing was sent.", file=out)
+        return
+    try:
+        selection = residual_views(
+            conn, directory, private_areas=private_areas,
+            declared_areas=declared_areas, model_id=model_id,
+            profile_note=profile_note)
+    except sqlite3.OperationalError:
+        print("Understanding residuals needs a scan of this folder first. "
+              "Nothing was sent.", file=out)
+        return
+    print(f"Understanding residuals: {len(selection.pending)} still to ask, "
+          f"{selection.settled} already settled, "
+          f"{selection.already_review} still need review from an earlier "
+          f"answer, {selection.excluded} excluded.", file=out)
+    if not selection.pending:
+        print("Understanding: no residual file to ask about.", file=out)
+        return
+    budget = budget or Budget()
+    report = run_understanding(
+        conn=conn, views=list(selection.pending), declared_areas=declared_areas,
+        private_areas=private_areas, provider=provider, model_id=model_id,
+        offline=False, consent=True, budget=budget, now=now,
+        profile_note=profile_note)
+    _print_understanding_summary(report, budget, out)
 
 
 def print_after_understanding(report, out) -> None:
