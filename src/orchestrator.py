@@ -725,6 +725,12 @@ def run_p1_p7(
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,
         scan_state=scan_state, budget_exhausted=budget_exhausted)
+    # The scan already resolved renames through `observe_path` and retired
+    # gone paths. Point durable items at those rows. No second walk, no hash.
+    # Absent item tables mean this connection never bootstrapped them.
+    from items.identity import project_after_scan
+    from scan_agent.selection import selection_sources
+    project_after_scan(conn, selection_sources(conn, selection_id), scan_state)
     versions = current_versions()
     written: list[str] = []
     roster: list[str] = []

@@ -1,0 +1,10 @@
+{
+  "profile_id": "files_only",
+  "profile_version": "1",
+  "item_types": ["file"],
+  "relationship_types": ["duplicate-of", "version-of"],
+  "schema_to_item_type": {},
+  "graph_cap": 40,
+  "timeline_days": 90,
+  "default_view": "folder"
+}

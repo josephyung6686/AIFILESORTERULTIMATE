@@ -1,0 +1,20 @@
+{
+  "profile_id": "student",
+  "profile_version": "1",
+  "item_types": ["file", "folder", "project", "course", "email", "event"],
+  "relationship_types": [
+    "duplicate-of",
+    "version-of",
+    "member-of",
+    "attached-to",
+    "about",
+    "occurs-on"
+  ],
+  "schema_to_item_type": {
+    "academic": "course",
+    "college_applications": "project"
+  },
+  "graph_cap": 40,
+  "timeline_days": 90,
+  "default_view": "board"
+}

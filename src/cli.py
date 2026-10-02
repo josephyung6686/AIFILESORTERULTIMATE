@@ -534,6 +534,7 @@ from review_surface.progress import (
 )
 from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
+from items.schema import create_items_schema
 from review_surface.trail import file_trail
 #: `110` §0.2. The comparison between the plan the person froze and the proposal
 #: this run built, which existed in four functions and was called by nothing.
@@ -13000,6 +13001,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # belongs to the part, not to whether today's run reaches it.
     create_mutation_schema(conn)
     create_review_schema(conn)
+    create_items_schema(conn)
     for name, key in CEILINGS.items():
         # Named, so the one that is not a spend ceiling is visibly not one, and so
         # that the one with a SECOND ANSWER elsewhere is visibly the same number as
@@ -16398,6 +16400,30 @@ def semantic_neighbour_nodes(conn: sqlite3.Connection, file_id: str, *,
         for node_id in nodes_listing(neighbour)))
 
 
+#: Local default for MiniLM weights. Never downloaded. Used only when the
+#: directory already holds `model.onnx` and `tokenizer.json`.
+DEFAULT_SEMANTIC_MODEL_DIR = Path.home() / ".graph-agent" / "models" / "minilm"
+
+
+def resolve_semantic_model_dir(explicit: Path | None) -> Path | None:
+    """Named path wins; else the default dir when complete; else off.
+
+    Absent means refuse, never guess a download. A named but incomplete
+    directory stays off — it does not fall through to the default.
+    """
+    if explicit is not None:
+        candidate = Path(explicit)
+        if (candidate / "model.onnx").is_file() and (
+                candidate / "tokenizer.json").is_file():
+            return candidate
+        return None
+    candidate = DEFAULT_SEMANTIC_MODEL_DIR
+    if (candidate / "model.onnx").is_file() and (
+            candidate / "tokenizer.json").is_file():
+        return candidate
+    return None
+
+
 @lru_cache(maxsize=2)
 def _encoder_at(model_dir: Path):
     """One loaded model per directory per process, shared by both consumers.
@@ -16434,12 +16460,20 @@ def _embedding_runtime(semantic_model, *, versions_for):
     mean-pooled MiniLM embeddings are invertible enough that "a vector of a payslip
     is a payslip in a lossier coat".
     """
+    semantic_model = resolve_semantic_model_dir(
+        None if semantic_model is None else Path(semantic_model))
     if semantic_model is None:
         return EmbeddingsOff(), RetrievalKnowledge(
             document_compatible=None, channel_weights={}, similarity=None,
             similarity_threshold=None, embedding_identity=None, domain=None)
 
-    encoder = _encoder_at(Path(semantic_model))
+    from readers.embedding_minilm import ModelUnavailable
+    try:
+        encoder = _encoder_at(Path(semantic_model))
+    except (ModelUnavailable, OSError, ValueError):
+        return EmbeddingsOff(), RetrievalKnowledge(
+            document_compatible=None, channel_weights={}, similarity=None,
+            similarity_threshold=None, embedding_identity=None, domain=None)
     config = EmbeddingConfig(
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         # The truncation is part of what produced the vector, so it is part of the
@@ -16508,13 +16542,18 @@ def _semantic_classifier(rules, detector, semantic_model, now):
     observations it was computed from and is never sent anywhere: the nine
     `ALWAYS_LOCAL` kinds are as local in 384 floats as they are in words.
     """
+    semantic_model = resolve_semantic_model_dir(semantic_model)
     if semantic_model is None:
         return detector
     from grouping.embeddings import EmbeddingConfig
-    from readers.embedding_minilm import MiniLmEncoder, build_anchor_index
+    from readers.embedding_minilm import MiniLmEncoder, build_anchor_index, ModelUnavailable
 
-    encoder = MiniLmEncoder(semantic_model, max_tokens=SEMANTIC_MAX_TOKENS,
-                            batch=SEMANTIC_BATCH, threads=SEMANTIC_THREADS)
+    try:
+        encoder = MiniLmEncoder(semantic_model, max_tokens=SEMANTIC_MAX_TOKENS,
+                                batch=SEMANTIC_BATCH, threads=SEMANTIC_THREADS)
+    except (ModelUnavailable, OSError, ValueError):
+        # Absent or incomplete weights: keep today's detector-only behaviour.
+        return detector
     index = build_anchor_index(
         build_schema_anchors(rules, max_words=SEMANTIC_MAX_ANCHOR_WORDS), encoder,
         # Encoding the anchors takes about half a minute and a run pays it once
@@ -27658,6 +27697,27 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
+    asked = list(sys.argv[1:] if argv is None else argv)
+    if asked[:1] == ["sync"] and (
+            len(asked) == 1 or asked[1] in ("gmail", "calendar")
+            or asked[1].startswith("-")):
+        from items.commands import sync_main
+        return sync_main(asked[1:], out=out)
+    if asked[:1] == ["view"] and (
+            len(asked) == 1
+            or asked[1] in (
+                "deadlines", "folder", "table", "board", "timeline", "graph")
+            or asked[1].startswith("-")):
+        from items.commands import view_main
+        return view_main(asked[1:], out=out)
+    if asked[:1] == ["suggest"] and (
+            len(asked) == 1 or asked[1].startswith("-")):
+        from items.commands import suggest_main
+        return suggest_main(asked[1:], out=out)
+    if asked[:1] == ["search"]:
+        # Reserved command word, same shape as `sync` / `view` / `suggest`.
+        from items.commands import search_main
+        return search_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
@@ -28058,10 +28118,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--semantic-model", type=Path, default=None, metavar="DIR",
         help="the folder holding a local sentence encoder (model.onnx and "
              "tokenizer.json). With it, recognition falls back to MEANING where "
-             "matching your authored terms found nothing. OFF unless you name "
-             "it, and nothing leaves your device either way -- the model runs "
-             "here. Measured on a 199-file corpus it classifies 13 more files "
-             "and changes no protection in either direction.")
+             "matching your authored terms found nothing. If omitted, "
+             "~/.graph-agent/models/minilm is used when that folder is complete; "
+             "otherwise the term detector runs alone. Nothing is downloaded and "
+             "nothing leaves your device. Measured on a 199-file corpus it "
+             "classifies 13 more files and changes no protection in either "
+             "direction.")
     parser.add_argument(
         "--entity-model", type=Path, default=None, metavar="DIR",
         help="the folder holding a local entity reader (onnx/model.onnx, "
