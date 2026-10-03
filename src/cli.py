@@ -17373,6 +17373,27 @@ def mint_review_homes_on_demand(conn: sqlite3.Connection, finished, *,
                 component_version=component_version, observed_at=observed_at)))
 
 
+def the_kind_the_folder_names(
+        votes: Sequence[tuple[str, Mapping[str, int]]],
+) -> tuple[str | None, str | None]:
+    """The first vote, IN ORDER, with a unique leader: `(kind, which vote)`.
+
+    The order an untyped run's default kind is read in: the JUDGE's named kinds,
+    then the anchors (a fact), then the recogniser's readings. `00` amendment 7
+    (12 Sep 2026) asks the judge even where the rules settled a file, because
+    the rules' top-1 was 32 %, and `partition_by_branch` already reads site G's
+    name ahead of the anchor for each file; the folder is counted the same way.
+    Measured on a 33-file Desktop: one resume's anchor named `career` over
+    sixteen files the judge named `photos`. A tie decides nothing and the next
+    vote is read, which is `_the_one_with_the_most`'s rule.
+    """
+    for basis, tally in votes:
+        leader = _the_one_with_the_most(tally)
+        if leader is not None:
+            return leader, basis
+    return None, None
+
+
 def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
     """The unique leader of a vote, or `None` because two tied or nobody voted.
 
@@ -20243,6 +20264,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     #: before one keeps the older wording.
     named_by_cell: list[str | None] = [None]
 
+    def _the_kind_judged_for(file_id: str) -> str | None:
+        """The KIND the judge (or the person) named for this file: their word
+        first, then the stored `situation` fact -- a situation names its kind,
+        and the kind pass writes the kind itself -- then this run's site G map.
+        Read off the fact so a re-run names the folder from answers already
+        given, before site G is asked again."""
+        theirs = _their_situations().get(file_id)
+        if theirs is not None:
+            return schema_for_situation(catalogue, theirs)
+        row = preferred_fact(conn, file_id=file_id, field_key=SITUATION_FIELD)
+        value = (None if row is None
+                 else _situation_values().get(row["value_id"]))
+        if value in SCHEMA_IDS:
+            return value
+        if value in _shipped_names:
+            return schema_for_situation(catalogue, value)
+        return situation_cell[0].named.get(file_id)
+
     def _the_corpus_names_a_schema(roster, run_id: str) -> str:
         """WHICH KIND OF LIFE THIS FOLDER IS, from the folder's own evidence.
 
@@ -20319,7 +20358,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         anchors: dict[str, int] = {}
         raised: dict[str, int] = {}
+        judged: dict[str, int] = {}
         for file_id, content_hash in roster:
+            kind = _the_kind_judged_for(file_id)
+            if kind is not None and _situations_of(kind):
+                judged[kind] = judged.get(kind, 0) + 1
             owners = {WORK_TYPE_OWNER[value]
                       for field, value in _anchor_facts_of(file_id, content_hash)
                       if field == WORK_TYPE_FIELD and value in WORK_TYPE_OWNER
@@ -20335,11 +20378,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # travels with its answer. The screen used to describe `raised` whichever
         # of the two had decided -- see `named_by_cell` above and
         # `questions.triggers.question_for_situation`, where the sentence is.
-        for basis, votes in (("facts", anchors), ("readings", raised)):
-            leader = _the_one_with_the_most(votes)
-            if leader is not None:
-                named_by_cell[0] = basis
-                return leader
+        leader, basis = the_kind_the_folder_names((
+            ("judge", judged), ("facts", anchors), ("readings", raised)))
+        if leader is not None:
+            named_by_cell[0] = basis
+            return leader
         raise NotConfigured(
             "the folder was read and nothing in it said what kind of material "
             "it is: no file carries a kind-of-file word one situation owns, and "
@@ -20536,6 +20579,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                                and branch.label != branch.schemas[0])
             if (branch.is_default and not branch.file_ids
                     and a_life_already_asks and not person_named_it):
+                continue
+            # A DEFAULT HOLDING ONLY PROTECTED FILES IS NOT ASKED A MENU. Each
+            # is filed by the person one at a time (`00` 13 Sep item 2; the
+            # protected block's `--situation-of`, `104` §18.110), and the
+            # default's menu is the majority kind's, about files nothing read
+            # as that kind -- measured on a 33-file Desktop: a college
+            # application and a vaccination card offered eight photos options.
+            if (branch.is_default and branch.file_ids
+                    and not set(branch.file_ids)
+                    - _protected_among(branch.file_ids)):
                 continue
             # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES (`00` amendment
             # 12): "which situation is Education?" is not a question when
