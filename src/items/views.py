@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import PurePath
 
 from items.profile_loader import ProfilePackage
-from items.file_identity import path_is_protected
+from items.file_identity import item_is_sensitive
 from items.relationship_service import (
     project_relationships,
     projection_hidden_count,
@@ -39,7 +39,7 @@ def folder_view(conn: sqlite3.Connection) -> list[dict]:
     out = []
     for row in rows:
         target = row["open_target"] or ""
-        if row["typing_state"] == "held" or path_is_protected(target):
+        if item_is_sensitive(conn, row["item_id"]):
             target = ""
         parent = str(PurePath(target).parent) if target else ""
         out.append({
@@ -72,8 +72,7 @@ def table_view(conn: sqlite3.Connection) -> list[dict]:
             "display_label": row["display_label"],
             "typing_state": row["typing_state"],
             "open_target": (
-                None if row["typing_state"] == "held"
-                or path_is_protected(row["open_target"] or "")
+                None if item_is_sensitive(conn, row["item_id"])
                 else row["open_target"]
             ),
             "approved_links": approved,

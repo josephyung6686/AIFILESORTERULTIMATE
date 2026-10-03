@@ -27,7 +27,7 @@ from assistant.registry import (
 )
 from items.heat import bump_agent_touch
 from items.hot_index import find_files
-from items.file_identity import path_is_protected
+from items.file_identity import item_is_sensitive
 
 SNIPPET_CHARS = 1200
 BYTE_BUDGET = 24_000
@@ -393,9 +393,7 @@ class ToolRuntime:
                 name="read_item", ok=False,
                 payload={"error": "item not found", "moved": False},
                 citations=(), bytes_out=0)
-        protected = bool(
-            row["open_target"] and path_is_protected(row["open_target"]))
-        held = row["typing_state"] == "held" or protected
+        held = item_is_sensitive(self.conn, item_id)
         # Policy already refused held on cloud path; local path reaches here.
         snippet = self._snippet(row["file_id"])
         source_ids = self._evidence_source_ids(row["file_id"])
@@ -528,9 +526,7 @@ class ToolRuntime:
                 name="explain_file", ok=False,
                 payload={"error": "item not found", "moved": False},
                 citations=(), bytes_out=0)
-        protected = bool(
-            row["open_target"] and path_is_protected(row["open_target"]))
-        held = row["typing_state"] == "held" or protected
+        held = item_is_sensitive(self.conn, item_id)
         body_ok = (not held) or self.allow_held_body
         snippet = self._snippet(row["file_id"]) if body_ok else ""
         source_ids = (

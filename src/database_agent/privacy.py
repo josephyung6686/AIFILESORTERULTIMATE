@@ -97,9 +97,8 @@ def held_item_fields(conn: sqlite3.Connection, item_id: str, *,
     if row is None:
         return {}
     fields = {column[0]: row[index] for index, column in enumerate(cursor.description)}
-    from items.file_identity import path_is_protected
-    if (fields.get("typing_state") == "held"
-            or path_is_protected(fields.get("open_target") or "")):
+    from items.file_identity import item_is_sensitive
+    if item_is_sensitive(conn, item_id):
         _authenticate(authenticate)
     return fields
 
@@ -145,11 +144,10 @@ def _export_metadata(conn: sqlite3.Connection) -> dict[str, list[dict[str, Any]]
     tables: dict[str, list[dict[str, Any]]] = {}
     if not _has_table(conn, "items"):
         return tables
-    from items.file_identity import path_is_protected
-    item_rows = conn.execute(
-        "SELECT item_id, typing_state, open_target FROM items").fetchall()
-    held = {r[0] for r in item_rows if r[1] == "held" or path_is_protected(r[2] or "")}
-    allowed = {r[0] for r in item_rows if r[0] not in held}
+    from items.file_identity import item_is_sensitive
+    item_ids = [r[0] for r in conn.execute("SELECT item_id FROM items").fetchall()]
+    held = {item_id for item_id in item_ids if item_is_sensitive(conn, item_id)}
+    allowed = {item_id for item_id in item_ids if item_id not in held}
     allowed_files: set[str] = set()
     held_files: set[str] = set()
     for table in ("items", "item_versions"):
@@ -261,8 +259,9 @@ def delete_item(conn: sqlite3.Connection, item_id: str, *, user_id: str = "local
         row = conn.execute(f"SELECT {selected} FROM items WHERE item_id = ?", (item_id,)).fetchone()
         if row is None:
             return {"deleted": False, "item_id": item_id, "audited": False}
-        state, file_id = row
-        if state == "held":
+        _state, file_id = row
+        from items.file_identity import item_is_sensitive
+        if item_is_sensitive(conn, item_id):
             _authenticate(authenticate)
         file_ids = {file_id} if file_id else set()
         if _has_table(conn, "item_versions"):

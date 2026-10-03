@@ -19,7 +19,7 @@ from assistant.registry import (
     is_write_shaped,
     schema_for_tool,
 )
-from items.file_identity import path_is_protected
+from items.file_identity import item_is_sensitive, path_is_protected
 
 # Keys that must never appear as free-form write destinations in tool args.
 _DESTINATION_KEYS = frozenset({
@@ -138,8 +138,7 @@ def item_is_held_or_protected(
         return False, False, None
     path = row["open_target"]
     protected = bool(path and path_is_protected(path))
-    held = row["typing_state"] == "held" or protected
-    return held, protected, path
+    return item_is_sensitive(conn, item_id), protected, path
 
 
 def strip_protected_paths(
@@ -563,14 +562,12 @@ def finalize_payload(
         # Collect held/protected open_targets to scrub from nested payloads.
         try:
             for row in conn.execute(
-                "SELECT open_target, typing_state FROM items "
+                "SELECT item_id, open_target FROM items "
                 "WHERE presence='live' AND superseded_by IS NULL "
                 "AND open_target IS NOT NULL"
-            ):
+            ).fetchall():
                 path = row["open_target"]
-                if not path:
-                    continue
-                if row["typing_state"] == "held" or path_is_protected(path):
+                if path and item_is_sensitive(conn, row["item_id"]):
                     blocked_paths.append(path)
         except sqlite3.Error:
             pass
