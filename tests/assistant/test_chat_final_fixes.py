@@ -280,3 +280,22 @@ def test_lock_in_shows_the_same_stage_lines_as_organise(lib, monkeypatch):
     assert "Reading and grouping your files…" in lines
     assert any("take several minutes" in e.text for e in out
                if isinstance(e, ev.Message))
+
+
+# -- 9. suggestions leave out caches, saved pages and archives ----------------
+
+def test_suggestions_skip_junk_and_archive_folders(lib):
+    from items.suggest import files_for
+    conn, root = lib
+    (root / "essay copy.txt").write_text("an essay", encoding="utf-8")
+    for folder in ("cache", "_archive/old", "Page_files"):
+        (root / folder).mkdir(parents=True)
+        (root / folder / "report.txt").write_text("same", encoding="utf-8")
+        (root / folder / "report copy.txt").write_text("same",
+                                                       encoding="utf-8")
+        (root / folder / "setup.dmg").write_bytes(b"x")
+    reconcile_tree(conn, root)
+    conn.commit()
+    assert [f["display_label"] for f in files_for(conn, "copies")] == [
+        "essay copy.txt"]
+    assert files_for(conn, "installers") == []

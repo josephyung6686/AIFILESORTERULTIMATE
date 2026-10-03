@@ -28,6 +28,29 @@ def _live_files(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         "AND superseded_by IS NULL AND open_target IS NOT NULL").fetchall()
 
 
+def _worth_suggesting(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """The live files a person would want pointed out: not inside a
+    set-aside folder, a cache or saved-page folder (the search's own junk
+    rule), or an `_archive` folder."""
+    from items.hot_index import _is_junk_path
+    try:
+        from items.identity import excluded_areas
+        aside = [Path(a["folder"]) for a in excluded_areas(conn)
+                 if not a["protected"]]
+    except sqlite3.Error:
+        aside = []
+    out = []
+    for f in _live_files(conn):
+        path = Path(f["open_target"])
+        if _is_junk_path(str(path)) or "_archive" in (
+                p.casefold() for p in path.parts[:-1]):
+            continue
+        if any(a in path.parents for a in aside):
+            continue
+        out.append(f)
+    return out
+
+
 def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
 
@@ -39,7 +62,7 @@ def files_for(conn: sqlite3.Connection, kind: str) -> list[sqlite3.Row]:
     """The files a suggestion counts: one predicate for the greeting's number
     and for a sort of the whole set. Rows carry item_id, file_id,
     display_label, open_target and content_hash."""
-    files = _live_files(conn)
+    files = _worth_suggesting(conn)
     if kind == "screenshots":
         from items.refresh import discover_roots
         roots = {str(r) for r in discover_roots(conn)}
