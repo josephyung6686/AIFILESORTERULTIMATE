@@ -137,9 +137,28 @@ def _resolve(conn: sqlite3.Connection, name: str):
 # -- tools ------------------------------------------------------------------
 
 def quick_sort(conn: sqlite3.Connection, files: list[str],
-               destination: str | None = None) -> dict[str, Any]:
+               destination: str | None = None,
+               kind: str | None = None) -> dict[str, Any]:
+    """Propose a one-off sort of named files, or of a suggestion's whole set
+    (`kind`: the same files the greeting counted), each kind's files going
+    into a folder beside them."""
     from assistant.plans import PlanOp, create_draft_plan
     found, missing, protected = [], [], []
+    if kind:
+        from items.suggest import KINDS, files_for
+        if kind not in KINDS:
+            return {"ok": False, "error": "I can sort screenshots, copies or "
+                                          "installers as a set."}
+        rows = files_for(conn, kind)
+        if not rows:
+            return {"ok": False, "error": f"There are no loose {kind} to "
+                                          "sort."}
+        files = []
+        for row in rows:
+            if item_is_sensitive(conn, row["item_id"]):
+                protected.append(row["display_label"])
+            else:
+                found.append(row)
     for name in files:
         row = _resolve(conn, str(name))
         if row is None:
@@ -157,11 +176,15 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
                 "not_found": missing}
     paths = [Path(r["open_target"]) for r in found]
     parent = Path(os.path.commonpath([str(p.parent) for p in paths]))
-    folder = destination or _type_folder([r["display_label"] for r in found])
+    folder = destination or (
+        {"copies": "Copies"}.get(kind or "")
+        or _type_folder([r["display_label"] for r in found]))
     target = parent / folder
-    in_tree, not_placed = ({}, []) if destination else _tree_places(
+    in_tree, not_placed = ({}, []) if destination or kind else _tree_places(
         conn, found, parent)
-    pairs = [(row, src, in_tree.get(row["item_id"], target) / src.name)
+    pairs = [(row, src, in_tree.get(row["item_id"],
+                                    src.parent / folder if kind else target)
+              / src.name)
              for row, src in zip(found, paths)]
     pairs = [p for p in pairs if p[1].parent != p[2].parent]
     scope = os.path.commonpath([str(parent)] + [str(d.parent)
@@ -1007,7 +1030,7 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         *, context: Any = None) -> dict[str, Any]:
     if name == "quick_sort":
         return quick_sort(conn, list(args.get("files") or []),
-                          args.get("destination"))
+                          args.get("destination"), args.get("kind"))
     if name == "undo_last":
         return undo_last(conn, context)
     if name == "next_questions":

@@ -229,15 +229,18 @@ ENGINE_GROUP = "engine"
 _ENGINE_SCHEMAS: list[dict[str, Any]] = [
     _fn(
         "quick_sort",
-        "Propose moving a few named files into one folder. Moves nothing: "
-        "the person is shown the moves and says yes or no. `destination` is "
-        "a single folder NAME (no slashes) created beside the files; omit it "
+        "Propose a one-off move of named files, or of a whole set with "
+        "`kind` (screenshots / copies / installers: exactly the loose files "
+        "the suggestions counted), into one folder. Moves nothing: the "
+        "person is shown the moves and says yes or no. `destination` is a "
+        "single folder NAME (no slashes) created beside the files; omit it "
         "to group them by type.",
         {
             "files": {"type": "array", "items": {"type": "string"}},
+            "kind": {"type": "string",
+                     "enum": ["screenshots", "copies", "installers"]},
             "destination": {"type": "string"},
         },
-        ["files"],
     ),
     _fn(
         "index_folder",

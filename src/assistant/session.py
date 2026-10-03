@@ -1084,7 +1084,11 @@ PLAIN_WORDS = (
     "state names or codes: not unplaced, typed, held, schema ids, situation "
     "codes, branch ids or item ids. Say \"not sorted yet\", not "
     "\"unplaced\"; say \"protected\", not \"held\"; name a folder the way "
-    "the plan shows it.")
+    "the plan shows it.\n"
+    "\"Put / move my screenshots (or installers, copies) into a folder\" is "
+    "a one-off: call quick_sort with kind, which takes every loose one. "
+    "Only \"always / whenever / from now on …\" is a standing rule: call "
+    "remember_rule. Never both for one request.")
 
 #: State words a person should never read, and what to say instead. "typed"
 #: is ordinary English after you/I, so only the state use is replaced.
