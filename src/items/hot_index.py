@@ -340,6 +340,7 @@ def find_files(
         vector_used = False
     else:
         fused = _rrf([fts_ranks, vec_ranks], k=RRF_K)
+    fused = _trusted_order(conn, q, fused)
 
     hits: list[FindHit] = []
     protected_count = 0
@@ -799,6 +800,40 @@ def _vector_search(conn, query: str, *, limit: int,
         item_id: rank for rank, (_s, item_id) in enumerate(scored[:limit], 1)
     }
     return ranks, True
+
+
+_JUNK_PARTS = (
+    "cache", "graphify-out", "node_modules", "__pycache__",
+)
+
+
+def _is_junk_path(path: str) -> bool:
+    for part in Path(path).parts[:-1]:
+        low = part.casefold()
+        if low.endswith("_files") or low in _JUNK_PARTS:
+            return True
+    return False
+
+
+def _trusted_order(conn, query: str, fused: list[tuple[str, float]]):
+    """Filename matches first, junk folders last; fused score within a tier."""
+    tokens = [t.casefold() for t in _query_tokens(query)] or [query.casefold()]
+    needles = tokens
+
+    def tier(item_id: str, score: float):
+        row = conn.execute(
+            "SELECT display_label, open_target FROM items WHERE item_id = ?",
+            (item_id,),
+        ).fetchone()
+        if row is None:
+            return (1, 1, -score, item_id)
+        label = (row["display_label"] or "").casefold()
+        named = any(n and n in label for n in needles)
+        junk = _is_junk_path(row["open_target"] or "")
+        return (int(junk), int(not named), -score, item_id)
+
+    ordered = sorted((tier(i, s), i, s) for i, s in fused)
+    return [(i, s) for _, i, s in ordered]
 
 
 def _rrf(rank_maps: list[dict[str, int]], *, k: int) -> list[tuple[str, float]]:
