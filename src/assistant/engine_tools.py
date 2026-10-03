@@ -719,10 +719,53 @@ def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
                      f"{_home_words(path)}? Every move can be undone.")
 
 
+def _in_place(conn: sqlite3.Connection) -> int:
+    """Moves the sorter's journal says happened and are not yet taken back."""
+    try:
+        from apply_run.run import applied_entries
+        return len(applied_entries(conn))
+    except sqlite3.Error:
+        return 0
+
+
+def _attempts(conn: sqlite3.Connection) -> int:
+    try:
+        return conn.execute("SELECT count(*) FROM execution_records"
+                            ).fetchone()[0]
+    except sqlite3.Error:
+        return 0
+
+
+def _why_nothing_moved(conn: sqlite3.Connection, since: int,
+                       lines: list[str]) -> str:
+    """The sorter's own reason, read from what it recorded for this attempt."""
+    from apply_run.run import sentence_for
+    rows = conn.execute(
+        "SELECT result FROM execution_records ORDER BY rowid LIMIT -1 "
+        "OFFSET ?", (since,)).fetchall()
+    for (result,) in rows:
+        try:
+            sentence = sentence_for(result, cross_volume="it would have to "
+                                    "cross to another drive")
+        except Exception:
+            sentence = None
+        if sentence:
+            return sentence
+    text = " ".join(lines)
+    if "Already filed" in text:
+        return "they are already where the plan puts them."
+    if "Nothing was frozen" in text:
+        return "nothing in the locked-in plan goes into that folder."
+    return "the sorter found nothing it could move there."
+
+
 def _branch(conn: sqlite3.Connection, ref: str, undo: bool) -> dict[str, Any]:
+    """Run the sorter's own `--apply` / `--undo` for one branch and report
+    what its journal says actually happened, never the exit code alone."""
     import cli
     folder, _, branch = ref.partition("|")
     conn.commit()
+    before, tried = _in_place(conn), _attempts(conn)
     stream = _ProgressStream(None)
     try:
         code = cli.main([folder, "--database", database_path(conn),
@@ -734,11 +777,18 @@ def _branch(conn: sqlite3.Connection, ref: str, undo: bool) -> dict[str, Any]:
     if code not in (0, None):
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": "The sorter refused that, so nothing moved."}
+    n = (before - _in_place(conn)) if undo else (_in_place(conn) - before)
+    if n <= 0:
+        why = (_why_nothing_moved(conn, tried, stream.lines) if not undo
+               else "nothing from that folder had been moved.")
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": f"0 files {'put back' if undo else 'moved'} — {why}"}
+    them = "it" if n == 1 else "them"
     return {"ok": True, "moved": True,
             "undo_token": None if undo else f"branch:{ref}",
-            "text": (f"Put the files from {branch} back." if undo else
-                     f"Moved the files for {branch}. Say undo to put them "
-                     "back.")}
+            "text": (f"Put {_plural(n, 'file')} back from {branch}." if undo
+                     else f"Moved {_plural(n, 'file')} into {branch}. Say "
+                          f"undo to put {them} back.")}
 
 
 def _named_item(conn: sqlite3.Connection, file: str):
