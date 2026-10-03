@@ -93,6 +93,9 @@ PY
   TESTROOT="$WORK/installed-tests"
   mkdir -p "$TESTROOT/tests" "$TESTROOT/src" "$TESTROOT/tools"
   cp "$ROOT/tools/run_assistant_gates.sh" "$TESTROOT/tools/"
+  # tests/assistant/test_show_tree_from_sorter.py reuses this corpus fixture.
+  mkdir -p "$TESTROOT/tests/integration"
+  cp "$ROOT/tests/integration/test_an_unsettled_default_still_builds_the_rest.py" "$TESTROOT/tests/integration/"
   cp -R "$ROOT/tests/assistant" "$TESTROOT/tests/assistant"
   cp -R "$ROOT/tests/items" "$TESTROOT/tests/items"
   cp "$ROOT/tests/conftest.py" "$TESTROOT/tests/conftest.py"
