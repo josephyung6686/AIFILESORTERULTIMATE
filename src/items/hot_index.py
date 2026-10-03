@@ -365,7 +365,8 @@ def find_files(
     hits: list[FindHit] = []
     protected_count = 0
     for item_id, score in fused:
-        if len(hits) >= limit:
+        full = len(hits) >= limit
+        if full and item_id not in named:
             break
         row = conn.execute(
             "SELECT item_id, display_label, open_target, typing_state, "
@@ -380,9 +381,18 @@ def find_files(
             # Shown only when the person asked for it by name: a protected
             # row matched on its folder or a stray word looks alarming.
             label = (row["display_label"] or "").casefold()
+            folder = Path(row["open_target"] or "").parent.name.casefold()
             if not any(n and n in label for n in needles):
+                # Matched by its folder's name: never silently omitted --
+                # counted for this search, the row itself not returned.
+                if any(n and n in folder for n in needles):
+                    protected_count += 1
+                continue
+            if full:
                 continue
             protected_count += 1
+        elif full:
+            continue
 
         chunk_id = best_chunks.get(item_id) or vec_best_chunks.get(item_id)
         in_chunk = item_id in chunk_ranks or item_id in vec_best_chunks
