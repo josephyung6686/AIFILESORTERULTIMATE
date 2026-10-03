@@ -2,6 +2,9 @@
 
 Uses optional ``watchdog`` with FSEventsEmitter when installed. Never moves
 files — only emits FsEvent for PathWatcher/policy to consume.
+
+Each event carries a monotonic ``seq`` so PathWatcher can persist a durable
+cursor/watermark and a restart cannot skip observed work.
 """
 from __future__ import annotations
 
@@ -25,6 +28,14 @@ def fsevents_available() -> bool:
         return False
 
 
+def _identity_for(path: str) -> tuple[int | None, int | None]:
+    try:
+        st = Path(path).stat()
+        return int(st.st_dev), int(st.st_ino)
+    except OSError:
+        return None, None
+
+
 @dataclass
 class LiveFsEventsWatcher:
     """Subscribe to FSEvents for ``root``. Thread-safe event queue."""
@@ -34,6 +45,8 @@ class LiveFsEventsWatcher:
     _lock: threading.Lock = field(default_factory=threading.Lock)
     _observer: object | None = None
     _started: bool = False
+    _seq: int = 0
+    last_seq: int = 0
 
     def start(self) -> bool:
         if self._started:
@@ -59,8 +72,18 @@ class LiveFsEventsWatcher:
                     flags = "removed"
                 elif et == "moved":
                     flags = "renamed"
+                st_dev, st_ino = _identity_for(str(path))
                 with watcher._lock:
-                    watcher._queue.append(FsEvent(path=str(path), flags=flags))
+                    watcher._seq += 1
+                    seq = watcher._seq
+                    watcher.last_seq = seq
+                    watcher._queue.append(FsEvent(
+                        path=str(path),
+                        flags=flags,
+                        st_dev=st_dev,
+                        st_ino=st_ino,
+                        seq=seq,
+                    ))
 
         obs = FSEventsObserver()
         obs.schedule(_Handler(), root, recursive=True)
@@ -84,6 +107,10 @@ class LiveFsEventsWatcher:
             out = list(self._queue)
             self._queue.clear()
         return out
+
+    def peek_seq(self) -> int:
+        with self._lock:
+            return self.last_seq
 
     def __enter__(self):
         self.start()

@@ -66,7 +66,7 @@ def refresh_index(
             continue
         w = PathWatcher(root, prefer_fsevents=prefer_fsevents)
         try:
-            w.scan_events()  # prime
+            # Startup reconcile is restart-safe; tick drains the shared queue.
             result = w.tick(conn)
             ticks += 1
             reindexed = reindexed or bool(result.reindexed)

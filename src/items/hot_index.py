@@ -102,19 +102,31 @@ def _chunk_text(text: str, *, size: int = CHUNK_CHARS) -> list[tuple[int, int, s
 
 
 def rebuild_fts(conn: sqlite3.Connection, *, evidence_chars: int = 4000) -> int:
-    """Rebuild FTS + item_chunks from live items. Returns FTS row count."""
+    """Full rebuild of FTS + item_chunks from live items. Returns FTS row count.
+
+    Prefer ``items.index_refresh`` for incremental catch-up; this remains the
+    explicit rebuild path (CLI / maintenance).
+    """
+    from items.freshness import mark_indexed
+    from items.index_refresh import (
+        _body_for_item,
+        ensure_refresh_schema,
+        set_index_state,
+        READY,
+    )
+
     ensure_fts(conn)
+    ensure_refresh_schema(conn)
     conn.execute("DELETE FROM item_fts")
     conn.execute("DELETE FROM item_chunks")
     rows = conn.execute(
-        "SELECT item_id, display_label, open_target, file_id FROM items "
+        "SELECT item_id, display_label, open_target, file_id, content_hash "
+        "FROM items "
         "WHERE presence = 'live' AND superseded_by IS NULL"
     ).fetchall()
     n = 0
     for row in rows:
-        body = ""
-        if row["file_id"]:
-            body = _evidence_snippet(conn, row["file_id"], evidence_chars)
+        body = _body_for_item(conn, row, evidence_chars=evidence_chars)
         label = row["display_label"] or ""
         path = row["open_target"] or ""
         cjk_extra = cjk_bigrams(f"{label} {path} {body}")
@@ -135,7 +147,13 @@ def rebuild_fts(conn: sqlite3.Connection, *, evidence_chars: int = 4000) -> int:
                 "VALUES (?,?,?,?,?,?)",
                 (chunk_id, row["item_id"], ordinal, piece, start, end),
             )
+        digest = row["content_hash"]
+        if digest:
+            mark_indexed(conn, row["item_id"], digest, reason="full_rebuild")
         n += 1
+    # Clear refresh queue — full rebuild is authoritative.
+    conn.execute("DELETE FROM index_refresh_queue")
+    set_index_state(conn, READY)
     return n
 
 
@@ -155,9 +173,9 @@ def find_files(
         return FindResult((), 0, 0.0, 0.0, 0.0, False, False)
 
     ensure_fts(conn)
-    # Auto-build if empty.
-    if conn.execute("SELECT COUNT(*) FROM item_fts").fetchone()[0] == 0:
-        rebuild_fts(conn)
+    # Catch up the refresh queue before answering — never serve stale as fresh.
+    from items.index_refresh import ensure_search_ready
+    ensure_search_ready(conn)
 
     t0 = time.perf_counter()
     fts_ranks = _fts_search(conn, q, limit=max(limit * 5, 50))
@@ -173,11 +191,15 @@ def find_files(
     protected_count = 0
     for item_id, score in fused[:limit]:
         row = conn.execute(
-            "SELECT item_id, display_label, open_target, typing_state "
+            "SELECT item_id, display_label, open_target, typing_state, "
+            "presence, freshness_state "
             "FROM items WHERE item_id = ?",
             (item_id,),
         ).fetchone()
         if row is None:
+            continue
+        # Never return missing / deleted items from search.
+        if row["presence"] != "live" or row["freshness_state"] == "missing":
             continue
         protected = bool(
             row["open_target"] and path_is_protected(row["open_target"]))
