@@ -312,6 +312,12 @@ def _fts_path_label_stale(conn: sqlite3.Connection, item_id: str,
 def enqueue_dirty(conn: sqlite3.Connection) -> int:
     """Enqueue items that need index work (hash freshness or FTS path drift)."""
     ensure_refresh_schema(conn)
+    # FTS virtual tables do not index item_id equality lookups. Reading the
+    # projection once avoids a full FTS scan for every item in this pass.
+    projections = {
+        row["item_id"]: (row["path"] or "", row["label"] or "")
+        for row in conn.execute("SELECT item_id, path, label FROM item_fts")
+    }
     rows = conn.execute(
         "SELECT item_id, content_hash, last_indexed_hash, freshness_state, "
         "open_target, display_label, presence "
@@ -327,13 +333,19 @@ def enqueue_dirty(conn: sqlite3.Connection) -> int:
             if enqueue(conn, row["item_id"], digest or "", reason="missing"):
                 n += 1
             continue
+        projection = projections.get(row["item_id"])
+        path_stale = projection is None or (
+            bool(row["open_target"])
+            and row["open_target"] not in projection[0]
+        ) or (
+            bool(row["display_label"])
+            and row["display_label"] not in projection[1]
+        )
         needs = (
             state in (DIRTY, ERROR, INDEXING)
             or indexed != digest
             or digest is None
-            or _fts_path_label_stale(
-                conn, row["item_id"], row["open_target"], row["display_label"],
-            )
+            or path_stale
         )
         if needs:
             if enqueue(conn, row["item_id"], digest or "", reason=state or "drift"):

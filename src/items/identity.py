@@ -132,8 +132,8 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
     ).fetchone()
     if existing is not None:
         _point(conn, existing["item_id"], file_id, path, label)
-        _ensure_version(conn, existing["item_id"], file_id, content_hash, now)
-        _sync_freshness(conn, existing["item_id"], disk, content_hash)
+        _ensure_version(
+            conn, existing["item_id"], file_id, content_hash, now, disk=disk)
         return
 
     # An edit supersedes the file_id and leaves the path in place. The item
@@ -148,8 +148,8 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
     ).fetchone()
     if prior is not None:
         _point(conn, prior["item_id"], file_id, path, label)
-        _ensure_version(conn, prior["item_id"], file_id, content_hash, now)
-        _sync_freshness(conn, prior["item_id"], disk, content_hash)
+        _ensure_version(
+            conn, prior["item_id"], file_id, content_hash, now, disk=disk)
         return
 
     # Rename / relocate: same bytes already attached to a live item under a
@@ -164,8 +164,8 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
         ).fetchone()
         if by_inode is not None:
             _point(conn, by_inode["item_id"], file_id, path, label)
-            _ensure_version(conn, by_inode["item_id"], file_id, content_hash, now)
-            _sync_freshness(conn, by_inode["item_id"], disk, content_hash)
+            _ensure_version(
+                conn, by_inode["item_id"], file_id, content_hash, now, disk=disk)
             return
 
     by_hash = conn.execute(
@@ -179,8 +179,7 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
         if old_path and old_path != path and _is_absent(old_path):
             _point(conn, candidate["item_id"], file_id, path, label)
             _ensure_version(
-                conn, candidate["item_id"], file_id, content_hash, now)
-            _sync_freshness(conn, candidate["item_id"], disk, content_hash)
+                conn, candidate["item_id"], file_id, content_hash, now, disk=disk)
             return
 
     item_id = str(uuid.uuid4())
@@ -193,7 +192,8 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
         (item_id, ITEM_TYPE_FILE, label, file_id, path,
          PRESENCE_LIVE, TYPING_UNPLACED, now, DIRTY),
     )
-    _ensure_version(conn, item_id, file_id, content_hash, now)
+    _ensure_version(
+        conn, item_id, file_id, content_hash, now, disk=disk, new_item=True)
     if disk is not None:
         seed_new_item_identity(conn, item_id, disk, content_hash=content_hash)
     else:
@@ -223,7 +223,7 @@ def _point(conn: sqlite3.Connection, item_id: str, file_id: str,
 
 
 def _ensure_version(conn: sqlite3.Connection, item_id: str, file_id: str,
-                    content_hash: str, now: str) -> None:
+                    content_hash: str, now: str, *, disk, new_item: bool = False) -> None:
     prior = conn.execute(
         "SELECT content_hash FROM items WHERE item_id = ?",
         (item_id,),
@@ -238,6 +238,9 @@ def _ensure_version(conn: sqlite3.Connection, item_id: str, file_id: str,
         "(item_id, file_id, content_hash, became_live_at) VALUES (?, ?, ?, ?)",
         (item_id, file_id, content_hash, now),
     )
+    # Compare against the old identity before persisting the new hash.
+    if not new_item:
+        _sync_freshness(conn, item_id, disk, content_hash)
     # Persist the live content hash on the item row for decision binding.
     conn.execute(
         "UPDATE items SET content_hash = ? WHERE item_id = ?",

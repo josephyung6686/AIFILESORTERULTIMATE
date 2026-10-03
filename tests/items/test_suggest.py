@@ -4,6 +4,7 @@ from __future__ import annotations
 import http.client
 import io
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from items.schema import create_items_schema
 from items.suggest import proposals
@@ -45,9 +46,9 @@ def _course_and_event(conn):
         "item_id, kind, external_id, thread_id, account_label, happened_at, "
         "ended_at, address_from, address_to, calendar_id, status, "
         "attachment_names, attachment_hashes"
-        ") VALUES (?, 'event', 'evt-1', '', 'local', '2026-10-03T15:00:00+00:00', "
+        ") VALUES (?, 'event', 'evt-1', '', 'local', ?, "
         "'', '', '', 'primary', 'confirmed', '[]', '[]')",
-        (event,),
+        (event, (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()),
     )
     return course, event
 
@@ -62,7 +63,10 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
     rows = proposals(conn, now="2026-10-01T00:00:00+00:00")
     assert len(rows) == 1
     assert rows[0]["hub"] == "CHEM 101"
-    assert "Office hours" in rows[0]["message"]
+    # Unrelated events arm a warning but must not be attributed to this hub.
+    assert "Office hours" not in rows[0]["message"]
+    assert rows[0]["event_item_id"] is None
+    assert "future_events:present_unrelated" in rows[0]["evidence_refs"]
     assert rows[0]["kind"] == "missing_member_of"
     assert _counts(conn) == before
     out = io.StringIO()

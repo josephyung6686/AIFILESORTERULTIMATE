@@ -459,7 +459,7 @@ def _source_ids_for_hit(
     ).fetchone()
     if item and item["file_id"] and _table_exists(conn, "evidence"):
         for erow in conn.execute(
-            "SELECT evidence_id FROM evidence WHERE file_id = ? "
+            "SELECT * FROM evidence WHERE file_id = ? "
             "AND superseded_by IS NULL LIMIT 8",
             (item["file_id"],),
         ):
