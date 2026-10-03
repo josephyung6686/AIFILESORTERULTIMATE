@@ -129,7 +129,9 @@ def test_a_pasted_key_is_saved_privately_and_never_shown(db, tmp_path,
     assert all(key not in repr(e) for e in out)
     dumped = "\n".join(db.iterdump())
     assert key not in dumped
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    # Popped, not monkeypatch.delenv: delenv would record the pasted key as
+    # the value to RESTORE at teardown and leak it into every later test.
+    os.environ.pop("DEEPSEEK_API_KEY", None)
 
 
 def test_folder_question_offers_numbered_choices(conn):
