@@ -442,7 +442,8 @@ def question_event(q, index: int, of: int, conn=None):
     names = _question_files(conn, q, stated)
     count = stated if stated is not None else len(names)
     text, holes = _plain_and_holes(q.prompt, q.options)
-    e_g = f" (e.g. {', '.join(names)})" if names else ""
+    e_g = (f" ({names[0]})" if count == 1 and names else
+           f" (e.g. {', '.join(names)})" if names else "")
     if holes or not text:
         they = "it" if count == 1 else "they"
         asks = (f"what {'is' if count == 1 else 'are'} {they}?"
@@ -701,8 +702,14 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
                           "to stop — nothing moves either way."))
     _stage(context, "Reading and grouping your files…")
     try:
+        # The whole proposal, placements included: a tree with no file in
+        # it is nothing a person can judge, and the sorter places files
+        # only into the groups it has accepted. "Lock in" accepts the same
+        # groups (`--accept-groups --freeze`), so what is shown here is what
+        # locking in would approve. Without `--freeze` nothing is approved
+        # for moving and nothing moves.
         cli.main([str(path), "--database", database_path(conn),
-                  "--stop-after", "tree",
+                  "--accept-groups",
                   *(["--enable-cloud"] if cloud else [])], out=stream)
     except (Cancelled, KeyboardInterrupt):
         if emit is not None:

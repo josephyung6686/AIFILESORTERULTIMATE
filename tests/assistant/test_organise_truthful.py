@@ -152,4 +152,9 @@ def test_organise_streams_a_few_plain_lines_and_tells_the_model_counts(
                 "loose_files_placed", "open_questions", "held", "set_aside"):
         assert isinstance(reply["summary"][key], int), key
     assert isinstance(reply["summary"]["top_folders"], list)
+    # The proposal says where files go, not only which folders exist: the
+    # judge's run "placed no loose files" because organise stopped at the
+    # tree. Both loose course files get a place.
+    assert reply["summary"]["loose_files"] == 2
+    assert reply["summary"]["loose_files_placed"] == 2
     conn.close()
