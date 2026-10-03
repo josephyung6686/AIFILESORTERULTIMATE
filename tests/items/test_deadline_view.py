@@ -9,7 +9,7 @@ from items.deadline_view import deadline_view, render_html
 from items.identity import reconcile_tree
 from items.schema import create_items_schema
 
-import cli
+from database_agent.entrypoint import main
 
 
 def _item(conn, *, item_type, label, file_id=None, path=None, typing="unplaced",
@@ -83,7 +83,7 @@ def test_a_deadline_lists_witnessed_files_and_names_the_gap(conn, tmp_path: Path
 
     html_path = tmp_path / "deadlines.html"
     out = io.StringIO()
-    code = cli.main([
+    code = main([
         "view", "deadlines", "--database", str(tmp_path / "agent.sqlite"),
         "--expect", f"{event}={by_name['essay.txt']}",
         "--html", str(html_path),

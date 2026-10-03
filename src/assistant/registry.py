@@ -11,7 +11,6 @@ ALWAYS_TOOLS: tuple[str, ...] = (
     "find_files",
     "read_item",
     "list_related",
-    "list_deadlines",
     "list_gaps",
     "explain_file",
     "ask_user",
@@ -85,12 +84,6 @@ _ALWAYS_SCHEMAS: list[dict[str, Any]] = [
         "List live relationships touching an item_id.",
         {"item_id": {"type": "string"}},
         ["item_id"],
-    ),
-    _fn(
-        "list_deadlines",
-        "List deadline-linked items plus weak filename date hints. "
-        "File/profile signals only.",
-        {"limit": {"type": "integer", "default": 10}},
     ),
     _fn(
         "list_gaps",

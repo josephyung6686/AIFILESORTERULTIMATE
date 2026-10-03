@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
-import cli
+from database_agent.entrypoint import main
 
 from database_agent.encryption import (
     EncryptionUnavailable,
@@ -85,8 +85,8 @@ def test_cli_search_reads_real_encrypted_index(tmp_path):
     assert db_main(["encrypt", str(plain), "--database", str(encrypted),
                     "--key-file", str(key)]) == 0
     out = __import__("io").StringIO()
-    assert cli.main(["search", "encrypted needle", "--database", str(encrypted),
-                     "--key-file", str(key)], out=out) == 0
+    assert main(["search", "encrypted needle", "--database", str(encrypted),
+                 "--key-file", str(key)], out=out) == 0
     assert "resume.txt" in out.getvalue()
 
 

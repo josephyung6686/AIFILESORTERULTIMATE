@@ -41,10 +41,10 @@ def test_tools_mark_find_untrusted():
 
 
 def test_cli_has_ask_and_local_only():
-    cli = (SRC / "cli.py").read_text(encoding="utf-8")
+    entry = (SRC / "database_agent" / "entrypoint.py").read_text(encoding="utf-8")
     cmds = (SRC / "items" / "commands.py").read_text(encoding="utf-8")
-    assert '["ask"]' in cli
-    assert "ask_main" in cli
+    assert '"ask"' in entry
+    assert "ask_main" in entry
     assert "--local-only" in cmds
     assert "--show-trust" in cmds
 

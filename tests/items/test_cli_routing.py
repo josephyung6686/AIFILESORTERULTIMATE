@@ -5,6 +5,7 @@ import io
 from pathlib import Path
 
 import cli
+from database_agent.entrypoint import main
 from items.identity import reconcile_tree
 
 
@@ -25,14 +26,14 @@ def test_every_view_name_routes(tmp_path: Path):
     db = _db(tmp_path)
     for name in ("deadlines", "folder", "table", "board", "timeline", "graph"):
         out = io.StringIO()
-        code = cli.main(["view", name, "--database", str(db)], out=out)
+        code = main(["view", name, "--database", str(db)], out=out)
         assert code == 0, (name, out.getvalue())
 
 
 def test_search_routes(tmp_path: Path):
     db = _db(tmp_path)
     out = io.StringIO()
-    code = cli.main(["search", "a.txt", "--database", str(db)], out=out)
+    code = main(["search", "a.txt", "--database", str(db)], out=out)
     assert code == 0, out.getvalue()
     assert "hit" in out.getvalue().lower()
 
@@ -40,6 +41,6 @@ def test_search_routes(tmp_path: Path):
 def test_suggest_refuses_apply(tmp_path: Path):
     db = _db(tmp_path)
     out = io.StringIO()
-    code = cli.main(["suggest", "--database", str(db), "--apply"], out=out)
+    code = main(["suggest", "--database", str(db), "--apply"], out=out)
     assert code == 2
     assert "does not move" in out.getvalue()

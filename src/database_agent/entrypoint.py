@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 
 
-def _local_command(args: list[str]) -> int | None:
+def _local_command(args: list[str], out=None) -> int | None:
     """Dispatch the real dependency-free product commands lazily."""
     if not args or args[0] not in {"search", "ask", "db", "memory", "view", "suggest", "watch", "plan", "preview-plan"}:
         return None
@@ -20,16 +20,16 @@ def _local_command(args: list[str]) -> int | None:
                 "memory": memory_main, "view": view_main,
                 "suggest": suggest_main, "watch": watch_main,
                 "plan": plan_main, "preview-plan": preview_main}
-    return handlers[args[0]](args[1:])
+    return handlers[args[0]](args[1:], out=out)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, out=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args or args == ["--help"] or args == ["-h"]:
         print("usage: database-agent [OPTIONS] [DIRECTORY]")
         print("Run local file discovery and assistant operations. Use --help for options.")
         return 0
-    local_result = _local_command(args)
+    local_result = _local_command(args, out=out)
     if local_result is not None:
         return local_result
     from cli import main as legacy_main
