@@ -123,6 +123,25 @@ def test_a_file_moved_away_by_hand_is_not_reported_moved(organised):
     assert before
 
 
+def test_a_refused_lock_in_says_which_folder_and_why(tmp_path, monkeypatch):
+    import cli
+    from assistant.engine_tools import _freeze
+
+    def refuses(args, out=None, **_):
+        out.write("No plan was made for /x, and this is why:\n"
+                  "  ReviewActionRefused: accepting 'branch:Technology' "
+                  "produced no node. §5.4 populates a template\n")
+        return 1
+    monkeypatch.setattr(cli, "main", refuses)
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    result = _freeze(conn, str(tmp_path), None)
+    assert not result["ok"] and not result["moved"]
+    assert "Technology" in result["text"]
+    assert "ReviewActionRefused" not in result["text"]
+    assert "branch:" not in result["text"]
+    conn.close()
+
+
 # -- organise says a little, and only what the database holds -----------------
 
 def test_organise_streams_a_few_plain_lines_and_tells_the_model_counts(
@@ -148,13 +167,15 @@ def test_organise_streams_a_few_plain_lines_and_tells_the_model_counts(
         assert leak not in shown, leak
         assert leak not in to_model, leak
     reply = json.loads(json.loads(to_model)[-1]["content"])
-    for key in ("folders_proposed", "files_placed", "loose_files",
-                "loose_files_placed", "open_questions", "held", "set_aside"):
+    for key in ("folders_proposed", "files_to_move",
+                "files_already_in_place", "loose_files",
+                "loose_files_to_move", "open_questions", "held", "set_aside"):
         assert isinstance(reply["summary"][key], int), key
     assert isinstance(reply["summary"]["top_folders"], list)
     # The proposal says where files go, not only which folders exist: the
     # judge's run "placed no loose files" because organise stopped at the
     # tree. Both loose course files get a place.
     assert reply["summary"]["loose_files"] == 2
-    assert reply["summary"]["loose_files_placed"] == 2
+    assert reply["summary"]["loose_files_to_move"] == 2
+    assert reply["summary"]["top_folders"][0]["files_moving_in"] == 2
     conn.close()

@@ -163,38 +163,52 @@ def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
 
 def organise_summary(conn: sqlite3.Connection, root: Path) -> dict[str, Any]:
     """What an organise run left in the database, as counts a person can
-    be told: no paths of the database, flags, codes or arithmetic."""
+    be told: no paths of the database, flags, codes or arithmetic.
+
+    A file the plan "places" in the folder it already sits in does not
+    move, so moving and staying are counted apart."""
     tree = show_tree(conn)
     sorter = _sorter_tree(conn)
     nodes = sorter["nodes"] if sorter else {}
-    placed = {f["node_id"]: f["files"] for f in tree.get("folders") or []}
-
-    def under(node_id: str) -> int:
-        return placed.get(node_id, 0) + sum(
-            under(n.node_id) for n in nodes.values()
-            if n.parent_node_id == node_id)
-
-    top = [n for n in nodes.values() if n.parent_node_id not in nodes]
-    proposed = [n for n in nodes.values() if n.node_type != "existing"]
-    loose = [r for r in conn.execute(
-        "SELECT file_id, open_target FROM items WHERE presence = 'live' "
-        "AND superseded_by IS NULL AND open_target IS NOT NULL")
-        if str(Path(r["open_target"]).parent) == str(root)]
     by_file = sorter["by_file"] if sorter else {}
+    where = {r["file_id"]: Path(r["open_target"]).parent for r in conn.execute(
+        "SELECT file_id, open_target FROM items WHERE presence = 'live' "
+        "AND superseded_by IS NULL AND open_target IS NOT NULL")}
 
-    def is_placed(file_id) -> bool:
+    def destination(file_id):
         d = by_file.get(file_id)
-        return bool(d and d.outcome == "place")
+        if d is None or d.outcome != "place" or d.destination is None:
+            return None
+        return d.destination.node_id
 
+    def moves(file_id) -> bool:
+        node = destination(file_id)
+        return node is not None and file_id in where and (
+            root / sorter["path"](node)) != where[file_id]
+
+    moving_into: dict[str, int] = {}
+    for file_id in by_file:
+        if moves(file_id):
+            node = destination(file_id)
+            while nodes[node].parent_node_id in nodes:
+                node = nodes[node].parent_node_id
+            moving_into[node] = moving_into.get(node, 0) + 1
+    top = [n for n in nodes.values() if n.parent_node_id not in nodes]
+    loose = [f for f, parent in where.items() if parent == root]
+    placed = [f for f in by_file if destination(f) is not None]
     return {
-        "folders_proposed": len(proposed),
-        "top_folders": [{"name": n.display_label, "files": under(n.node_id),
-                         "new": n.node_type != "existing"}
-                        for n in sorted(top, key=lambda n: -under(n.node_id))
-                        ][:12],
-        "files_placed": sum(1 for f in by_file if is_placed(f)),
+        "folders_proposed": sum(1 for n in nodes.values()
+                                if n.node_type != "existing"),
+        "top_folders": [{"name": n.display_label,
+                         "new": n.node_type != "existing",
+                         "files_moving_in": moving_into.get(n.node_id, 0)}
+                        for n in sorted(top, key=lambda n: (
+                            -moving_into.get(n.node_id, 0),
+                            n.node_type == "existing"))][:12],
+        "files_to_move": sum(1 for f in placed if moves(f)),
+        "files_already_in_place": sum(1 for f in placed if not moves(f)),
         "loose_files": len(loose),
-        "loose_files_placed": sum(1 for r in loose if is_placed(r["file_id"])),
+        "loose_files_to_move": sum(1 for f in loose if moves(f)),
         "open_questions": len(_open_questions(conn)),
         "held": int((tree.get("files") or {}).get("held") or 0),
         "set_aside": sum(tree.get("set_aside_by_rule", {}).values()),

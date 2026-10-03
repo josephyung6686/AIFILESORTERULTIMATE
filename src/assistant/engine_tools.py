@@ -463,8 +463,10 @@ def question_event(q, index: int, of: int, conn=None):
         text=text,
         why=why,
         changes=_whole_sentences(q.unlocks, q.options),
-        options=tuple(Option(id=o.option_id, label=_plain(o.label, q.options))
-                      for o in q.options),
+        # A folder option is the person's own path: shown verbatim.
+        options=tuple(Option(id=o.option_id, label=(
+            o.label if getattr(o, "chooses_destination", None)
+            else _plain(o.label, q.options))) for o in q.options),
         allow_text=True, allow_skip=True,
         files_preview=tuple(names), count=count, index=index, of=of)
 
@@ -1011,9 +1013,18 @@ def _freeze(conn: sqlite3.Connection, folder: str,
         frozen = 0
     branches = _branches_printed(stream.lines)
     if code not in (0, None) or not frozen or not branches:
+        # The sorter's refusal names the proposed folder it could not
+        # build; that name is the person's to read, the code around it not.
+        empty = next((m.group(1) for m in (
+            re.search(r"accepting 'branch:([^']+)' produced no node", line)
+            for line in stream.lines) if m), None)
         return {"ok": False, "moved": False, "undo_token": None,
-                "text": "There was nothing ready to lock in, so nothing "
-                        "changed. Nothing moved."}
+                "text": (f"I couldn't lock in the plan: the proposed folder "
+                         f"“{empty}” has no file the sorter can put in it, "
+                         "so it refused the whole plan. Nothing changed and "
+                         "nothing moved." if empty else
+                         "There was nothing ready to lock in, so nothing "
+                         "changed. Nothing moved.")}
     shown = "\n".join(f"  {b}" for b in branches[:12])
     more = (f"\n  and {len(branches) - 12} more" if len(branches) > 12
             else "")

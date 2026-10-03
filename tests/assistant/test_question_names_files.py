@@ -72,6 +72,18 @@ def test_a_folder_question_shows_example_files(lib):
         "AP world notes.txt", "stroke paper.txt", "essay draft.txt"}
 
 
+def test_a_folder_option_is_the_persons_own_path_verbatim(lib):
+    # The code guard once turned ".../scratchpad/spike_home/db" into
+    # ".../scratchpad//db": a folder name is the person's, never a code.
+    q = question_for_unreadable_folder(
+        folder="School/AP", file_count=3, protected_count=0,
+        choices=(DestinationChoice("n1", "Projects/spike_home/db"),
+                 DestinationChoice("n2", "Archive")))
+    event = question_event(q, 1, 1, lib)
+    assert [o.label for o in event.options] == ["Projects/spike_home/db",
+                                                "Archive"]
+
+
 def test_a_protected_file_is_never_named(lib):
     for q in (question_for_unreadable_folder(
             folder="School/AP", file_count=4, protected_count=0,
