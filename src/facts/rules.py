@@ -210,6 +210,18 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     judges. A file that declines here has not gone quiet.
     """
     written: list[str] = []
+    # ONE KEY PER PASS, asked for only when a row is written. The key is derived from
+    # the version's evidence, which nothing below writes, so asking once is the same
+    # answer as asking per row -- and per row it was three queries over every
+    # observation of the file, for each of thousands of failing matches.
+    cached_key: list[str] = []
+
+    def key() -> str:
+        if not cached_key:
+            cached_key.append(pass_cache_key(conn, file_id=file_id,
+                                             content_hash=content_hash))
+        return cached_key[0]
+
     # Every match that cleared both screens, in the order it cleared them, so the
     # write pass below can reproduce that order exactly for the uncontested field.
     candidates: list[tuple[Rule, object, str, str]] = []
@@ -244,8 +256,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     reason="context_truncated" if truncated else "context_check_failed",
                     attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                     evidence_refs=(cite(observation),),
-                    cache_key=pass_cache_key(conn, file_id=file_id,
-                                              content_hash=content_hash))
+                    cache_key=key())
                 continue
             matched = match.group(0)
             candidates.append((
@@ -268,8 +279,7 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                 field_key=rule.field_key, reason=RULE_FOUND_SEVERAL_VALUES,
                 attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                 evidence_refs=(cite(observation),),
-                cache_key=pass_cache_key(conn, file_id=file_id,
-                                          content_hash=content_hash))
+                cache_key=key())
             continue
         # `canonical` is the one computed in the collect pass, not a second call to
         # `rule.canonical`. The contested check above counted THOSE values, so reusing
@@ -301,7 +311,6 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             field_key=rule.field_key, value_id=value_id,
             reliability_state=_VALIDATED, origin=RULE,
             evidence_refs=(cite(observation),),
-            cache_key=pass_cache_key(conn, file_id=file_id,
-                                      content_hash=content_hash),
+            cache_key=key(),
             active=True))
     return tuple(written)

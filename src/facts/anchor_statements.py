@@ -183,7 +183,8 @@ def _containing_span_reading(observation, index: SpanIndex, *, own_key: str) -> 
 
 
 def _minted_line(conn: sqlite3.Connection, observation, *,
-                 reads_in_document: Callable[[str], bool]) -> str | None:
+                 reads_in_document: Callable[[str], bool],
+                 units: dict) -> str | None:
     """Mint the LINE this code sits on as a reading of its own, and cite it.
 
     **Measured, which is why this exists.** On the owner's corpus the citation shapes
@@ -219,12 +220,16 @@ def _minted_line(conn: sqlite3.Connection, observation, *,
     """
     minted = line_reading_for(conn, observation,
                               extractor_name=LINE_EXTRACTOR,
-                              extractor_version=LINE_EXTRACTOR_VERSION)
+                              extractor_version=LINE_EXTRACTOR_VERSION,
+                              units=units)
     if minted is None or not reads_in_document(minted.locator):
         return None
     key = minted.observation_key
+    # `+file_id` keeps the planner on `evidence_key`. Left bare, SQLite chose
+    # `evidence_file` and walked every reading of the file per statement, which on a
+    # file of half a million readings is the whole pass.
     seen = conn.execute(
-        "SELECT 1 FROM evidence WHERE observation_key = ? AND file_id = ? LIMIT 1",
+        "SELECT 1 FROM evidence WHERE observation_key = ? AND +file_id = ? LIMIT 1",
         (key, observation.file_id)).fetchone()
     if seen is None:
         record_observation(conn, minted)
@@ -233,7 +238,8 @@ def _minted_line(conn: sqlite3.Connection, observation, *,
 
 def _containing_line(conn: sqlite3.Connection, observation, index: SpanIndex, *,
                      own_key: str,
-                     reads_in_document: Callable[[str], bool]) -> str | None:
+                     reads_in_document: Callable[[str], bool],
+                     units: dict) -> str | None:
     """The reading whose words are the whole LINE: the document's own, or a minted one.
 
     A reading the document already carries is always preferred, so a PDF heading cites
@@ -244,7 +250,8 @@ def _containing_line(conn: sqlite3.Connection, observation, index: SpanIndex, *,
     found = _containing_span_reading(observation, index, own_key=own_key)
     if found is not None:
         return found
-    return _minted_line(conn, observation, reads_in_document=reads_in_document)
+    return _minted_line(conn, observation, reads_in_document=reads_in_document,
+                        units=units)
 
 
 def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
@@ -278,6 +285,7 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
     for file_id, content_hash in sorted(set(file_versions)):
         observations = observations_for_version(conn, file_id, content_hash)
         index = _span_index(observations)
+        units: dict = {}
         for observation in observations:
             if not reads_in_document(observation.locator):
                 continue
@@ -298,7 +306,8 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (statement_id, scan_run_id, file_id, content_hash, code, own_key,
                  _containing_line(conn, observation, index, own_key=own_key,
-                                  reads_in_document=reads_in_document)))
+                                  reads_in_document=reads_in_document,
+                                  units=units)))
             written.append(statement_id)
     return tuple(written)
 
