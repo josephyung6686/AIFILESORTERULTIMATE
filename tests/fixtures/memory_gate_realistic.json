@@ -1,0 +1,42 @@
+{
+  "description": "Realistic recorded predictions for version-bound memory release gate",
+  "precision_bar": 0.95,
+  "coverage_floor": 0.20,
+  "min_samples": 20,
+  "model_version": "fixture-model-v1",
+  "corpus_version": "memory-gate-realistic-2026-10-03",
+  "corpus_hash": null,
+  "proposals": [
+    {"proposal_id": "r01", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r02", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r03", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r04", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r05", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r06", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r07", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r08", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r09", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r10", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r11", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r12", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r13", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r14", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r15", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r16", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r17", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r18", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r19", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "r20", "prediction": "accept", "label": "accept", "gold": true},
+    {"proposal_id": "abs1", "prediction": "abstain", "label": "reject", "gold": false},
+    {"proposal_id": "abs2", "prediction": "abstain", "label": "reject", "gold": false},
+    {"proposal_id": "abs3", "prediction": "abstain", "label": "reject", "gold": false},
+    {"proposal_id": "abs4", "prediction": "abstain", "label": "reject", "gold": false},
+    {"proposal_id": "abs5", "prediction": "abstain", "label": "reject", "gold": false},
+    {"proposal_id": "hold1", "prediction": "abstain", "label": "reject", "gold": false, "safety_hold": true}
+  ],
+  "rules_only_accepted": [
+    "r01", "r02", "r03", "r04", "r05",
+    "r06", "r07", "r08", "r09", "r10",
+    "noise_a", "noise_b", "noise_c", "noise_d", "noise_e"
+  ]
+}

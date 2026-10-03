@@ -245,11 +245,27 @@ def edit_plan_ops(
         conn: sqlite3.Connection,
         plan_id: str,
         ops: Sequence[PlanOp],
+        *,
+        session_read_untrusted: bool = False,
+        ai_proposal: dict[str, Any] | None = None,
 ) -> None:
-    """Replace ops; invalidates any prior approval (hash changes)."""
+    """Replace ops; invalidates any prior approval (hash changes).
+
+    Captures an L0 DiffEvent for the plan correction (atoms stay dark).
+    """
     ensure_plans_schema(conn)
     if not ops:
         raise ValueError("plan requires at least one op")
+    prior = conn.execute(
+        "SELECT summary_json FROM assistant_plans WHERE plan_id=?",
+        (plan_id,),
+    ).fetchone()
+    prior_summary = {}
+    if prior and prior["summary_json"]:
+        try:
+            prior_summary = json.loads(prior["summary_json"])
+        except json.JSONDecodeError:
+            prior_summary = {}
     conn.execute("DELETE FROM assistant_plan_ops WHERE plan_id = ?", (plan_id,))
     conn.execute(
         "DELETE FROM assistant_approvals WHERE plan_id = ?", (plan_id,))
@@ -286,6 +302,32 @@ def edit_plan_ops(
             (plan_id, op.item_id, op.file_id, op.content_hash,
              op.src, op.dst, "pending", op.root_scope, op.protected_snapshot),
         )
+    try:
+        from assistant.memory_l0 import capture_plan_correction
+        item_ids = [op.item_id for op in ops]
+        versions = {
+            op.item_id: op.content_hash
+            for op in ops if op.content_hash
+        }
+        capture_plan_correction(
+            conn,
+            plan_id=plan_id,
+            ai_proposal=ai_proposal or {
+                "action": "plan_ops",
+                "plan_id": plan_id,
+                "ops": prior_summary.get("ops") or [],
+            },
+            expert_fix={
+                "action": "edit_plan_ops",
+                "plan_id": plan_id,
+                "ops": summary["ops"],
+            },
+            item_ids=item_ids,
+            item_versions=versions,
+            session_read_untrusted=session_read_untrusted,
+        )
+    except Exception:
+        pass
 
 
 def require_full_list_viewed(full_list_viewed: bool) -> bool:

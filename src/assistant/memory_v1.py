@@ -66,7 +66,7 @@ def retrieve_for_proposal(
     """INDEX pack for proposal/ask time.
 
     rules_steering=True when explicit user rules are present (inject into
-    system prompt). atoms_steering always False in v1.
+    system prompt). atoms_steering only True after a version-bound release.
     """
     ensure_rules_schema(conn)
     ensure_l0_schema(conn)
@@ -88,6 +88,8 @@ def retrieve_for_proposal(
         atoms_pack = retrieve_atoms_for_proposal(conn, query=query)
     except Exception:
         pass
+    # v1 explicit rules remain the visible user-rules surface; atoms stay
+    # dark unless a release artifact has been deliberately enabled.
     return {
         "rules": top_rules,
         "few_shot": shots,

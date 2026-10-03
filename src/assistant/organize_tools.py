@@ -118,9 +118,12 @@ def accept_link(
         *, user_id: str = "local-user") -> dict[str, Any]:
     from items.decisions import accept_link as _accept
     try:
-        _accept(conn, relationship_id, user_id=user_id)
+        # DiffEvent captured inside decisions.accept_link.
+        result = _accept(conn, relationship_id, user_id=user_id)
         return {"ok": True, "relationship_id": relationship_id,
-                "state": "approved", "moved": False}
+                "state": result.get("state") or "approved",
+                "decision_id": result.get("decision_id"),
+                "moved": False}
     except Exception as e:
         return {"ok": False, "error": str(e), "moved": False}
 
@@ -130,28 +133,12 @@ def reject_link(
         *, user_id: str = "local-user") -> dict[str, Any]:
     from items.decisions import reject_link as _reject
     try:
-        _reject(conn, relationship_id, user_id=user_id)
-        # L0 correction capture — memory learning signal (atoms stay dark).
-        try:
-            from assistant.memory_l0 import capture_diff_event
-            capture_diff_event(
-                conn,
-                ai_proposal={
-                    "action": "accept_link",
-                    "relationship_id": relationship_id,
-                },
-                expert_fix={
-                    "action": "reject_link",
-                    "relationship_id": relationship_id,
-                    "user_id": user_id,
-                },
-                item_ids=[relationship_id],
-                session_read_untrusted=False,
-            )
-        except Exception:
-            pass
+        # DiffEvent captured inside decisions.reject_link (atoms stay dark).
+        result = _reject(conn, relationship_id, user_id=user_id)
         return {"ok": True, "relationship_id": relationship_id,
-                "state": "rejected", "moved": False}
+                "state": result.get("state") or "rejected",
+                "decision_id": result.get("decision_id"),
+                "moved": False}
     except Exception as e:
         return {"ok": False, "error": str(e), "moved": False}
 

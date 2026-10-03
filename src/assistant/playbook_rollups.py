@@ -76,7 +76,19 @@ def write_rollups(
     if not rules:
         profile_body.append("- (none)")
     profile_body.append("")
-    profile_body.append("## Atoms (may be dark for steering)")
+    steering = False
+    try:
+        from assistant.memory_release import release_status
+        status = release_status(conn)
+        steering = bool(status.get("atoms_steering"))
+    except Exception:
+        status = {"dark": True, "atoms_steering": False}
+    profile_body.append(
+        "## Atoms "
+        + ("(steering enabled via version-bound release)"
+           if steering else
+           "(dark — visible INDEX only; not steering until memory release)")
+    )
     for a in atoms[:20]:
         profile_body.append(
             f"- {a.get('claim') or a.get('rule_text')} "
@@ -94,5 +106,7 @@ def write_rollups(
         "files": written,
         "n_rules": len(rules),
         "n_atoms": len(atoms),
+        "atoms_steering": steering,
+        "atoms_dark": not steering,
         "moved": False,
     }
