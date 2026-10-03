@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 
-ITEMS_SCHEMA_VERSION = 3
+ITEMS_SCHEMA_VERSION = 4
 
 ITEMS_DDL = """
 CREATE TABLE IF NOT EXISTS items_meta (
@@ -15,18 +15,26 @@ CREATE TABLE IF NOT EXISTS items_meta (
 );
 
 CREATE TABLE IF NOT EXISTS items (
-    item_id        TEXT PRIMARY KEY,
-    item_type      TEXT NOT NULL,
-    display_label  TEXT NOT NULL,
-    file_id        TEXT,
-    open_target    TEXT,
-    external_key   TEXT,
-    presence       TEXT NOT NULL,
-    typing_state   TEXT NOT NULL,
-    type_schema    TEXT,
-    profile_id     TEXT,
-    created_at     TEXT NOT NULL,
-    superseded_by  TEXT
+    item_id            TEXT PRIMARY KEY,
+    item_type          TEXT NOT NULL,
+    display_label      TEXT NOT NULL,
+    file_id            TEXT,
+    open_target        TEXT,
+    external_key       TEXT,
+    presence           TEXT NOT NULL,
+    typing_state       TEXT NOT NULL,
+    type_schema        TEXT,
+    profile_id         TEXT,
+    created_at         TEXT NOT NULL,
+    superseded_by      TEXT,
+    content_hash       TEXT,
+    size               INTEGER,
+    mtime_ns           INTEGER,
+    st_dev             INTEGER,
+    st_ino             INTEGER,
+    last_seen_at       TEXT,
+    last_indexed_hash  TEXT,
+    freshness_state    TEXT NOT NULL DEFAULT 'dirty'
 );
 
 CREATE TABLE IF NOT EXISTS item_versions (
@@ -92,12 +100,87 @@ CREATE TABLE IF NOT EXISTS relationship_decisions (
 );
 CREATE INDEX IF NOT EXISTS relationship_decisions_by_basis
     ON relationship_decisions(basis_key, created_at);
+
+-- Append-only identity / freshness transitions for diagnosing stale search.
+CREATE TABLE IF NOT EXISTS item_identity_events (
+    event_id      TEXT PRIMARY KEY,
+    item_id       TEXT NOT NULL,
+    from_state    TEXT,
+    to_state      TEXT NOT NULL,
+    reason        TEXT NOT NULL,
+    path          TEXT,
+    content_hash  TEXT,
+    st_dev        INTEGER,
+    st_ino        INTEGER,
+    details       TEXT,
+    observed_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS item_identity_events_by_item
+    ON item_identity_events(item_id, observed_at);
+CREATE TRIGGER IF NOT EXISTS item_identity_events_no_update
+BEFORE UPDATE ON item_identity_events
+BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS item_identity_events_no_delete
+BEFORE DELETE ON item_identity_events
+BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
 """
+
+#: Columns added after the first items release. `CREATE TABLE IF NOT EXISTS` is a
+#: no-op on an existing table, so these ALTER paths reach migrated databases.
+ITEMS_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("content_hash", "TEXT"),
+    ("size", "INTEGER"),
+    ("mtime_ns", "INTEGER"),
+    ("st_dev", "INTEGER"),
+    ("st_ino", "INTEGER"),
+    ("last_seen_at", "TEXT"),
+    ("last_indexed_hash", "TEXT"),
+    ("freshness_state", "TEXT NOT NULL DEFAULT 'dirty'"),
+)
+
+
+def _migrate_items_columns(conn: sqlite3.Connection) -> None:
+    present = {row[1] for row in conn.execute("PRAGMA table_info(items)")}
+    if not present:
+        return
+    for column, column_type in ITEMS_ADDED_COLUMNS:
+        if column not in present:
+            conn.execute(
+                f"ALTER TABLE items ADD COLUMN {column} {column_type}"
+            )
 
 
 def create_items_schema(conn: sqlite3.Connection) -> None:
     """Create the item tables if they are absent. Safe to call on every run."""
     conn.executescript(ITEMS_DDL)
+    _migrate_items_columns(conn)
+    # Indexes/triggers that depend on migrated columns or tables added after v3.
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS item_identity_events (
+            event_id      TEXT PRIMARY KEY,
+            item_id       TEXT NOT NULL,
+            from_state    TEXT,
+            to_state      TEXT NOT NULL,
+            reason        TEXT NOT NULL,
+            path          TEXT,
+            content_hash  TEXT,
+            st_dev        INTEGER,
+            st_ino        INTEGER,
+            details       TEXT,
+            observed_at   TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS item_identity_events_by_item
+            ON item_identity_events(item_id, observed_at);
+        CREATE INDEX IF NOT EXISTS items_by_freshness ON items(freshness_state);
+        CREATE TRIGGER IF NOT EXISTS item_identity_events_no_update
+        BEFORE UPDATE ON item_identity_events
+        BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
+        CREATE TRIGGER IF NOT EXISTS item_identity_events_no_delete
+        BEFORE DELETE ON item_identity_events
+        BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
+        """
+    )
     existing = conn.execute("SELECT version FROM items_meta").fetchone()
     if existing is None:
         conn.execute(

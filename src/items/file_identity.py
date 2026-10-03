@@ -1,8 +1,8 @@
 """Rename-follow helpers: stable file IDs + bookmark blobs (macOS)."""
 from __future__ import annotations
 
-import os
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
 BOOKMARK_DDL = """
@@ -15,17 +15,43 @@ CREATE TABLE IF NOT EXISTS item_bookmarks (
 """
 
 
+@dataclass(frozen=True)
+class FileIdentityMeta:
+    """Durable on-disk identity fields used by freshness reconcile."""
+
+    size: int
+    mtime_ns: int
+    st_dev: int
+    st_ino: int
+
+
 def ensure_bookmark_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(BOOKMARK_DDL)
 
 
-def file_id_token(path: Path) -> str | None:
-    """Stable-ish identity: st_dev + st_ino (POSIX)."""
+def read_file_identity(path: Path) -> FileIdentityMeta | None:
+    """lstat-shaped identity for a path, or None if absent / unreadable."""
     try:
-        st = path.stat()
+        st = path.lstat()
     except OSError:
         return None
-    return f"{st.st_dev}:{st.st_ino}"
+    if not path.is_file():
+        return None
+    mtime_ns = getattr(st, "st_mtime_ns", int(st.st_mtime * 1_000_000_000))
+    return FileIdentityMeta(
+        size=int(st.st_size),
+        mtime_ns=int(mtime_ns),
+        st_dev=int(st.st_dev),
+        st_ino=int(st.st_ino),
+    )
+
+
+def file_id_token(path: Path) -> str | None:
+    """Stable-ish identity: st_dev + st_ino (POSIX)."""
+    meta = read_file_identity(path)
+    if meta is None:
+        return None
+    return f"{meta.st_dev}:{meta.st_ino}"
 
 
 def remember_path(conn: sqlite3.Connection, item_id: str, path: Path) -> None:

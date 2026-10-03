@@ -16,6 +16,7 @@ Added here:
 - `item_id`, which stays put when an edit mints a new `file_id`, with the old
   and new ids on `item_versions`.
 - `presence = missing` when that disappearance pass retires the path.
+- Durable freshness fields and append-only identity events via `items.freshness`.
 """
 from __future__ import annotations
 
@@ -28,6 +29,14 @@ from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
 from grouping.vocabulary import P1_INCLUDED_SCAN_STATE
+from items.freshness import (
+    DIRTY,
+    observe_disk,
+    mark_missing,
+    reconcile_live_identity,
+    seed_new_item_identity,
+    transition,
+)
 from items.schema import create_items_schema
 from scan_agent.access import require_access
 from scan_agent.basic_record import record_basic_record
@@ -116,6 +125,7 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
     content_hash = row["content_hash"]
     now = datetime.now(timezone.utc).isoformat()
     label = Path(path).name
+    disk = observe_disk(Path(path), content_hash=content_hash)
     existing = conn.execute(
         "SELECT item_id FROM items WHERE file_id = ? AND item_type = ?",
         (file_id, ITEM_TYPE_FILE),
@@ -123,6 +133,7 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
     if existing is not None:
         _point(conn, existing["item_id"], file_id, path, label)
         _ensure_version(conn, existing["item_id"], file_id, content_hash, now)
+        _sync_freshness(conn, existing["item_id"], disk, content_hash)
         return
 
     # An edit supersedes the file_id and leaves the path in place. The item
@@ -138,18 +149,68 @@ def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
     if prior is not None:
         _point(conn, prior["item_id"], file_id, path, label)
         _ensure_version(conn, prior["item_id"], file_id, content_hash, now)
+        _sync_freshness(conn, prior["item_id"], disk, content_hash)
         return
+
+    # Rename / relocate: same bytes already attached to a live item under a
+    # different path — prefer inode match, then content hash on a missing path.
+    if disk is not None:
+        by_inode = conn.execute(
+            "SELECT item_id FROM items "
+            "WHERE item_type = ? AND superseded_by IS NULL "
+            "AND st_dev = ? AND st_ino = ? "
+            "ORDER BY created_at LIMIT 1",
+            (ITEM_TYPE_FILE, disk.st_dev, disk.st_ino),
+        ).fetchone()
+        if by_inode is not None:
+            _point(conn, by_inode["item_id"], file_id, path, label)
+            _ensure_version(conn, by_inode["item_id"], file_id, content_hash, now)
+            _sync_freshness(conn, by_inode["item_id"], disk, content_hash)
+            return
+
+    by_hash = conn.execute(
+        "SELECT item_id, open_target, presence FROM items "
+        "WHERE item_type = ? AND content_hash = ? AND superseded_by IS NULL "
+        "ORDER BY created_at",
+        (ITEM_TYPE_FILE, content_hash),
+    ).fetchall()
+    for candidate in by_hash:
+        old_path = candidate["open_target"]
+        if old_path and old_path != path and _is_absent(old_path):
+            _point(conn, candidate["item_id"], file_id, path, label)
+            _ensure_version(
+                conn, candidate["item_id"], file_id, content_hash, now)
+            _sync_freshness(conn, candidate["item_id"], disk, content_hash)
+            return
 
     item_id = str(uuid.uuid4())
     conn.execute(
         "INSERT INTO items ("
         "item_id, item_type, display_label, file_id, open_target, external_key, "
-        "presence, typing_state, type_schema, profile_id, created_at, superseded_by"
-        ") VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL, ?, NULL)",
+        "presence, typing_state, type_schema, profile_id, created_at, superseded_by, "
+        "freshness_state"
+        ") VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL, ?, NULL, ?)",
         (item_id, ITEM_TYPE_FILE, label, file_id, path,
-         PRESENCE_LIVE, TYPING_UNPLACED, now),
+         PRESENCE_LIVE, TYPING_UNPLACED, now, DIRTY),
     )
     _ensure_version(conn, item_id, file_id, content_hash, now)
+    if disk is not None:
+        seed_new_item_identity(conn, item_id, disk, content_hash=content_hash)
+    else:
+        transition(
+            conn, item_id, DIRTY, reason="created_without_stat",
+            path=path, content_hash=content_hash, force_event=True,
+        )
+
+
+def _sync_freshness(conn, item_id: str, disk, content_hash: str) -> None:
+    if disk is None:
+        mark_missing(conn, item_id, reason="attach_path_absent")
+        return
+    reconcile_live_identity(
+        conn, item_id, disk, content_hash=content_hash,
+        reason_prefix="reconcile",
+    )
 
 
 def _point(conn: sqlite3.Connection, item_id: str, file_id: str,
@@ -184,10 +245,8 @@ def _mark_missing_under(conn: sqlite3.Connection, roots) -> None:
         # filesystem, using the same errors `reconcile_disappearances` uses, so
         # a file a later pass finds is live again.
         if target and _under_any(target, roots) and _is_absent(target):
-            conn.execute(
-                "UPDATE items SET presence = ? WHERE item_id = ?",
-                (PRESENCE_MISSING, row["item_id"]),
-            )
+            mark_missing(conn, row["item_id"], reason="reconcile_absent",
+                         path=target)
 
 
 def _under_any(path: str, roots) -> bool:
