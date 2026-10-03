@@ -148,3 +148,31 @@ def test_an_unindexed_folder_still_asks(lib, tmp_path):
     s = Session(conn, provider_turn=recording(), emit=lambda e: None)
     path, refusal = check_folder(conn, str(new), s, "organise")
     assert path is None and refusal["needs_confirmation"]["kind"] == "folder"
+
+
+# -- 2. forgetting is true in the next session --------------------------------
+
+def test_the_next_session_is_told_memory_was_cleared(lib):
+    conn, _ = lib
+    Session(conn, provider_turn=recording(text("ok")),
+            emit=lambda e: None).say("remember my essay")
+    out = []
+    s = Session(conn, provider_turn=recording(
+        tool_call("forget_conversations"), text("Asked.")), emit=out.append)
+    s.say("forget our conversations")
+    confirm = [e for e in out if isinstance(e, ev.Confirm)][-1]
+    s.confirm(confirm.confirm_id, True)
+    later = recording(text("You cleared it."))
+    Session(conn, provider_turn=later, emit=lambda e: None).say(
+        "what did we talk about?")
+    system = later.seen[0][0]["content"]
+    assert "The person cleared conversation memory on " in system
+    assert "you have no record before that" in system
+    assert "remember my essay" not in json.dumps(later.seen)
+
+
+def test_a_session_with_no_forget_says_nothing_about_it(lib):
+    conn, _ = lib
+    turn = recording(text("hi"))
+    Session(conn, provider_turn=turn, emit=lambda e: None).say("hello")
+    assert "cleared conversation memory" not in turn.seen[0][0]["content"]

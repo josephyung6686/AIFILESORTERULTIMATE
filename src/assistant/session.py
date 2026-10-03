@@ -817,9 +817,13 @@ class Session:
                               egress_class="cloud", engine=True,
                               engine_context=self)
         self._proposals = runtime.pending_confirmations
+        from assistant.conversation_store import forgot_line
+        forgot = forgot_line(self.conn)
         messages = [{"role": "system",
                      "content": build_system_prompt(self.conn, text)
-                     + "\n" + PLAIN_WORDS + "\n" + self.screen_state()},
+                     + "\n" + PLAIN_WORDS + "\n"
+                     + (forgot + "\n" if forgot else "")
+                     + self.screen_state()},
                     *self.history]
         # `converse` appends the model turns and tool replies; the history
         # keeps the tool messages (between the last user line and the answer)
