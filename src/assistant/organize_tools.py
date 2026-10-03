@@ -52,39 +52,183 @@ def propose_groups(conn: sqlite3.Connection, *, limit: int = 20) -> dict[str, An
     return {"ok": True, "groups": groups, "moved": False}
 
 
-def propose_tree(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]:
-    """Dry outline from typed items — not an apply plan."""
-    rows = conn.execute(
-        "SELECT item_id, display_label, type_schema, typing_state "
-        "FROM items WHERE presence='live' AND superseded_by IS NULL "
-        "AND item_type='file' ORDER BY type_schema, display_label LIMIT ?",
-        (limit,),
-    ).fetchall()
-    folders: dict[str, list[dict]] = {}
-    for r in rows:
-        key = r["type_schema"] or r["typing_state"] or "unplaced"
-        folders.setdefault(key, []).append({
-            "item_id": r["item_id"],
-            "display_label": r["display_label"],
-        })
-    memory = {}
-    try:
-        from assistant.memory_v1 import retrieve_for_proposal
-        memory = retrieve_for_proposal(conn, query="propose tree organize")
-    except Exception:
-        memory = {}
-    return {
+RUN_THE_SORTER = (
+    "No folder tree has been proposed yet. Run `database-agent <FOLDER>` to "
+    "read the folder and propose one; nothing moves until you freeze and apply.")
+PLACE_THE_FILES = (
+    "The sorter proposed folders but has not placed files in them yet (it was "
+    "run with --stop-after). Run `database-agent <FOLDER>` without --stop-after "
+    "to see where each file would go.")
+
+
+def _sorter_tree(conn: sqlite3.Connection):
+    """The sorter's latest plan version: node paths, decisions and move plans."""
+    if not (_table(conn, "plan_versions") and _table(conn, "placement_decisions")):
+        return None
+    from placement.store import decisions_for_plan
+    from tree_design.store import latest_plan_version, nodes_for_version
+    version = latest_plan_version(conn)
+    if version is None:
+        return None
+    nodes = {n.node_id: n for n in nodes_for_version(conn, version)}
+
+    def path(node_id: str) -> str:
+        parts = []
+        while node_id in nodes:
+            parts.append(nodes[node_id].display_label)
+            node_id = nodes[node_id].parent_node_id
+        return "/".join(reversed(parts))
+
+    by_file = {}
+    for d in decisions_for_plan(conn, plan_version=version):
+        for file_id in (d.subject.file_id, *d.subject.member_file_ids):
+            if file_id:
+                by_file[file_id] = d
+    moves = {}
+    if _table(conn, "move_plans"):
+        moves = {r["file_id"]: r["plan_id"] for r in conn.execute(
+            "SELECT file_id, plan_id FROM move_plans WHERE plan_version = ? "
+            "AND superseded_by IS NULL", (version,))}
+    return {"version": version, "nodes": nodes, "path": path,
+            "by_file": by_file, "moves": moves}
+
+
+def _held(row) -> bool:
+    from items.file_identity import path_is_protected
+    return row["typing_state"] == "held" or bool(
+        row["open_target"] and path_is_protected(row["open_target"]))
+
+
+def _set_aside_by_rule(conn: sqlite3.Connection) -> dict[str, int]:
+    """Paths the latest scan set aside, per rule: marked and counted."""
+    if _table(conn, "scan_runs"):
+        last = conn.execute(
+            "SELECT scan_run_id FROM scan_runs "
+            "ORDER BY started_at DESC, rowid DESC LIMIT 1").fetchone()
+        if last is not None:
+            from scan_agent.summary import scan_run_summary
+            return dict(scan_run_summary(
+                conn, last["scan_run_id"])["paths_excluded_by_rule"])
+    from items.identity import excluded_areas
+    by_rule: dict[str, int] = {}
+    for area in excluded_areas(conn):
+        by_rule[area["rule"]] = by_rule.get(area["rule"], 0) + area["paths"]
+    return by_rule
+
+
+def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
+    """The sorter's proposed or frozen tree, read from its tables. Moves nothing."""
+    tree = _sorter_tree(conn)
+    aside = _set_aside_by_rule(conn)
+    if tree is None:
+        return {"ok": True, "moved": False, "plan_version": None,
+                "set_aside_by_rule": aside, "next_step": RUN_THE_SORTER}
+    placed: dict[str, int] = {}
+    outcomes: dict[str, int] = {}
+    for d in tree["by_file"].values():
+        outcomes[d.outcome] = outcomes.get(d.outcome, 0) + 1
+        if d.outcome == "place" and d.destination is not None:
+            placed[d.destination.node_id] = placed.get(d.destination.node_id, 0) + 1
+    held = 0
+    if _table(conn, "items"):
+        held = conn.execute(
+            "SELECT count(DISTINCT file_id) FROM items WHERE presence = 'live' "
+            "AND superseded_by IS NULL AND typing_state = 'held'").fetchone()[0]
+    # The person's own folders that receive nothing are counted, not listed:
+    # a real Desktop mirrors hundreds and would overrun the turn's byte budget.
+    quiet = {n.node_id for n in tree["nodes"].values()
+             if n.node_type == "existing" and not placed.get(n.node_id)}
+    out = {
         "ok": True,
-        "outline": folders,
         "moved": False,
-        "memory": {
-            "rules_steering": memory.get("rules_steering"),
-            "atoms_steering": memory.get("atoms_steering"),
-            "rules": memory.get("rules") or [],
-            "atoms_dark": memory.get("atoms_dark", True),
-        },
-        "note": "dry outline only — use place_preview + approve to move",
+        "plan_version": tree["version"],
+        "folders": [
+            {"node_id": n.node_id, "path": tree["path"](n.node_id),
+             "kind": n.node_type, "role": n.node_role,
+             "files": placed.get(n.node_id, 0)}
+            for n in tree["nodes"].values() if n.node_id not in quiet
+        ],
+        "your_folders_receiving_nothing": len(quiet),
+        "files": {"decided": len(tree["by_file"]), "by_outcome": outcomes,
+                  "held": held},
+        "frozen_moves": len(tree["moves"]),
+        "set_aside_by_rule": aside,
+        "note": ("Held files are counted, never named here. Use propose_tree "
+                 "with item_ids to see where a file goes and why."),
     }
+    if not tree["by_file"]:
+        out["next_step"] = PLACE_THE_FILES
+    return out
+
+
+def propose_tree(conn: sqlite3.Connection,
+                 item_ids: list[str] | None = None) -> dict[str, Any]:
+    """Quick sort for the files the person names. Writes nothing, moves nothing.
+
+    With a sorter tree: each file's destination and reason come from its
+    placement row. Without one: its recognised type, and what to run.
+    """
+    if not item_ids:
+        return {"ok": False, "moved": False,
+                "error": "name the files to sort (item_ids); "
+                         "show_tree covers the whole folder"}
+    tree = _sorter_tree(conn)
+    names = {} if tree else _type_names()
+    files = []
+    for item_id in item_ids:
+        row = conn.execute(
+            "SELECT item_id, display_label, file_id, open_target, typing_state, "
+            "type_schema FROM items WHERE item_id = ? AND presence = 'live' "
+            "AND superseded_by IS NULL", (item_id,)).fetchone()
+        if row is None:
+            files.append({"item_id": item_id, "error": "item not found"})
+            continue
+        held = _held(row)
+        entry = {"item_id": item_id, "display_label": row["display_label"],
+                 "open_target": None if held else row["open_target"],
+                 "held": held, "destination": None}
+        if held:
+            entry["reason"] = ("held as protected: never filed automatically; "
+                               "file it yourself with --file-held")
+        elif tree is None:
+            schema = row["type_schema"]
+            entry["bucket"] = (names.get(schema, schema) if schema
+                               else "Not recognised yet")
+        else:
+            d = tree["by_file"].get(row["file_id"])
+            if d is None:
+                entry["outcome"] = None
+                entry["reason"] = (
+                    PLACE_THE_FILES if not tree["by_file"] else
+                    "the sorter has no decision for this version of the file; "
+                    "run database-agent <FOLDER> again")
+            else:
+                entry["outcome"] = d.outcome
+                entry["decision_id"] = d.decision_id
+                entry["why"] = d.explanation
+                if d.outcome == "place" and d.destination is not None:
+                    entry["destination"] = tree["path"](d.destination.node_id)
+                    entry["move_plan_id"] = tree["moves"].get(row["file_id"])
+                else:
+                    entry["reason"] = d.abstention_reason or d.outcome
+                    if d.ask is not None:
+                        entry["question"] = d.ask.question
+        files.append(entry)
+    out = {"ok": True, "moved": False, "files": files}
+    if tree is None:
+        out.update(source="type_buckets", next_step=RUN_THE_SORTER)
+    else:
+        out.update(source="sorter_tree", plan_version=tree["version"])
+    return out
+
+
+def _type_names() -> dict[str, str]:
+    """The recognition library's own name for each type, keyed by schema id."""
+    from recognition.rules import load_rules
+    manifest = (Path(__file__).resolve().parents[1] / "recognition" / "library"
+                / "recognition.json")
+    rules = load_rules(manifest.read_text)
+    return {k: getattr(s, "name", None) or k for k, s in rules.schemas.items()}
 
 
 def propose_links(conn: sqlite3.Connection, *, limit: int = 20) -> dict[str, Any]:

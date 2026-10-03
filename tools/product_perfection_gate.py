@@ -83,8 +83,8 @@ def main() -> int:
 
         req = rt.execute("request_tools", {"group": "organize_propose"})
         ok("request_tools", req.ok)
-        tree = rt.execute("propose_tree", {})
-        ok("propose_tree", tree.ok and tree.payload.get("moved") is False)
+        tree = rt.execute("show_tree", {})
+        ok("show_tree", tree.ok and tree.payload.get("moved") is False)
 
         # Atoms dark
         ok("atoms_dark", atoms_steering_allowed(conn) is False)
