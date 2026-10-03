@@ -33,6 +33,8 @@ def home(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    from database_agent import db
+    monkeypatch.setattr(db, "DEFAULT_DATABASE", "~/.graph-agent/database-agent.sqlite")
     return home
 
 

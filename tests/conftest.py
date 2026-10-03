@@ -73,6 +73,22 @@ def _no_ambient_model_server(monkeypatch):
     monkeypatch.setattr(cli, "_discover_local_models", lambda _endpoint: ())
 
 
+@pytest.fixture(autouse=True)
+def _no_database_in_the_real_home(tmp_path_factory, monkeypatch):
+    """No test may write the person's shared database, added 3 Oct 2026.
+
+    The default moved from the working directory to
+    `~/.graph-agent/database-agent.sqlite`, so a test that omits `--database`
+    would write into the developer's real home. Every test gets its own
+    throwaway default; a test about the default path itself sets HOME and
+    restores the literal in its own fixture.
+    """
+    from database_agent import db
+
+    default = tmp_path_factory.mktemp("default-home") / "database-agent.sqlite"
+    monkeypatch.setattr(db, "DEFAULT_DATABASE", str(default))
+
+
 def _databases_in_the_working_directory() -> frozenset[str]:
     return frozenset(path.name for path in _ROOT.glob("*.sqlite*"))
 
