@@ -154,7 +154,7 @@ from facts.kind import tokens as kind_tokens
 from facts.kind import KindVocabulary, compile_vocabulary, kind_facts
 from facts.kind import task_kind_on_a_taught_cover
 from grouping.acceptance import group_state_as_of, record_acceptance
-from grouping.seeds import ANCHOR_STATES
+from grouping.seeds import ANCHOR_STATES, first_evidence_ref
 from grouping.config import GroupingLimits
 from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
@@ -164,7 +164,7 @@ from placement.vocabulary import GROUP, PLACE
 from grouping.pipeline import (
     GroupingKnowledge, GroupingResult, ModelCallAuthorities,
 )
-from grouping.records import Group, GroupAcceptance
+from grouping.records import Group, GroupAcceptance, Membership, Support
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import (
@@ -178,6 +178,8 @@ from grouping.vocabulary import (
     INCLUDED, MUTUAL_SEMANTIC_RETRIEVAL, NOT_COHERENT, P1_INCLUDED_SCAN_STATE,
     PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER as USER_DECIDED,
     USER_ACCEPTED, USER_EDITED, VALIDATOR, VERSION_FAMILY, fact_bridge_ref,
+    CONTEXT_SUPPORTED as P9_CONTEXT_SUPPORTED, LLM as P9_LLM, NO_SENSITIVITY,
+    NOT_FLAGGED, STRONGLY_IDENTIFIED_FILE, SUPPORTED as P9_SUPPORTED,
 )
 from llm_harness.budgets import ScanBudget, allowed_calls, create_budget_schema
 from llm_harness.prompt_library import (
@@ -12288,6 +12290,9 @@ def draft_for_review(conn: sqlite3.Connection,
                      on_accepted: Callable[[str, Branch | None], None] | None = None,
                      schema_of_file: Callable[[str], str | None] | None = None,
                      domain_of: Callable[[str], str | None] | None = None,
+                     branches: Sequence[Branch] = (),
+                     situation_evidence_of: Callable[
+                         [str, str], tuple[str, str] | None] | None = None,
                      ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named DRAFT.
 
@@ -12391,8 +12396,8 @@ def draft_for_review(conn: sqlite3.Connection,
     grouped = [result for result in results
                if result.group is not None and result.stop_rule_outcome is None]
     if not grouped:
-        return ()
-    if branch_for is None:
+        buckets = []
+    elif branch_for is None:
         buckets = [(None, group_category, label, grouped)]
     else:
         if default_branch is None:
@@ -12409,7 +12414,131 @@ def draft_for_review(conn: sqlite3.Connection,
         if on_accepted is not None:
             on_accepted(merged_id, branch)
         drafted.append(merged_id)
+    if branches and situation_evidence_of is not None:
+        # A (branch, kind) P9 already drafted has its folder; the files of it
+        # no P9 group carries are placed into that branch as they always were.
+        opened = {(branch.label, category)
+                  for branch, category, _label, _bucket in buckets
+                  if branch is not None}
+        # AND A FILE ALREADY IN A DRAFT IS NOT DRAFTED AGAIN: a member of two
+        # accepted groups is skipped by both (§6.9), and a plan of nothing is
+        # refused. Measured: a person's kind answer put a file under Career
+        # while P9 had drafted its group under Education.
+        covered = {membership.file_id for group_id in drafted
+                   for membership in memberships_for_group(conn, group_id)}
+        for branch, merged_id in _drafts_of_the_files_the_judge_named(
+                conn, branches, opened=opened, covered=covered,
+                evidence_of=situation_evidence_of, domain_of=domain_of,
+                created_at=created_at):
+            if on_accepted is not None:
+                on_accepted(merged_id, branch)
+            drafted.append(merged_id)
     return tuple(drafted)
+
+
+def _drafts_of_the_files_the_judge_named(
+        conn: sqlite3.Connection, branches: Sequence[Branch], *,
+        opened: set[tuple[str, str]],
+        covered: set[str],
+        evidence_of: Callable[[str, str], tuple[str, str] | None],
+        domain_of: Callable[[str], str | None] | None,
+        created_at: str) -> list[tuple[Branch, str]]:
+    """One draft per (branch, kind) for the files the JUDGE put there, where P9
+    drafted nothing for that (branch, kind).
+
+    **WHY THIS EXISTS.** `partition_by_branch` opens a life branch for every
+    life the judge's named situations reach (`00` amendment 12, planning/00:352,
+    with 12a(i): "a life appears only where the person's own files put it"),
+    but the top level is built from accepted groups (§5.3) and a group was only
+    ever a merge of P9's. P9 seeds on direct or validated facts alone
+    (`grouping/seeds.py`), and a loose Desktop file has none -- so every branch
+    the judge opened was drafted from nothing and built no folder. Measured on a
+    33-file Desktop: seven life branches, 0 P9 groups, 0 of 32 loose files with
+    a folder to go to. `104` §18.58 recorded the gap ("a branch G opened with no
+    accepted group builds no folders") and left it open.
+
+    **WHY THE JUDGE'S NAME MAY START A DRAFT HERE AND NOT A P9 GROUP.**
+    `00` amendments of 9-10 Sep (planning/00:312): "An LLM is the decision
+    engine; code feeds it better inputs and applies its outputs". A file the
+    judge named, cited and the check accepted is a strongly identified file in
+    `00`:58's sense -- the design's own seed examples are files whose content
+    identifies their purpose. `seeds.py`'s narrower bar guards a different
+    loop: a model fact seeding a P9 group that site B then validates, the model
+    confirming itself. This draft is never put to site B; it is accepted by the
+    person (`--accept-groups`) or by nobody, and every file in it is still
+    checked one at a time by site C before it is placed (§6.10).
+
+    **WHAT IT DOES NOT DRAFT.** A file with no named situation -- the judge did
+    not speak, so nothing here does. A file whose kind is no domain of the 23
+    (`Group` refuses an unknown category, and a folder label is not one).
+    Protected files are drafted like any other and held by P11, which never
+    places one (`104` §18.58 item 4).
+    """
+    out: list[tuple[Branch, str]] = []
+    for branch in branches:
+        by_domain: dict[str, list[tuple[str, str, str]]] = {}
+        for file_id in branch.file_ids:
+            kind = branch.kind_of(file_id)
+            if kind is None or file_id in covered:
+                continue
+            named = evidence_of(file_id, kind)
+            if named is None:
+                continue
+            domain = (kind if kind in SCHEMA_IDS
+                      else domain_of(kind) if domain_of is not None else None)
+            if domain not in SCHEMA_IDS:
+                continue
+            by_domain.setdefault(domain, []).append((file_id, *named))
+        for domain, members in sorted(by_domain.items()):
+            if (branch.label, domain) in opened:
+                continue
+            out.append((branch, _draft_the_named(
+                conn, members, group_category=domain,
+                label=branch.folder_name, created_at=created_at)))
+    return out
+
+
+def _draft_the_named(conn: sqlite3.Connection,
+                     members: Sequence[tuple[str, str, str]], *,
+                     group_category: str, label: str, created_at: str) -> str:
+    """The draft for `_drafts_of_the_files_the_judge_named`: `(file_id,
+    content_hash, observation key of its situation fact)` per member. The id
+    is derived from the members, `_draft_as_one`'s rule, so an unchanged corpus
+    is one address across runs."""
+    digest = hashlib.sha256(",".join(
+        f"{file_id}:{content_hash}" for file_id, content_hash, _key
+        in sorted(members)).encode("utf-8")).hexdigest()[:12]
+    group_id = f"{PLAN_VERSION}:{group_category}:{label}:named:{digest}"
+    seed_file, seed_hash, _key = sorted(members)[0]
+    record_group(conn, Group(
+        group_id=group_id, seed_ref=f"{seed_file}:{seed_hash}",
+        seed_kind=STRONGLY_IDENTIFIED_FILE,
+        proposed_basis=(
+            f"the situation judge named a situation of {label!r} for each of "
+            f"these {len(members)} file(s); nobody has said whether they belong "
+            "together, so it is a draft until somebody decides"),
+        anchor_facts=(), pre_model_signals={"named_by_the_judge": len(members)},
+        anchor_count=0, coherence_verdict=COHERENT,
+        coherence_citations=tuple(key for _f, _h, key in members),
+        group_category=group_category, display_label=label,
+        label_source=USER_EDITED, conflicts=(), stop_rule_hits=(),
+        state=P9_SUPPORTED, sensitivity_state=NO_SENSITIVITY, dossier_id=None,
+        llm_response_ref=None, validation_verdict_ref=None, created_by=RULES,
+        created_at=created_at))
+    for file_id, content_hash, key in members:
+        record_membership(conn, Membership(
+            membership_id=f"{group_id}:{file_id}", group_id=group_id,
+            file_id=file_id, content_hash=content_hash,
+            basis=P9_CONTEXT_SUPPORTED, decision=INCLUDED,
+            decision_source=P9_LLM,
+            support=(Support(support_kind=COMPATIBLE_DOCUMENT_TYPE,
+                             observation_key=key,
+                             quote_or_field=SITUATION_FIELD, location=None,
+                             edge_ref=None),),
+            insufficient_evidence=False, insufficiency_statement=None,
+            conflicts=(), outlier_flag=NOT_FLAGGED, validation_verdict_ref=None,
+            created_at=created_at))
+    return group_id
 
 
 def _grouped_by_branch(conn: sqlite3.Connection,
@@ -17388,6 +17517,27 @@ def mint_review_homes_on_demand(conn: sqlite3.Connection, finished, *,
                 component_version=component_version, observed_at=observed_at)))
 
 
+def the_kind_the_folder_names(
+        votes: Sequence[tuple[str, Mapping[str, int]]],
+) -> tuple[str | None, str | None]:
+    """The first vote, IN ORDER, with a unique leader: `(kind, which vote)`.
+
+    The order an untyped run's default kind is read in: the JUDGE's named kinds,
+    then the anchors (a fact), then the recogniser's readings. `00` amendment 7
+    (12 Sep 2026) asks the judge even where the rules settled a file, because
+    the rules' top-1 was 32 %, and `partition_by_branch` already reads site G's
+    name ahead of the anchor for each file; the folder is counted the same way.
+    Measured on a 33-file Desktop: one resume's anchor named `career` over
+    sixteen files the judge named `photos`. A tie decides nothing and the next
+    vote is read, which is `_the_one_with_the_most`'s rule.
+    """
+    for basis, tally in votes:
+        leader = _the_one_with_the_most(tally)
+        if leader is not None:
+            return leader, basis
+    return None, None
+
+
 def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
     """The unique leader of a vote, or `None` because two tied or nobody voted.
 
@@ -18240,6 +18390,31 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             return None
         return value if value in _shipped_names else None
 
+    def _situation_evidence_of(file_id: str,
+                               kind: str) -> tuple[str, str] | None:
+        """`(content_hash, observation key)` for a file whose situation someone
+        NAMED: the judge's `situation` fact, or the person's answer -- their word
+        for this file, or for its kind at the kind's scope (the question
+        `cli.kinds_asked_one_by_one` puts). `None` where nobody named one.
+
+        The citation is the situation fact's own where there is one. A file only
+        the person answered for -- a text-less capture, settled by its kind and
+        never put to the judge (`00` 13 Sep item 5) -- cites the first thing
+        this product read of it, which is all the evidence there is."""
+        row = preferred_fact(conn, file_id=file_id, field_key=SITUATION_FIELD)
+        if _situation_fact_of(file_id) is not None:
+            key = first_evidence_ref(row)
+            return None if key is None else (row["content_hash"], key)
+        if (_their_situations().get(file_id) is None
+                and _the_situation_the_person_chose(kind, file_id) is None):
+            return None
+        first = conn.execute(
+            "SELECT f.content_hash, e.observation_key FROM files f "
+            "JOIN evidence e ON e.file_id = f.file_id "
+            "AND e.content_hash = f.content_hash "
+            "WHERE f.file_id = ? ORDER BY e.rowid LIMIT 1", (file_id,)).fetchone()
+        return None if first is None else (first[0], first[1])
+
     def _alternatives_of(file_id: str) -> tuple[str, ...]:
         """Every live `situation_alternative` row's value that is a shipped
         situation. A set, not a rank: the store does not keep the judge's order
@@ -18667,7 +18842,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 db, results, group_category=category, label=draft_label,
                 created_at=clock, branch_for=partition.branch_of,
                 default_branch=partition.default, on_accepted=remember,
-                schema_of_file=_schema_of_file, domain_of=_domain_of_kind))
+                schema_of_file=_schema_of_file, domain_of=_domain_of_kind,
+                branches=partition.branches,
+                situation_evidence_of=_situation_evidence_of))
         if drafts is not None:
             drafts.extend(drafted)
         if accept_drafts:
@@ -20231,6 +20408,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     #: before one keeps the older wording.
     named_by_cell: list[str | None] = [None]
 
+    def _the_kind_judged_for(file_id: str) -> str | None:
+        """The KIND the judge (or the person) named for this file: their word
+        first, then the stored `situation` fact -- a situation names its kind,
+        and the kind pass writes the kind itself -- then this run's site G map.
+        Read off the fact so a re-run names the folder from answers already
+        given, before site G is asked again."""
+        theirs = _their_situations().get(file_id)
+        if theirs is not None:
+            return schema_for_situation(catalogue, theirs)
+        row = preferred_fact(conn, file_id=file_id, field_key=SITUATION_FIELD)
+        value = (None if row is None
+                 else _situation_values().get(row["value_id"]))
+        if value in SCHEMA_IDS:
+            return value
+        if value in _shipped_names:
+            return schema_for_situation(catalogue, value)
+        return situation_cell[0].named.get(file_id)
+
     def _the_corpus_names_a_schema(roster, run_id: str) -> str:
         """WHICH KIND OF LIFE THIS FOLDER IS, from the folder's own evidence.
 
@@ -20307,7 +20502,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         anchors: dict[str, int] = {}
         raised: dict[str, int] = {}
+        judged: dict[str, int] = {}
         for file_id, content_hash in roster:
+            kind = _the_kind_judged_for(file_id)
+            if kind is not None and _situations_of(kind):
+                judged[kind] = judged.get(kind, 0) + 1
             owners = {WORK_TYPE_OWNER[value]
                       for field, value in _anchor_facts_of(file_id, content_hash)
                       if field == WORK_TYPE_FIELD and value in WORK_TYPE_OWNER
@@ -20323,11 +20522,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # travels with its answer. The screen used to describe `raised` whichever
         # of the two had decided -- see `named_by_cell` above and
         # `questions.triggers.question_for_situation`, where the sentence is.
-        for basis, votes in (("facts", anchors), ("readings", raised)):
-            leader = _the_one_with_the_most(votes)
-            if leader is not None:
-                named_by_cell[0] = basis
-                return leader
+        leader, basis = the_kind_the_folder_names((
+            ("judge", judged), ("facts", anchors), ("readings", raised)))
+        if leader is not None:
+            named_by_cell[0] = basis
+            return leader
         raise NotConfigured(
             "the folder was read and nothing in it said what kind of material "
             "it is: no file carries a kind-of-file word one situation owns, and "
@@ -20452,9 +20651,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         G alone left a file an anchor had settled in no kind's question at all.
         """
         questions = []
-        if branch.is_default or len(branch.schemas) < 2:
-            return questions
-        for kind in branch.schemas:
+        for kind in kinds_asked_one_by_one(branch):
             files = files_of_kind_still_open(
                 branch, kind,
                 judged_kind_of=situation_cell[0].named.get,
@@ -20526,6 +20723,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                                and branch.label != branch.schemas[0])
             if (branch.is_default and not branch.file_ids
                     and a_life_already_asks and not person_named_it):
+                continue
+            # A DEFAULT HOLDING ONLY PROTECTED FILES IS NOT ASKED A MENU. Each
+            # is filed by the person one at a time (`00` 13 Sep item 2; the
+            # protected block's `--situation-of`, `104` §18.110), and the
+            # default's menu is the majority kind's, about files nothing read
+            # as that kind -- measured on a 33-file Desktop: a college
+            # application and a vaccination card offered eight photos options.
+            if (branch.is_default and branch.file_ids
+                    and not set(branch.file_ids)
+                    - _protected_among(branch.file_ids)):
                 continue
             # A LIFE BRANCH OF TWO KINDS CARRIES NO CANDIDATES (`00` amendment
             # 12): "which situation is Education?" is not a question when
@@ -24002,6 +24209,22 @@ def placement_words(policy: str, *, disposition: str | None) -> str | None:
     except Exception:
         return ordinary
     return ordinary if moves else PLACEMENT_WORDS_NOT_MOVED
+
+
+def kinds_asked_one_by_one(branch) -> tuple[str, ...]:
+    """The kinds whose question a life branch asks of each kind's open files.
+
+    Every kind of a life branch that has no question of its own: two kinds
+    (`00` amendment 16), or ONE kind whose files already carry two situations,
+    which `branch_situation._asked_of_a_life` rightly offers no branch question
+    for. Before this the second case asked nothing, and the kind's files no
+    situation had answered had no way out -- `00` amendment 1 of 14 Sep: "the
+    person is asked only where the judge cannot", and is asked there. The
+    default branch's kinds are asked by their own loop.
+    """
+    if branch.is_default or branch.candidate_situations:
+        return ()
+    return tuple(branch.schemas)
 
 
 def files_of_kind_still_open(branch, kind: str, *, judged_kind_of,

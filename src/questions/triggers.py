@@ -431,6 +431,8 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
         # `None` KEEPS THE OLD WORDS on purpose: a caller that has not been taught
         # to say which vote it took should not be made to claim one.
         because = {
+            "judge": (f"because the situation judge named {kind} for more of "
+                      "this folder's files than any other kind"),
             "facts": (f"because more of these files carry a kind-of-file word "
                       f"{kind} owns than any other kind's"),
             "readings": (f"because {kind} is the kind this folder's own readings "
