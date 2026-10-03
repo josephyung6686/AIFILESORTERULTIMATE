@@ -431,20 +431,71 @@ def _question_files(conn, q, count: int | None = None) -> list[str]:
     return names
 
 
+#: Sentences the sorter writes about its own workings -- counts of levels,
+#: warnings, what a library carries -- which a person cannot act on.
+_ENGINE_SENTENCE = re.compile(
+    r"warning|would create|records? no values|library carries|kind-of-file "
+    r"word|no model has judged|file\(s\)|unresolved|own facts|own words "
+    r"support|nobody has said|not because anything", re.I)
+
+#: An ordering number in front of a folder name ("98 Review and Unsorted"):
+#: two digits, so a date such as "4 AUG 2023" is left alone.
+_ORDERING = re.compile(r"^\d{2}\s+(?=\S)")
+
+
+def display_name(path: str) -> str:
+    """A folder path as the person reads it, without ordering numbers."""
+    return "/".join(_ORDERING.sub("", part) for part in str(path).split("/"))
+
+
+def _person_sentences(text: str, options) -> str:
+    """The whole sentences of `text` that speak to the person, not about
+    the engine."""
+    return " ".join(
+        s for s in re.split(r"(?<=[.!?])\s+", _whole_sentences(text, options))
+        if s and not _ENGINE_SENTENCE.search(s))
+
+
+def _option_label(o, options, branch: str) -> str:
+    """An option as a folder path, or a short plain sentence."""
+    if getattr(o, "chooses_destination", None):
+        return display_name(o.label)
+    if getattr(o, "gates_template", None) is not None:
+        built = re.search(r"builds (.*?)(?: -- |$)", o.label)
+        if built:
+            return ", ".join(display_name(re.sub(r" \(\d+\)$", "", c))
+                             for c in built.group(1).split(", "))
+        said = _person_sentences(o.label, options)
+        return said or ("No subfolders: all of them go straight into "
+                        f"{display_name(branch)}")
+    return _plain(o.label, options)
+
+
 def question_event(q, index: int, of: int, conn=None):
-    """A sorter question in the person's words, naming the files it is
-    about. A prompt whose subject was an internal code (and so would read
-    "Which of these is?") is replaced by the files themselves; the sorter's
-    options are kept exactly."""
+    """A sorter question as one plain sentence naming its files (folder,
+    two or three names, the count). The sorter's own sentences about its
+    workings are left out, and options that read the same are shown once
+    (the first one's id is the answer)."""
     from assistant.events import Option, Question
     m = re.match(r"\s*(\d[\d,]*) files?\b", q.evidence_context or "")
     stated = int(m.group(1).replace(",", "")) if m else None
     names = _question_files(conn, q, stated)
     count = stated if stated is not None else len(names)
-    text, holes = _plain_and_holes(q.prompt, q.options)
+    kind, _, where = q.scope.partition(":")
+    where = display_name(where.strip("/")) if kind in ("folder", "branch") \
+        and not where.startswith("default:") else ""
     e_g = (f" ({names[0]})" if count == 1 and names else
            f" (e.g. {', '.join(names)})" if names else "")
-    if holes or not text:
+    files = ("this file" if count == 1 else f"the {count} files" if count
+             else "these files")
+    inside = f" in {where}" if where and where != "." else ""
+    text, holes = _plain_and_holes(q.prompt, q.options)
+    if any(getattr(o, "gates_template", None) is not None
+           for o in q.options):
+        text = f"How should {files}{inside}{e_g} be split into folders?"
+    elif any(getattr(o, "chooses_destination", None) for o in q.options):
+        text = f"Where should {files}{inside}{e_g} go?"
+    elif holes or not text:
         they = "it" if count == 1 else "they"
         asks = (f"what {'is' if count == 1 else 'are'} {they}?"
                 if any(getattr(o, "selects_situation", None)
@@ -453,20 +504,19 @@ def question_event(q, index: int, of: int, conn=None):
         these = ("This file" if count == 1 else
                  f"These {count} files" if count else "Some of your files")
         text = f"{these}{e_g} — {asks}"
-        why = _whole_sentences(q.evidence_context, q.options)
-    else:
-        why = _whole_sentences(q.evidence_context, q.options)
-        if names and not any(n in text for n in names):
-            why = (f"For example: {', '.join(names)}. " + why).strip()
+    elif names and not any(n in text for n in names):
+        text = f"{text.rstrip('?')} — {files}{e_g}?"
+    options: list = []
+    for o in q.options:
+        label = _option_label(o, q.options, where or "this folder")
+        if label and label not in [x.label for x in options]:
+            options.append(Option(id=o.option_id, label=label))
     return Question(
         question_id=q.question_id,
-        text=text,
-        why=why,
-        changes=_whole_sentences(q.unlocks, q.options),
-        # A folder option is the person's own path: shown verbatim.
-        options=tuple(Option(id=o.option_id, label=(
-            o.label if getattr(o, "chooses_destination", None)
-            else _plain(o.label, q.options))) for o in q.options),
+        text=text[:1].upper() + text[1:],
+        why=_person_sentences(q.evidence_context, q.options),
+        changes=_person_sentences(q.unlocks, q.options),
+        options=tuple(options),
         allow_text=True, allow_skip=True,
         files_preview=tuple(names), count=count, index=index, of=of)
 
@@ -504,6 +554,13 @@ def record_person_answer(conn: sqlite3.Connection, question_id: str,
     option = next((o.option_id for o in q.options
                    if typed == o.option_id
                    or typed.casefold() == o.label.casefold()), None)
+    if option is None:
+        # The words or the number the person was shown.
+        shown = question_event(q, 1, 1, conn).options
+        number = re.fullmatch(r"(?:option\s*)?(\d+)", typed.casefold())
+        option = next((o.id for i, o in enumerate(shown, 1)
+                       if typed.casefold() == o.label.casefold()
+                       or (number and int(number.group(1)) == i)), None)
     if option is not None or typed.casefold() in SKIP_WORDS:
         # The sorter's own `--answer` path, so the answer is also remembered
         # as an event exactly as the sorter remembers it.
