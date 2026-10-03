@@ -92,6 +92,10 @@ def _classify_by_name(conn: sqlite3.Connection, root: Path) -> None:
     from privacy.classification_store import ClassificationStore
     from privacy.learning_seam import assign
 
+    # The pass needs the sorter's tables; a database that only has items (the
+    # pilot's fast path) gets them here rather than skipping the protection.
+    from cli import _bootstrap
+    _bootstrap(conn)
     authorities = _authorities(conn)
     sink = RunWriter(conn, author=P5)
     store = ClassificationStore(conn)
@@ -118,10 +122,6 @@ def _classify_by_name(conn: sqlite3.Connection, root: Path) -> None:
                    component_version=authorities.p7_component_version)
 
 
-#: How much of a project's README is read to make the project findable.
-README_CHARS = 2048
-
-
 def _index_projects(conn: sqlite3.Connection) -> None:
     """One item per software project the scan set aside, never one per file.
 
@@ -133,8 +133,11 @@ def _index_projects(conn: sqlite3.Connection) -> None:
 
     from items.hot_index import cjk_bigrams, write_chunks_for_item
     from items.identity import excluded_areas
+    from items.project import project_body
     from scan_agent.exclusion import RULE_PROJECT_ROOT_DESCENDANT
 
+    from items.project import retire_missing_projects
+    retire_missing_projects(conn)
     for area in excluded_areas(conn):
         if area["rule"] != RULE_PROJECT_ROOT_DESCENDANT:
             continue
@@ -156,8 +159,7 @@ def _index_projects(conn: sqlite3.Connection) -> None:
                  datetime.now(timezone.utc).isoformat()))
         else:
             item_id = row["item_id"]
-        names = sorted(child.name for child in folder.iterdir())
-        body = "\n".join([_readme(folder), " ".join(names)]).strip()
+        body = project_body(folder)
         conn.execute("DELETE FROM item_fts WHERE item_id = ?", (item_id,))
         conn.execute("DELETE FROM item_chunk_fts WHERE item_id = ?", (item_id,))
         conn.execute("DELETE FROM item_chunks WHERE item_id = ?", (item_id,))
@@ -166,17 +168,6 @@ def _index_projects(conn: sqlite3.Connection) -> None:
             (item_id, f"{folder.name} {cjk_bigrams(folder.name)}".strip(),
              str(folder), body))
         write_chunks_for_item(conn, item_id, body, label=folder.name)
-
-
-def _readme(folder: Path) -> str:
-    for child in sorted(folder.iterdir()):
-        if child.is_file() and child.name.casefold().startswith("readme"):
-            try:
-                with child.open(encoding="utf-8", errors="replace") as handle:
-                    return handle.read(README_CHARS)
-            except OSError:
-                return ""
-    return ""
 
 
 def read_document_text(conn: sqlite3.Connection, *,

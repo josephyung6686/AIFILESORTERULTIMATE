@@ -91,3 +91,38 @@ def _typing_with_detector(conn: sqlite3.Connection) -> int:
             return None
 
     return project_typing(conn, explain=explain, classify=classify)
+
+
+#: How much of a project's README is read to make the project findable.
+README_CHARS = 2048
+
+
+def project_body(folder: Path) -> str:
+    """What makes a project findable: its README's start and its top-level names."""
+    names = sorted(child.name for child in folder.iterdir())
+    return "\n".join([_readme(folder), " ".join(names)]).strip()
+
+
+def _readme(folder: Path) -> str:
+    for child in sorted(folder.iterdir()):
+        if child.is_file() and child.name.casefold().startswith("readme"):
+            try:
+                with child.open(encoding="utf-8", errors="replace") as handle:
+                    return handle.read(README_CHARS)
+            except OSError:
+                return ""
+    return ""
+
+
+def retire_missing_projects(conn: sqlite3.Connection) -> None:
+    """A project whose folder is gone is marked missing and leaves search."""
+    from items.freshness import mark_missing
+    from items.index_refresh import delete_item_from_index
+
+    for row in conn.execute(
+            "SELECT item_id, open_target FROM items WHERE item_type = 'project' "
+            "AND presence = 'live' AND superseded_by IS NULL").fetchall():
+        if not Path(row["open_target"]).is_dir():
+            mark_missing(conn, row["item_id"])
+            delete_item_from_index(conn, row["item_id"])
+    conn.commit()

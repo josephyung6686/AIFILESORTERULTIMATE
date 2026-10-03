@@ -379,28 +379,53 @@ def _read_file_body(path: str | None, *, limit: int = BODY_FILE_CHARS) -> str:
 
 
 def _body_for_item(conn: sqlite3.Connection, row, *, evidence_chars: int) -> str:
+    from items.file_identity import item_is_sensitive, path_is_protected
     from items.hot_index import _evidence_snippet
 
-    body = ""
+    # Protected and sensitive items are marked and counted, never opened.
+    if path_is_protected(row["open_target"] or "") or (
+            "item_id" in row.keys() and item_is_sensitive(conn, row["item_id"])):
+        return ""
     if row["file_id"]:
-        body = _evidence_snippet(conn, row["file_id"], evidence_chars)
-    if not body:
-        body = _read_file_body(row["open_target"], limit=evidence_chars)
-    return body
+        # Only the version on disk now: an edited file's old text is not its
+        # body. A file the sorter has recorded by name has no body to cite
+        # until `read_document_text` has judged and read it.
+        body = _evidence_snippet(
+            conn, row["file_id"], evidence_chars, row["content_hash"])
+        if body or _recorded_by_name(conn, row["file_id"]):
+            return body
+    from items.project import project_body
+    target = Path(row["open_target"] or "")
+    if target.is_dir():
+        return project_body(target)
+    return _read_file_body(row["open_target"], limit=evidence_chars)
 
 
-def _evidence_source_ids(conn: sqlite3.Connection, file_id: str | None) -> list[str]:
+def _recorded_by_name(conn: sqlite3.Connection, file_id: str | None) -> bool:
+    from items.hot_index import _table_exists
+
+    return bool(file_id) and _table_exists(conn, "extraction_runs") and (
+        conn.execute("SELECT 1 FROM extraction_runs WHERE file_id = ? "
+                     "LIMIT 1", (file_id,)).fetchone() is not None)
+
+
+def _evidence_source_ids(conn: sqlite3.Connection, file_id: str | None,
+                         content_hash: str | None = None) -> list[str]:
     if not file_id:
         return []
     from items.hot_index import _table_exists
 
     if not _table_exists(conn, "evidence"):
         return []
+    from items.hot_index import _evidence_has_hash
+
+    by_hash = bool(content_hash) and _evidence_has_hash(conn)
     ids: list[str] = []
     for row in conn.execute(
         "SELECT * FROM evidence WHERE file_id = ? "
-        "AND superseded_by IS NULL LIMIT 8",
-        (file_id,),
+        "AND superseded_by IS NULL "
+        + ("AND content_hash = ? " if by_hash else "") + "LIMIT 8",
+        (file_id, content_hash) if by_hash else (file_id,),
     ):
         keys = row.keys()
         eid = None
@@ -450,7 +475,8 @@ def upsert_item_index(
     body = _body_for_item(conn, row, evidence_chars=evidence_chars)
     label = row["display_label"] or ""
     path = row["open_target"] or ""
-    source_ids = _evidence_source_ids(conn, row["file_id"])
+    source_ids = _evidence_source_ids(
+        conn, row["file_id"], row["content_hash"])
     cjk_extra = cjk_bigrams(f"{label} {path} {body}")
     indexed_body = body
     if cjk_extra:

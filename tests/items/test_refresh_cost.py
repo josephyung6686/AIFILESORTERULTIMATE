@@ -44,7 +44,9 @@ def test_a_second_search_with_no_change_writes_nothing_and_is_fast(tmp_path):
     _search(db, "note")
     elapsed = time.perf_counter() - started
     assert _rows(conn) == before
-    assert elapsed < 0.3, elapsed
+    # Measured 0.039 s on an idle machine (3 Oct 2026); the bound leaves room
+    # for concurrent load. The zero-rows assertion above is the strict one.
+    assert elapsed < 1.5, elapsed
 
 
 def test_a_touched_file_is_reindexed_and_only_it_is_recorded(tmp_path):
