@@ -117,8 +117,13 @@ def test_already_protected_is_said_and_nothing_is_granted(db, tmp_path):
     assert "already protected" in turn.seen[-1]
 
 
-def test_protect_after_yes_is_sensitive_and_never_sent(db, tmp_path):
+def test_protect_after_yes_is_sensitive_and_never_sent(db, tmp_path, monkeypatch):
     import cli
+    granted = []
+    # Protecting must never also grant automatic moves (`--file-held` on an
+    # organised folder does both); the chat promises "won't be moved".
+    monkeypatch.setattr(cli, "apply_file_held",
+                        lambda *a, **k: granted.append(a))
     from evidence_shape.observation import observation_key
     from privacy.classification import ClassificationRecord
     from privacy.classification_store import ClassificationStore
@@ -160,6 +165,7 @@ def test_protect_after_yes_is_sensitive_and_never_sent(db, tmp_path):
     assert item_is_sensitive(db, item) is False      # nothing until yes
     s.confirm(confirm.confirm_id, True)
     assert item_is_sensitive(db, item) is True
+    assert granted == []
     assert "protected now" in out[-1].text
 
     later = calls(("find_files", {"query": "medical letter"}))

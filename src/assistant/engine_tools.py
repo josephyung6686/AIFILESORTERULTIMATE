@@ -899,15 +899,10 @@ def _protection(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
     # The sorter's own `--file-held` / `--release` gestures, on this database.
     try:
         if action == "hold":
-            try:
-                cli.apply_file_held(conn, [row["file_id"]],
-                                    plan_version=cli.PLAN_VERSION,
-                                    user_id=getpass.getuser(), recorded_at=now)
-            except (cli.FileHeldRefused, sqlite3.OperationalError):
-                # Not organised yet (no policy, or no privacy tables at all):
-                # the person's protected row alone, the same call
-                # `apply_file_held` makes for it.
-                _protect_without_a_run(conn, row["file_id"], now)
+            # The person's protected row alone. `apply_file_held` would also
+            # grant automatic moves on an organised folder, and the chat
+            # promises a protected file "won't be moved automatically".
+            _protect_without_a_run(conn, row["file_id"], now)
         else:
             cli.apply_release(conn, [row["file_id"]],
                               user_id=getpass.getuser(), recorded_at=now)
