@@ -28,6 +28,31 @@ class IndexCounts:
     open_questions: int
     #: Files whose text has not been read yet; they are found by name only.
     unread_documents: int = 0
+    #: Files whose reading was tried and gave no text (a reader failed, took
+    #: too long, or there is no reader for the kind); found by name only.
+    unreadable_documents: int = 0
+
+
+#: How long one file may take to read before it is skipped and counted as
+#: unreadable. The pool kills a worker at this ceiling and gives the file one
+#: more try, so a wedged file costs at most twice this.
+READ_SECONDS_PER_FILE: float = 60.0
+
+
+class ReadOutcome(int):
+    """How many files `read_document_text` finished -- an int, so a caller
+    that only counts keeps working -- plus how many of those gave no text and
+    how many turned out to be personal once read."""
+
+    unreadable: int
+    protected_newly_found: int
+
+    def __new__(cls, read: int, *, unreadable: int = 0,
+                protected_newly_found: int = 0) -> "ReadOutcome":
+        made = super().__new__(cls, read)
+        made.unreadable = unreadable
+        made.protected_newly_found = protected_newly_found
+        return made
 
 
 def index_folder(conn: sqlite3.Connection, root: Path, *,
@@ -172,7 +197,7 @@ def _index_projects(conn: sqlite3.Connection) -> None:
 
 def read_document_text(conn: sqlite3.Connection, *,
                        on_progress: Progress | None = None,
-                       limit: int | None = None) -> int:
+                       limit: int | None = None) -> ReadOutcome:
     """Read the text of indexed files that have only been seen by name.
 
     The sorter's own reading, file by file: its readers in its extraction pool
@@ -180,19 +205,28 @@ def read_document_text(conn: sqlite3.Connection, *,
     classifier and `assign`, and only then the file's text goes into search.
     So a file whose text says it is an identity document is protected before
     anything can find it by that text. Files already protected are not opened.
-    Returns how many files were read.
+
+    Every file ends: read, or counted unreadable with a reason. One file's
+    failure never stops the rest, a file gets `READ_SECONDS_PER_FILE` (and one
+    retry) before it is skipped, and each file is committed as it finishes, so
+    a later call carries on where this one stopped.
     """
+    from dataclasses import replace
+
+    from cli import (EXTRACTION_LOOKAHEAD_PER_WORKER, EXTRACTION_WORKERS,
+                     extraction_context)
+    import extraction_pool
     from evidence_shape.store import RunWriter
     from extraction_pool import CONTRACT, DATALESS, PROTECTED, ExtractionRequest
     from extractors.authorship import SUBSYSTEM as P5
     from extractors.dispatch import current_versions
-    from extractors.failure import ContractViolation
     from extractors.long_tail import record_sensitivity_signals
     from extractors.router import record_routing_decision, route
     from extractors.runs import extraction_status_by_tier
     from database_agent.files_table import set_extraction_status
     from evidence_shape.store import observation_keys_for_run
     from extractors.authorship import COMPONENT_VERSION as P5_VERSION
+    from items.file_identity import item_is_sensitive
     from items.index_refresh import upsert_item_index
     from privacy.classification_store import ClassificationStore
     from privacy.learning_seam import assign
@@ -204,55 +238,85 @@ def read_document_text(conn: sqlite3.Connection, *,
     total = len(owed)
     report("read", 0, total)
     if not owed:
-        return 0
-    authorities = _authorities(conn)
-    pool = authorities.pool
+        return ReadOutcome(0)
+    pool = extraction_pool.ProcessPool(
+        workers=EXTRACTION_WORKERS, context_factory=extraction_context,
+        lookahead_per_worker=EXTRACTION_LOOKAHEAD_PER_WORKER,
+        seconds_per_extraction=READ_SECONDS_PER_FILE)
+    authorities = replace(_authorities(conn), pool=pool)
     sink = RunWriter(conn, author=P5)
     store = ClassificationStore(conn)
     versions = current_versions()
-    done = 0
+    done = unreadable = newly_protected = 0
 
     def submit(item_id: str, file_row: dict):
         path = Path(file_row["current_path"])
-        decision = route(
-            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-            path=path, extension=file_row["extension"],
-            detect_format=authorities.detect_format)
-        stamp = authorities.now()
-        return item_id, file_row, decision, stamp, pool.submit(ExtractionRequest(
-            file_id=file_row["file_id"], file_row=file_row, decision=decision,
-            path=path, now=stamp, context_window=authorities.context_window,
-            versions=versions))
+        try:
+            decision = route(
+                file_id=file_row["file_id"],
+                content_hash=file_row["content_hash"], path=path,
+                extension=file_row["extension"],
+                detect_format=authorities.detect_format)
+            stamp = authorities.now()
+            handle = pool.submit(ExtractionRequest(
+                file_id=file_row["file_id"], file_row=file_row,
+                decision=decision, path=path, now=stamp,
+                context_window=authorities.context_window, versions=versions))
+        except Exception as error:                   # noqa: BLE001
+            return item_id, file_row, None, None, error
+        return item_id, file_row, decision, stamp, handle
 
-    def consume(item_id: str, file_row: dict, decision, stamp: str, handle):
-        nonlocal done
+    def judge(item_id: str, file_row: dict, decision, stamp: str, handle):
+        """Write one file's reading, judge it, then make it searchable.
+        Returns why it gave no text, or None when it was read."""
+        if isinstance(handle, Exception):
+            raise handle
         file_id, content_hash = file_row["file_id"], file_row["content_hash"]
         outcome = pool.result(handle)
         if outcome.kind == CONTRACT:
-            raise ContractViolation(outcome.message)
+            raise RuntimeError(outcome.message)
+        if outcome.kind in (PROTECTED, DATALESS):
+            return ("inside a protected folder" if outcome.kind == PROTECTED
+                    else "not downloaded to this Mac")
         record_routing_decision(conn, decision)
-        if outcome.kind not in (PROTECTED, DATALESS):
-            results = outcome.dispatched.results
-            signals = outcome.dispatched.sensitivity
-            target = (results[outcome.dispatched.sensitivity_target]
-                      if results else None)
-            for result in results:
-                run_id = sink.write(result)
-                if signals and result is target:
-                    record_sensitivity_signals(
-                        conn, run_id=run_id, signals=signals,
-                        observation_keys=observation_keys_for_run(conn, run_id),
-                        now=stamp)
-            set_extraction_status(
-                conn, file_id, status_by_tier=extraction_status_by_tier(
-                    [result.run for result in results]),
-                author=P5, component_version=P5_VERSION)
+        results = outcome.dispatched.results
+        signals = outcome.dispatched.sensitivity
+        target = (results[outcome.dispatched.sensitivity_target]
+                  if results else None)
+        for result in results:
+            run_id = sink.write(result)
+            if signals and result is target:
+                record_sensitivity_signals(
+                    conn, run_id=run_id, signals=signals,
+                    observation_keys=observation_keys_for_run(conn, run_id),
+                    now=stamp)
+        set_extraction_status(
+            conn, file_id, status_by_tier=extraction_status_by_tier(
+                [result.run for result in results]),
+            author=P5, component_version=P5_VERSION)
         candidate = authorities.classify(conn, file_id, content_hash)
         if candidate is not None:
             assign(conn, candidate, store=store,
                    component_version=authorities.p7_component_version)
         # Judged first; searchable second.
         upsert_item_index(conn, item_id)
+        return None if _text_was_read(conn, content_hash) else "no text"
+
+    def consume(item_id: str, file_row: dict, decision, stamp, handle):
+        nonlocal done, unreadable, newly_protected
+        try:
+            reason = judge(item_id, file_row, decision, stamp, handle)
+        except Exception as error:                   # noqa: BLE001
+            conn.rollback()
+            reason = f"{type(error).__name__}: {error}"[:300]
+            _note_unreadable(conn, file_row["content_hash"], reason)
+        else:
+            if reason is not None and reason != "no text":
+                _note_unreadable(conn, file_row["content_hash"], reason)
+        if reason is not None:
+            unreadable += 1
+        if item_is_sensitive(conn, item_id):
+            newly_protected += 1
         conn.commit()
         done += 1
         report("read", done, total)
@@ -269,7 +333,41 @@ def read_document_text(conn: sqlite3.Connection, *,
             consume(*window.popleft())
     finally:
         pool.close()
-    return done
+    return ReadOutcome(done, unreadable=unreadable,
+                       protected_newly_found=newly_protected)
+
+
+_UNREADABLE_DDL = """
+CREATE TABLE IF NOT EXISTS unreadable_documents (
+    content_hash TEXT PRIMARY KEY,
+    reason TEXT NOT NULL,
+    noted_at TEXT NOT NULL
+);
+"""
+
+
+def _note_unreadable(conn: sqlite3.Connection, content_hash: str,
+                     reason: str) -> None:
+    """A file the reading pass gave up on outside a reader's own failed run,
+    so it is counted and not owed again. Never raises: a database that will
+    not take the note leaves the file owed, which is the safe direction."""
+    from datetime import datetime, timezone
+    try:
+        conn.execute(_UNREADABLE_DDL)
+        conn.execute(
+            "INSERT OR REPLACE INTO unreadable_documents VALUES (?, ?, ?)",
+            (content_hash, reason, datetime.now(timezone.utc).isoformat()))
+    except sqlite3.Error:
+        conn.rollback()
+
+
+def _text_was_read(conn: sqlite3.Connection, content_hash: str) -> bool:
+    """Did any reading of these bytes give text (not failed, not unsupported)?"""
+    return conn.execute(
+        "SELECT 1 FROM extraction_runs WHERE content_hash = ? "
+        "AND analysis_tier != 'filesystem' "
+        "AND completeness NOT IN ('failed', 'unsupported') LIMIT 1",
+        (content_hash,)).fetchone() is not None
 
 
 def _unread(conn: sqlite3.Connection) -> list[tuple[str, dict]]:
@@ -285,7 +383,10 @@ def _unread(conn: sqlite3.Connection) -> list[tuple[str, dict]]:
         "AND NOT EXISTS (SELECT 1 FROM extraction_runs r "
         "WHERE r.content_hash = f.content_hash "
         "AND r.analysis_tier != 'filesystem') "
-        "ORDER BY f.current_path", (P1_INCLUDED_SCAN_STATE,)).fetchall()
+        + ("AND f.content_hash NOT IN (SELECT content_hash FROM "
+           "unreadable_documents) " if _has_table(conn, "unreadable_documents")
+           else "")
+        + "ORDER BY f.current_path", (P1_INCLUDED_SCAN_STATE,)).fetchall()
     out = []
     for row in rows:
         if item_is_sensitive(conn, row["item_id"]):
@@ -336,7 +437,27 @@ def counts(conn: sqlite3.Connection) -> IndexCounts:
         held=sum(1 for row in live if row["typing_state"] == "held"),
         open_questions=_open_questions(conn),
         unread_documents=len(_unread(conn)),
+        unreadable_documents=_unreadable(conn),
     )
+
+
+def _unreadable(conn: sqlite3.Connection) -> int:
+    """Live files whose reading was tried and gave no text."""
+    if not _has_table(conn, "extraction_runs"):
+        return 0
+    noted = ("OR f.content_hash IN (SELECT content_hash FROM "
+             "unreadable_documents)" if _has_table(conn, "unreadable_documents")
+             else "")
+    return conn.execute(
+        "SELECT COUNT(*) FROM items i JOIN files f ON f.file_id = i.file_id "
+        "WHERE i.presence = 'live' AND i.superseded_by IS NULL "
+        "AND i.item_type = 'file' AND f.scan_state = ? AND (("
+        "EXISTS (SELECT 1 FROM extraction_runs r WHERE r.content_hash = "
+        "f.content_hash AND r.analysis_tier != 'filesystem') "
+        "AND NOT EXISTS (SELECT 1 FROM extraction_runs r WHERE r.content_hash "
+        "= f.content_hash AND r.analysis_tier != 'filesystem' "
+        "AND r.completeness NOT IN ('failed', 'unsupported'))) " + noted + ")",
+        (P1_INCLUDED_SCAN_STATE,)).fetchone()[0]
 
 
 def _open_questions(conn: sqlite3.Connection) -> int:
