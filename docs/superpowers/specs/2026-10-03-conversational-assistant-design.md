@@ -46,6 +46,39 @@ First run with nothing indexed: the assistant asks which folder to look after, i
 | `undo_last` | the most recent move from either journal | **yes — confirm** |
 | `mark_sensitive(file)`, `release(file)` | sorter `--file-held` / `--release` | **yes — confirm** |
 
+## 3a. Owner decisions on behaviour (3 Oct)
+
+- **Software projects** are findable, never sorted: each project is indexed as ONE item (its name, README, top-level file names) so "where's my Hoyahacks project" works; its code is never read, and nothing inside it is ever moved.
+- **Sensitive files**: "where is my passport?" shows the file's name and folder on screen straight from the database — the code renders it, it never passes through the cloud model, and the content is never opened.
+- **Cloud brain**: DeepSeek by default.
+- **Suggestions** live in the engine (`suggestions` = gaps: set-aside areas, missing files, unsorted files, open questions), shown in the chat's opening message, on "anything I should look at?", and by the desktop app. The standalone `suggest` command and the nudge/deadline code are deleted.
+
+## 3b. Permission levels
+
+| Level | Moves you asked for | Always asks regardless |
+|---|---|---|
+| 1 Ask every time (**default for a new user**) | ask y/N | — |
+| 2 Small sorts automatic | ≤20 ordinary files happen at once, with undo | sensitive files, whole-folder / branch applies |
+| 3 Hands-off | happen at once, with undo | sensitive files, whole-folder / branch applies |
+
+The level is stored in the database; the person changes it by saying so ("be more hands-off", "ask me every time"). After a few approved moves at level 1 the assistant may offer level 2 once.
+
+## 3c. Questions to the person
+
+The engine never asks a cryptic question. Every question — from the sorter (which branch a file belongs to, what a folder means) or the assistant — is one structured object:
+
+```json
+{"question_id": "q_…", "text": "These 14 files look like your Georgetown Prep coursework. Where should they live?",
+ "why": "They share a school name and course codes.",
+ "options": [{"id": "a", "label": "School / Georgetown Prep"}, {"id": "b", "label": "Keep where they are"}],
+ "allow_text": true, "allow_skip": true, "files_preview": ["AP world notes.docx", "…"], "count": 14}
+```
+
+- Wording rules: plain sentences a student or job-seeker understands; says what it noticed and why it asks; never internal names (schema ids, situation codes, branch ids); 2–4 options plus "type your own" and "skip / decide for me".
+- **Live**: while the person is in the chat, questions are asked one at a time as the work reaches them.
+- **Queued**: questions raised while the person is away (a long organise run) pile up in the database; when they return the assistant says "While you were away I have 6 questions — want to go through them?" and presents them as a series. Answers resume the work.
+- The terminal renders options as numbered choices (`1) … 2) … or type your own`); the desktop app renders the same object as buttons.
+
 ## 4. Confirmation (code delivers, the model never approves)
 
 A tool that moves files or changes a hold returns `needs_confirmation` with a one-line plain summary ("Move 5 files → ~/Desktop/Screenshots/. Nothing sensitive."). The session — code, not the model — prints it and asks `Go ahead? [y/N]`. Only a typed `y` executes, and the result goes back to the model. Big changes (whole-folder organise, apply a branch) happen only when the person asks for them.
@@ -68,6 +101,23 @@ Unchanged rules, enforced in one place: sensitivity is read live from the databa
 ## 7. Errors
 
 No tracebacks reach the person. Missing index → "Nothing indexed yet — which folder should I look after?" Model/network failure → one line saying what failed and that nothing changed.
+
+## 7a. Contract for the desktop app
+
+The terminal chat and the desktop app are two renderers of the same engine. The engine emits, and the app renders, exactly these objects (JSON, one per line on the session's event stream):
+
+| Event | Fields | App renders |
+|---|---|---|
+| `message` | `text`, `citations[]` (`name`, `folder`, `open_target`) | assistant bubble; citations as file chips that open the file |
+| `progress` | `stage`, `done`, `total`, `line` | progress row; collapses when finished |
+| `question` | as in §3c | question card with option buttons, text box, skip |
+| `confirm` | `summary`, `moves[]` (`from`, `to`), `sensitive: false`, `undo_available: true` | approve / cancel card listing the moves |
+| `counts` | `indexed`, `set_aside`, `protected`, `held`, `open_questions` | status strip; tapping opens the list |
+| `suggestions` | `items[]` (`kind`, `text`, `action`) | "worth a look" list |
+| `done` | `moved`, `undo_token` | undo toast |
+| `error` | `text`, `changed: false` | inline notice; never a stack trace |
+
+The app sends back: `say(text)`, `answer(question_id, option_id | text | skip)`, `confirm(confirm_id, yes | no)`, `set_level(1|2|3)`, `undo(undo_token)`.
 
 ## 8. Testing
 
