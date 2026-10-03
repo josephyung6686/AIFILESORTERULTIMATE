@@ -257,8 +257,9 @@ def organise_summary(conn: sqlite3.Connection, root: Path) -> dict[str, Any]:
 
 
 def _open_questions(conn: sqlite3.Connection) -> tuple:
+    """The questions a person can answer: the chat's one count."""
     try:
-        from questions.store import open_questions
+        from assistant.engine_tools import open_questions
         return open_questions(conn)
     except sqlite3.Error:
         return ()

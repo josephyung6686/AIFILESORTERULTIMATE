@@ -111,11 +111,10 @@ def suggestions(conn: sqlite3.Connection,
 
 
 def _open_questions(conn: sqlite3.Connection) -> int:
+    """The questions a person can answer: the chat's own count."""
     have = {r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table'")}
-    if not {"structural_questions", "structural_answers"} <= have:
+    if "structural_questions" not in have:
         return 0
-    return conn.execute(
-        "SELECT COUNT(*) FROM structural_questions q WHERE NOT EXISTS ("
-        "SELECT 1 FROM structural_answers a WHERE a.question_id = q.question_id "
-        "AND a.state != 'revoked')").fetchone()[0]
+    from assistant.engine_tools import open_questions
+    return len(open_questions(conn))

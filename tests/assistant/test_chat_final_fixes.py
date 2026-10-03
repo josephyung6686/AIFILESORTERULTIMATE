@@ -92,6 +92,72 @@ def test_an_undo_prompt_is_reminded_once_then_dropped(lib):
     assert sum("Still waiting" in t for t in said(out)) == 1
 
 
+# -- 1. the offline router ---------------------------------------------------
+
+CLOCK = "2026-10-03T12:00:00+00:00"
+
+
+def a_question(qid, **kw):
+    from questions.records import QuestionOption, StructuralQuestion
+    from questions.vocabulary import STRUCTURAL
+    fields = dict(
+        question_id=qid, answer_class=STRUCTURAL,
+        prompt="What kind of material is Columbia?",
+        evidence_context="Four files mention Columbia.",
+        unlocks="This decides which folder layout is offered.",
+        will_not_do="It will not move, rename or delete anything.",
+        scope="organization:columbia",
+        handling_class="personal_non_sensitive",
+        options=(QuestionOption("study", "I study there",
+                                activates_schema="academic"),
+                 QuestionOption("not_mine", "It is not about me")),
+        evidence_refs=("sha256:" + "cd" * 32,))
+    fields.update(kw)
+    return StructuralQuestion(**fields)
+
+
+def out_of_credit(*a, **k):
+    raise RuntimeError("402 Insufficient Balance")
+
+
+def test_after_the_model_fails_find_and_where_still_answer(lib):
+    conn, _ = lib
+    out = []
+    s = Session(conn, provider_turn=out_of_credit, emit=out.append)
+    s.say("find resume")
+    assert isinstance(out[0], ev.Error) and "out of credit" in out[0].text
+    found = [e for e in out if isinstance(e, ev.Message) and e.citations]
+    assert found and found[-1].citations[0].name == "Resume 2026.docx"
+    out.clear()
+    s.say("where is my resume?")
+    assert not any(isinstance(e, ev.Error) for e in out)
+    assert out[-1].citations[0].name == "Resume 2026.docx"
+
+
+def test_question_counts_agree_everywhere(lib, monkeypatch):
+    import assistant.session as session_mod
+    from items.suggest import suggestions
+    from questions.schema import create_questions_schema
+    from questions.store import record_question
+    conn, _ = lib
+    create_questions_schema(conn)
+    record_question(conn, a_question("q.askable"), asked_at=CLOCK)
+    # About a folder's unreadable files: nothing a person could name.
+    record_question(conn, a_question("q.unnamed", scope="folder:Nowhere"),
+                    asked_at=CLOCK)
+    conn.commit()
+    monkeypatch.setattr(session_mod, "_counts", lambda c: IndexCounts(
+        2, 0, 0, 0, 0, 2))
+    out = []
+    Session(conn, provider_turn=turns(), emit=out.append).open()
+    counts = [e for e in out if isinstance(e, ev.Counts)]
+    assert counts[0].open_questions == 1
+    assert any("I have 1 question" in t for t in said(out))
+    waiting = [i["text"] for i in suggestions(conn)
+               if i["kind"] == "open_questions"]
+    assert waiting == ["1 question is waiting for an answer."]
+
+
 # -- 7. rendering ------------------------------------------------------------
 
 @pytest.mark.parametrize("raw, want", [

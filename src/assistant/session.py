@@ -343,9 +343,7 @@ class Session:
     def _open_rest(self) -> None:
         c = _counts(self.conn)
         if c is not None:
-            self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
-                                protected=c.protected, held=c.held,
-                                open_questions=c.open_questions))
+            self.emit(self._counts_event(c))
         if c is None or c.indexed == 0:
             self.awaiting_folder = True
             self.emit(ev.Message(text=FOLDER_QUESTION))
@@ -409,10 +407,20 @@ class Session:
         else:
             self.emit(ev.Message(text=result["text"]))
 
+    def _counts_event(self, c) -> ev.Counts:
+        """The totals line. Its question count is the one the chat says
+        ("I have N questions"): the questions a person can answer."""
+        from assistant.engine_tools import open_questions
+        try:
+            asked = len(open_questions(self.conn))
+        except Exception:
+            asked = c.open_questions
+        return ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
+                         protected=c.protected, held=c.held,
+                         open_questions=asked)
+
     def after_index(self, c) -> None:
-        self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
-                            protected=c.protected, held=c.held,
-                            open_questions=c.open_questions))
+        self.emit(self._counts_event(c))
         if not self._reading_started:
             self._reading_started = True
             self.reader = start_reading(self.conn, self.emit)
@@ -539,6 +547,14 @@ class Session:
         except sqlite3.Error:
             pass
 
+    @staticmethod
+    def _routes_without_model(text: str) -> bool:
+        words = text.strip().lower().rstrip("?!.")
+        return bool(_FIND.match(text.strip())) or words.startswith(
+            ("undo", "questions", "go through the questions")) or words in (
+            "question", "status", "what have you got", "show protected",
+            "show skipped")
+
     def _without_model(self, text: str) -> None:
         from assistant.engine_tools import undo_last
         words = text.strip().lower()
@@ -591,6 +607,10 @@ class Session:
                 text=(f"The AI model didn't respond ({_short_reason(exc)}). "
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
+            # A find, status or undo is answered now too, as every later
+            # message is: by code. Anything else waits for the next one.
+            if self._routes_without_model(text):
+                self._without_model(text)
             return
         # The model's own question is a plain question, not a choice prompt:
         # nothing waits on the screen for it.
