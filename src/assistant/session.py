@@ -620,7 +620,9 @@ class Session:
                     "words; if they ask about it, explain and leave it open.")
         return ("Nothing is waiting on the person's screen right now: no "
                 "yes/no prompt and no question. Never say something is "
-                "waiting for them.")
+                "waiting for them. A prompt earlier in the conversation that "
+                "has no answer after it was dropped and did not happen; if "
+                "the person wants it now, call the tool again.")
 
     # -- decisions the person makes ---------------------------------------
     def _propose(self, proposal: dict) -> None:

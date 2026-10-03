@@ -191,6 +191,16 @@ def test_the_outcome_is_remembered_so_nothing_goes_stale(lib):
     assert said[-2] == "yes" and said[-1].startswith("Moved 1 file")
 
 
+def test_a_new_session_says_an_old_unanswered_prompt_is_gone(lib):
+    conn, _ = lib
+    out = []
+    rule_session(conn, out)  # the session ends with the prompt unanswered
+    later = recording(text("OK."))
+    Session(conn, provider_turn=later, emit=out.append).say("yes")
+    system = later.seen[-1][0]["content"]
+    assert "has no answer after it was dropped" in system
+
+
 def test_events_say_yes_answers_the_prompt(lib):
     conn, root = lib
     stdin = io.StringIO(
