@@ -79,11 +79,14 @@ def _sha256(path: Path) -> str | None:
 
 
 def _proposal(kind: str, ref: str, summary: str, moves=(), *,
-              sensitive: bool = False) -> dict[str, Any]:
-    return {"ok": True, "needs_confirmation": {
-        "kind": kind, "ref": ref, "summary": summary,
-        "moves": [{"from": a, "to": b} for a, b in moves],
-        "sensitive": bool(sensitive)}}
+              sensitive: bool = False,
+              on_no: dict | None = None) -> dict[str, Any]:
+    proposal = {"kind": kind, "ref": ref, "summary": summary,
+                "moves": [{"from": a, "to": b} for a, b in moves],
+                "sensitive": bool(sensitive)}
+    if on_no is not None:
+        proposal["on_no"] = on_no
+    return {"ok": True, "needs_confirmation": proposal}
 
 
 def _plural(n: int, word: str) -> str:
@@ -599,12 +602,48 @@ def _stage(context: Any, line: str) -> None:
         emit(Progress(stage="organise", line=line))
 
 
-def run_organise(conn: sqlite3.Connection, path: Path,
-                 context: Any) -> dict[str, Any]:
+def _cloud_ready() -> bool:
+    """Whether a cloud model key is configured where the sorter looks."""
+    import cli
+    if os.environ.get(cli.CREDENTIAL_NAME, "").strip():
+        return True
+    if os.environ.get("GRAPH_AGENT_NO_DOTENV"):
+        return False
+    return bool((cli._dotenv(cli.ENV_FILE).get(cli.CREDENTIAL_NAME) or ""
+                 ).strip())
+
+
+def _cloud_undecided(conn: sqlite3.Connection, path: Path) -> bool:
+    from database_agent.cloud_consent import cloud_consent_for
+    try:
+        return cloud_consent_for(conn, str(path)) is None
+    except Exception:
+        return False
+
+
+ROUGH = ("I organised without the AI, so the folders will be rough. Say "
+         "“use the AI to organise” any time to redo it properly.")
+
+
+def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
+                 cloud: bool | None = None) -> dict[str, Any]:
     """The sorter over one folder, proposing folders and moving nothing.
     The person sees a few plain lines; the model gets counts read back from
-    the database, never the sorter's screen."""
+    the database, never the sorter's screen.
+
+    Before the first organise of a folder with no cloud decision (and a key
+    to use), the person is asked whether the AI may read short excerpts of
+    ordinary files. Yes is the sorter's own `--enable-cloud`, which records
+    the per-folder consent; no runs offline. Protected files are never sent
+    either way: that is the sorter's gate, untouched here."""
     import cli
+    if cloud is None and _cloud_ready() and _cloud_undecided(conn, path):
+        return _proposal(
+            "cloud", str(path),
+            "Organising works much better if the AI reads short excerpts of "
+            "your ordinary files (never protected ones). Allow for "
+            f"{_home_words(path)}?",
+            on_no={"kind": "organise_offline", "ref": str(path)})
     conn.commit()
     stream = _ProgressStream(context)
     emit = getattr(context, "emit", None)
@@ -618,7 +657,8 @@ def run_organise(conn: sqlite3.Connection, path: Path,
     _stage(context, "Reading and grouping your files…")
     try:
         cli.main([str(path), "--database", database_path(conn),
-                  "--stop-after", "tree"], out=stream)
+                  "--stop-after", "tree",
+                  *(["--enable-cloud"] if cloud else [])], out=stream)
     except (Cancelled, KeyboardInterrupt):
         if emit is not None:
             from assistant.events import Message
@@ -639,7 +679,8 @@ def run_organise(conn: sqlite3.Connection, path: Path,
         summary = organise_summary(conn, path)
     except Exception:
         summary = None
-    text = ("I've looked through the folder. Nothing moved. "
+    text = ((ROUGH + " " if cloud is False else "")
+            + "I've looked through the folder. Nothing moved. "
             + (f"I have {_plural(n, 'question')} first. " if n else "")
             + "When the folders look right, say “lock in the plan” and you "
               "can then move them one folder at a time.")
@@ -1110,6 +1151,13 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
         return _branch(conn, ref, undo=False)
     if kind == "undo" and ref.startswith("branch:"):
         return _branch(conn, ref.partition(":")[2], undo=True)
+    if kind in ("cloud", "organise_offline"):
+        result = run_organise(conn, Path(ref), context,
+                              cloud=(kind == "cloud"))
+        return {"ok": bool(result.get("ok")), "moved": False,
+                "undo_token": None,
+                "text": result.get("error") or result.get("text") or
+                        "Done. Nothing moved."}
     if kind == "folder":
         action, _, folder = ref.partition(":")
         if context is not None:
@@ -1117,6 +1165,11 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
         result = (run_organise(conn, Path(folder), context)
                   if action == "organise" else
                   run_index(conn, Path(folder), context))
+        if "needs_confirmation" in result:
+            # The AI question follows the folder question; the Session
+            # proposes it in turn.
+            return {**result, "moved": False, "undo_token": None,
+                    "text": result["needs_confirmation"]["summary"]}
         return {"ok": bool(result.get("ok")), "moved": False,
                 "undo_token": None,
                 "text": result.get("error") or result.get("text") or
