@@ -683,6 +683,9 @@ class Session:
     # -- decisions the person makes ---------------------------------------
     def _propose(self, proposal: dict) -> None:
         from assistant.engine_tools import get_level, level_allows
+        if proposal["kind"] == "cloud":
+            proposal = {**proposal, "summary": self._cloud_summary(
+                proposal["ref"])}
         moves = proposal.get("moves") or []
         if level_allows(get_level(self.conn), proposal["kind"], len(moves),
                         bool(proposal.get("sensitive"))):
@@ -702,6 +705,16 @@ class Session:
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
             sensitive=bool(proposal.get("sensitive")),
             undo_available=proposal["kind"] in ("plan", "branch")))
+
+    def _cloud_summary(self, folder: str) -> str:
+        """The AI-permission question, built here: who reads the excerpts
+        and what a no does."""
+        from assistant.engine_tools import _home_words
+        name = self._provider_name() or "the AI"
+        return (f"Organising works much better if the AI ({name}) reads "
+                "short excerpts of your ordinary files — never protected "
+                f"ones. Allow for {_home_words(Path(folder))}? No: I'll "
+                "organise without the AI; the result will be rougher.")
 
     def _execute(self, proposal: dict) -> None:
         from assistant.engine_tools import execute_confirmed

@@ -176,3 +176,19 @@ def test_a_session_with_no_forget_says_nothing_about_it(lib):
     turn = recording(text("hi"))
     Session(conn, provider_turn=turn, emit=lambda e: None).say("hello")
     assert "cleared conversation memory" not in turn.seen[0][0]["content"]
+
+
+# -- 4. the AI permission names the provider and what no does ----------------
+
+def test_the_cloud_question_names_the_provider_and_what_no_does(lib):
+    conn, root = lib
+    out = []
+    s = Session(conn, provider_turn=recording(), emit=out.append)
+    s._propose({"kind": "cloud", "ref": str(root), "summary": "Allow?",
+                "moves": [], "sensitive": False,
+                "on_no": {"kind": "organise_offline", "ref": str(root)}})
+    confirm = [e for e in out if isinstance(e, ev.Confirm)][-1]
+    assert "DeepSeek" in confirm.summary
+    assert confirm.summary.endswith(
+        "No: I'll organise without the AI; the result will be rougher.")
+    assert s.pending[confirm.confirm_id]["summary"] == confirm.summary
