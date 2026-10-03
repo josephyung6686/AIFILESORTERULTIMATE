@@ -88,6 +88,53 @@ def drop_prompt_claims(text: str) -> str:
         out.append(" ".join(kept))
     return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
+#: "I don't see those names myself" — false once the list is on screen.
+_DISOWNS_LIST = re.compile(
+    r"\bI (don'?t|do not|can'?t|cannot) see (those|these|the|their|any)"
+    r" (file )?names\b", re.IGNORECASE)
+
+
+def _drop_sentences(text: str, pattern: re.Pattern) -> str:
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not pattern.search(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
+
+
+#: A sentence saying a search found nothing.
+_NOT_FOUND = re.compile(
+    r"\b(didn'?t|did not|couldn'?t|could not|can'?t|cannot|don'?t|do not)"
+    r" (find|see|have)\b|\bnot found\b|\bno (\w+ ){0,3}(exists?|found)\b"
+    r"|\bcame up empty\b|\bnothing (matched|came up)\b", re.IGNORECASE)
+
+
+def not_found_corrected(text: str, protected: int) -> str:
+    """When protected files matched this turn, a "not found" is false: the
+    sentence goes and the true one, from code state, leads the reply."""
+    kept = []
+    dropped = False
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        keep = [p for p in parts if not _NOT_FOUND.search(p)]
+        dropped = dropped or len(keep) != len(parts)
+        if line.strip() and not keep:
+            continue
+        kept.append(" ".join(keep))
+    if not dropped:
+        return text
+    files = ("1 protected file" if protected == 1 else
+             f"{protected} protected files")
+    open_n = "open 1" if protected == 1 else f"open 1 to open {protected}"
+    lead = (f"{files} matched — listed below, shown only to you. Say "
+            f"{open_n} to see {'it' if protected == 1 else 'them'}.")
+    rest = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
+    return lead + ("\n" + rest if rest else "")
+
+
 LEVEL_WORDS = {
     1: "OK — I'll ask before moving anything.",
     2: "OK — I'll move up to 20 ordinary files at once without asking, "
@@ -123,8 +170,20 @@ def agree_protected_count(text: str, c) -> str:
     if c is None:
         return text
     now = str(c.protected)  # held files are already inside it
-    text = _PROTECTED_BEFORE.sub(now, text)
-    return _PROTECTED_AFTER.sub(lambda m: m.group(1) + now, text)
+
+    def agree(sentence: str) -> str:
+        if _A_SEARCH.search(sentence):
+            # How many matched a search is not the index's total.
+            return sentence
+        sentence = _PROTECTED_BEFORE.sub(now, sentence)
+        return _PROTECTED_AFTER.sub(lambda m: m.group(1) + now, sentence)
+    return "\n".join(
+        " ".join(agree(p) for p in re.split(r"(?<=[.!?])\s+", line))
+        for line in text.split("\n"))
+
+
+_A_SEARCH = re.compile(r"\bmatch(ed|es|ing)?\b|\bsearch\b|\bcame up\b",
+                       re.IGNORECASE)
 
 
 def _short_reason(exc: BaseException) -> str:
@@ -449,6 +508,10 @@ class Session:
                 self.emit(ev.Message(text="There's nothing I moved to put "
                                           "back."))
                 return True
+            if len(batches) == 1:
+                # One batch: nothing to pick, so ask once about it.
+                self.undo(batches[0]["token"])
+                return True
             self.undo_choices = {str(i): b["token"]
                                  for i, b in enumerate(batches, start=1)}
             listing = "\n".join(f"  {i}) {b['text']}"
@@ -501,6 +564,7 @@ class Session:
                 self.history.append({"role": "user", "content": text})
                 self.start_questions()
                 return
+        self._drop_stale_rule()
         self.history.append({"role": "user", "content": text})
         self._remember("user", text)
         self._proposals = []
@@ -518,12 +582,20 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
+        # The model's own question is a plain question, not a choice prompt:
+        # nothing waits on the screen for it.
+        said = re.sub(r"^Need your answer:\s*", "", answer.text)
         reply = agree_protected_count(plain_reply(
             self.conn, scrub_developer_text(
-                _strip_citation_line(answer.text))),
+                _strip_citation_line(said))),
             _counts(self.conn)) or "OK."
+        if self._shown_locally:
+            # The Session put the list on screen; the reply never disowns it.
+            reply = _drop_sentences(reply, _DISOWNS_LIST) or "OK."
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
+        if self._protected_hits:
+            reply = not_found_corrected(reply, len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
@@ -544,11 +616,28 @@ class Session:
             self.start_questions()
             return
         if self.on_screen in self.pending and self.on_screen == shown_before:
-            summary = self.pending[self.on_screen]["summary"]
+            proposal = self.pending[self.on_screen]
+            proposal["reminded"] = True
             self.emit(ev.Message(text=f"Still waiting for your yes or no: "
-                                      f"{summary}  1) Yes  2) No"))
-        elif self.asking is not None:
+                                      f"{proposal['summary']}  1) Yes  "
+                                      "2) No"))
+        elif self.asking is not None and self.on_screen not in self.pending:
+            # One prompt at a time: a yes/no on screen hides the question
+            # until it is answered.
             self._ask_again()
+
+    def _drop_stale_rule(self) -> None:
+        """A rule's yes/no is reminded once; a second reply that does not
+        answer it drops it, so it never trails the conversation."""
+        proposal = self.pending.get(self.on_screen or "")
+        if proposal is None or proposal["kind"] != "rule" or not (
+                proposal.get("reminded")):
+            return
+        self.pending.pop(self.on_screen)
+        self.on_screen = None
+        line = "Not saved — say it again if you want that rule."
+        self._note(line)
+        self.emit(ev.Message(text=line))
 
     def _prompt_will_show(self) -> bool:
         """Whether, after this turn, something waits on the person's screen."""
@@ -651,6 +740,9 @@ class Session:
     # -- decisions the person makes ---------------------------------------
     def _propose(self, proposal: dict) -> None:
         from assistant.engine_tools import get_level, level_allows
+        if proposal["kind"] == "cloud":
+            proposal = {**proposal, "summary": self._cloud_summary(
+                proposal["ref"])}
         moves = proposal.get("moves") or []
         if level_allows(get_level(self.conn), proposal["kind"], len(moves),
                         bool(proposal.get("sensitive"))):
@@ -670,6 +762,16 @@ class Session:
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
             sensitive=bool(proposal.get("sensitive")),
             undo_available=proposal["kind"] in ("plan", "branch")))
+
+    def _cloud_summary(self, folder: str) -> str:
+        """The AI-permission question, built here: who reads the excerpts
+        and what a no does."""
+        from assistant.engine_tools import _home_words
+        name = self._provider_name() or "the AI"
+        return (f"Organising works much better if the AI ({name}) reads "
+                "short excerpts of your ordinary files — never protected "
+                f"ones. Allow for {_home_words(Path(folder))}? No: I'll "
+                "organise without the AI; the result will be rougher.")
 
     def _execute(self, proposal: dict) -> None:
         from assistant.engine_tools import execute_confirmed
@@ -708,6 +810,12 @@ class Session:
                                changed=bool(result["moved"])))
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
+        self._confirm(confirm_id, yes)
+        if self.asking is not None and self.on_screen not in self.pending:
+            # The question the yes/no had hidden comes back.
+            self.emit(self.asking)
+
+    def _confirm(self, confirm_id: str, yes: bool) -> None:
         proposal = self.pending.pop(confirm_id, None)
         if confirm_id == self.on_screen:
             self.on_screen = None
@@ -785,13 +893,16 @@ class Session:
                               egress_class="cloud", engine=True,
                               engine_context=self)
         self._proposals = runtime.pending_confirmations
+        from assistant.conversation_store import forgot_line
+        forgot = forgot_line(self.conn)
         messages = [{"role": "system",
                      "content": build_system_prompt(self.conn, text)
-                     + "\n" + PLAIN_WORDS + "\n" + self.screen_state()},
+                     + "\n" + PLAIN_WORDS + "\n"
+                     + (forgot + "\n" if forgot else "")
+                     + self.screen_state()},
                     *self.history]
-        # `converse` appends the model turns and tool replies; the history
-        # keeps the tool messages (between the last user line and the answer)
-        # so a later turn can refer back to them.
+        # `converse` appends the model turns and tool replies to the history;
+        # `_trim` drops those tool replies before the next turn.
         messages, answer = converse(
             self.conn, messages, runtime=runtime,
             provider_turn=self.provider_turn, config=cfg,
@@ -808,6 +919,13 @@ class Session:
         return answer
 
     def _trim(self) -> None:
+        """Before each turn: earlier turns' tool results are dropped (the
+        replies built from them stay), then the oldest words if still over
+        budget. Each request then carries one turn's results, not all."""
+        for m in self.history:
+            if m["role"] == "tool":
+                m["content"] = DROPPED
+
         def total() -> int:
             return sum(len(str(m.get("content") or "")) for m in self.history)
         for m in self.history:

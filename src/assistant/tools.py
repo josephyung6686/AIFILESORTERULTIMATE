@@ -47,6 +47,24 @@ _REMOTE_URL = re.compile(
 TOOL_SCHEMAS = always_schemas()
 
 
+#: The most one tool result may carry to the model, in bytes.
+RESULT_BUDGET = 6_000
+
+
+def protected_note(n: int, query: str) -> str:
+    """What the model is told when protected files matched: the count and
+    the person's own search words, never a name."""
+    files = f"{n} protected file{'s' if n != 1 else ''}"
+    words = re.sub(r"\s+", " ", query).strip()[:60] or "file"
+    open_n = "`open 1`" if n == 1 else f"`open 1` to `open {n}`"
+    return (f"{files} matched this search (one looks like the {words} the "
+            "person asked for). They are shown to the person locally. Say "
+            "they are protected — never say not found — and offer "
+            f"{open_n}. You cannot read them, so never answer about their "
+            "contents from other files. If asked to move one, say: That "
+            "file is protected, so I won't move it.")
+
+
 def _remote_links_in(text: str) -> list[str]:
     """Detect remote URLs/images in text; callers must never fetch them."""
     if not text:
@@ -334,13 +352,12 @@ class ToolRuntime:
                     "trust": card_trust,
                 })
             else:
+                # What the model needs to answer and cite, nothing more:
+                # every byte here is sent with each later request.
                 cards.append({
                     "item_id": hit.item_id,
                     "display_label": hit.display_label,
-                    "typing_state": hit.typing_state,
                     "open_target": hit.open_target,
-                    "score": round(hit.score, 5),
-                    "channels": list(hit.channels),
                     "matched_by": getattr(hit, "matched_by", "name"),
                     "trust": card_trust,
                 })
@@ -360,18 +377,25 @@ class ToolRuntime:
         payload = {
             "hits": cards,
             "protected_count": found.protected_count,
-            **({"protected": f"{hidden} protected file"
-                f"{'s' if hidden != 1 else ''} matched — shown to the person "
-                "locally"} if hidden else {}),
-            "latency_ms": {
-                "fts": round(found.fts_ms, 2),
-                "vector": round(found.vector_ms, 2),
-                "total": round(found.total_ms, 2),
-            },
+            **({"protected": protected_note(hidden, query)}
+               if hidden else {}),
             "trust": "UNTRUSTED_LABEL",
             "moved": False,
         }
         blob = json.dumps(payload, ensure_ascii=False)
+        more = 0
+        while len(blob.encode()) > RESULT_BUDGET - 200 and len(cards) > 1:
+            # Whole cards come off the end, never a cut through JSON; a
+            # dropped card is not citable.
+            gone = cards.pop()
+            more += 1
+            citations = [c for c in citations if c != gone["item_id"]]
+            citation_objs = [c for c in citation_objs
+                             if c.item_id != gone["item_id"]]
+            payload["more"] = (f"{more} more match"
+                               f"{'es' if more != 1 else ''} not listed; "
+                               "ask a narrower search to see them")
+            blob = json.dumps(payload, ensure_ascii=False)
         return ToolResult(
             name="find_files", ok=True, payload=payload,
             citations=tuple(citations), bytes_out=len(blob.encode()),

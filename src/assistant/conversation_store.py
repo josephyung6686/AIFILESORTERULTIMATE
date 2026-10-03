@@ -76,8 +76,33 @@ def recent(conn: sqlite3.Connection, sessions: int = 5,
     return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
 
 
+FORGOT_AT = "conversation_memory_cleared"
+
+
 def forget(conn: sqlite3.Connection) -> int:
+    """Delete every remembered turn, and record when, so a later session
+    knows the empty memory was the person's choice."""
+    from datetime import datetime, timezone
+    from assistant.engine_tools import put_setting
     _ensure(conn)
     n = conn.execute("DELETE FROM conversation_turns").rowcount
+    put_setting(conn, FORGOT_AT, datetime.now(timezone.utc).isoformat())
     conn.commit()
     return n
+
+
+def forgot_line(conn: sqlite3.Connection) -> str:
+    """The system-prompt sentence about the last forget, in local time, or
+    "" when the person never cleared the memory."""
+    from datetime import datetime
+    from assistant.engine_tools import get_setting
+    try:
+        when = get_setting(conn, FORGOT_AT, "")
+        local = datetime.fromisoformat(when).astimezone() if when else None
+    except (sqlite3.Error, ValueError):
+        return ""
+    if local is None:
+        return ""
+    return ("The person cleared conversation memory on "
+            f"{local.strftime('%-d %B %Y at %H:%M')} (their local time); you "
+            "have no record before that. If asked, say it was cleared then.")

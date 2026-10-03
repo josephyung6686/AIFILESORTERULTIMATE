@@ -23,7 +23,7 @@ from assistant.policy import (
     validate_citations,
 )
 from assistant.provider import chat_turn, dump_safe, resolve_provider
-from assistant.tools import Citation, ToolRuntime
+from assistant.tools import RESULT_BUDGET, Citation, ToolRuntime
 from assistant.trust import trust_facts_for
 
 
@@ -381,6 +381,10 @@ def converse(
                 "source_ids": list(result.source_ids),
                 **result.payload,
             })
+            if len(content.encode()) > RESULT_BUDGET:
+                # Every byte rides along with each later request.
+                content = (content.encode()[:RESULT_BUDGET].decode(
+                    errors="ignore") + " …[cut: the rest was too long]")
             messages.append({
                 "role": "tool",
                 "tool_call_id": call["id"],

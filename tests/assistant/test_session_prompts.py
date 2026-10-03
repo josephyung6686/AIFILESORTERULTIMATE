@@ -250,7 +250,7 @@ def test_a_result_that_needs_another_yes_shows_that_prompt(lib, monkeypatch):
     s._propose({"kind": "folder", "ref": "x", "summary": "Organise?",
                 "moves": [], "sensitive": False})
     s.say("yes")
-    assert confirms(out)[-1].summary == "Use the cloud?"
+    assert confirms(out)[-1].summary.startswith("Organising works much better")
     assert not [e for e in out if isinstance(e, ev.Done)]
     s.say("no")
     assert ran[-1] == ("organise_offline", "here")

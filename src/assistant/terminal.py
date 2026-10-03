@@ -7,6 +7,7 @@ reaches the screen; the Session keeps what is waiting for an answer.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,8 @@ class TerminalRenderer:
         self.tty = bool(getattr(stdout, "isatty", lambda: False)())
         self.progress_open = False
         self.citations: tuple[ev.Citation, ...] = ()
+        #: The last tenth printed per progress stage (non-TTY only).
+        self._progress_at: dict[str, object] = {}
 
     def _line(self, text: str = "") -> None:
         if self.progress_open:
@@ -39,12 +42,31 @@ class TerminalRenderer:
         self.out.write(text + "\n")
         self.out.flush()
 
+    def _worth_a_line(self, event: ev.Progress) -> bool:
+        """Off a terminal (a log, a pipe) a progress line is printed only
+        when a stage starts, ends, or passes another tenth."""
+        if event.total <= 0:
+            # No count: a line when the words change, not their numbers.
+            words = re.sub(r"\d[\d,]*", "#", event.line)
+            if self._progress_at.get(event.stage) == words:
+                return False
+            self._progress_at[event.stage] = words
+            return True
+        tenth = min(10, event.done * 10 // event.total)
+        last = self._progress_at.get(event.stage)
+        if last is not None and tenth == last:
+            return False
+        self._progress_at[event.stage] = tenth
+        return True
+
     def _dim(self, text: str) -> str:
         return f"\x1b[2m{text}\x1b[0m" if self.tty else text
 
     def __call__(self, event: Any) -> None:
         if isinstance(event, ev.Progress):
             line = event.line or f"{event.stage} {event.done}/{event.total}"
+            if not self.tty and not self._worth_a_line(event):
+                return
             self.out.write(("\r\x1b[K" if self.tty else "") + "  " + line[:76]
                            + ("" if self.tty else "\n"))
             self.out.flush()
@@ -75,7 +97,9 @@ class TerminalRenderer:
                            f"{_home(str(Path(move.dst).parent))}/")
             if len(event.moves) > MOVES_SHOWN:
                 self._line(f"  and {len(event.moves) - MOVES_SHOWN} more")
-            if event.sensitive:
+            if event.sensitive and "protected" not in event.summary:
+                # A summary that already says what happens to the protected
+                # files ("1 protected file is left alone") says it once.
                 self._line(self._dim("  This touches protected files."))
             self._line("Go ahead? 1) Yes  2) No")
         elif isinstance(event, ev.Counts):
