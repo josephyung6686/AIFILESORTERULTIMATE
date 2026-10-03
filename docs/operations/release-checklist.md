@@ -1,6 +1,11 @@
 # Non-UI release checklist
 
-Use with `bash tools/run_release_gates.sh` from a clean checkout.
+Use with `bash tools/run_release_gates.sh` from a clean checkout. The gate
+creates a temporary virtual environment, builds and installs the wheel with no
+network access, runs every required safety suite, and writes a JSON report to
+`docs/operations/release-gate-report.json` (override with
+`RELEASE_GATE_REPORT=/path/report.json`). A missing suite is a failure, never a
+skip.
 
 ## Before release
 
@@ -18,6 +23,17 @@ Use with `bash tools/run_release_gates.sh` from a clean checkout.
 - [ ] Privacy-at-rest docs + fixture atomicity (T10)
 - [ ] Live connectors scratched assert (T11) — **do not enable OAuth**
 - [ ] Daily-use pilot report written with cloud/memory/apply off
+
+The pilot must operate on a copied corpus:
+
+```bash
+python3 tools/run_daily_use_pilot.py --database "$DB" --corpus /path/to/corpus \
+  --cloud off --memory-steering off --apply off
+```
+
+The source corpus is never modified. The pilot records `ui: excluded` and
+`connectors: scratched` in its JSON output. These are deliberate release scope
+decisions, not passing product gates.
 
 ## Pilot thresholds (supervised)
 

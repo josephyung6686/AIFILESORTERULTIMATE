@@ -53,6 +53,21 @@ python3 -m cli sync gmail --fixture FILE --database "$DB"
 ## Release gates
 
 ```bash
-bash tools/run_assistant_gates.sh
-bash tools/run_release_gates.sh   # grows as T1–T12 land
+bash tools/run_release_gates.sh
+cat docs/operations/release-gate-report.json
+```
+
+The release script is strict: it builds and installs a wheel in a temporary
+offline virtual environment, loads all shipped profiles, checks the installed
+entry point, and runs the required policy, recovery, relationship, database,
+privacy, and provider suites. It fails when a required safety suite is absent.
+The Mac UI is excluded from this non-UI release contract, and live Gmail and
+Calendar are scratched; fixture connectors remain disabled.
+
+For a supervised daily-use check, always pass a corpus directory. The tool
+copies it into a disposable temporary workspace before reading it:
+
+```bash
+python3 tools/run_daily_use_pilot.py --database "$DB" --corpus "$CORPUS" \
+  --cloud off --memory-steering off --apply off
 ```
