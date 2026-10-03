@@ -88,6 +88,23 @@ def drop_prompt_claims(text: str) -> str:
         out.append(" ".join(kept))
     return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
+#: "I don't see those names myself" — false once the list is on screen.
+_DISOWNS_LIST = re.compile(
+    r"\bI (don'?t|do not|can'?t|cannot) see (those|these|the|their|any)"
+    r" (file )?names\b", re.IGNORECASE)
+
+
+def _drop_sentences(text: str, pattern: re.Pattern) -> str:
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not pattern.search(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
+
+
 #: A sentence saying a search found nothing.
 _NOT_FOUND = re.compile(
     r"\b(didn'?t|did not|couldn'?t|could not|can'?t|cannot|don'?t|do not)"
@@ -479,6 +496,10 @@ class Session:
                 self.emit(ev.Message(text="There's nothing I moved to put "
                                           "back."))
                 return True
+            if len(batches) == 1:
+                # One batch: nothing to pick, so ask once about it.
+                self.undo(batches[0]["token"])
+                return True
             self.undo_choices = {str(i): b["token"]
                                  for i, b in enumerate(batches, start=1)}
             listing = "\n".join(f"  {i}) {b['text']}"
@@ -531,6 +552,7 @@ class Session:
                 self.history.append({"role": "user", "content": text})
                 self.start_questions()
                 return
+        self._drop_stale_rule()
         self.history.append({"role": "user", "content": text})
         self._remember("user", text)
         self._proposals = []
@@ -548,10 +570,16 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
+        # The model's own question is a plain question, not a choice prompt:
+        # nothing waits on the screen for it.
+        said = re.sub(r"^Need your answer:\s*", "", answer.text)
         reply = agree_protected_count(plain_reply(
             self.conn, scrub_developer_text(
-                _strip_citation_line(answer.text))),
+                _strip_citation_line(said))),
             _counts(self.conn)) or "OK."
+        if self._shown_locally:
+            # The Session put the list on screen; the reply never disowns it.
+            reply = _drop_sentences(reply, _DISOWNS_LIST) or "OK."
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
         if self._protected_hits:
@@ -576,11 +604,28 @@ class Session:
             self.start_questions()
             return
         if self.on_screen in self.pending and self.on_screen == shown_before:
-            summary = self.pending[self.on_screen]["summary"]
+            proposal = self.pending[self.on_screen]
+            proposal["reminded"] = True
             self.emit(ev.Message(text=f"Still waiting for your yes or no: "
-                                      f"{summary}  1) Yes  2) No"))
-        elif self.asking is not None:
+                                      f"{proposal['summary']}  1) Yes  "
+                                      "2) No"))
+        elif self.asking is not None and self.on_screen not in self.pending:
+            # One prompt at a time: a yes/no on screen hides the question
+            # until it is answered.
             self._ask_again()
+
+    def _drop_stale_rule(self) -> None:
+        """A rule's yes/no is reminded once; a second reply that does not
+        answer it drops it, so it never trails the conversation."""
+        proposal = self.pending.get(self.on_screen or "")
+        if proposal is None or proposal["kind"] != "rule" or not (
+                proposal.get("reminded")):
+            return
+        self.pending.pop(self.on_screen)
+        self.on_screen = None
+        line = "Not saved — say it again if you want that rule."
+        self._note(line)
+        self.emit(ev.Message(text=line))
 
     def _prompt_will_show(self) -> bool:
         """Whether, after this turn, something waits on the person's screen."""
@@ -753,6 +798,12 @@ class Session:
                                changed=bool(result["moved"])))
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
+        self._confirm(confirm_id, yes)
+        if self.asking is not None and self.on_screen not in self.pending:
+            # The question the yes/no had hidden comes back.
+            self.emit(self.asking)
+
+    def _confirm(self, confirm_id: str, yes: bool) -> None:
         proposal = self.pending.pop(confirm_id, None)
         if confirm_id == self.on_screen:
             self.on_screen = None

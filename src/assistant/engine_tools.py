@@ -294,6 +294,18 @@ def undo_proposal(conn: sqlite3.Connection, token: str) -> dict[str, Any]:
                      [(r["dst"], r["src"]) for r in rows])
 
 
+def _local_time(stamp: str) -> str:
+    """A stored UTC time in the person's own time: "3 Oct 14:05"."""
+    from datetime import datetime, timezone
+    try:
+        when = datetime.fromisoformat(stamp)
+    except (TypeError, ValueError):
+        return str(stamp)[:16].replace("T", " ")
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone().strftime("%-d %b %H:%M")
+
+
 def recent_batches(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
     """The last moved batches that can still be put back, in plain words:
     `{token, text}` each."""
@@ -308,10 +320,10 @@ def recent_batches(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
             "SELECT dst FROM assistant_plan_ops WHERE plan_id = ?",
             (row["plan_id"],))]
         folders = sorted({d.parent.name for d in dsts})
-        when = row["created_ts"][:16].replace("T", " ")
         out.append({"token": f"plan:{row['plan_id']}",
                     "text": f"{_plural(len(dsts), 'file')} into "
-                            f"{', '.join(folders)} ({when} UTC)"})
+                            f"{', '.join(folders)} "
+                            f"({_local_time(row['created_ts'])})"})
     return out
 
 

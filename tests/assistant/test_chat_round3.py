@@ -192,3 +192,113 @@ def test_the_cloud_question_names_the_provider_and_what_no_does(lib):
     assert confirm.summary.endswith(
         "No: I'll organise without the AI; the result will be rougher.")
     assert s.pending[confirm.confirm_id]["summary"] == confirm.summary
+
+
+# -- 6. polish ------------------------------------------------------------------
+
+def test_undo_with_one_batch_asks_once_without_a_picker(lib, monkeypatch):
+    from assistant import engine_tools
+    conn, _ = lib
+    monkeypatch.setattr(engine_tools, "recent_batches", lambda c: [
+        {"token": "plan:p1", "text": "2 files into Images (3 Oct 14:05)"}])
+    monkeypatch.setattr(engine_tools, "undo_proposal", lambda c, t: {
+        "ok": True, "needs_confirmation": {
+            "kind": "undo", "ref": t, "summary": "Put 2 files back?",
+            "moves": [], "sensitive": False}})
+    out = []
+    Session(conn, provider_turn=recording(), emit=out.append).say("undo")
+    assert [e.summary for e in out if isinstance(e, ev.Confirm)] == [
+        "Put 2 files back?"]
+    assert not any("Which batch" in t for t in said(out))
+
+
+def test_undo_batches_are_listed_in_local_time(lib):
+    from datetime import datetime, timezone
+    from assistant.engine_tools import recent_batches
+    from assistant.plans import ensure_plans_schema
+    conn, _ = lib
+    ensure_plans_schema(conn)
+    utc = datetime(2026, 10, 3, 12, 0, tzinfo=timezone.utc)
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(assistant_plans)")]
+    row = {c: "x" for c in cols}
+    row.update(plan_id="p1", created_ts=utc.isoformat(), state="applied")
+    conn.execute(f"INSERT INTO assistant_plans ({', '.join(row)}) VALUES "
+                 f"({', '.join('?' * len(row))})", tuple(row.values()))
+    line = recent_batches(conn)[0]["text"]
+    assert "UTC" not in line
+    assert utc.astimezone().strftime("%H:%M") in line
+
+
+def test_a_pending_rule_is_reminded_once_then_dropped(lib):
+    conn, _ = lib
+    out = []
+    s = Session(conn, provider_turn=recording(
+        tool_call("remember_rule", {"text": "Always put PDFs in PDFs"}),
+        text("Want me to remember that?"),
+        text("Your essay is in lib."), text("Sure.")), emit=out.append)
+    s.say("always put PDFs in PDFs")
+    s.say("where is my essay")
+    assert sum("Still waiting for your yes or no" in t for t in said(out)) == 1
+    s.say("thanks")
+    assert said(out)[-2:] == ["Not saved — say it again if you want that "
+                              "rule.", "Sure."]
+    assert s.on_screen is None and not s.pending
+    assert sum("Still waiting for your yes or no" in t for t in said(out)) == 1
+
+
+def test_the_copies_reply_does_not_disown_the_list_it_shows(lib):
+    conn, root = lib
+    (root / "essay (1).txt").write_text("my essay", encoding="utf-8")
+    reconcile_tree(conn, root)
+    conn.commit()
+    out = []
+    Session(conn, provider_turn=recording(
+        tool_call("show_copies"),
+        text("Here are the copies, listed below. I don't see those names "
+             "myself; they stay on your Mac.")), emit=out.append).say(
+        "show me copies")
+    assert "don't see those names" not in said(out)[0]
+    assert "Here are the copies" in said(out)[0]
+
+
+def test_progress_off_a_terminal_prints_start_end_and_every_tenth():
+    import io
+    from assistant.terminal import TerminalRenderer
+    screen = io.StringIO()
+    render = TerminalRenderer(screen)
+    for done in range(0, 201):
+        render(ev.Progress(stage="index", done=done, total=200,
+                           line=f"Indexing {done} of 200"))
+    lines = screen.getvalue().splitlines()
+    assert lines[0].strip() == "Indexing 0 of 200"
+    assert lines[-1].strip() == "Indexing 200 of 200"
+    assert len(lines) == 11
+
+
+def test_a_model_question_is_not_dressed_as_a_choice_prompt(lib):
+    conn, _ = lib
+    out = []
+    Session(conn, provider_turn=recording(
+        tool_call("ask_user", {"question": "Which folder, Desktop or "
+                                           "Documents?"})),
+        emit=out.append).say("what should I look at?")
+    assert not said(out)[0].startswith("Need your answer")
+    assert said(out)[0] == "Which folder, Desktop or Documents?"
+
+
+def test_a_new_confirm_hides_the_old_question_until_it_is_answered(lib):
+    conn, _ = lib
+    out = []
+    s = Session(conn, provider_turn=recording(
+        tool_call("set_level", {"level": 2}), text("Asked.")),
+        emit=out.append)
+    s.asking = ev.Question(question_id="q1", text="Where do essays go?",
+                           why="", changes="",
+                           options=(ev.Option(id="a", label="School"),))
+    s.say("move without asking")
+    after = out[[i for i, e in enumerate(out)
+                 if isinstance(e, ev.Confirm)][-1]:]
+    assert not any(isinstance(e, ev.Question) for e in after)
+    out.clear()
+    s.say("yes")
+    assert isinstance(out[-1], ev.Question)
