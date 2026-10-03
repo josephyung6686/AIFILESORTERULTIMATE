@@ -123,6 +123,7 @@ class Session:
         self.pending: dict[str, dict] = {}
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
+        self._opened = False
 
     def emit(self, event) -> None:
         if isinstance(event, ev.Message) and event.citations:
@@ -143,6 +144,11 @@ class Session:
 
     # -- opening ---------------------------------------------------------
     def open(self) -> None:
+        """The greeting, once: a second call (the app's `open` action after
+        `--events` already opened) changes nothing."""
+        if self._opened:
+            return
+        self._opened = True
         if self._provider_name() is None:
             self.awaiting_key = True
             self.emit(ev.Message(text=KEY_PROMPT))

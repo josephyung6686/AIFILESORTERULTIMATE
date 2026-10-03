@@ -30,3 +30,29 @@ def test_reading_a_setting_never_commits_the_callers_transaction(conn):
 def test_reading_recent_conversations_never_commits(conn):
     from assistant.conversation_store import recent
     assert not _uncommitted_row_survives_rollback(conn, recent)
+
+
+def _events(out) -> list[dict]:
+    return [json.loads(line) for line in out.getvalue().splitlines()]
+
+
+def test_the_app_is_greeted_without_sending_an_action(conn):
+    import io
+    from assistant.terminal import run_events
+    out = io.StringIO()
+    run_events(conn, stdin=io.StringIO(""), stdout=out,
+               provider_turn=lambda *a, **k: None)
+    events = _events(out)
+    assert events and "which folder" in events[-1]["text"].lower()
+
+
+def test_an_extra_open_action_is_harmless(conn):
+    import io
+    from assistant.terminal import run_events
+    out = io.StringIO()
+    run_events(conn, stdin=io.StringIO(json.dumps({"action": "open"}) + "\n"),
+               stdout=out, provider_turn=lambda *a, **k: None)
+    events = _events(out)
+    asked = [e for e in events if "which folder" in e.get("text", "").lower()]
+    assert len(asked) == 1
+    assert not [e for e in events if e["type"] == "error"]

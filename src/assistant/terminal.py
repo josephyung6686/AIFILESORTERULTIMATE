@@ -192,6 +192,8 @@ def run_events(conn, *, stdin=None, stdout=None, provider_turn=None) -> int:
         stdout.flush()
 
     session = Session(conn, provider_turn=provider_turn, emit=emit)
+    # The app gets the greeting and the counts without asking for them.
+    session.open()
     for line in stdin:
         if not line.strip():
             continue
