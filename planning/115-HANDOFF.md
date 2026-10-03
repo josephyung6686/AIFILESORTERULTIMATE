@@ -45,6 +45,10 @@ Verified on the branch tip: release gate 11/11 (`docs/operations/release-gate-re
 
 Offline "find" after a model failure, ID leaks, pending-prompt consistency, "what goes where", Chinese-named folders, junk suggestions — fixed by L1 (`tests/assistant/test_chat_final_fixes.py`) but **not yet re-judged live**. Open: protected-count false positives (a notes file, a web script — detector rules, owner), egress size (~30 KB per find turn; schemas dominate).
 
+## Live result on the 33-file sample (agent N1, 4 Oct, with the AI)
+
+**0 of 32 loose files got a destination, even with the AI.** Cause (not wiring): the model's per-file answers are correct (e.g. screenshots → `photos.screenshot-captures`, resume → `career.recruiting`), but they are stored as `llm_supported` facts and grouping only seeds groups from `direct`/`validated` facts (`src/grouping/seeds.py`, deliberate); proposed folders come only from accepted groups → no groups, no folders. Also: the default folder's kind is set by one file's rule facts outvoting 16 photo readings, producing a whole-Desktop "Which of these is career?" question; answered questions don't trigger a re-organise; the sorter's offered homes for leftovers ("Temporary Screenshots", "Review Later") have no chat route. **This is the #1 sorter decision:** let model-judged kinds seed groups/folders (or give recognised branches template folders without a group), and decide what sets the default kind. Fixed: a failed lock-in is not re-offered until the plan changes (3f47f144).
+
 ## Owner decisions waiting
 
 All listed with evidence in memory `graph-agent-3-oct-scope`: single-egress for the assistant; retry rule for deterministic extraction timeouts; duplicate-file nondeterminism; `.git` as a project marker; review of the overnight sorter changes; whether protecting a file should also block moving it; detector false positives.
