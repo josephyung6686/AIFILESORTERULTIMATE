@@ -46,10 +46,72 @@ def index_folder(conn: sqlite3.Connection, root: Path, *,
          scan_state=P1_INCLUDED_SCAN_STATE, budget_exhausted=lambda: False)
     project_context_graph(conn, selection_sources(conn, selection_id),
                           P1_INCLUDED_SCAN_STATE)
+    _classify_by_name(conn, root)
     rebuild_fts(conn)
     conn.commit()
     report("done", source.files, source.files)
     return counts(conn)
+
+
+def _authorities(conn: sqlite3.Connection):
+    """The sorter's own P1--P7 wiring: its detector, classifier and readers.
+
+    Built, not run: the extraction pool starts no process until a file is
+    submitted to it.
+    """
+    from datetime import datetime, timezone
+
+    from cli import _RECOGNITION_MANIFEST, build_detector, p1_p7_authorities
+    from recognition.rules import load_rules
+
+    def now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    detector = build_detector(
+        conn, load_rules(_RECOGNITION_MANIFEST.read_text), now=now)
+    return p1_p7_authorities(now=now, detector=detector)
+
+
+def _classify_by_name(conn: sqlite3.Connection, root: Path) -> None:
+    """The sorter's local sensitivity pass over what a name already says.
+
+    For each file under `root` whose bytes have no reading yet: the sorter's
+    filesystem record (name, folder; the file is not opened), then its
+    classifier, then `assign` -- the order `orchestrator.run_p1_p7` uses. A file
+    with only this record is one the sorter's next run still reads in full.
+    """
+    from evidence_shape.store import RunWriter, runs_for_content
+    from extractors.authorship import SUBSYSTEM as P5
+    from extractors.filesystem import extract_filesystem
+    from extractors.safety import ProtectedContainerRefused
+    from items.identity import _under_any
+    from privacy.classification_store import ClassificationStore
+    from privacy.learning_seam import assign
+
+    authorities = _authorities(conn)
+    sink = RunWriter(conn, author=P5)
+    store = ClassificationStore(conn)
+    rows = conn.execute(
+        "SELECT * FROM files WHERE scan_state = ?",
+        (P1_INCLUDED_SCAN_STATE,)).fetchall()
+    for row in rows:
+        if not _under_any(row["current_path"], [root]):
+            continue
+        file_id, content_hash = row["file_id"], row["content_hash"]
+        if not runs_for_content(conn, content_hash):
+            try:
+                sink.write(extract_filesystem(
+                    file_row=dict(row), path=Path(row["current_path"]),
+                    policy=authorities.policy, now=authorities.now(),
+                    context_window=authorities.context_window))
+            except ProtectedContainerRefused:
+                continue
+        if store.current(file_id, content_hash) is not None:
+            continue
+        candidate = authorities.classify(conn, file_id, content_hash)
+        if candidate is not None:
+            assign(conn, candidate, store=store,
+                   component_version=authorities.p7_component_version)
 
 
 class _CountingSource:
