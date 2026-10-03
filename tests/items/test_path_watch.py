@@ -16,7 +16,7 @@ def test_tick_reindexes_on_new_file(conn, tmp_path: Path):
     (root / "a.txt").write_text("one", encoding="utf-8")
     create_items_schema(conn)
     reconcile_tree(conn, root)
-    watcher = PathWatcher(root)
+    watcher = PathWatcher(root, prefer_fsevents=False)
     # Prime mtime index
     watcher.scan_events()
     time.sleep(0.02)
@@ -59,7 +59,7 @@ def test_own_move_echo_skipped(tmp_path: Path):
     root.mkdir()
     target = root / "c.txt"
     target.write_text("c", encoding="utf-8")
-    watcher = PathWatcher(root)
+    watcher = PathWatcher(root, prefer_fsevents=False)
     watcher.policy.note_own_move(str(target), str(root / "d.txt"))
     assert watcher.policy.accept(FsEvent(str(target))) is False
     watcher.policy.clear_own_move(str(target), str(root / "d.txt"))
@@ -73,7 +73,7 @@ def test_tick_follows_inode_rename(conn, tmp_path: Path):
     src.write_text("same inode body", encoding="utf-8")
     create_items_schema(conn)
     reconcile_tree(conn, root)
-    watcher = PathWatcher(root)
+    watcher = PathWatcher(root, prefer_fsevents=False)
     watcher.scan_events()  # prime
     # Bookmarks after first tick with a noop change
     (root / "touch.txt").write_text("x", encoding="utf-8")

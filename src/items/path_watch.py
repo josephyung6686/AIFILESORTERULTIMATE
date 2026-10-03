@@ -16,6 +16,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 
 from items.file_identity import remember_path, resolve_renamed
 from items.fsevents_feed import ChangeFeedPolicy, FsEvent
@@ -59,6 +60,16 @@ class PathWatcher:
     _startup_done: bool = False
     _event_seq: int = 0
 
+    # Test owners may install a registry for deterministic teardown. Production
+    # instances are not retained globally, so a watcher cannot leak for life.
+    _lifecycle_registry: ClassVar[list["PathWatcher"] | None] = None
+
+    def __post_init__(self):
+        # The registry gives application/test owners a deterministic cleanup
+        # hook without relying on __del__ to stop a native FSEvents thread.
+        if self._lifecycle_registry is not None:
+            self._lifecycle_registry.append(self)
+
     def start_live(self) -> bool:
         """Start macOS FSEvents subscription when watchdog is installed."""
         if not self.prefer_fsevents:
@@ -84,6 +95,18 @@ class PathWatcher:
                 pass
             self._live = None
             self.backend = "polling"
+
+    def close(self) -> None:
+        """Release a native observer owned by this watcher."""
+        self.stop_live()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        self.close()
+        return False
+
 
     def _scan_polling(self) -> list[FsEvent]:
         events: list[FsEvent] = []

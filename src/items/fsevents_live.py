@@ -11,6 +11,7 @@ from __future__ import annotations
 import sys
 import threading
 import time
+import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -57,7 +58,7 @@ class LiveFsEventsWatcher:
         from watchdog.observers.fsevents import FSEventsObserver
 
         root = str(self.root.resolve())
-        watcher = self
+        watcher_ref = weakref.ref(self)
 
         class _Handler(FileSystemEventHandler):
             def on_any_event(self, event):  # noqa: N802
@@ -73,6 +74,9 @@ class LiveFsEventsWatcher:
                 elif et == "moved":
                     flags = "renamed"
                 st_dev, st_ino = _identity_for(str(path))
+                watcher = watcher_ref()
+                if watcher is None:
+                    return
                 with watcher._lock:
                     watcher._seq += 1
                     seq = watcher._seq
@@ -86,8 +90,16 @@ class LiveFsEventsWatcher:
                     ))
 
         obs = FSEventsObserver()
-        obs.schedule(_Handler(), root, recursive=True)
-        obs.start()
+        try:
+            obs.schedule(_Handler(), root, recursive=True)
+            obs.start()
+        except Exception:
+            try:
+                obs.stop()
+                obs.join()
+            except Exception:
+                pass
+            raise
         self._observer = obs
         self._started = True
         return True
@@ -96,11 +108,18 @@ class LiveFsEventsWatcher:
         if self._observer is not None:
             try:
                 self._observer.stop()
-                self._observer.join(timeout=2)
+                # Do not return while the native emitter is still alive. A
+                # timeout leaves the C FSEvents callback running into the next
+                # database operation and has caused process-level crashes.
+                self._observer.join()
             except Exception:
                 pass
             self._observer = None
         self._started = False
+
+    def close(self) -> None:
+        """Explicit lifecycle alias used by owning services and context managers."""
+        self.stop()
 
     def drain(self) -> list[FsEvent]:
         with self._lock:
