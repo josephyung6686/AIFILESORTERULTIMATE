@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from scan_agent.schema import create_scan_schema
+
 ITEMS_SCHEMA_VERSION = 5
 
 ITEMS_DDL = """
@@ -179,6 +181,8 @@ def _migrate_decision_columns(conn: sqlite3.Connection) -> None:
 
 def create_items_schema(conn: sqlite3.Connection) -> None:
     """Create the item tables if they are absent. Safe to call on every run."""
+    # The assistant's walk is a P3 scan (selection, run, verdicts).
+    create_scan_schema(conn)
     conn.executescript(ITEMS_DDL)
     _migrate_items_columns(conn)
     _migrate_decision_columns(conn)
@@ -200,14 +204,8 @@ def create_items_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS item_identity_events_by_item
             ON item_identity_events(item_id, observed_at);
-        -- Paths the scan refused to read (software projects, system areas).
-        -- Rewritten on every reconcile of their root so they stay current.
-        CREATE TABLE IF NOT EXISTS excluded_areas (
-            path          TEXT PRIMARY KEY,
-            rule          TEXT NOT NULL,
-            rule_subject  TEXT NOT NULL,
-            seen_at       TEXT NOT NULL
-        );
+        -- Folders not read are the sorter's `exclusion_verdicts` now.
+        DROP TABLE IF EXISTS excluded_areas;
         CREATE INDEX IF NOT EXISTS items_by_freshness ON items(freshness_state);
         CREATE INDEX IF NOT EXISTS relationship_decisions_by_rel
             ON relationship_decisions(relationship_id, created_at);

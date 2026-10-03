@@ -57,7 +57,9 @@ def test_equal_hash_on_two_live_items_is_one_witnessed_duplicate(conn, tmp_path:
 
     n = project_witnessed_links(conn)
     rows = _rels(conn)
-    assert n == 1
+    # `reconcile_tree` is the sorter's scan + projection now, which already
+    # projected the duplicate; a second projection adds nothing.
+    assert n == 0
     assert len(rows) == 1
     row = rows[0]
     assert row["rel_type"] == "duplicate-of"

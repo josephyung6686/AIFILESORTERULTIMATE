@@ -127,23 +127,33 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
         f"latency fts={result.fts_ms:.1f}ms vec={result.vector_ms:.1f}ms "
         f"total={result.total_ms:.1f}ms",
         file=out)
-    if skipped:
+
+    def _named(areas):
+        names = ", ".join(
+            "/".join(Path(a["folder"]).parts[-2:]) for a in areas[:5])
+        more = f" and {len(areas) - 5} more" if len(areas) > 5 else ""
+        return names + more
+
+    protected = [a for a in skipped if a["protected"]]
+    aside = [a for a in skipped if not a["protected"]]
+    if protected:
+        # The sorter's words (cli.py `_print_protected`).
+        print(f"Protected: {sum(a['paths'] for a in protected)} marked and "
+              f"counted — application and system folders, never opened: "
+              f"{_named(protected)}.", file=out)
+    if aside:
         from scan_agent.exclusion import (
             RULE_CATEGORY, RULE_LITERAL_DIRECTORY_NAME,
-            RULE_PROJECT_ROOT_DESCENDANT, RULE_PROTECTED_CONTAINER,
+            RULE_PROJECT_ROOT_DESCENDANT,
         )
         why = {
             RULE_PROJECT_ROOT_DESCENDANT: "software projects",
-            RULE_PROTECTED_CONTAINER: "apps and system items",
             RULE_LITERAL_DIRECTORY_NAME: "build, cache or dependency folders",
             RULE_CATEGORY: "build, cache or dependency folders",
         }
-        names = ", ".join(
-            "/".join(Path(a["folder"]).parts[-2:]) for a in skipped[:5])
-        more = f" and {len(skipped) - 5} more" if len(skipped) > 5 else ""
-        reasons = ", ".join(sorted({why.get(a["rule"], a["rule"]) for a in skipped}))
-        print(f"Not read: {len(skipped)} folder(s) — {reasons}: {names}{more}.",
-              file=out)
+        reasons = ", ".join(sorted({why.get(a["rule"], a["rule"]) for a in aside}))
+        print(f"Set aside by rule: {sum(a['paths'] for a in aside)} — "
+              f"{reasons}: {_named(aside)}.", file=out)
     for hit in result.hits:
         target = "(protected)" if hit.protected else (hit.open_target or "")
         print(
