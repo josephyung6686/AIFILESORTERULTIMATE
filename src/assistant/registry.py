@@ -323,6 +323,14 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         {},
     ),
     _fn(
+        "answer_question",
+        "Record the person's own answer to the sorter question on their "
+        "screen, in their words (or 'skip'). Only for something the person "
+        "actually said; never answer for them.",
+        {"answer": {"type": "string"}},
+        ["answer"],
+    ),
+    _fn(
         "undo_last",
         "Propose putting back the most recent batch of moved files. Moves "
         "nothing until the person says yes.",

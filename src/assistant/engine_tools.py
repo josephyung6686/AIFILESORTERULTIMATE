@@ -497,6 +497,30 @@ def record_person_answer(conn: sqlite3.Connection, question_id: str,
     return "free_text"
 
 
+def answer_question(conn: sqlite3.Connection, answer: str,
+                    context: Any) -> dict[str, Any]:
+    """The person's words for the question on their screen (the first one
+    the Session is asking), recorded as `--answer` / free text records."""
+    queue = getattr(context, "question_queue", None) or []
+    if not queue:
+        return {"ok": False, "error": "There is no question on the screen "
+                                      "to answer."}
+    q = queue[0]
+    try:
+        kind = record_person_answer(conn, q.question_id, answer)
+    except Exception:
+        return {"ok": False, "error": "I couldn't save that answer. Nothing "
+                                      "changed."}
+    context.question_queue = [x for x in queue
+                              if x.question_id != q.question_id]
+    if open_questions(conn):
+        context.ask_questions_after_turn = True
+    return {"ok": True, "recorded": kind, "moved": False,
+            "text": {"choice": "Saved your answer.",
+                     "skipped": "Skipped that question.",
+                     "free_text": "Saved your answer in your words."}[kind]}
+
+
 def next_questions(conn: sqlite3.Connection, context: Any) -> dict[str, Any]:
     qs = open_questions(conn)
     if context is not None and qs:
@@ -1225,6 +1249,8 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return undo_last(conn, context)
     if name == "next_questions":
         return next_questions(conn, context)
+    if name == "answer_question":
+        return answer_question(conn, str(args.get("answer") or ""), context)
     if name == "index_folder":
         return index_folder(conn, str(args.get("folder") or ""), context)
     if name == "organise_folder":
