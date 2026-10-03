@@ -32,6 +32,48 @@ def test_reading_recent_conversations_never_commits(conn):
     assert not _uncommitted_row_survives_rollback(conn, recent)
 
 
+def _encrypted_shared_db(tmp_path, monkeypatch):
+    import database_agent.db as db
+    key = tmp_path / "agent.key"
+    path = tmp_path / "shared.sqlite"
+    conn = open_database(path, encryption=True, encryption_key_file=key)
+    conn.execute("CREATE TABLE marker (v TEXT)")
+    conn.close()
+    monkeypatch.setattr(db, "shared_database_path", lambda: path)
+    monkeypatch.delenv("DATABASE_AGENT_KEY_FILE", raising=False)
+    return key
+
+
+def test_chat_on_an_encrypted_database_without_a_key_is_one_line(
+        tmp_path, monkeypatch, capsys):
+    import io
+    from database_agent.entrypoint import main
+    _encrypted_shared_db(tmp_path, monkeypatch)
+    out = io.StringIO()
+    assert main(["where is my cv"], out=out) == 2
+    shown = out.getvalue() + capsys.readouterr().err
+    assert shown.strip() == (
+        "This database is encrypted. Set DATABASE_AGENT_KEY_FILE to your key "
+        "file, then run database-agent again.")
+
+
+def test_chat_on_an_encrypted_database_opens_with_the_key_file(
+        tmp_path, monkeypatch):
+    import io
+    from assistant import terminal
+    from database_agent.entrypoint import main
+    key = _encrypted_shared_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("DATABASE_AGENT_KEY_FILE", str(key))
+    seen = []
+
+    def once(conn, text, **_):
+        seen.append(conn.execute("SELECT COUNT(*) FROM marker").fetchone()[0])
+        return 0
+    monkeypatch.setattr(terminal, "run_once", once)
+    assert main(["where is my cv"], out=io.StringIO()) == 0
+    assert seen == [0]
+
+
 def _events(out) -> list[dict]:
     return [json.loads(line) for line in out.getvalue().splitlines()]
 
