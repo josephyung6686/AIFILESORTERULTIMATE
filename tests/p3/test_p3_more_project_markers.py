@@ -76,3 +76,55 @@ def test_an_xcode_project_is_set_aside_as_one_project(tmp_path):
                     if "Assets.xcassets" in (h.open_target or "")
                     or "ContentView" in (h.display_label or "")], query
     conn.close()
+
+
+def test_package_lock_json_marks_a_project():
+    listing = [("package-lock.json", False), ("index.js", False)]
+    assert project_root_markers_in(listing) == ("package-lock.json",)
+
+
+def test_tsconfig_alone_is_not_a_project_marker():
+    assert project_root_markers_in([("tsconfig.json", False)]) == ()
+
+
+@pytest.mark.parametrize("inside", ["python.exe", "activate"])
+def test_a_windows_venv_without_pyvenv_cfg_is_a_project(inside):
+    listing = [("Scripts", True), ("Lib", True), ("Include", True)]
+    inner = {"Scripts": ["pip.exe", inside]}
+    found = project_root_markers_in(
+        listing, names_inside=lambda name: inner.get(name, []))
+    assert found == ("Scripts/+Lib/",)
+
+
+def test_a_scripts_folder_of_ordinary_files_is_not_a_venv():
+    listing = [("Scripts", True), ("Lib", True)]
+    inner = {"Scripts": ["lines for act 2.docx", "notes.txt"]}
+    assert project_root_markers_in(
+        listing, names_inside=lambda name: inner.get(name, [])) == ()
+    # Scripts/ with python.exe but no Lib/ beside it is not the layout.
+    assert project_root_markers_in(
+        [("Scripts", True)],
+        names_inside=lambda name: ["python.exe"]) == ()
+
+
+def test_the_scan_sets_aside_a_windows_venv(tmp_path):
+    from database_agent.db import open_database
+    from items.indexing import index_folder
+    from items.schema import create_items_schema
+
+    desk = tmp_path / "Desktop"
+    venv = desk / "myproject" / "env"
+    (venv / "Scripts").mkdir(parents=True)
+    (venv / "Scripts" / "activate").write_text("# activate\n")
+    (venv / "Lib").mkdir()
+    (venv / "Lib" / "abc.py").write_text("# Abstract Base Classes\n")
+    (desk / "history essay.txt").write_text("The causes of the war.\n")
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    index_folder(conn, desk)
+    live = [r[0] for r in conn.execute(
+        "SELECT open_target FROM items WHERE presence = 'live' "
+        "AND superseded_by IS NULL AND open_target IS NOT NULL")]
+    assert any(t.endswith("history essay.txt") for t in live)
+    assert not [t for t in live if "/env/" in t], live
+    conn.close()

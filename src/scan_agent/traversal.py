@@ -68,6 +68,17 @@ def walk(source: CorpusSource, *,
         yield from _walk_root(source, root, APPLIES_TO_CANDIDATE_ROOT, budget_exhausted)
 
 
+def _names_inside(source, entries, name: str) -> list[str]:
+    """The entry names of the child directory `name`; none if it cannot be listed."""
+    for entry in entries:
+        if entry.name == name and entry.kind == KIND_DIRECTORY:
+            try:
+                return [child.name for child in source.entries(entry.path)]
+            except (FileNotFoundError, NotADirectoryError, PermissionError):
+                return []
+    return []
+
+
 def _walk_root(source, root, applies_to, budget_exhausted) -> Iterator:
     root = str(root)
     root_verdict = exclusion_for(root, is_dir=True, applies_to=applies_to)
@@ -94,7 +105,8 @@ def _walk_root(source, root, applies_to, budget_exhausted) -> Iterator:
             continue
 
         markers = project_root_markers_in(
-            (entry.name, entry.kind == KIND_DIRECTORY) for entry in entries
+            ((entry.name, entry.kind == KIND_DIRECTORY) for entry in entries),
+            names_inside=lambda name: _names_inside(source, entries, name),
         )
         # The folder the person pointed at is not a project root merely because
         # a marker file sits in it. Owner ruling 2026-09-30, narrowing

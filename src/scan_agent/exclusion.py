@@ -70,12 +70,14 @@ EXCLUSION_CATEGORIES: tuple[str, ...] = (
 #: the person's own documents: Swift (`Package.swift`), Gradle/Kotlin/Android,
 #: Maven, and `pyvenv.cfg`, the file every Python virtual environment carries
 #: at its root. General, not this corpus: each is the file its own tool writes
-#: at the root of every project of that kind.
+#: at the root of every project of that kind. `package-lock.json` (4 Oct) is
+#: npm's, written beside `package.json` and sometimes left without it.
+#: `tsconfig.json` is not one: a lone config file is not a project root.
 PROJECT_ROOT_MARKERS: tuple[str, ...] = (
     "package.json", "requirements.txt", "Cargo.toml", "go.mod",
     "library.properties", "pyproject.toml", "setup.py", "CMakeLists.txt",
     "Package.swift", "build.gradle", "build.gradle.kts", "settings.gradle",
-    "settings.gradle.kts", "pom.xml", "pyvenv.cfg",
+    "settings.gradle.kts", "pom.xml", "pyvenv.cfg", "package-lock.json",
 )
 
 #: Markers whose NAME varies and whose ending does not: an Xcode project or
@@ -90,6 +92,12 @@ PROJECT_ROOT_SUFFIXES: tuple[str, ...] = (
 #: or submodule. OWNER-VISIBLE: a folder of ordinary documents the person keeps
 #: under git is set aside as one project by this, like any other repository.
 PROJECT_ROOT_ENTRIES: tuple[str, ...] = (".git",)
+
+#: A Windows virtual environment that lost its `pyvenv.cfg`: `Lib/` beside a
+#: `Scripts/` holding the interpreter or its `activate` script. Reported as
+#: `Scripts/+Lib/`.
+WINDOWS_VENV_MARKER = "Scripts/+Lib/"
+_WINDOWS_VENV_SCRIPTS = frozenset({"python.exe", "activate"})
 
 #: THE FIVE CATEGORIES, AUTHORED. Each member below was measured on a real disk
 #: rather than recalled from what package managers generally produce, which is what
@@ -224,7 +232,7 @@ def exclusion_for(path, *, is_dir: bool, applies_to: str,
                 return ExclusionVerdict(str(path), RULE_CATEGORY, category, applies_to)
     return None
 
-def project_root_markers_in(entry_names) -> tuple[str, ...]:
+def project_root_markers_in(entry_names, *, names_inside=None) -> tuple[str, ...]:
     """The §1.1 markers observed directly inside one directory, in the design's order.
 
     A non-empty result makes that directory a software project root, so §1.1 rejects
@@ -240,6 +248,9 @@ def project_root_markers_in(entry_names) -> tuple[str, ...]:
 
     `entry_names` is an iterable of (name, is_dir) pairs: §1.1 says the markers are
     FILES, so a directory called `package.json` is not one.
+
+    `names_inside(name)` lists a child directory's entry names. It is asked only
+    about `Scripts` when `Lib` sits beside it, for `WINDOWS_VENV_MARKER`.
     """
     entries = list(entry_names)
     files = {name for name, is_dir in entries if not is_dir}
@@ -249,6 +260,10 @@ def project_root_markers_in(entry_names) -> tuple[str, ...]:
               if any(len(name) > len(suffix) and name.endswith(suffix)
                      for name in names)]
     found += [entry for entry in PROJECT_ROOT_ENTRIES if entry in names]
+    directories = {name for name, is_dir in entries if is_dir}
+    if (names_inside is not None and {"Scripts", "Lib"} <= directories
+            and _WINDOWS_VENV_SCRIPTS & set(names_inside("Scripts"))):
+        found.append(WINDOWS_VENV_MARKER)
     return tuple(found)
 
 
