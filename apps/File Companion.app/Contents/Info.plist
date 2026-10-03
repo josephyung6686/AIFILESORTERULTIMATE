@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>File Companion</string>
+	<key>CFBundleDisplayName</key>
+	<string>File Companion</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.filecompanion.app</string>
+	<key>CFBundleExecutable</key>
+	<string>File Companion</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>12.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>File Companion reads the Documents folder you choose. It does not move or rename files.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>File Companion reads the Desktop folder you choose. It does not move or rename files.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>File Companion reads the Downloads folder you choose. It does not move or rename files.</string>
+</dict>
+</plist>

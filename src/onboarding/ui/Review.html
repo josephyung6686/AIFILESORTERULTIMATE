@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>File Companion</title>
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+ <style>body{margin:0;padding:32px;background:var(--surface-0,#F5F7FB);color:var(--ink,#18233A);font-family:Manrope,"SF Pro Text",system-ui,sans-serif}@media(max-width:600px){body{padding:10px}}</style>
+</head>
+<body>
+<div class="review-toolbar">
+ <label for="review-state">Review a screen</label>
+ <select id="review-state">
+  <option value="0:first-run">Folder access · first run</option>
+  <option value="1:first-run">Profile · nothing selected</option>
+  <option value="2:first-run">Work areas · Student</option>
+  <option value="3:first-run">Categories · awaiting approval</option>
+  <option value="4:first-run">Local scan · paused</option>
+  <option value="5:first-run">Archive briefing</option>
+  <option value="0:access-denied">Folder access · denied</option>
+  <option value="2:blank">Work areas · Start blank</option>
+  <option value="3:blank">Categories · none proposed</option>
+  <option value="3:all-refused">Categories · all refused</option>
+  <option value="5:all-refused">Briefing · all refused</option>
+  <option value="5:no-folders">Briefing · no folders chosen</option>
+ </select>
+ <span>Review controls are outside the product.</span>
+</div>
+<style>.review-toolbar{display:flex;align-items:center;gap:var(--space-3,12px);flex-wrap:wrap;max-width:1180px;margin:0 auto var(--space-4,16px);color:var(--ink-muted,#566176);font:600 13px/18px Manrope,"SF Pro Text",system-ui,sans-serif}.review-toolbar select{font:inherit;border:1px solid var(--line,#E1E6EE);border-radius:var(--radius-sm,8px);padding:9px;background:var(--surface-1,#FFFFFF);color:var(--ink,#18233A)}.review-toolbar span{font-weight:500;font-size:12px}</style>
+<style>
+:root, [data-theme="light"] {
+  --surface-0: #F5F7FB;
+  --surface-1: #FFFFFF;
+  --surface-2: #ECF0F6;
+  --line: #E1E6EE;
+  --glass: rgba(255,255,255,0.62);
+  --glass-edge: rgba(255,255,255,0.95);
+  --ink: #18233A;
+  --ink-muted: #566176;
+  --ink-subtle: #7D8698;
+  --blue-50: #F1F6FF;
+  --blue-100: #E3EEFF;
+  --blue-300: #9CC3FF;
+  --blue-600: #1F5BE0;
+  --blue-700: #1849B8;
+  --on-accent: #FFFFFF;
+  --ember-500: #FF5A36;
+  --ember-600: #D4401C;
+  --ember-700: #B83514;
+  --ember-100: #FFE6DD;
+  --success: #17784F;
+  --success-bg: #E2F5EC;
+  --warning: #8A5A06;
+  --warning-bg: #FDF1D6;
+  --danger: #B42318;
+  --danger-bg: #FDE8E6;
+  --focus: #1F5BE0;
+  --cat-1: #2E7BFF;
+  --cat-2: #FF5A36;
+  --cat-3: #F5B22D;
+  --cat-4: #2FB57F;
+  --cat-5: #7CC4F5;
+  --cat-6: #A7B0C0;
+  --pip-body: #F2F3F7;
+  --pip-ink: #18233A;
+  --shadow-card: 0 1px 2px rgba(24,35,58,0.04), 0 8px 24px rgba(24,35,58,0.06);
+  --shadow-glass: 0 12px 32px rgba(31,91,224,0.18);
+  --shadow-float: 0 2px 6px rgba(24,35,58,0.08), 0 20px 48px rgba(24,35,58,0.14);
+}
+[data-theme="dark"] {
+  --surface-0: #0C111B;
+  --surface-1: #151C2A;
+  --surface-2: #1D2638;
+  --line: #283247;
+  --glass: rgba(29,38,56,0.58);
+  --glass-edge: rgba(255,255,255,0.14);
+  --ink: #EDF1F7;
+  --ink-muted: #A3ADBF;
+  --ink-subtle: #6E7890;
+  --blue-50: #121D33;
+  --blue-100: #1A2A4A;
+  --blue-300: #2B4E8F;
+  --blue-600: #6FA2FF;
+  --blue-700: #A9C8FF;
+  --on-accent: #0C111B;
+  --ember-500: #FF6A45;
+  --ember-600: #FF7A57;
+  --ember-700: #FFB39E;
+  --ember-100: #3A1E17;
+  --success: #7FD8AE;
+  --success-bg: #13302A;
+  --warning: #F2C46B;
+  --warning-bg: #33290F;
+  --danger: #FF9C94;
+  --danger-bg: #3A1716;
+  --focus: #A9C8FF;
+  --cat-1: #5B95FF;
+  --cat-2: #FF7A57;
+  --cat-3: #F2C46B;
+  --cat-4: #4FCF97;
+  --cat-5: #7CC4F5;
+  --cat-6: #6E7890;
+  --pip-body: #F2F3F7;
+  --pip-ink: #18233A;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.32);
+  --shadow-glass: 0 12px 32px rgba(0,0,0,0.45);
+  --shadow-float: 0 2px 6px rgba(0,0,0,0.5), 0 20px 48px rgba(0,0,0,0.5);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --surface-0: #0C111B;
+  --surface-1: #151C2A;
+  --surface-2: #1D2638;
+  --line: #283247;
+  --glass: rgba(29,38,56,0.58);
+  --glass-edge: rgba(255,255,255,0.14);
+  --ink: #EDF1F7;
+  --ink-muted: #A3ADBF;
+  --ink-subtle: #6E7890;
+  --blue-50: #121D33;
+  --blue-100: #1A2A4A;
+  --blue-300: #2B4E8F;
+  --blue-600: #6FA2FF;
+  --blue-700: #A9C8FF;
+  --on-accent: #0C111B;
+  --ember-500: #FF6A45;
+  --ember-600: #FF7A57;
+  --ember-700: #FFB39E;
+  --ember-100: #3A1E17;
+  --success: #7FD8AE;
+  --success-bg: #13302A;
+  --warning: #F2C46B;
+  --warning-bg: #33290F;
+  --danger: #FF9C94;
+  --danger-bg: #3A1716;
+  --focus: #A9C8FF;
+  --cat-1: #5B95FF;
+  --cat-2: #FF7A57;
+  --cat-3: #F2C46B;
+  --cat-4: #4FCF97;
+  --cat-5: #7CC4F5;
+  --cat-6: #6E7890;
+  --pip-body: #F2F3F7;
+  --pip-ink: #18233A;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.32);
+  --shadow-glass: 0 12px 32px rgba(0,0,0,0.45);
+  --shadow-float: 0 2px 6px rgba(0,0,0,0.5), 0 20px 48px rgba(0,0,0,0.5);
+} }
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+  --blur-glass: 18px;
+  --font-sans: Manrope, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+}
+
+
+/* File Companion components: plain CSS, class prefix fc- */
+.fc-root{font-family:var(--font-sans);color:var(--ink);background:var(--surface-0);-webkit-font-smoothing:antialiased}
+.fc-root *{box-sizing:border-box}
+
+/* Button */
+.fc-btn{display:inline-flex;align-items:center;gap:var(--space-2);height:40px;padding:0 var(--space-4);border-radius:var(--radius-md);border:0;font:600 13px/18px var(--font-sans);cursor:pointer;transition:transform 140ms ease,background 140ms ease,box-shadow 140ms ease;white-space:nowrap}
+.fc-btn:active{transform:scale(.98)}
+.fc-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.fc-btn--primary{background:var(--blue-600);color:var(--on-accent);box-shadow:0 6px 16px rgba(31,91,224,.22)}
+.fc-btn--glass{background:var(--glass);color:var(--ink);box-shadow:inset 0 0 0 1px var(--glass-edge),var(--shadow-card);backdrop-filter:blur(var(--blur-glass));-webkit-backdrop-filter:blur(var(--blur-glass))}
+.fc-btn--ghost{background:transparent;color:var(--blue-600)}
+.fc-btn--ghost:hover{background:var(--blue-50)}
+.fc-btn--real{background:var(--ember-600);color:var(--on-accent);box-shadow:0 6px 16px rgba(212,64,28,.22)}
+.fc-btn[disabled]{background:var(--surface-2);color:var(--ink-subtle);box-shadow:none;cursor:not-allowed}
+.fc-pro{display:inline-flex;align-items:center;height:20px;padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--ember-100);color:var(--ember-700);font:700 11px/1 var(--font-sans);letter-spacing:.04em;text-transform:uppercase}
+.fc-btn--real .fc-pro{background:rgba(255,255,255,.22);color:var(--on-accent)}
+
+/* Glass tile: solid gradient back layer + frosted front layer */
+.fc-glass{position:relative;width:var(--fc-size,88px);height:var(--fc-size,88px)}
+.fc-glass__back{position:absolute;right:4%;top:0;width:68%;height:72%;border-radius:var(--radius-lg);background:linear-gradient(170deg,var(--blue-300),var(--blue-600));transform:rotate(-8deg)}
+.fc-glass__front{position:absolute;left:0;bottom:0;width:78%;height:72%;border-radius:var(--radius-lg);background:var(--glass);backdrop-filter:blur(var(--blur-glass)) saturate(1.4);-webkit-backdrop-filter:blur(var(--blur-glass)) saturate(1.4);box-shadow:inset 0 0 0 1px var(--glass-edge),var(--shadow-glass);display:grid;place-items:center;color:var(--blue-600);font:800 15px/1 var(--font-sans)}
+.fc-glass__front::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(80% 60% at 50% 110%,rgba(255,255,255,.7),transparent);pointer-events:none}
+.fc-glass--ember .fc-glass__back{background:linear-gradient(170deg,#FFC3AE,var(--ember-600))}
+.fc-glass--ember .fc-glass__front{color:var(--ember-700)}
+
+/* Category card */
+.fc-cat{position:relative;overflow:hidden;width:260px;border-radius:var(--radius-xl);background:var(--surface-1);box-shadow:var(--shadow-card);border:1px solid var(--line)}
+.fc-cat__art{height:120px;background:linear-gradient(180deg,var(--blue-100),var(--blue-50));display:grid;place-items:end center;padding-top:var(--space-4)}
+.fc-cat__art img{width:96px;height:96px;margin-bottom:-12px}
+.fc-cat__body{padding:var(--space-5);padding-top:var(--space-4);display:grid;gap:var(--space-1)}
+.fc-cat__title{font:700 17px/24px var(--font-sans);margin:0}
+.fc-cat__meta{font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+.fc-cat__actions{display:flex;gap:var(--space-2);margin-top:var(--space-3)}
+.fc-cat--suggested{border-style:dashed;border-color:var(--blue-300)}
+.fc-cat--active{background:var(--blue-600);border-color:var(--blue-600)}
+.fc-cat--active .fc-cat__art{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0))}
+.fc-cat--active .fc-cat__title,.fc-cat--active .fc-cat__meta{color:var(--on-accent)}
+
+/* Chip */
+.fc-chip{display:inline-flex;align-items:center;gap:var(--space-1);height:28px;padding:0 var(--space-3);border-radius:var(--radius-pill);font:600 13px/18px var(--font-sans);border:1px solid transparent}
+.fc-chip__dot{width:8px;height:8px;border-radius:50%;background:var(--fc-dot,var(--cat-1))}
+.fc-chip--confirmed{background:var(--blue-100);color:var(--blue-700)}
+.fc-chip--suggested{background:transparent;color:var(--ink);border:1px dashed var(--blue-300)}
+.fc-chip--refused{background:var(--surface-2);color:var(--ink-muted);text-decoration:line-through;text-decoration-color:var(--ink-subtle)}
+.fc-chip--unplaced{background:transparent;color:var(--ink-muted);border:1px dashed var(--line)}
+.fc-chip--held{background:var(--warning-bg);color:var(--warning)}
+
+/* File row */
+.fc-file{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md)}
+.fc-file:hover{background:var(--surface-2)}
+.fc-file__icon{width:36px;height:36px}
+.fc-file__name{font:600 15px/22px var(--font-sans);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-file__path{font:500 12px/18px var(--font-mono);color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Storage / index bar */
+.fc-bar{display:flex;gap:3px;height:8px;border-radius:var(--radius-pill);overflow:hidden;background:var(--surface-2)}
+.fc-bar>span{display:block;height:100%}
+.fc-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2) var(--space-4);margin-top:var(--space-4);font:500 13px/18px var(--font-sans);color:var(--ink-muted)}
+.fc-legend span{display:inline-flex;align-items:center;gap:var(--space-2)}
+.fc-legend i{width:10px;height:12px;border-radius:2px 5px 2px 2px;display:inline-block}
+
+/* Notice */
+.fc-notice{display:grid;grid-template-columns:40px 1fr;gap:var(--space-3);align-items:start;padding:var(--space-4);border-radius:var(--radius-md);font:500 13px/18px var(--font-sans)}
+.fc-notice img{width:40px;height:40px}
+.fc-notice strong{display:block;font:700 15px/22px var(--font-sans);margin-bottom:2px}
+.fc-notice--held{background:var(--warning-bg);color:var(--ink)}
+.fc-notice--held strong{color:var(--warning)}
+.fc-notice--info{background:var(--blue-100);color:var(--ink)}
+.fc-notice--info strong{color:var(--blue-700)}
+.fc-notice--error{background:var(--danger-bg);color:var(--ink)}
+.fc-notice--error strong{color:var(--danger)}
+
+/* Empty state with Pip */
+.fc-empty{display:grid;justify-items:center;text-align:center;gap:var(--space-2);padding:var(--space-6) var(--space-5);border-radius:var(--radius-xl);background:var(--surface-1);border:1px solid var(--line)}
+.fc-empty__pip{width:132px;height:132px;border-radius:var(--radius-xl);background:var(--ember-500);display:grid;place-items:center;margin-bottom:var(--space-3)}
+.fc-empty__pip img{width:96px;height:106px}
+.fc-empty h3{font:700 17px/24px var(--font-sans);margin:0}
+.fc-empty p{font:500 13px/18px var(--font-sans);color:var(--ink-muted);margin:0;max-width:280px}
+
+#file-companion-onboarding{position:relative;width:100%;margin:0 auto;color:var(--ink);background:var(--surface-0);font-family:var(--font-sans);font-size:15px;font-weight:500;line-height:22px;-webkit-font-smoothing:antialiased}
+#file-companion-onboarding *,#file-companion-onboarding *::before,#file-companion-onboarding *::after{box-sizing:border-box}
+#file-companion-onboarding [hidden]{display:none!important}
+#file-companion-onboarding button,#file-companion-onboarding input{font:inherit}
+#file-companion-onboarding button:focus-visible,#file-companion-onboarding input:focus-visible,#file-companion-onboarding label:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+#file-companion-onboarding button:disabled{cursor:not-allowed}
+#file-companion-onboarding input[type=checkbox],#file-companion-onboarding input[type=radio]{accent-color:var(--blue-600);width:16px;height:16px;margin:0;flex-shrink:0}
+#file-companion-onboarding .fc-window{max-width:1180px;margin:0 auto;background:var(--surface-0);border:1px solid var(--line);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-card)}
+#file-companion-onboarding .fc-chrome{height:48px;display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:0 var(--space-5);color:var(--ink-muted);font:500 12px/16px var(--font-sans);background:var(--surface-1);border-bottom:1px solid var(--line)}
+#file-companion-onboarding .fc-traffic{display:flex;gap:var(--space-2);min-width:68px}
+#file-companion-onboarding .fc-traffic span{width:10px;height:10px;border-radius:var(--radius-pill);background:var(--ink-subtle)}
+#file-companion-onboarding .fc-preview{font:500 12px/16px var(--font-sans);color:var(--ink-muted);min-width:90px;text-align:right}
+#file-companion-onboarding .fc-shell{display:grid;grid-template-columns:220px minmax(0,1fr) 280px;min-height:692px}
+#file-companion-onboarding .fc-nav{padding:var(--space-5) var(--space-4) var(--space-6);display:flex;flex-direction:column;background:var(--surface-0);border-right:1px solid var(--line)}
+#file-companion-onboarding .fc-brand{display:flex;align-items:center;gap:var(--space-3);padding:0 var(--space-2);margin-bottom:var(--space-6)}
+#file-companion-onboarding .fc-brand-image{width:36px;height:36px}
+#file-companion-onboarding .fc-brand b{font:800 15px/20px var(--font-sans);letter-spacing:-0.03em;color:var(--ink)}
+#file-companion-onboarding .fc-nav-label{color:var(--ink-muted);font:500 12px/16px var(--font-sans);margin:0 var(--space-3) var(--space-3)}
+#file-companion-onboarding .fc-nav ol{list-style:none;padding:0;margin:0}
+#file-companion-onboarding .fc-nav li+li{margin-top:var(--space-1)}
+#file-companion-onboarding .fc-nav button{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:40px;text-align:left;padding:var(--space-2) var(--space-3);border:1px solid transparent;background:transparent;border-radius:var(--radius-md);font:600 13px/18px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-nav button[aria-current=step]{background:var(--blue-50);color:var(--blue-600)}
+#file-companion-onboarding .fc-nav button:not(:disabled):hover{color:var(--blue-600);background:var(--blue-50)}
+#file-companion-onboarding .fc-nav button:disabled{color:var(--ink-subtle)}
+#file-companion-onboarding .fc-step-mark{flex-shrink:0;display:grid;place-items:center;width:16px;height:16px;font:600 12px/16px var(--font-sans)}
+#file-companion-onboarding .fc-nav button.is-complete .fc-step-mark{background:var(--blue-600);color:var(--on-accent);border-radius:var(--radius-pill)}
+#file-companion-onboarding .fc-nav-note{margin-top:auto;padding-top:var(--space-6);color:var(--ink-muted);font:500 12px/16px var(--font-sans)}
+#file-companion-onboarding .fc-nav-note b{display:block;font:700 13px/18px var(--font-sans);margin:var(--space-2) 0 var(--space-1);color:var(--ink)}
+#file-companion-onboarding .fc-nav-note p{margin:0}
+#file-companion-onboarding .fc-main{display:flex;flex-direction:column;min-width:0;padding:var(--space-6) var(--space-6) var(--space-5);background:var(--surface-0)}
+#file-companion-onboarding .fc-content{flex:1}
+#file-companion-onboarding .fc-eyebrow{font:600 13px/18px var(--font-sans);color:var(--blue-600);margin:0 0 var(--space-3)}
+#file-companion-onboarding h1{color:var(--ink);font:800 44px/48px var(--font-sans);letter-spacing:-0.02em;margin:0 0 var(--space-4)}
+#file-companion-onboarding .fc-subline{font:500 15px/22px var(--font-sans);color:var(--ink-muted);margin:0 0 var(--space-6);max-width:520px}
+#file-companion-onboarding p{overflow-wrap:break-word}
+#file-companion-onboarding fieldset{padding:0;margin:0;border:0;min-width:0}
+#file-companion-onboarding .fc-folder-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
+#file-companion-onboarding .fc-access-card,#file-companion-onboarding .fc-profile-card,#file-companion-onboarding .fc-area-card,#file-companion-onboarding .fc-leave-card,#file-companion-onboarding .fc-scan-card,#file-companion-onboarding .fc-result-row,#file-companion-onboarding .fc-category-empty{background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-xl);box-shadow:var(--shadow-card)}
+#file-companion-onboarding .fc-access-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:var(--space-2);min-height:220px;padding:var(--space-4);text-align:center}
+#file-companion-onboarding .fc-access-card>img,#file-companion-onboarding .fc-area-card>img,#file-companion-onboarding .fc-profile-card>img{width:64px;height:64px;pointer-events:none}
+#file-companion-onboarding .fc-access-card>input{position:absolute;top:var(--space-4);right:var(--space-4)}
+#file-companion-onboarding .fc-access-label b,#file-companion-onboarding .fc-area-card b,#file-companion-onboarding .fc-card-head b{display:block;font:700 17px/24px var(--font-sans);color:var(--ink)}
+#file-companion-onboarding .fc-access-label small,#file-companion-onboarding .fc-area-card small,#file-companion-onboarding .fc-card-copy{display:block;margin-top:var(--space-1);font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-access-card:has(input:checked),#file-companion-onboarding .fc-profile-card:has(input:checked),#file-companion-onboarding .fc-area-card:has(input:checked){background:var(--blue-50);border-color:var(--blue-600)}
+#file-companion-onboarding .fc-access-card:hover,#file-companion-onboarding .fc-profile-card:hover,#file-companion-onboarding .fc-area-card:hover{background:var(--blue-50)}
+#file-companion-onboarding .fc-other-row{grid-column:1/-1;display:flex;align-items:center;gap:var(--space-3);min-height:40px;margin-top:var(--space-2);color:var(--blue-600);font:600 13px/18px var(--font-sans)}
+#file-companion-onboarding .fc-other-row>input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+#file-companion-onboarding .fc-other-row small{display:none}
+#file-companion-onboarding .fc-plus{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--radius-pill);background:var(--blue-100);color:var(--blue-700);font:600 16px/1 var(--font-sans)}
+#file-companion-onboarding #fc-other-field{grid-column:1/-1}
+#file-companion-onboarding .fc-access-caption,#file-companion-onboarding .fc-protected-note,#file-companion-onboarding .fc-nav-note{display:flex;align-items:flex-start;gap:var(--space-2)}
+#file-companion-onboarding .fc-access-caption{margin-top:var(--space-5);font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-access-caption p,#file-companion-onboarding .fc-protected-note p{margin:0}
+#file-companion-onboarding .fc-read-links{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);margin-top:var(--space-3)}
+#file-companion-onboarding .fc-footer{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4);margin-top:var(--space-6)}
+#file-companion-onboarding .fc-footer .fc-btn--primary,#file-companion-onboarding .fc-dialog .fc-btn--primary,#file-companion-onboarding .fc-dialog .fc-btn--real{min-width:168px;justify-content:center}
+#file-companion-onboarding .fc-profile-grid,#file-companion-onboarding .fc-areas-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+#file-companion-onboarding .fc-profile-card,#file-companion-onboarding .fc-area-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-3);min-height:180px;padding:var(--space-5)}
+#file-companion-onboarding .fc-profile-card>input,#file-companion-onboarding .fc-area-card>input{position:absolute;top:var(--space-4);right:var(--space-4)}
+#file-companion-onboarding .fc-card-head{display:flex;align-items:center;gap:var(--space-2)}
+#file-companion-onboarding .fc-person-line{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-top:var(--space-5)}
+#file-companion-onboarding .fc-empty-note{font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin:var(--space-4) 0 0}
+#file-companion-onboarding .fc-field{display:block;font:600 13px/18px var(--font-sans);color:var(--ink);margin-top:var(--space-4)}
+#file-companion-onboarding .fc-field>span{font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin-left:var(--space-2)}
+#file-companion-onboarding .fc-field input[type=text]{display:block;width:100%;min-height:40px;margin-top:var(--space-2);background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-sm);padding:var(--space-3) var(--space-3);color:var(--ink);font:500 15px/22px var(--font-sans)}
+#file-companion-onboarding .fc-field input::placeholder{color:var(--ink-subtle)}
+#file-companion-onboarding .fc-leave-card{padding:var(--space-4) var(--space-5);margin-top:var(--space-4)}
+#file-companion-onboarding .fc-leave-card>label:first-child{display:flex;align-items:flex-start;gap:var(--space-3)}
+#file-companion-onboarding .fc-leave-card b{font:700 15px/22px var(--font-sans)}
+#file-companion-onboarding .fc-leave-card small{display:block;font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin-top:var(--space-1)}
+#file-companion-onboarding .fc-lock{position:relative;display:inline-block;width:12px;height:9px;border:1.75px solid var(--ink-muted);border-radius:var(--radius-sm);flex-shrink:0;margin-top:6px}
+#file-companion-onboarding .fc-lock::before{content:"";position:absolute;left:1px;top:-6px;width:6px;height:5px;border:1.75px solid var(--ink-muted);border-bottom:0;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+#file-companion-onboarding .fc-category-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-5)}
+#file-companion-onboarding .fc-cat{width:auto}
+#file-companion-onboarding .fc-cat__actions .fc-btn{height:36px}
+#file-companion-onboarding .fc-cat--active .fc-btn--primary{background:var(--surface-1);color:var(--blue-600)}
+#file-companion-onboarding .fc-cat--active .fc-btn--ghost{color:var(--on-accent)}
+#file-companion-onboarding .fc-category-name{border:0;background:transparent;padding:0;text-align:left;color:inherit;font:700 17px/24px var(--font-sans)}
+#file-companion-onboarding .fc-add-category{margin-top:var(--space-4)}
+#file-companion-onboarding .fc-inline-form{display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap;margin-top:var(--space-3)}
+#file-companion-onboarding .fc-inline-form>.fc-field{flex:1;min-width:160px;margin-top:0}
+#file-companion-onboarding .fc-category-empty{padding:var(--space-6) var(--space-5)}
+#file-companion-onboarding .fc-category-empty b{font:700 17px/24px var(--font-sans)}
+#file-companion-onboarding .fc-category-empty p{font:500 13px/18px var(--font-sans);color:var(--ink-muted);margin:var(--space-2) 0 0}
+#file-companion-onboarding .fc-scan-card{padding:var(--space-5);margin-top:var(--space-5)}
+#file-companion-onboarding .fc-scan-heading{display:flex;align-items:center;gap:var(--space-3);font:700 15px/22px var(--font-sans)}
+#file-companion-onboarding .fc-scan-heading img{width:36px;height:36px}
+#file-companion-onboarding .fc-read-only{margin-left:auto;font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding progress{appearance:none;display:block;border:0;width:100%;height:8px;border-radius:var(--radius-pill);overflow:hidden;margin:var(--space-5) 0;background:var(--surface-2)}
+#file-companion-onboarding progress::-webkit-progress-bar{background:var(--surface-2)}
+#file-companion-onboarding progress::-webkit-progress-value{background:var(--blue-600)}
+#file-companion-onboarding progress::-moz-progress-bar{background:var(--blue-600)}
+#file-companion-onboarding progress:indeterminate{background:linear-gradient(90deg,var(--surface-2) 0%,var(--surface-2) 30%,var(--blue-600) 50%,var(--surface-2) 70%,var(--surface-2) 100%);background-size:200% 100%;animation:fc-scan-drift 2s linear infinite}
+#file-companion-onboarding .fc-scan-phases{padding:0;list-style:none;margin:0;color:var(--ink-muted);font:500 13px/18px var(--font-sans)}
+#file-companion-onboarding .fc-scan-phases li{display:flex;gap:var(--space-3);align-items:center;margin:var(--space-4) 0}
+#file-companion-onboarding .fc-scan-phases li::before{content:"";width:8px;height:8px;border:1.75px solid var(--ink-muted);border-radius:var(--radius-pill);flex-shrink:0}
+#file-companion-onboarding .fc-scan-phases li.is-active{color:var(--ink)}
+#file-companion-onboarding .fc-scan-phases li.is-active::before,#file-companion-onboarding .fc-scan-phases li.is-done::before{background:var(--blue-600);border-color:var(--blue-600)}
+#file-companion-onboarding .fc-results-list,#file-companion-onboarding .fc-workspace-list{display:flex;flex-direction:column;gap:var(--space-3);list-style:none;padding:0;margin:0}
+#file-companion-onboarding .fc-result-row{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:var(--space-4);padding:var(--space-4)}
+#file-companion-onboarding .fc-result-row img{width:40px;height:40px}
+#file-companion-onboarding .fc-result-row h2{font:700 15px/22px var(--font-sans);margin:0 0 var(--space-1)}
+#file-companion-onboarding .fc-result-row p{font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin:0}
+#file-companion-onboarding .fc-result-status{font:500 12px/16px var(--font-sans);color:var(--ink-muted);text-align:right}
+#file-companion-onboarding .fc-confirmed-summary{margin-top:var(--space-5);font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-confirmed-summary>div{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-top:var(--space-2)}
+#file-companion-onboarding .fc-index{margin-top:var(--space-5);padding:var(--space-5);background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-xl);box-shadow:var(--shadow-card)}
+#file-companion-onboarding .fc-index>span{display:block;font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin-bottom:var(--space-3)}
+#file-companion-onboarding .fc-workspace-label{font:700 17px/24px var(--font-sans);margin:var(--space-6) 0 var(--space-3)}
+#file-companion-onboarding .fc-outline{white-space:pre-wrap;overflow:auto;max-height:220px;margin:0;padding:var(--space-4);border-radius:var(--radius-md);background:var(--surface-1);color:var(--ink);font:500 12px/18px var(--font-mono);border:1px solid var(--line)}
+#file-companion-onboarding .fc-file{background:var(--surface-1);border:1px solid var(--line)}
+#file-companion-onboarding .fc-aside{margin:var(--space-4) var(--space-4) var(--space-5) 0;padding:var(--space-5);border:1px solid var(--line);border-radius:var(--radius-xl);display:flex;flex-direction:column;align-items:flex-start;min-width:0;background:var(--surface-1);box-shadow:var(--shadow-card)}
+#file-companion-onboarding .fc-aside-label{display:block;color:var(--ink-muted);font:500 12px/16px var(--font-sans);margin-bottom:var(--space-2)}
+#file-companion-onboarding .fc-aside h2{font:700 26px/32px var(--font-sans);letter-spacing:-0.01em;margin:0;color:var(--ink)}
+#file-companion-onboarding .fc-tuck{margin:var(--space-5) 0 var(--space-2)}
+#file-companion-onboarding.is-error .fc-tuck{display:none}
+#file-companion-onboarding .fc-aside>p{color:var(--ink-muted);font:500 13px/18px var(--font-sans);margin:var(--space-4) 0 0}
+#file-companion-onboarding .fc-evidence{font:500 12px/16px var(--font-sans);color:var(--ink-muted);margin-top:var(--space-4);width:100%}
+#file-companion-onboarding .fc-evidence ul{list-style:none;padding:0;margin:var(--space-2) 0 0}
+#file-companion-onboarding .fc-evidence li{padding:var(--space-3);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--ink);font:500 12px/18px var(--font-mono);margin-top:var(--space-2);overflow-wrap:anywhere}
+#file-companion-onboarding .fc-protected-note{margin-top:auto;padding-top:var(--space-5);font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-notice--error{grid-template-columns:1fr}
+#file-companion-onboarding .fc-alert,#file-companion-onboarding #fc-scan-error{margin-top:var(--space-4)}
+#file-companion-onboarding .fc-overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:var(--space-5);background:rgba(24,35,58,0.28);border-radius:var(--radius-xl)}
+#file-companion-onboarding .fc-dialog{width:100%;max-width:440px;background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-xl);padding:var(--space-6);box-shadow:var(--shadow-float)}
+#file-companion-onboarding .fc-dialog-label{font:500 12px/16px var(--font-sans);color:var(--ink-muted)}
+#file-companion-onboarding .fc-dialog h2{font:700 26px/32px var(--font-sans);letter-spacing:-0.01em;margin:var(--space-3) 0 var(--space-4)}
+#file-companion-onboarding .fc-dialog p{white-space:pre-line;color:var(--ink-muted);font:500 15px/22px var(--font-sans);margin:0}
+#file-companion-onboarding .fc-dialog-actions{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4);margin-top:var(--space-6)}
+#file-companion-onboarding .fc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@keyframes fc-scan-drift{from{background-position:100% 0}to{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){#file-companion-onboarding progress:indeterminate{animation:none}#file-companion-onboarding *{transition:none!important;animation:none!important}}
+@media(max-width:880px){#file-companion-onboarding .fc-shell{grid-template-columns:180px minmax(0,1fr)}#file-companion-onboarding .fc-aside{grid-column:1/-1;margin:0 var(--space-4) var(--space-4)}}
+@media(max-width:600px){#file-companion-onboarding .fc-shell{display:flex;flex-direction:column}#file-companion-onboarding .fc-main{padding:var(--space-5) var(--space-4)}#file-companion-onboarding h1{font-size:32px;line-height:36px}#file-companion-onboarding .fc-folder-list,#file-companion-onboarding .fc-profile-grid,#file-companion-onboarding .fc-areas-grid,#file-companion-onboarding .fc-person-line{grid-template-columns:1fr}#file-companion-onboarding .fc-nav ol{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-1)}#file-companion-onboarding .fc-brand,#file-companion-onboarding .fc-nav-note{display:none}}
+#file-companion-onboarding.is-mac-app .fc-chrome,#file-companion-onboarding.is-mac-app .fc-preview,#file-companion-onboarding.is-mac-app .fc-dialog-label{display:none}
+#file-companion-onboarding .fc-top-steps{display:none}
+#file-companion-onboarding.is-folder-screen .fc-top-steps{display:flex;justify-content:center;gap:var(--space-2) var(--space-5);flex-wrap:wrap;padding:0 var(--space-5);border-bottom:1px solid var(--line);background:var(--surface-1)}
+#file-companion-onboarding.is-folder-screen .fc-top-steps button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-muted);font:600 13px/18px var(--font-sans);padding:var(--space-3) var(--space-1);border-radius:0}
+#file-companion-onboarding.is-folder-screen .fc-top-steps button[aria-current=step]{color:var(--blue-600);border-bottom-color:var(--blue-600)}
+#file-companion-onboarding.is-folder-screen .fc-top-steps button:disabled{color:var(--ink-subtle)}
+#file-companion-onboarding.is-folder-screen .fc-nav,#file-companion-onboarding.is-folder-screen .fc-aside{display:none}
+#file-companion-onboarding.is-folder-screen .fc-shell{display:block}
+#file-companion-onboarding.is-folder-screen .fc-main{max-width:860px;margin:0 auto}
+#file-companion-onboarding .fc-folder-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-5);margin-bottom:var(--space-6)}
+#file-companion-onboarding .fc-folder-hero .fc-subline{margin-bottom:0}
+#file-companion-onboarding .fc-folder-hero .fc-tuck{margin:0;flex-shrink:0}
+
+/* Area cards are solid surface-1 with the supplied glass icons.
+   Selection and keyboard behavior stay on the native inputs. */
+
+</style>
+<div id="file-companion-onboarding" class="fc-root is-folder-screen">
+ <div class="fc-window">
+  <header class="fc-chrome">
+   <div class="fc-traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+   <span id="fc-window-title">File Companion</span>
+   <span class="fc-preview">Design preview</span>
+  </header>
+  <nav class="fc-top-steps" aria-label="Setup steps">
+   <button type="button" data-step="0" aria-current="step">Folders</button>
+   <button type="button" data-step="1" disabled>Profile</button>
+   <button type="button" data-step="2" disabled>Work areas</button>
+   <button type="button" data-step="3" disabled>Categories</button>
+   <button type="button" data-step="4" disabled>Scan</button>
+   <button type="button" data-step="5" disabled>Briefing</button>
+  </nav>
+  <div class="fc-shell">
+   <nav class="fc-nav" aria-label="Setup steps">
+    <div class="fc-brand"><img src="assets/icons/folder.svg" alt="" class="fc-brand-image"><b>File Companion</b></div>
+    <span class="fc-nav-label">Getting started</span>
+    <ol>
+     <li><button type="button" data-step="0" aria-current="step"><span class="fc-step-mark">1</span>Folder access</button></li>
+     <li><button type="button" data-step="1" disabled><span class="fc-step-mark">2</span>Your profile</button></li>
+     <li><button type="button" data-step="2" disabled><span class="fc-step-mark">3</span>Areas of work</button></li>
+     <li><button type="button" data-step="3" disabled><span class="fc-step-mark">4</span>Your categories</button></li>
+     <li><button type="button" data-step="4" disabled><span class="fc-step-mark">5</span>Local scan</button></li>
+     <li><button type="button" data-step="5" disabled><span class="fc-step-mark">6</span>Archive briefing</button></li>
+    </ol>
+    <div class="fc-nav-note"><span class="fc-lock" aria-hidden="true"></span><div><b>On this Mac.</b><p>Your original files stay in place.</p></div></div>
+   </nav>
+   <main class="fc-main">
+    <div class="fc-content">
+     <section data-page="0" aria-labelledby="fc-welcome-title">
+      <div class="fc-folder-hero">
+       <div>
+        <h1 id="fc-welcome-title">Where do you keep your files?</h1>
+        <p class="fc-subline">Choose the folders to include. Your files stay where they are.</p>
+       </div>
+       <div class="fc-tuck fc-empty__pip"><img src="assets/mascot/tuck-carry.svg" alt=""></div>
+      </div>
+      <fieldset class="fc-folder-list"><legend class="fc-sr">Choose folders</legend>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Documents</b><small>Notes and coursework</small></span><input type="checkbox" name="folder" value="Documents"></label>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Downloads</b><small>Saved from the web</small></span><input type="checkbox" name="folder" value="Downloads"></label>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Desktop</b><small>Kept close by</small></span><input type="checkbox" name="folder" value="Desktop"></label>
+       <label class="fc-other-row"><span class="fc-plus" aria-hidden="true">+</span><span><b>Another folder</b><small>Choose a folder on your Mac</small></span><input type="checkbox" id="fc-other-check"></label>
+       <label class="fc-field" id="fc-other-field" hidden>Folder name or path<input id="fc-other-input" type="text" placeholder="For example, Research" autocomplete="off"></label>
+      </fieldset>
+      <div class="fc-access-caption"><span class="fc-lock" aria-hidden="true"></span><p>Read-only access. Nothing gets moved.</p></div>
+      <div class="fc-read-links"><button class="fc-btn fc-btn--ghost" type="button" data-action="read-details">What can you read?</button><button class="fc-btn fc-btn--ghost" type="button" data-action="skip-folders">Set up later</button></div>
+      <div id="fc-access-error" class="fc-notice fc-notice--error" role="alert" hidden><div><strong>Folder access was denied.</strong><p>Without folder access there is nothing to index. You can change this in System Settings.</p><button class="fc-btn fc-btn--ghost" type="button" data-action="settings-help">Open System Settings</button></div></div>
+     </section>
+     <section data-page="1" aria-labelledby="fc-profile-title" hidden>
+      <div class="fc-eyebrow">Your starting point</div><h1 id="fc-profile-title">What brings you here?</h1>
+      <p class="fc-subline">Choose a starting profile. You can change this later.</p>
+      <fieldset class="fc-profile-grid"><legend class="fc-sr">Choose a profile</legend>
+       <label class="fc-profile-card"><img src="assets/icons/course.svg" alt=""><span class="fc-card-head"><b>Student</b></span><span class="fc-card-copy">Courses, applications, and work in progress.</span><input type="radio" name="profile" value="student" aria-label="Student"></label>
+       <label class="fc-profile-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-card-head"><b>Start blank</b></span><span class="fc-card-copy">A clean slate. Make it your own.</span><input type="radio" name="profile" value="blank" aria-label="Start blank"></label>
+      </fieldset>
+      <div class="fc-person-line" id="fc-person-line" hidden>
+       <label class="fc-field">Your name <span>Stays on this Mac</span><input id="fc-person-input" type="text" autocomplete="name"></label>
+       <label class="fc-field">School<input id="fc-school-input" type="text" autocomplete="organization"></label>
+      </div>
+      <p class="fc-empty-note" id="fc-profile-note">No profile selected. Continue to start with a blank setup.</p>
+     </section>
+     <section data-page="2" aria-labelledby="fc-areas-title" hidden>
+      <div class="fc-eyebrow">Choose your scope</div><h1 id="fc-areas-title">What are you working on?</h1><p class="fc-subline">Choose a few areas. You will review the categories next.</p>
+      <fieldset class="fc-areas-grid"><legend class="fc-sr">Work areas</legend>
+       <label class="fc-area-card" id="fc-course-card"><img src="assets/icons/course.svg" alt=""><span><b>Courses</b><small>Notes and assignments</small></span><input name="area" type="checkbox" value="Courses"></label>
+       <label class="fc-area-card"><img src="assets/icons/application.svg" alt=""><span><b>Applications</b><small>Forms and resumes</small></span><input name="area" type="checkbox" value="Applications"></label>
+       <label class="fc-area-card"><img src="assets/icons/folder.svg" alt=""><span><b>Recruiting</b><small>Companies and interviews</small></span><input name="area" type="checkbox" value="Recruiting"></label>
+       <label class="fc-area-card"><img src="assets/icons/project.svg" alt=""><span><b>Projects</b><small>Research and personal work</small></span><input name="area" type="checkbox" value="Projects"></label>
+      </fieldset>
+      <div class="fc-context-fields">
+       <label class="fc-field" data-context="courses" hidden>Courses this term <span>Optional</span><input id="fc-courses-input" type="text" placeholder="For example, Thermodynamics" autocomplete="off"></label>
+       <label class="fc-field" data-context="companies" hidden>Companies <span>Optional</span><input id="fc-companies-input" type="text" placeholder="Add names if you want" autocomplete="off"></label>
+       <label class="fc-field" data-context="projects" hidden>Project names <span>Optional</span><input id="fc-projects-input" type="text" placeholder="Add names if you want" autocomplete="off"></label>
+      </div>
+      <div class="fc-leave-card"><label><span class="fc-lock" aria-hidden="true"></span><span><b>Things to leave alone</b><small>Folders or topics Companion should never touch or suggest.</small></span><input id="fc-leave-check" type="checkbox"></label><label class="fc-field" id="fc-leave-field" hidden>Folders or topics<input id="fc-leave-input" type="text" placeholder="Separate names with commas" autocomplete="off"></label></div>
+      <p class="fc-empty-note" id="fc-areas-note">Nothing chosen. Your items will start unplaced.</p>
+     </section>
+     <section data-page="3" aria-labelledby="fc-categories-title" hidden>
+      <div class="fc-eyebrow">Your categories</div><h1 id="fc-categories-title">Review your categories.</h1>
+      <p class="fc-subline">Only categories you confirm are used. Files that do not fit stay unplaced. File Companion will not guess.</p>
+      <div id="fc-category-list" class="fc-category-list" aria-label="Proposed categories"></div>
+      <div class="fc-category-empty" id="fc-category-empty"><b>No categories proposed.</b><p>Items will start unplaced. You can add a category now or later.</p></div>
+      <button class="fc-btn fc-btn--ghost fc-add-category" type="button" data-action="add-category">Add a category</button>
+      <div id="fc-add-form" class="fc-inline-form" hidden><label class="fc-field">Category name<input id="fc-add-input" type="text" placeholder="Name your category" maxlength="70" autocomplete="off"></label><button class="fc-btn fc-btn--primary" type="button" data-action="save-category">Add</button><button class="fc-btn fc-btn--ghost" type="button" data-action="cancel-add">Cancel</button></div>
+      <p class="fc-empty-note" id="fc-category-note">Categories are waiting for your confirmation.</p>
+     </section>
+     <section data-page="4" aria-labelledby="fc-scan-title" hidden>
+      <div class="fc-eyebrow">Reading on this Mac</div><h1 id="fc-scan-title">Reading your chosen folders.</h1><p class="fc-subline">Reading the folders you chose. Nothing gets moved.</p>
+      <div class="fc-scan-card"><div class="fc-scan-heading"><img src="assets/icons/sort.svg" alt=""><b id="fc-scan-status">Reading your folders</b><span class="fc-read-only">Local</span></div><progress id="fc-scan-progress" aria-label="Local scan in progress"></progress><ol class="fc-scan-phases"><li data-phase="0">Read selected folders</li><li data-phase="1">Check confirmed categories</li><li data-phase="2">Keep sensitive material held</li></ol><div id="fc-scan-error" class="fc-notice fc-notice--error" hidden><div><strong>The scan did not finish.</strong><p></p></div></div></div>
+      <p class="fc-empty-note">Folder and file counts appear after the app reads your data.</p>
+     </section>
+     <section data-page="5" aria-labelledby="fc-briefing-title" hidden>
+      <div class="fc-eyebrow">Archive briefing</div><h1 id="fc-briefing-title">Your first scan, at a glance.</h1><p class="fc-subline" id="fc-briefing-subline">This preview leaves result fields empty until a real scan.</p>
+      <div id="fc-index" class="fc-index" hidden><span id="fc-index-caption">From this scan</span><div id="fc-index-bar" class="fc-bar"></div><div id="fc-index-legend" class="fc-legend"></div></div>
+      <div class="fc-results-list">
+       <article class="fc-result-row"><img src="assets/icons/sort.svg" alt=""><div><h2>What was found</h2><p id="fc-found-copy">File names and totals will appear here.</p></div><span class="fc-result-status" id="fc-found-state">Awaiting results</span></article>
+       <article class="fc-result-row"><img src="assets/icons/sensitive.svg" alt=""><div><h2>Held</h2><p>Finance, identity, medical, and legal material stays held. It stays on this Mac.</p></div><span class="fc-result-status">Held</span></article>
+       <article class="fc-result-row"><img src="assets/icons/unplaced.svg" alt=""><div><h2>Unplaced</h2><p id="fc-unplaced-copy">Files without a confirmed category stay here.</p></div><span class="fc-result-status">Needs a place</span></article>
+       <article class="fc-result-row"><img src="assets/icons/folder.svg" alt=""><div><h2>Left alone</h2><p id="fc-left-copy">Folders or topics you chose to exclude.</p></div><span class="fc-result-status">Excluded</span></article>
+      </div>
+      <div class="fc-confirmed-summary"><span>Confirmed categories</span><div id="fc-confirmed-tags">None confirmed</div></div>
+      <p class="fc-empty-note" id="fc-answers-note"></p>
+     </section>
+     <section data-page="6" aria-labelledby="fc-handoff-title" hidden>
+      <div class="fc-eyebrow">Workspace</div><h1 id="fc-handoff-title">Your sort, in the app.</h1>
+      <p class="fc-subline">Files stay in Finder at their original paths. This is the index, not a rewrite of your folders.</p>
+      <h2 class="fc-workspace-label">In-app sort</h2>
+      <pre id="fc-outline" class="fc-outline">No proposal yet.</pre>
+      <h2 class="fc-workspace-label">Needs review</h2>
+      <ul id="fc-review-files" class="fc-workspace-list"></ul>
+      <p id="fc-review-empty" class="fc-empty-note">No files are waiting for review.</p>
+      <h2 class="fc-workspace-label">Empty folders</h2>
+      <p class="fc-empty-note">A folder is listed only when it has no files on disk. Nothing is removed unless you say yes.</p>
+      <ul id="fc-empty-folders" class="fc-workspace-list"></ul>
+      <p id="fc-empty-none" class="fc-empty-note">No empty folders.</p>
+     </section>
+    </div>
+    <footer class="fc-footer"><button class="fc-btn fc-btn--ghost" id="fc-back" type="button" disabled>Back</button><button class="fc-btn fc-btn--primary" id="fc-next" type="button" disabled>Allow folder access</button></footer>
+   </main>
+   <aside class="fc-aside" aria-label="About this step">
+    <div class="fc-aside-top"><span class="fc-aside-label" id="fc-aside-label">Your files, where you left them</span><h2 id="fc-aside-title">Your files stay exactly where they are.</h2></div>
+    <div class="fc-tuck fc-empty__pip"><img id="fc-tuck" src="assets/mascot/tuck-idle.svg" alt=""></div>
+    <p id="fc-aside-copy">You choose the folders File Companion can read.</p>
+    <div id="fc-evidence" class="fc-evidence" hidden><span>Example filenames, not scanned</span><ul id="fc-example-files"></ul></div>
+    <div class="fc-protected-note"><img src="assets/icons/sensitive.svg" alt="" width="24" height="24"><p>Sensitive material stays held and is never sent to a model.</p></div>
+   </aside>
+  </div>
+ </div>
+ <div class="fc-overlay" id="fc-modal" hidden><section class="fc-dialog" role="dialog" aria-modal="true" aria-labelledby="fc-dialog-title"><span class="fc-dialog-label">Design preview</span><h2 id="fc-dialog-title">Folder access</h2><p id="fc-dialog-copy"></p><div class="fc-dialog-actions"><button id="fc-dialog-secondary" class="fc-btn fc-btn--ghost" type="button">Cancel</button><button id="fc-dialog-primary" class="fc-btn fc-btn--primary" type="button">Continue</button></div></section></div>
+ <span class="fc-sr" id="fc-announcement" aria-live="polite"></span>
+</div>
+<script>
+(()=>{
+class SetupModel {
+ constructor(){
+  this.folders=[];this.access='not-requested';this.profile=null;this.areas=[];
+  this.details={courses:'',companies:'',projects:''};this.leaveAlone=[];
+  this.personName='';this.school='';
+  this.categories=[];this.answersReady=false;
+  this.scanStatus='idle';this.scanPhase=0;this.nextId=1;
+ }
+ invalidate(){this.answersReady=false;this.scanStatus='idle';}
+ setFolders(values){this.folders=[...new Set(values.filter(Boolean))];this.access='not-requested';this.invalidate();}
+ grantAccess(){this.access=this.folders.length?'granted':'none';this.invalidate();}
+ denyAccess(){this.access='denied';this.invalidate();}
+ skipAccess(){this.access='none';this.folders=[];this.invalidate();}
+ setProfile(value){if(![null,'student','blank'].includes(value))throw Error('Unsupported profile');this.profile=value;if(value!=='student')this.areas=this.areas.filter(x=>x!=='Courses');this.invalidate();}
+ setAreas(values){const allowed=this.profile==='student'?['Courses','Applications','Recruiting','Projects']:['Applications','Recruiting','Projects'];this.areas=[...new Set(values.filter(x=>allowed.includes(x)))];this.invalidate();}
+ setDetail(key,value){if(!(key in this.details))throw Error('Unknown detail');this.details[key]=String(value);this.invalidate();}
+ setLeaveAlone(value){this.leaveAlone=String(value).split(/\n|,/).map(x=>x.trim()).filter(Boolean);this.invalidate();}
+ setPerson(value){this.personName=String(value);this.invalidate();}
+ setSchool(value){this.school=String(value);this.invalidate();}
+ propose(){
+  const previous=new Map(this.categories.filter(x=>x.origin!=='custom').map(x=>[x.origin,x]));
+  this.categories=[...this.areas.map(name=>previous.get(name)||{id:'c'+this.nextId++,origin:name,name,status:'pending'}),...this.categories.filter(x=>x.origin==='custom')];
+  this.invalidate();
+ }
+ addCategory(name){name=String(name).trim();if(!name)return null;const c={id:'c'+this.nextId++,origin:'custom',name,status:'pending'};this.categories.push(c);this.invalidate();return c;}
+ category(id){const c=this.categories.find(x=>x.id===id);if(!c)throw Error('Unknown category');return c;}
+ confirm(id){this.category(id).status='confirmed';this.invalidate();}
+ refuse(id){this.category(id).status='refused';this.invalidate();}
+ restore(id){this.category(id).status='pending';this.invalidate();}
+ edit(id,name){name=String(name).trim();if(!name)return false;const c=this.category(id);if(c.name!==name){c.name=name;c.status='pending';this.invalidate();}return true;}
+ confirmed(){return this.categories.filter(x=>x.status==='confirmed');}
+ finishAnswers(){
+  if(this.access==='denied')throw Error('Folder access was denied');
+  if(this.folders.length&&this.access!=='granted')throw Error('Allow folder access before scanning');
+  this.answersReady=true;
+  return this.answers();
+ }
+ answers(){return {
+  schemaVersion:1,finished:this.answersReady,profile:this.profile||'blank',
+  folderAccess:{state:this.access,folders:[...this.folders]},
+  categories:this.confirmed().map(({id,name})=>({id,name})),
+  refusedCategories:this.categories.filter(x=>x.status==='refused').map(({id,name})=>({id,name})),
+  context:{...this.details},leaveAlone:[...this.leaveAlone],
+  personName:this.personName,school:this.school,
+  unmatched:'unplaced',sensitiveMaterial:'held',fileOperations:'read-only'
+ };}
+ startScan(){if(!this.answersReady)throw Error('Finish onboarding before scanning');if(this.access==='denied')throw Error('Folder access was denied');this.scanStatus='running';this.scanPhase=0;}
+ pauseScan(){if(this.scanStatus==='running')this.scanStatus='paused';}
+ resumeScan(){if(this.scanStatus==='paused')this.scanStatus='running';}
+ advanceScan(){if(this.scanStatus!=='running')return false;this.scanPhase++;if(this.scanPhase>=3){this.scanStatus='complete';return true;}return false;}
+}
+if(typeof module!=='undefined'&&module.exports)module.exports=SetupModel;
+
+const root=document.getElementById('file-companion-onboarding');
+if(root){
+ let model=new SetupModel();
+ const $=s=>root.querySelector(s),$$=s=>[...root.querySelectorAll(s)];
+ const steps=['Folder access','Your profile','Areas of work','Your categories','Local scan','Archive briefing'];
+ const sides=[
+  ['Your files stay put','Right where you left them.','The folders you choose stay on your Mac. File Companion only reads them.'],
+  ['A place to begin','A starting point. Yours to change.','Student suggests a few categories. Start blank leaves it up to you.'],
+  ['Keep it personal','Just the work you choose.','Leave out anything you want to keep to yourself.'],
+  ['You have the last word','Keep what fits. Leave the rest.','A suggestion becomes a category only when you confirm it.'],
+  ['A quiet look around','Nothing gets moved.','Reading your chosen folders with your confirmed categories.'],
+  ['One step closer','The same files. A clearer view.','Your workspace keeps the index. Your originals stay put.'],
+  ['Ready when you are','Your sort lives here.','Change your categories whenever your work changes.']
+ ];
+ const categoryIcons={Courses:'course.svg',Applications:'application.svg',Projects:'project.svg'};
+ const examples={Courses:['Homework_2.pdf','Lecture_notes.pdf'],Applications:['Resume.pdf','Cover_letter.docx'],Recruiting:['Interview_notes.md','Company_research.pdf'],Projects:['Research_notes.pdf','Project_brief.md']};
+ let page=0,furthest=0,focusedCategory=null,scanTimer=null,modalConfirm=null,modalCancel=null,previousFocus=null,answersNote='',briefing=null,nativeSeq=0,nativeFlight=null;
+ const nativePending={};
+ function isMacApp(){return !!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.companion);}
+ function callNative(method,payload){
+  return new Promise(resolve=>{
+   const id=String(++nativeSeq);
+   nativePending[id]=resolve;
+   window.webkit.messageHandlers.companion.postMessage({id,method,payload});
+  });
+ }
+ window.fileCompanionDone=function(id,body){const resolve=nativePending[String(id)];if(resolve){delete nativePending[String(id)];resolve(body||{});}};
+ function say(text){$('#fc-announcement').textContent=text;}
+ function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
+ function iconSrc(origin){return 'assets/icons/'+(categoryIcons[origin]||'folder.svg');}
+ function scanMessage(text){const error=$('#fc-scan-error');if(!error)return;error.hidden=!text;const copy=error.querySelector('p');if(copy)copy.textContent=text||'';}
+ function tuckPose(){
+  if(page===5&&briefing&&briefing.complete&&briefing.unplaced===0)return 'tuck-rest';
+  if(page===6&&!$('#fc-review-files').children.length&&!$('#fc-empty-folders').children.length)return 'tuck-rest';
+  return 'tuck-idle';
+ }
+ function syncTuck(){
+  const img=$('#fc-tuck');if(img)img.src='assets/mascot/'+tuckPose()+'.svg';
+  const accessDenied=!$('#fc-access-error').hidden;
+  const scanFailed=model.scanStatus==='stopped';
+  root.classList.toggle('is-error',(page===0&&accessDenied)||((page===4||page===5)&&scanFailed));
+ }
+ function actionButton(text,action,id,cls='fc-text'){const b=el('button',cls+' cursor-interaction',text);b.type='button';b.dataset.action=action;if(id)b.dataset.category=id;return b;}
+ function stopTimer(){if(scanTimer!==null){clearTimeout(scanTimer);scanTimer=null;}}
+ function scheduleScan(){
+  if(isMacApp()){
+   if(model.scanStatus!=='running'||nativeFlight)return;
+   nativeFlight=callNative('scan',root.setupSnapshot()).then(body=>{
+    nativeFlight=null;
+    if(model.scanStatus==='paused'){model._pausedBody=body;return;}
+    finishNativeScan(body);
+   });
+   return;
+  }
+  stopTimer();if(model.scanStatus==='running')scanTimer=setTimeout(()=>{scanTimer=null;const done=model.advanceScan();renderScan();if(done){go(5);say('The preview scan is complete. Archive briefing.');}else scheduleScan();},1500);
+ }
+ function finishNativeScan(body){
+  if(body&&body.ok&&body.briefing&&body.briefing.complete){briefing=body.briefing;model.scanStatus='complete';model.scanPhase=3;}
+  else{briefing=null;model.scanStatus='stopped';answersNote=(body&&body.error)||'The scan did not finish. Counts stay empty.';}
+  scanMessage(model.scanStatus==='stopped'?answersNote:'');
+  renderScan();
+  if(model.scanStatus==='complete')go(5);
+  else renderFooter();
+ }
+ async function loadWorkspace(){
+  if(!isMacApp()){renderWorkspace(null);return;}
+  const body=await callNative('workspace',root.setupSnapshot());
+  renderWorkspace(body);
+ }
+ function syncFolders(){const values=$$('input[name=folder]:checked').map(x=>x.value);const other=$('#fc-other-check').checked;$('#fc-other-field').hidden=!other;if(other&&$('#fc-other-input').value.trim())values.push($('#fc-other-input').value.trim());model.setFolders(values);$('#fc-access-error').hidden=true;renderFooter();}
+ function renderAreas(){
+  const student=model.profile==='student';$('#fc-course-card').hidden=!student;
+  $$('input[name=area]').forEach(x=>{x.checked=model.areas.includes(x.value);});
+  $('[data-context=courses]').hidden=!model.areas.includes('Courses');
+  $('[data-context=companies]').hidden=!model.areas.some(x=>['Applications','Recruiting'].includes(x));
+  $('[data-context=projects]').hidden=!model.areas.includes('Projects');
+  $('#fc-areas-note').hidden=model.areas.length>0;
+ }
+ function renderProfile(){
+  $$('input[name=profile]').forEach(input=>input.checked=input.value===model.profile);
+  $('#fc-person-line').hidden=model.profile!=='student';
+  $('#fc-person-input').value=model.personName;$('#fc-school-input').value=model.school;
+  $('#fc-profile-note').textContent=model.profile==='student'?'You will confirm or refuse the proposed categories next.':model.profile==='blank'?'Your items start unplaced until you confirm a category.':'No profile selected. Continue to start with a blank setup.';
+ }
+ function renderCategories(){
+  const list=$('#fc-category-list');list.replaceChildren();
+  if(!model.categories.some(c=>c.id===focusedCategory))focusedCategory=model.categories[0]?.id||null;
+  model.categories.forEach((c,index)=>{
+   const suggested=c.status==='pending';
+   const row=el('article','fc-category-row fc-cat'+(suggested?' fc-cat--suggested':'')+(c.id===focusedCategory?' fc-cat--active':''));row.dataset.category=c.id;
+   const art=el('div','fc-cat__art');const icon=el('img');icon.src=iconSrc(c.origin);icon.alt='';art.append(icon);
+   const body=el('div','fc-cat__body');
+   const name=actionButton(suggested?c.name+'?':c.name,'focus-category',c.id,'fc-category-name');name.setAttribute('aria-label','View examples for '+c.name);
+   const chip=el('span',c.status==='confirmed'?'fc-chip fc-chip--confirmed':c.status==='refused'?'fc-chip fc-chip--refused':'fc-chip fc-chip--suggested',c.status==='pending'?'Suggested':c.status==='confirmed'?'Confirmed':'Refused');
+   if(c.status==='confirmed'){const dot=el('i','fc-chip__dot');dot.style.setProperty('--fc-dot','var(--cat-'+((index%6)+1)+')');chip.prepend(dot);}
+   body.append(name,chip);
+   const controls=el('div','fc-cat__actions');
+   const confirm=actionButton(c.status==='confirmed'?'Confirmed':'Confirm category','confirm',c.id,'fc-btn fc-btn--primary');confirm.setAttribute('aria-pressed',String(c.status==='confirmed'));confirm.setAttribute('aria-label','Confirm '+c.name);
+   const edit=actionButton('Edit','edit-category',c.id,'fc-btn fc-btn--ghost');edit.setAttribute('aria-label','Edit '+c.name);
+   const refuse=actionButton('Refuse','refuse',c.id,'fc-btn fc-btn--ghost');refuse.setAttribute('aria-pressed',String(c.status==='refused'));refuse.setAttribute('aria-label','Refuse '+c.name);
+   controls.append(confirm,edit,refuse);if(c.status==='refused')controls.append(actionButton('Restore','restore',c.id,'fc-btn fc-btn--ghost'));
+   body.append(controls);row.append(art,body);list.append(row);
+  });
+  $('#fc-category-empty').hidden=model.categories.length>0;
+  const accepted=model.confirmed();
+  $('#fc-category-note').textContent=accepted.length?'Only the confirmed categories will be used.':model.categories.length&&model.categories.every(c=>c.status==='refused')?'All categories refused. Readable items will start unplaced; sensitive material stays held.':'No categories confirmed. You can continue with items unplaced.';
+  renderAside();
+ }
+ function focusAction(action,id){$('[data-action="'+action+'"][data-category="'+id+'"]')?.focus();}
+ function openEditor(id){
+  const row=$('.fc-category-row[data-category="'+id+'"]');if(row.querySelector('.fc-edit-form'))return;
+  const form=el('div','fc-inline-form fc-edit-form');const label=el('label','fc-field','Category name');
+  const input=el('input');input.type='text';input.value=model.category(id).name;input.maxLength=70;input.dataset.editor=id;label.append(input);
+  form.append(label,actionButton('Save name','save-edit',id,'fc-btn fc-btn--primary'),actionButton('Cancel','cancel-edit',id,'fc-btn fc-btn--ghost'));row.append(form);input.focus();input.select();
+ }
+ function renderAside(){
+  const [label,title,copy]=sides[page];$('#fc-aside-label').textContent=label;$('#fc-aside-title').textContent=title;$('#fc-aside-copy').textContent=copy;
+  const c=page===3?model.categories.find(x=>x.id===focusedCategory):null;
+  $('#fc-evidence').hidden=!c;
+  if(c){$('#fc-aside-copy').textContent='Example filenames for '+c.name+', based on the area you chose. These are examples, not a scan.';const list=$('#fc-example-files');list.replaceChildren();(examples[c.origin]||['Sample_document.pdf']).forEach(name=>list.append(el('li','',name)));}
+  syncTuck();
+ }
+ function renderScan(){
+  const paused=model.scanStatus==='paused',complete=model.scanStatus==='complete',stopped=model.scanStatus==='stopped';
+  const names=['Reading your folders','Checking confirmed categories','Keeping sensitive material held'];
+  $('#fc-scan-status').textContent=complete?(isMacApp()?'Scan finished':'Preview scan complete'):stopped?'Scan did not finish':paused?'Scan paused':names[Math.min(model.scanPhase,2)];
+  const progress=$('#fc-scan-progress');if(complete){progress.max=1;progress.value=1;}else progress.removeAttribute('value');
+  progress.style.animationPlayState=paused?'paused':'running';progress.setAttribute('aria-label',paused?'Local scan paused':complete?'Preview scan complete':'Local scan in progress');
+  $$('[data-phase]').forEach(li=>{const n=Number(li.dataset.phase);li.classList.toggle('is-active',!complete&&n===model.scanPhase);li.classList.toggle('is-done',complete||n<model.scanPhase);});
+  renderFooter();
+ }
+ function countText(value,one,many){return value+' '+(value===1?one:many);}
+ function renderBriefing(){
+  const hasFolders=model.access==='granted'&&model.folders.length>0;
+  const counts=briefing&&briefing.complete?briefing:null;
+  if(counts&&typeof counts.found==='number'){
+   $('#fc-found-copy').textContent=countText(counts.found,'file indexed.','files indexed.');
+   $('#fc-found-state').textContent=String(counts.found);
+   $('#fc-briefing-subline').textContent='Counts are from the scan of your folders.';
+  }else{
+   $('#fc-found-copy').textContent=hasFolders?'File names and totals will appear here.':'Choose a folder in Settings when you are ready.';
+   $('#fc-found-state').textContent=hasFolders?'Awaiting results':'No folders chosen';
+   $('#fc-briefing-subline').textContent=hasFolders?'Result fields stay empty until a real scan finishes.':'No folders chosen. You can add them later.';
+  }
+  if(counts&&typeof counts.unplaced==='number')$('#fc-unplaced-copy').textContent=countText(counts.unplaced,'file is unplaced.','files are unplaced.');
+  else $('#fc-unplaced-copy').textContent=model.confirmed().length?'Files without a confirmed category stay here.':'Readable items start unplaced. Sensitive material stays held.';
+  $('#fc-left-copy').textContent=model.leaveAlone.length?model.leaveAlone.join(', '):'No folders or topics excluded.';
+  const tags=$('#fc-confirmed-tags');tags.replaceChildren();const confirmed=model.confirmed();if(!confirmed.length)tags.textContent='None confirmed';else confirmed.forEach((c,index)=>{const chip=el('span','fc-chip fc-chip--confirmed');const dot=el('i','fc-chip__dot');dot.style.setProperty('--fc-dot','var(--cat-'+((index%6)+1)+')');chip.append(dot,document.createTextNode(c.name));tags.append(chip);});
+  $('#fc-answers-note').textContent=answersNote;
+  renderIndex(counts);
+  syncTuck();
+ }
+ function renderIndex(counts){
+  const box=$('#fc-index');const bar=$('#fc-index-bar');const legend=$('#fc-index-legend');
+  if(!box||!bar||!legend)return;
+  bar.replaceChildren();legend.replaceChildren();
+  const found=counts&&typeof counts.found==='number'?counts.found:null;
+  const held=counts&&typeof counts.held==='number'?counts.held:null;
+  const unplaced=counts&&typeof counts.unplaced==='number'?counts.unplaced:null;
+  if(found===null||held===null||unplaced===null||found<=0){box.hidden=true;return;}
+  const placed=Math.max(0,found-held-unplaced);
+  [['Placed','var(--cat-1)',placed],['Held','var(--warning)',held],['Unplaced','var(--cat-6)',unplaced]].filter(part=>part[2]>0).forEach(part=>{
+   const span=el('span');span.style.width=(part[2]/found*100)+'%';span.style.background=part[1];span.style.minWidth='4px';bar.append(span);
+   const item=el('span');const swatch=el('i');swatch.style.background=part[1];item.append(swatch,document.createTextNode(part[0]+' · '+part[2]));legend.append(item);
+  });
+  box.hidden=false;
+ }
+ function renderWorkspace(body){
+  const outline=$('#fc-outline');
+  const text=body&&body.outline&&String(body.outline).trim();
+  outline.textContent=text||'No proposal yet.';
+  const review=$('#fc-review-files');review.replaceChildren();
+  const files=(body&&body.review)||[];
+  files.forEach(file=>{
+   const item=el('li','fc-file');
+   const icon=el('img','fc-file__icon');icon.src='assets/icons/unplaced.svg';icon.alt='';
+   const text=el('div');
+   text.append(el('p','fc-file__name',file.name||file.path||'File'));
+   if(file.path)text.append(el('p','fc-file__path',file.path));
+   item.append(icon,text,el('span','fc-chip fc-chip--unplaced','Needs review'));
+   review.append(item);
+  });
+  $('#fc-review-empty').hidden=files.length>0;
+  const empty=$('#fc-empty-folders');empty.replaceChildren();
+  const folders=(body&&body.emptyFolders)||[];
+  folders.forEach(folder=>{
+   const item=el('li','fc-file');
+   const icon=el('img','fc-file__icon');icon.src='assets/icons/folder.svg';icon.alt='';
+   const text=el('div');
+   text.append(el('p','fc-file__name',folder.name||folder.path));
+   if(folder.path)text.append(el('p','fc-file__path',folder.path));
+   const button=actionButton('Remove folder','remove-empty',null,'fc-btn fc-btn--ghost');
+   button.dataset.path=folder.path;
+   item.append(icon,text,button);
+   empty.append(item);
+  });
+  $('#fc-empty-none').hidden=folders.length>0;
+  syncTuck();
+ }
+ function renderFooter(){
+  $('#fc-back').disabled=page===0;
+  const next=$('#fc-next');next.disabled=false;
+  const labels=['Allow folder access','Continue','Review categories','Save choices & scan',model.scanStatus==='complete'||model.scanStatus==='stopped'?'View briefing':model.scanStatus==='paused'?'Resume scan':'Pause scan','Open workspace','Return to briefing'];
+  next.textContent=labels[page];
+  if(page===0){next.disabled=model.folders.length===0;next.textContent=model.access==='denied'?'Try folder access again':'Allow folder access';}
+  syncTuck();
+ }
+ function renderNavigation(){
+  $$('[data-step]').forEach(button=>{
+   const n=Number(button.dataset.step);button.disabled=n>furthest||(n===4&&!model.answersReady)||(n===5&&model.scanStatus!=='complete'&&model.scanStatus!=='stopped');
+   if(n===page)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');
+   button.classList.toggle('is-complete',n<page);
+   const mark=button.querySelector('.fc-step-mark');if(mark)mark.textContent=String(n+1);
+  });
+ }
+ function go(n){
+  if(n===4&&!model.answersReady)return;
+  if(n===5&&model.scanStatus!=='complete'&&model.scanStatus!=='stopped')return;
+  if(page===4&&n!==4)stopTimer();
+  if(n<=3&&page>=4)model.invalidate();
+  page=n;furthest=Math.max(furthest,Math.min(n,5));
+  root.classList.toggle('is-folder-screen',n===0);
+  $$('[data-page]').forEach(section=>section.hidden=Number(section.dataset.page)!==n);
+  $('#fc-window-title').textContent=n===0?'File Companion':'File Companion · '+(steps[n]||'Workspace');
+  if(n===1)renderProfile();if(n===2)renderAreas();if(n===3){model.propose();renderCategories();}if(n===4)renderScan();if(n===5)renderBriefing();if(n===6)loadWorkspace();
+  renderAside();renderFooter();renderNavigation();say(steps[n]||'Workspace handoff');
+  if(n===4&&model.scanStatus==='running')scheduleScan();
+ }
+ function closeModal(run=false){
+  const fn=run?modalConfirm:modalCancel;$('#fc-modal').hidden=true;$('.fc-window').inert=false;modalConfirm=null;modalCancel=null;
+  if(fn)fn();if(previousFocus?.isConnected)previousFocus.focus();
+ }
+ function openModal(title,copy,primary,secondary,onConfirm,onCancel,realFile){
+  previousFocus=document.activeElement;$('#fc-dialog-title').textContent=title;$('#fc-dialog-copy').textContent=copy;
+  const primaryBtn=$('#fc-dialog-primary');
+  primaryBtn.textContent=primary;primaryBtn.className='fc-btn '+(realFile?'fc-btn--real':'fc-btn--primary');
+  $('#fc-dialog-secondary').textContent=secondary;
+  modalConfirm=onConfirm;modalCancel=onCancel;$('#fc-modal').hidden=false;$('.fc-window').inert=true;primaryBtn.focus();
+ }
+ async function persistSnapshot(snapshot){
+  if(isMacApp()){
+   const body=await callNative('saveAnswers',snapshot);
+   answersNote=body&&body.ok?'Answers saved on this Mac. Counts stay empty until a real scan finishes.':(body&&body.error)||'Answers were not saved.';
+   return body;
+  }
+  if(location.protocol==='file:')return null;
+  const timer=new AbortController();
+  const kill=setTimeout(()=>timer.abort(),4000);
+  try{
+   const response=await fetch('answers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot),signal:timer.signal});
+   const body=await response.json();
+   answersNote=body&&body.ok?'Answers saved on this Mac. Counts stay empty until a real scan finishes.':'';
+   return body;
+  }catch(error){return null;}
+  finally{clearTimeout(kill);}
+ }
+ async function next(){
+  if(page===0){
+   if(!model.folders.length)return;
+   const allowCopy=isMacApp()
+    ?'File Companion will read '+model.folders.join(', ')+'. Your files stay where they are. Nothing is moved or renamed.'
+    :'In the Mac app, this asks permission to read '+model.folders.join(', ')+'.\n\nThis preview does not read your files.';
+   openModal('Allow folder access?',allowCopy,isMacApp()?'Allow':'Allow in preview','Don’t allow',()=>{model.grantAccess();$('#fc-access-error').hidden=true;go(1);},()=>{model.denyAccess();$('#fc-access-error').hidden=false;renderFooter();say('Folder access denied.');});
+  }else if(page===1){if(model.profile===null)model.setProfile('blank');go(2);
+  }else if(page===2){model.propose();go(3);
+  }else if(page===3){if(model.access==='denied'||(model.folders.length&&model.access!=='granted')){go(0);say('Allow access to your chosen folders before scanning.');return;}model.finishAnswers();const saved=await persistSnapshot(root.setupSnapshot());if(isMacApp()&&!(saved&&saved.ok)){say(answersNote||'The scan did not start.');return;}model.startScan();go(4);
+  }else if(page===4){if(model.scanStatus==='complete'||model.scanStatus==='stopped'){go(5);}else if(model.scanStatus==='paused'){model.resumeScan();renderScan();if(model._pausedBody){const body=model._pausedBody;model._pausedBody=null;finishNativeScan(body);}else scheduleScan();}else{model.pauseScan();stopTimer();renderScan();}}
+  else if(page===5)go(6);else go(5);
+ }
+ root.addEventListener('click',event=>{
+  const button=event.target.closest('button');if(!button||!root.contains(button)||button.disabled)return;
+  if(button.id==='fc-next'){next();return;}if(button.id==='fc-back'){go(Math.max(0,page-1));return;}
+  if(button.id==='fc-dialog-primary'){closeModal(true);return;}if(button.id==='fc-dialog-secondary'){closeModal(false);return;}
+  if(button.dataset.step!==undefined){go(Number(button.dataset.step));return;}
+  const id=button.dataset.category;
+  switch(button.dataset.action){
+   case 'remove-empty':{
+    const folderPath=button.dataset.path;
+    if(!folderPath||!isMacApp())break;
+    openModal('Remove this empty folder?','It has no files on disk. It is removed only if you say yes.','Remove folder','Cancel',async()=>{
+     const body=await callNative('removeEmpty',{path:folderPath,confirm:'yes',snapshot:root.setupSnapshot()});
+     if(body&&body.error)say(body.error);
+     loadWorkspace();
+    },()=>{},true);
+    break;
+   }
+   case 'skip-folders':model.skipAccess();go(1);break;
+   case 'read-details':openModal('What can File Companion read?','Names, locations, file types, and eligible file contents in the folders you choose.\n\nFile Companion keeps your structure as metadata in the app. Sensitive finance, identity, medical, and legal material stays held and is never sent to a model.','Got it','Back',()=>{},()=>{});break;
+   case 'settings-help':openModal('Allow folder access in System Settings','In the Mac app, this opens System Settings. Allow File Companion to read your chosen folders, then return here and try again.','Got it','Back',()=>{},()=>{});break;
+   case 'focus-category':focusedCategory=id;$$('.fc-category-row').forEach(row=>row.classList.toggle('is-focused',row.dataset.category===id));renderAside();break;
+   case 'confirm':model.confirm(id);focusedCategory=id;renderCategories();focusAction('confirm',id);say(model.category(id).name+' confirmed.');break;
+   case 'refuse':model.refuse(id);focusedCategory=id;renderCategories();focusAction('refuse',id);say(model.category(id).name+' refused.');break;
+   case 'restore':model.restore(id);focusedCategory=id;renderCategories();focusAction('confirm',id);say(model.category(id).name+' restored as a suggestion.');break;
+   case 'edit-category':openEditor(id);break;
+   case 'save-edit':{const input=$('[data-editor="'+id+'"]');if(!input.value.trim()){input.setCustomValidity('Enter a category name.');input.reportValidity();return;}model.edit(id,input.value);renderCategories();focusAction('confirm',id);say('Category name saved. Confirm it to use it.');break;}
+   case 'cancel-edit':$('.fc-category-row[data-category="'+id+'"] .fc-edit-form').remove();focusAction('edit-category',id);break;
+   case 'add-category':$('#fc-add-form').hidden=false;$('#fc-add-input').focus();break;
+   case 'cancel-add':$('#fc-add-form').hidden=true;break;
+   case 'save-category':{const input=$('#fc-add-input');const c=model.addCategory(input.value);if(!c){input.setCustomValidity('Enter a category name.');input.reportValidity();return;}input.setCustomValidity('');input.value='';$('#fc-add-form').hidden=true;focusedCategory=c.id;renderCategories();focusAction('confirm',c.id);say('Category added as a suggestion.');break;}
+  }
+ });
+ root.addEventListener('change',event=>{
+  const input=event.target;
+  if(input.name==='folder'||input.id==='fc-other-check')syncFolders();
+  else if(input.name==='profile'){model.setProfile(input.value);renderProfile();renderAreas();}
+  else if(input.name==='area'){model.setAreas($$('input[name=area]:checked').map(x=>x.value));renderAreas();}
+  else if(input.id==='fc-leave-check'){const checked=input.checked;$('#fc-leave-field').hidden=!checked;model.setLeaveAlone(checked?$('#fc-leave-input').value:'');}
+ });
+ root.addEventListener('input',event=>{
+  const input=event.target;
+  if(input.id==='fc-other-input')syncFolders();
+  else if(input.id==='fc-leave-input')model.setLeaveAlone(input.value);
+  else if(input.id==='fc-person-input')model.setPerson(input.value);
+  else if(input.id==='fc-school-input')model.setSchool(input.value);
+  else for(const key of ['courses','companies','projects'])if(input.id==='fc-'+key+'-input')model.setDetail(key,input.value);
+  if(input.setCustomValidity)input.setCustomValidity('');
+ });
+ root.addEventListener('keydown',event=>{
+  if(!$('#fc-modal').hidden){
+   if(event.key==='Escape'){event.preventDefault();closeModal(false);}
+   if(event.key==='Tab'){const first=$('#fc-dialog-secondary'),last=$('#fc-dialog-primary');if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
+  }
+ });
+ $$('button,label').forEach(node=>node.classList.add('cursor-interaction'));
+ // Readable design handoff; no engine or operating-system calls.
+ root.setupSnapshot=()=>model.answers();
+ root.previewScreen=(screen,scenario='first-run')=>{
+  stopTimer();model=new SetupModel();page=0;focusedCategory=null;answersNote='';briefing=null;nativeFlight=null;
+  $$('input[type=checkbox],input[type=radio]').forEach(input=>input.checked=false);
+  $$('input[type=text]').forEach(input=>input.value='');
+  $('#fc-access-error').hidden=true;$('#fc-other-field').hidden=true;$('#fc-leave-field').hidden=true;
+  if(screen>=2||scenario==='all-refused'){
+   model.setFolders(['Documents','Downloads']);model.grantAccess();model.setProfile('student');model.setAreas(['Courses','Applications','Recruiting','Projects']);model.propose();
+   focusedCategory=model.categories[0]?.id;
+   if(scenario==='all-refused')model.categories.forEach(c=>model.refuse(c.id));
+  }
+  if(scenario==='access-denied'){model.setFolders(['Documents']);model.denyAccess();$('input[value=Documents]').checked=true;$('#fc-access-error').hidden=false;screen=0;}
+  if(scenario==='blank'){model.setProfile('blank');model.setAreas([]);model.propose();}
+  if(screen>=4&&scenario!=='no-folders'){if(scenario!=='all-refused'&&model.categories.length)model.confirm(model.categories[0].id);model.finishAnswers();model.startScan();if(screen>=5){while(model.scanStatus==='running')model.advanceScan();}else model.pauseScan();}
+  if(scenario==='no-folders'){model.skipAccess();model.finishAnswers();model.startScan();while(model.scanStatus==='running')model.advanceScan();screen=5;}
+  furthest=Math.min(screen,5);go(screen);
+ };
+ if(isMacApp())root.classList.add('is-mac-app');
+ go(0);
+}
+
+})();
+</script>
+<script>
+document.getElementById('review-state').addEventListener('change',event=>{
+ const [screen,scenario]=event.target.value.split(':');
+ document.getElementById('file-companion-onboarding').previewScreen(Number(screen),scenario);
+});
+</script>
+</body>
+</html>

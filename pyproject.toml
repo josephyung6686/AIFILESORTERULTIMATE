@@ -86,6 +86,14 @@ readers = [
 # the one `00` §8.4 calls the mode under which nothing about any file leaves the
 # device -- pull down two clients it will never open. `dependencies` stays empty
 # either way, so P5's rule is untouched by the split.
+# The Mac window. PyObjC is already how the readers talk to macOS. WebKit
+# is the system view that puts the onboarding screens in an NSWindow.
+# The engine's dependency list stays empty.
+companion = [
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
+    "pyobjc-framework-WebKit>=10.0; sys_platform == 'darwin'",
+]
+
 models = [
     # `readers/model_anthropic.py` still imports the Anthropic SDK for that
     # provider's SDK path. DeepSeek fact, situation, and understanding calls

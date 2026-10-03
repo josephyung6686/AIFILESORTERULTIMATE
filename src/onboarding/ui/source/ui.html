@@ -1,0 +1,133 @@
+<div id="file-companion-onboarding" class="fc-root is-folder-screen">
+ <div class="fc-window">
+  <header class="fc-chrome">
+   <div class="fc-traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+   <span id="fc-window-title">File Companion</span>
+   <span class="fc-preview">Design preview</span>
+  </header>
+  <nav class="fc-top-steps" aria-label="Setup steps">
+   <button type="button" data-step="0" aria-current="step">Folders</button>
+   <button type="button" data-step="1" disabled>Profile</button>
+   <button type="button" data-step="2" disabled>Work areas</button>
+   <button type="button" data-step="3" disabled>Categories</button>
+   <button type="button" data-step="4" disabled>Scan</button>
+   <button type="button" data-step="5" disabled>Briefing</button>
+  </nav>
+  <div class="fc-shell">
+   <nav class="fc-nav" aria-label="Setup steps">
+    <div class="fc-brand"><img src="assets/icons/folder.svg" alt="" class="fc-brand-image"><b>File Companion</b></div>
+    <span class="fc-nav-label">Getting started</span>
+    <ol>
+     <li><button type="button" data-step="0" aria-current="step"><span class="fc-step-mark">1</span>Folder access</button></li>
+     <li><button type="button" data-step="1" disabled><span class="fc-step-mark">2</span>Your profile</button></li>
+     <li><button type="button" data-step="2" disabled><span class="fc-step-mark">3</span>Areas of work</button></li>
+     <li><button type="button" data-step="3" disabled><span class="fc-step-mark">4</span>Your categories</button></li>
+     <li><button type="button" data-step="4" disabled><span class="fc-step-mark">5</span>Local scan</button></li>
+     <li><button type="button" data-step="5" disabled><span class="fc-step-mark">6</span>Archive briefing</button></li>
+    </ol>
+    <div class="fc-nav-note"><span class="fc-lock" aria-hidden="true"></span><div><b>On this Mac.</b><p>Your original files stay in place.</p></div></div>
+   </nav>
+   <main class="fc-main">
+    <div class="fc-content">
+     <section data-page="0" aria-labelledby="fc-welcome-title">
+      <div class="fc-folder-hero">
+       <div>
+        <h1 id="fc-welcome-title">Where do you keep your files?</h1>
+        <p class="fc-subline">Choose the folders to include. Your files stay where they are.</p>
+       </div>
+       <div class="fc-tuck fc-empty__pip"><img src="assets/mascot/tuck-carry.svg" alt=""></div>
+      </div>
+      <fieldset class="fc-folder-list"><legend class="fc-sr">Choose folders</legend>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Documents</b><small>Notes and coursework</small></span><input type="checkbox" name="folder" value="Documents"></label>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Downloads</b><small>Saved from the web</small></span><input type="checkbox" name="folder" value="Downloads"></label>
+       <label class="fc-access-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-access-label"><b>Desktop</b><small>Kept close by</small></span><input type="checkbox" name="folder" value="Desktop"></label>
+       <label class="fc-other-row"><span class="fc-plus" aria-hidden="true">+</span><span><b>Another folder</b><small>Choose a folder on your Mac</small></span><input type="checkbox" id="fc-other-check"></label>
+       <label class="fc-field" id="fc-other-field" hidden>Folder name or path<input id="fc-other-input" type="text" placeholder="For example, Research" autocomplete="off"></label>
+      </fieldset>
+      <div class="fc-access-caption"><span class="fc-lock" aria-hidden="true"></span><p>Read-only access. Nothing gets moved.</p></div>
+      <div class="fc-read-links"><button class="fc-btn fc-btn--ghost" type="button" data-action="read-details">What can you read?</button><button class="fc-btn fc-btn--ghost" type="button" data-action="skip-folders">Set up later</button></div>
+      <div id="fc-access-error" class="fc-notice fc-notice--error" role="alert" hidden><div><strong>Folder access was denied.</strong><p>Without folder access there is nothing to index. You can change this in System Settings.</p><button class="fc-btn fc-btn--ghost" type="button" data-action="settings-help">Open System Settings</button></div></div>
+     </section>
+     <section data-page="1" aria-labelledby="fc-profile-title" hidden>
+      <div class="fc-eyebrow">Your starting point</div><h1 id="fc-profile-title">What brings you here?</h1>
+      <p class="fc-subline">Choose a starting profile. You can change this later.</p>
+      <fieldset class="fc-profile-grid"><legend class="fc-sr">Choose a profile</legend>
+       <label class="fc-profile-card"><img src="assets/icons/course.svg" alt=""><span class="fc-card-head"><b>Student</b></span><span class="fc-card-copy">Courses, applications, and work in progress.</span><input type="radio" name="profile" value="student" aria-label="Student"></label>
+       <label class="fc-profile-card"><img src="assets/icons/folder.svg" alt=""><span class="fc-card-head"><b>Start blank</b></span><span class="fc-card-copy">A clean slate. Make it your own.</span><input type="radio" name="profile" value="blank" aria-label="Start blank"></label>
+      </fieldset>
+      <div class="fc-person-line" id="fc-person-line" hidden>
+       <label class="fc-field">Your name <span>Stays on this Mac</span><input id="fc-person-input" type="text" autocomplete="name"></label>
+       <label class="fc-field">School<input id="fc-school-input" type="text" autocomplete="organization"></label>
+      </div>
+      <p class="fc-empty-note" id="fc-profile-note">No profile selected. Continue to start with a blank setup.</p>
+     </section>
+     <section data-page="2" aria-labelledby="fc-areas-title" hidden>
+      <div class="fc-eyebrow">Choose your scope</div><h1 id="fc-areas-title">What are you working on?</h1><p class="fc-subline">Choose a few areas. You will review the categories next.</p>
+      <fieldset class="fc-areas-grid"><legend class="fc-sr">Work areas</legend>
+       <label class="fc-area-card" id="fc-course-card"><img src="assets/icons/course.svg" alt=""><span><b>Courses</b><small>Notes and assignments</small></span><input name="area" type="checkbox" value="Courses"></label>
+       <label class="fc-area-card"><img src="assets/icons/application.svg" alt=""><span><b>Applications</b><small>Forms and resumes</small></span><input name="area" type="checkbox" value="Applications"></label>
+       <label class="fc-area-card"><img src="assets/icons/folder.svg" alt=""><span><b>Recruiting</b><small>Companies and interviews</small></span><input name="area" type="checkbox" value="Recruiting"></label>
+       <label class="fc-area-card"><img src="assets/icons/project.svg" alt=""><span><b>Projects</b><small>Research and personal work</small></span><input name="area" type="checkbox" value="Projects"></label>
+      </fieldset>
+      <div class="fc-context-fields">
+       <label class="fc-field" data-context="courses" hidden>Courses this term <span>Optional</span><input id="fc-courses-input" type="text" placeholder="For example, Thermodynamics" autocomplete="off"></label>
+       <label class="fc-field" data-context="companies" hidden>Companies <span>Optional</span><input id="fc-companies-input" type="text" placeholder="Add names if you want" autocomplete="off"></label>
+       <label class="fc-field" data-context="projects" hidden>Project names <span>Optional</span><input id="fc-projects-input" type="text" placeholder="Add names if you want" autocomplete="off"></label>
+      </div>
+      <div class="fc-leave-card"><label><span class="fc-lock" aria-hidden="true"></span><span><b>Things to leave alone</b><small>Folders or topics Companion should never touch or suggest.</small></span><input id="fc-leave-check" type="checkbox"></label><label class="fc-field" id="fc-leave-field" hidden>Folders or topics<input id="fc-leave-input" type="text" placeholder="Separate names with commas" autocomplete="off"></label></div>
+      <p class="fc-empty-note" id="fc-areas-note">Nothing chosen. Your items will start unplaced.</p>
+     </section>
+     <section data-page="3" aria-labelledby="fc-categories-title" hidden>
+      <div class="fc-eyebrow">Your categories</div><h1 id="fc-categories-title">Review your categories.</h1>
+      <p class="fc-subline">Only categories you confirm are used. Files that do not fit stay unplaced. File Companion will not guess.</p>
+      <div id="fc-category-list" class="fc-category-list" aria-label="Proposed categories"></div>
+      <div class="fc-category-empty" id="fc-category-empty"><b>No categories proposed.</b><p>Items will start unplaced. You can add a category now or later.</p></div>
+      <button class="fc-btn fc-btn--ghost fc-add-category" type="button" data-action="add-category">Add a category</button>
+      <div id="fc-add-form" class="fc-inline-form" hidden><label class="fc-field">Category name<input id="fc-add-input" type="text" placeholder="Name your category" maxlength="70" autocomplete="off"></label><button class="fc-btn fc-btn--primary" type="button" data-action="save-category">Add</button><button class="fc-btn fc-btn--ghost" type="button" data-action="cancel-add">Cancel</button></div>
+      <p class="fc-empty-note" id="fc-category-note">Categories are waiting for your confirmation.</p>
+     </section>
+     <section data-page="4" aria-labelledby="fc-scan-title" hidden>
+      <div class="fc-eyebrow">Reading on this Mac</div><h1 id="fc-scan-title">Reading your chosen folders.</h1><p class="fc-subline">Reading the folders you chose. Nothing gets moved.</p>
+      <div class="fc-scan-card"><div class="fc-scan-heading"><img src="assets/icons/sort.svg" alt=""><b id="fc-scan-status">Reading your folders</b><span class="fc-read-only">Local</span></div><progress id="fc-scan-progress" aria-label="Local scan in progress"></progress><ol class="fc-scan-phases"><li data-phase="0">Read selected folders</li><li data-phase="1">Check confirmed categories</li><li data-phase="2">Keep sensitive material held</li></ol><div id="fc-scan-error" class="fc-notice fc-notice--error" hidden><div><strong>The scan did not finish.</strong><p></p></div></div></div>
+      <p class="fc-empty-note">Folder and file counts appear after the app reads your data.</p>
+     </section>
+     <section data-page="5" aria-labelledby="fc-briefing-title" hidden>
+      <div class="fc-eyebrow">Archive briefing</div><h1 id="fc-briefing-title">Your first scan, at a glance.</h1><p class="fc-subline" id="fc-briefing-subline">This preview leaves result fields empty until a real scan.</p>
+      <div id="fc-index" class="fc-index" hidden><span id="fc-index-caption">From this scan</span><div id="fc-index-bar" class="fc-bar"></div><div id="fc-index-legend" class="fc-legend"></div></div>
+      <div class="fc-results-list">
+       <article class="fc-result-row"><img src="assets/icons/sort.svg" alt=""><div><h2>What was found</h2><p id="fc-found-copy">File names and totals will appear here.</p></div><span class="fc-result-status" id="fc-found-state">Awaiting results</span></article>
+       <article class="fc-result-row"><img src="assets/icons/sensitive.svg" alt=""><div><h2>Held</h2><p>Finance, identity, medical, and legal material stays held. It stays on this Mac.</p></div><span class="fc-result-status">Held</span></article>
+       <article class="fc-result-row"><img src="assets/icons/unplaced.svg" alt=""><div><h2>Unplaced</h2><p id="fc-unplaced-copy">Files without a confirmed category stay here.</p></div><span class="fc-result-status">Needs a place</span></article>
+       <article class="fc-result-row"><img src="assets/icons/folder.svg" alt=""><div><h2>Left alone</h2><p id="fc-left-copy">Folders or topics you chose to exclude.</p></div><span class="fc-result-status">Excluded</span></article>
+      </div>
+      <div class="fc-confirmed-summary"><span>Confirmed categories</span><div id="fc-confirmed-tags">None confirmed</div></div>
+      <p class="fc-empty-note" id="fc-answers-note"></p>
+     </section>
+     <section data-page="6" aria-labelledby="fc-handoff-title" hidden>
+      <div class="fc-eyebrow">Workspace</div><h1 id="fc-handoff-title">Your sort, in the app.</h1>
+      <p class="fc-subline">Files stay in Finder at their original paths. This is the index, not a rewrite of your folders.</p>
+      <h2 class="fc-workspace-label">In-app sort</h2>
+      <pre id="fc-outline" class="fc-outline">No proposal yet.</pre>
+      <h2 class="fc-workspace-label">Needs review</h2>
+      <ul id="fc-review-files" class="fc-workspace-list"></ul>
+      <p id="fc-review-empty" class="fc-empty-note">No files are waiting for review.</p>
+      <h2 class="fc-workspace-label">Empty folders</h2>
+      <p class="fc-empty-note">A folder is listed only when it has no files on disk. Nothing is removed unless you say yes.</p>
+      <ul id="fc-empty-folders" class="fc-workspace-list"></ul>
+      <p id="fc-empty-none" class="fc-empty-note">No empty folders.</p>
+     </section>
+    </div>
+    <footer class="fc-footer"><button class="fc-btn fc-btn--ghost" id="fc-back" type="button" disabled>Back</button><button class="fc-btn fc-btn--primary" id="fc-next" type="button" disabled>Allow folder access</button></footer>
+   </main>
+   <aside class="fc-aside" aria-label="About this step">
+    <div class="fc-aside-top"><span class="fc-aside-label" id="fc-aside-label">Your files, where you left them</span><h2 id="fc-aside-title">Your files stay exactly where they are.</h2></div>
+    <div class="fc-tuck fc-empty__pip"><img id="fc-tuck" src="assets/mascot/tuck-idle.svg" alt=""></div>
+    <p id="fc-aside-copy">You choose the folders File Companion can read.</p>
+    <div id="fc-evidence" class="fc-evidence" hidden><span>Example filenames, not scanned</span><ul id="fc-example-files"></ul></div>
+    <div class="fc-protected-note"><img src="assets/icons/sensitive.svg" alt="" width="24" height="24"><p>Sensitive material stays held and is never sent to a model.</p></div>
+   </aside>
+  </div>
+ </div>
+ <div class="fc-overlay" id="fc-modal" hidden><section class="fc-dialog" role="dialog" aria-modal="true" aria-labelledby="fc-dialog-title"><span class="fc-dialog-label">Design preview</span><h2 id="fc-dialog-title">Folder access</h2><p id="fc-dialog-copy"></p><div class="fc-dialog-actions"><button id="fc-dialog-secondary" class="fc-btn fc-btn--ghost" type="button">Cancel</button><button id="fc-dialog-primary" class="fc-btn fc-btn--primary" type="button">Continue</button></div></section></div>
+ <span class="fc-sr" id="fc-announcement" aria-live="polite"></span>
+</div>
