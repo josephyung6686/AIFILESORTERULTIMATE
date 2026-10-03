@@ -1,0 +1,34 @@
+/* File companion foundation tokens. Values in pixels unless otherwise marked. */
+:root {
+  --fc-color-canvas: #FFFFFF;
+  --fc-color-paper: #FFFFFF;
+  --fc-color-ink: #364C84;
+  --fc-color-muted: #657080;
+  --fc-color-folder: #95B1EE;
+  --fc-color-folder-highlight: #B6CAF4;
+  --fc-color-selected: #D9E3FA;
+  --fc-color-suggested: #E7F1A8;
+  --fc-color-border: #E5E8EF;
+  --fc-color-field-border: #E0E5EE;
+  --fc-color-card-shade: #F8F9FB;
+  --fc-color-primary-gradient-start: #425C98;
+  --fc-color-primary-gradient-end: #364C84;
+  --fc-radius-field: 11px;
+  --fc-radius-category: 19px;
+  --fc-radius-card: 20px;
+  --fc-radius-profile: 23px;
+  --fc-radius-primary: 25px;
+  --fc-radius-dialog: 27px;
+  --fc-radius-window: 28px;
+  --fc-space-4: 4px;
+  --fc-space-8: 8px;
+  --fc-space-12: 12px;
+  --fc-space-16: 16px;
+  --fc-space-20: 20px;
+  --fc-space-24: 24px;
+  --fc-space-32: 32px;
+  --fc-space-40: 40px;
+  --fc-space-48: 48px;
+  --fc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --fc-duration-state: 180ms;
+}

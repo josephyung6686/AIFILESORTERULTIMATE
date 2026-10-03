@@ -1,0 +1,10 @@
+#!/bin/bash
+# Opens the File Companion window. This is the app, not a browser page.
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+if command -v python3.12 >/dev/null 2>&1; then
+  PY="$(command -v python3.12)"
+else
+  PY="$(command -v python3)"
+fi
+exec "$PY" -m companion

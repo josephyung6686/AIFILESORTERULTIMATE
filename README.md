@@ -22,6 +22,20 @@ The assistant searches and answers from those same files. Relationships are link
 
 Graphify is a separate developer tool for searching this codebase. It is not part of File Companion.
 
+## Open the window
+
+On a Mac, this opens File Companion in its own window. It is not a browser page.
+
+```bash
+PYTHONPATH=src python3 -m companion
+```
+
+The same window is `apps/File Companion.app`. Double-click that on a Mac, or run the command above from the repository. Do not open `index.html`.
+
+The six onboarding screens are that window: folder access, profile, work areas, categories, scan, and briefing. Nothing is preselected. Saving writes the answers file the scan already reads, and the write is atomic. A scan does not start when those answers are unfinished or folder access was not granted. After that, the workspace shows the in-app sort from the one database, files that need review, and empty folders. A folder is empty only when it has zero files on disk. It is listed, and it is removed only when she says yes.
+
+Wired to the engine: the answers file, the refusal to scan, and one plan scan (`--accept-groups`) into `plan.sqlite`. That scan does not move or rename files. The workspace reads the outline and review rows that scan stored. Still preview: the macOS permission dialog is the in-app Allow step, and briefing counts stay empty when a scan does not finish. Moving or renaming files on disk is not wired. The paid path stays off.
+
 ## Quickstart
 
 ```bash
