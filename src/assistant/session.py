@@ -641,7 +641,6 @@ class Session:
         confirm_id = uuid.uuid4().hex
         self.pending[confirm_id] = proposal
         self.on_screen = confirm_id
-        self._note(proposal["summary"] + " (yes/no)")
         self.emit(ev.Confirm(
             confirm_id=confirm_id, summary=proposal["summary"],
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),

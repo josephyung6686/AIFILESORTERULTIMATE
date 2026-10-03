@@ -187,7 +187,6 @@ def test_the_outcome_is_remembered_so_nothing_goes_stale(lib):
     s.say("put a.png in Screenshots")
     s.say("yes")
     said = [m["content"] for m in recent(conn)]
-    assert any("Move 1 file into Screenshots" in t for t in said)
     assert said[-2] == "yes" and said[-1].startswith("Moved 1 file")
 
 
