@@ -1146,6 +1146,69 @@ def show_copies(conn: sqlite3.Connection,
             "note": "The pairs are on the person's screen, found by content."}
 
 
+#: How many folders list_folders names, and how many inside each.
+FOLDERS_LISTED = 60
+INSIDE_LISTED = 8
+
+
+def _chosen_roots(conn: sqlite3.Connection, context: Any) -> list[Path]:
+    from assistant.organize_tools import _roots
+    roots = list(dict.fromkeys(
+        [*_roots(conn), *(Path(p) for p in
+                          getattr(context, "chosen_folders", ()) or ())]))
+    return [r for r in roots if r.is_dir()]
+
+
+def list_folders(conn: sqlite3.Connection,
+                 context: Any = None) -> dict[str, Any]:
+    """The folder names in the chosen folders, two levels deep, read from
+    the disk. Set-aside projects, caches and saved-page folders are left
+    out; protected folders are counted, never named."""
+    from items.file_identity import path_is_protected
+    from items.hot_index import _is_junk_path
+    from assistant.organize_tools import _set_aside_folders
+    aside = set(_set_aside_folders(conn))
+    counted = {"protected": 0, "aside": 0}
+
+    def folders_in(path: Path) -> list[Path]:
+        try:
+            entries = sorted(p for p in path.iterdir()
+                             if p.is_dir() and not p.name.startswith("."))
+        except OSError:
+            return []
+        kept = []
+        for p in entries:
+            if path_is_protected(str(p)):
+                counted["protected"] += 1
+            elif p in aside:
+                counted["aside"] += 1
+            elif not _is_junk_path(str(p / "x")):
+                kept.append(p)
+        return kept
+    listed, more = [], 0
+    for root in _chosen_roots(conn, context):
+        for top in folders_in(root):
+            if len(listed) == FOLDERS_LISTED:
+                more += 1
+                continue
+            inside = folders_in(top)
+            entry = {"name": top.name, "in": _home_words(root),
+                     "inside": [p.name for p in inside[:INSIDE_LISTED]]}
+            if len(inside) > INSIDE_LISTED:
+                entry["more_inside"] = len(inside) - INSIDE_LISTED
+            listed.append(entry)
+    out = {"ok": True, "moved": False, "folders": listed,
+           "protected_folders": counted["protected"],
+           "set_aside_projects": counted["aside"],
+           "note": ("Folder names from the person's chosen folders. When "
+                    "they ask about a folder, answer with the folder "
+                    "itself before any file deep inside it. Protected "
+                    "folders are only counted; never guess their names.")}
+    if more:
+        out["more_folders"] = more
+    return out
+
+
 def run_index(conn: sqlite3.Connection, path: Path,
               context: Any) -> dict[str, Any]:
     from assistant.events import Progress
@@ -1699,6 +1762,8 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return show_protected(conn, context)
     if name == "show_copies":
         return show_copies(conn, context)
+    if name == "list_folders":
+        return list_folders(conn, context)
     if name == "status":
         from assistant.session import _counts
         c = _counts(conn)

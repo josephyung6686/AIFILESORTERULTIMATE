@@ -273,7 +273,12 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
     _fn("show_protected", "Show the person their protected files and "
         "folders, with why each is protected. Listed on their screen by "
         "this Mac; you are told only how many.", {}),
-    _fn("show_copies", "Show the person which files are copies: files with "
+    _fn("list_folders", "The folder names in the person's chosen folders, "
+        "top level and one level down (set-aside coding projects left "
+        "out). Use it for a question about a folder by its name or "
+        "language, e.g. 'the Chinese-named folder'; a folder that matches "
+        "comes before any file deep inside it.", {}),
+    _fn("show_copies","Show the person which files are copies: files with "
         "exactly the same content, found by comparing contents.", {}),
     _fn(
         "freeze_plan",

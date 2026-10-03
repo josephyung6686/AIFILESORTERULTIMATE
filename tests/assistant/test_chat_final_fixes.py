@@ -356,3 +356,34 @@ def test_organise_after_a_yes_shows_question_one_now(lib, monkeypatch):
     s._propose({"kind": "cloud", "ref": str(root), "moves": []})
     s.confirm(s.on_screen, True)
     assert isinstance(out[-1], ev.Question)
+
+
+# -- 6. folders by name ---------------------------------------------------------
+
+def test_list_folders_shows_two_levels_and_hides_what_it_must(lib,
+                                                              monkeypatch):
+    import assistant.organize_tools as organize
+    from types import SimpleNamespace
+    from assistant.engine_tools import run
+    conn, root = lib
+    for rel in ("外泌體/page_files", "外泌體/photos",
+                "Chinese University Application Materials/Forms",
+                "my-project/src", "Tool.app/Contents", "cache"):
+        (root / rel).mkdir(parents=True)
+    monkeypatch.setattr(organize, "_set_aside_folders",
+                        lambda c: [root / "my-project"])
+    result = run(conn, "list_folders", {},
+                 context=SimpleNamespace(chosen_folders={root}))
+    blob = json.dumps(result, ensure_ascii=False)
+    names = {f["name"]: f["inside"] for f in result["folders"]}
+    assert names["外泌體"] == ["photos"]
+    assert names["Chinese University Application Materials"] == ["Forms"]
+    assert "my-project" not in blob and "Tool.app" not in blob
+    assert "cache" not in names
+    assert result["protected_folders"] == 1
+    assert result["set_aside_projects"] == 1
+
+
+def test_list_folders_is_a_tool_the_model_has():
+    from assistant.registry import ENGINE_TOOLS
+    assert "list_folders" in ENGINE_TOOLS
