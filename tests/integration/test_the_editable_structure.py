@@ -168,8 +168,9 @@ def test_a_named_path_is_where_the_outline_goes(tmp_path):
 
 
 def test_a_run_that_names_no_database_still_writes_outside_the_corpus(tmp_path):
-    """The default path is beside the DATABASE the run resolved, not beside the
-    folder it scanned.
+    """The default path is beside the DATABASE the run resolved (since 3 Oct the
+    shared one in ~/.graph-agent), not beside the folder it scanned nor the
+    working directory.
 
     `--database` is optional and every other pin here types it, so the arm an
     ordinary invocation takes had no measurement at all: the outline was landing
@@ -191,7 +192,9 @@ def test_a_run_that_names_no_database_still_writes_outside_the_corpus(tmp_path):
                          "--user", "t", "--accept-groups"], out=out)
     said = out.getvalue()
     assert code == 0, said
-    assert (elsewhere / cli.STRUCTURE_FILENAME).exists(), said
+    from database_agent.db import shared_database_path
+    assert (shared_database_path().parent / cli.STRUCTURE_FILENAME).exists(), said
+    assert not (elsewhere / cli.STRUCTURE_FILENAME).exists(), said
     assert _on_disk(corpus) == before, "the product wrote into the scanned folder"
 
 
