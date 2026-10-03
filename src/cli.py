@@ -28328,9 +28328,9 @@ def _understanding_model_id(out, role: str = "fast") -> str:
 
 NO_UNDERSTANDING_PROVIDER = (
     "Set up a model provider before this folder can be sorted. Nothing was sent. "
-    "Run `filesorter onboard` for this folder if the profile is not stored yet, "
-    "then `filesorter providers` to store a lane, or set DEEPSEEK_API_KEY and "
-    "DEEPSEEK_MODEL_FAST. `filesorter providers add` stores a key in the keychain."
+    "Run `database-agent onboard` for this folder if the profile is not stored yet, "
+    "then `database-agent providers` to store a lane, or set DEEPSEEK_API_KEY and "
+    "DEEPSEEK_MODEL_FAST. `database-agent providers add` stores a key in the keychain."
 )
 
 
@@ -28463,7 +28463,7 @@ def _continue_understanding(args, conn, directory, *, consent, out) -> int:
 
 def _provider_choice_if_database(args):
     """The stored lane when the plan database already exists. Does not create one."""
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     path = Path(database)
     if not path.is_file():
         return None
@@ -28520,7 +28520,7 @@ def _record_understanding_consent(args, out) -> None:
     from database_agent.db import DatabaseInsideCorpus, open_database
     from understanding.store import record_consent
     directory = args.directory.expanduser().resolve()
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     try:
         conn = open_database(database, scan_roots=[directory])
     except DatabaseInsideCorpus as refusal:
@@ -29277,7 +29277,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # Before the answers gate, which opens (and would create) the database.
         # A second pass has nothing to continue if the scan never wrote one.
         residual_database = (
-            args.database or (Path.cwd() / "database-agent-plan.sqlite"))
+            args.database or shared_database_path())
         if not Path(residual_database).expanduser().is_file():
             print("Understanding residuals needs a plan database from a scan "
                   "of this folder. Nothing was sent.", file=out)
@@ -29290,7 +29290,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     from onboarding.gate import allow_scan, onboarding_optional
     if args.answers or not onboarding_optional():
         from datetime import datetime, timezone
-        database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+        database = args.database or shared_database_path()
         try:
             gate_conn = open_database(database, scan_roots=[directory])
         except DatabaseInsideCorpus as refusal:

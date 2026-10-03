@@ -420,7 +420,8 @@ def test_cli_providers_is_not_a_scan(tmp_path, monkeypatch):
     assert code == 0
     assert "Managed" in out.getvalue()
     assert "Plan database" not in out.getvalue()
-    assert (tmp_path / "database-agent-plan.sqlite").exists()
+    from database_agent.db import shared_database_path
+    assert shared_database_path().exists()
 
 
 def _token(payload: dict) -> str:

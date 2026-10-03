@@ -26,7 +26,9 @@ commands (all use ~/.graph-agent/database-agent.sqlite unless --database is give
   preview-plan ID   dry-run a plan; nothing is moved
   watch             keep the index current as files change
   db ACTION         check, backup, restore, rebuild-index or encrypt the database
-  memory ACTION     status or release of the assistant memory"""
+  memory ACTION     status or release of the assistant memory
+  onboard           answer the profile questions a scan needs
+  providers         set up the AI provider a scan uses"""
 
 
 def _local_command(args: list[str], out=None) -> int | None:
@@ -52,6 +54,8 @@ def _conversation(args: list[str], out=None) -> int | None:
     `--events` for the desktop app. None when the sorter should run."""
     from pathlib import Path
     if args and args != ["--events"]:
+        if args[0] in {"onboard", "providers"}:
+            return None
         if len(args) != 1 or args[0].startswith("-"):
             return None
         if Path(args[0]).expanduser().is_dir() and not _stdin_is_a_terminal():

@@ -57,7 +57,7 @@ def test_onboard_writes_a_record_the_scan_accepts(tmp_path, monkeypatch):
     assert code == 0, said
     assert NAME not in said
     assert WORDING not in said
-    assert "filesorter providers" in said
+    assert "database-agent providers" in said
     assert "Profile stored" in said
     assert "--understand" not in said
     assert "do you want" not in said.lower()

@@ -736,7 +736,7 @@ def load_ready_access(*, out, keychain_run=None, post_form=None, jwks=None,
     refresh = find_secret(SIWC_REFRESH, run=keychain_run)
     if not raw or not access:
         print("Continue with ChatGPT is flagged on and no verified session is "
-              "stored. Run: filesorter providers sign-in-chatgpt. An API key "
+              "stored. Run: database-agent providers sign-in-chatgpt. An API key "
               "works today. No dossier was sent.", file=out)
         return None
     try:

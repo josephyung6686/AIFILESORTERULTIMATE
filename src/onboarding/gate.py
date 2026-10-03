@@ -20,7 +20,7 @@ REFUSAL = (
     "This folder has no completed onboarding. A scan needs --answers "
     "FILE with confirmed set to true and every TODO filled in, or a "
     "profile already stored for this folder. Nothing was scanned. "
-    "Run `filesorter onboard --folder FOLDER --database DATABASE` "
+    "Run `database-agent onboard --folder FOLDER --database DATABASE` "
     "to answer the questions in the terminal."
 )
 

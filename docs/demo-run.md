@@ -8,20 +8,20 @@ outline, then an optional second pass over whatever understanding left open.
 
 ## 1. Profile
 
-`filesorter onboard` asks the questions and stores them. `--answers FILE`
+`database-agent onboard` asks the questions and stores them. `--answers FILE`
 reads a JSON file that is already filled in. `confirmed` must be true, and
 a field that still says TODO is refused. The database must sit outside the
 folder.
 
 ```bash
-filesorter onboard \
+database-agent onboard \
   --folder ~/star-sorter-test/dl \
   --database ~/star-sorter-test/dl-plan.sqlite
 ```
 
 ## 2. Provider
 
-`filesorter providers` stores the lane. A DeepSeek key can also come from
+`database-agent providers` stores the lane. A DeepSeek key can also come from
 `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL_FAST`. No provider means the scan
 stops before it reads a file. Nothing is sent.
 

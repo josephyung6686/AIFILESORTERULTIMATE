@@ -52,7 +52,7 @@ empty content is needs-review, not a classification.
 ## Consent, cache, budget, audit
 
 Consent is one row per folder, the sentence in
-`understanding.store.STATEMENT`. `filesorter onboard` records it, and a
+`understanding.store.STATEMENT`. `database-agent onboard` records it, and a
 normal scan records it when a provider is configured. It says dossier text
 goes to the provider's servers. `--accept-cloud-understanding` records the
 same sentence.
@@ -97,8 +97,8 @@ prints the token estimates and the cost formula. It does not fill in a
 price.
 
 A scan with no provider exits before any file is read. The sentence says
-to set up a model provider and names `filesorter onboard` and
-`filesorter providers`, and also `DEEPSEEK_API_KEY` and
+to set up a model provider and names `database-agent onboard` and
+`database-agent providers`, and also `DEEPSEEK_API_KEY` and
 `DEEPSEEK_MODEL_FAST`. Nothing is sent. An empty balance is still
 `InsufficientBalance` on the audit row and on the `After understanding` line.
 `--no-understand` and `FILESORTER_SKIP_UNDERSTANDING=1` skip the pass.

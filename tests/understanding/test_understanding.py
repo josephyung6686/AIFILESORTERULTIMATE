@@ -428,7 +428,7 @@ def test_understand_without_a_provider_fails_before_the_scan(tmp_path, monkeypat
     text = out.getvalue()
     assert code == 2, text[-800:]
     assert NO_UNDERSTANDING_PROVIDER in text
-    assert "filesorter providers" in text
+    assert "database-agent providers" in text
     assert "DEEPSEEK_API_KEY" in text
     assert "Ada Localname" not in text
     conn = sqlite3.connect(database)
@@ -551,7 +551,7 @@ def test_a_scan_without_a_provider_refuses_before_any_file_is_read(
     said = out.getvalue()
     assert code == 2, said[-800:]
     assert "set up a model provider" in said.lower()
-    assert "filesorter providers" in said
+    assert "database-agent providers" in said
     assert "onboard" in said
     assert "do you want ai" not in said.lower()
     assert "Ada Localname" not in said

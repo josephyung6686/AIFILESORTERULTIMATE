@@ -391,4 +391,4 @@ Deadline-aware packet readiness is a suggest/prepare behaviour over facts the ex
 
 ## (h) The provider step, after the profile questions
 
-The profile questions in this note stay the first step. The implemented step that follows them, and that runs before a scan is the moment a model is chosen, is `filesorter providers`. It is documented in `docs/model-providers.md`. A folder can finish that step with "no cloud model". DeepSeek remains the default when its key is set and no other choice is stored. The provider step does not skip the profile questions and does not send a file.
+The profile questions in this note stay the first step. The implemented step that follows them, and that runs before a scan is the moment a model is chosen, is `database-agent providers`. It is documented in `docs/model-providers.md`. A folder can finish that step with "no cloud model". DeepSeek remains the default when its key is set and no other choice is stored. The provider step does not skip the profile questions and does not send a file.

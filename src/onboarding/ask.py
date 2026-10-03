@@ -225,8 +225,8 @@ def _next_step(out, conn, *, folder: Path, database: Path) -> None:
             file=out)
         print("Next: the scan.", file=out)
     else:
-        print("Next: filesorter providers", file=out)
-        print(f"  filesorter providers --database {database}", file=out)
+        print("Next: database-agent providers", file=out)
+        print(f"  database-agent providers --database {database}", file=out)
         print("Then the scan.", file=out)
     print(f"  database-agent {folder} --database {database}", file=out)
 
@@ -236,7 +236,7 @@ def main(argv: list[str] | None = None, *, out=None, ask=None) -> int:
 
     out = out if out is not None else sys.stdout
     reader = ask or default_ask
-    parser = argparse.ArgumentParser(prog="filesorter onboard")
+    parser = argparse.ArgumentParser(prog="database-agent onboard")
     parser.add_argument("--folder", type=Path, required=True,
                         help="the folder this profile is for")
     parser.add_argument("--database", type=Path, default=None)
@@ -248,8 +248,9 @@ def main(argv: list[str] | None = None, *, out=None, ask=None) -> int:
     if not folder.is_dir():
         print(f"{folder} is not a folder. Nothing was stored.", file=out)
         return 2
+    from database_agent.db import shared_database_path
     database = (args.database.expanduser().resolve() if args.database
-                else Path.cwd() / "database-agent-plan.sqlite")
+                else shared_database_path())
     try:
         data = collect_answers(out, reader)
     except OnboardingStopped as stopped:

@@ -28,29 +28,29 @@ DeepSeek remains the cloud default when `DEEPSEEK_API_KEY` is set and this
 folder has not stored a different provider. Understanding runs on a normal
 scan. A scan with no key and no stored choice does not sort first and does
 not call: it exits and tells you to set up a model provider, naming
-`filesorter onboard` and `filesorter providers`, or `DEEPSEEK_API_KEY` and
+`database-agent onboard` and `database-agent providers`, or `DEEPSEEK_API_KEY` and
 `DEEPSEEK_MODEL_FAST`.
 
 ## Where this sits in onboarding
 
 The order is the profile questions, then this step, then the first scan.
-`filesorter providers` is that middle step. It writes the choice into the
+`database-agent providers` is that middle step. It writes the choice into the
 profile record in the plan database. It does not write the secret there.
 
 ```
-filesorter providers
-filesorter providers list
-filesorter providers status
-filesorter providers add openai
-filesorter providers add anthropic
-filesorter providers add deepseek
-filesorter providers add openai-compatible --base-url https://example.invalid/v1 --model your-model
-filesorter providers remove openai
-filesorter providers use byok openai --model your-model
-filesorter providers dry-run openai --model your-model
-filesorter providers dry-run anthropic --model your-model
-FILESORTER_OPENAI_SIWC=1 filesorter providers sign-in-chatgpt
-FILESORTER_CLAUDE_CODE=1 filesorter providers claude-code --prompt 'Reply with one JSON object {"ok": true}'
+database-agent providers
+database-agent providers list
+database-agent providers status
+database-agent providers add openai
+database-agent providers add anthropic
+database-agent providers add deepseek
+database-agent providers add openai-compatible --base-url https://example.invalid/v1 --model your-model
+database-agent providers remove openai
+database-agent providers use byok openai --model your-model
+database-agent providers dry-run openai --model your-model
+database-agent providers dry-run anthropic --model your-model
+FILESORTER_OPENAI_SIWC=1 database-agent providers sign-in-chatgpt
+FILESORTER_CLAUDE_CODE=1 database-agent providers claude-code --prompt 'Reply with one JSON object {"ok": true}'
 ```
 
 `add` asks for the key with no echo. The key is not printed and not stored in
@@ -127,7 +127,7 @@ and selected private clients, and that commercial partners are in a limited
 trial. This checkout did not find a separate waitlist form URL on that page,
 so the flag-off text links the quickstart itself.
 
-The flag is off by default. With it off, `filesorter providers` still shows
+The flag is off by default. With it off, `database-agent providers` still shows
 Continue with ChatGPT and explains that an API key is what works today. Set
 `FILESORTER_OPENAI_SIWC=1` only after OpenAI's partner access applies to this
 app. There is no profile switch that turns the flag on by itself.
@@ -153,7 +153,7 @@ What the code builds, from those pages and not from a guessed client:
   `https://auth.openai.com/.well-known/jwks.json`. A bad signature is not
   stored. `alg` other than RS256 fails closed.
 
-With the flag off, `filesorter providers sign-in-chatgpt` exits 2, prints
+With the flag off, `database-agent providers sign-in-chatgpt` exits 2, prints
 the quickstart limit, and does not open a browser or a plan database.
 `FILESORTER_OPENAI_SIWC=1` is the local sign-in. It binds
 `127.0.0.1` on an ephemeral port, opens the authorize URL, exchanges the
@@ -191,8 +191,8 @@ Why this program does not ship Claude.ai OAuth:
   tells you to sign in inside Claude Code, or to use an API key.
 
 The same page says this does not prevent a person from signing in to the
-unmodified Claude Code binary. `filesorter providers use byok claude-code`
-stores that choice with no credential. `filesorter providers claude-code`
+unmodified Claude Code binary. `database-agent providers use byok claude-code`
+stores that choice with no credential. `database-agent providers claude-code`
 runs `claude -p` with the prompt, and only when `FILESORTER_CLAUDE_CODE=1`.
 The understanding pass uses the same unmodified argv when that choice is
 stored and the flag is on. If `claude` is not on `PATH`, the command says
@@ -238,8 +238,8 @@ Flag off. `providers` lists the three lanes and exits 0. `sign-in-chatgpt`
 exits 2, points at the quickstart, and does not open a browser:
 
 ```
-filesorter providers
-filesorter providers sign-in-chatgpt
+database-agent providers
+database-agent providers sign-in-chatgpt
 ```
 
 Local ChatGPT sign-in, then a scan that may send. `<model-the-plan-allows>`
@@ -247,7 +247,7 @@ is a model id your ChatGPT plan actually returns. The flag is local use,
 not commercial approval:
 
 ```
-FILESORTER_OPENAI_SIWC=1 filesorter providers sign-in-chatgpt \
+FILESORTER_OPENAI_SIWC=1 database-agent providers sign-in-chatgpt \
   --database ~/star-sorter-test/plan.sqlite \
   --model <model-the-plan-allows>
 filesorter ~/star-sorter-test/dl \
@@ -258,9 +258,9 @@ filesorter ~/star-sorter-test/dl \
 Claude Code. Sign in inside Claude Code. This app does not read that login:
 
 ```
-FILESORTER_CLAUDE_CODE=1 filesorter providers use byok claude-code \
+FILESORTER_CLAUDE_CODE=1 database-agent providers use byok claude-code \
   --database ~/star-sorter-test/plan.sqlite
-FILESORTER_CLAUDE_CODE=1 filesorter providers claude-code \
+FILESORTER_CLAUDE_CODE=1 database-agent providers claude-code \
   --prompt 'Reply with one JSON object {"ok": true}'
 ```
 
@@ -272,9 +272,9 @@ under "On a Mac" above. The `models` extra is the Anthropic SDK.
 API keys. `add` asks for the key with no echo:
 
 ```
-filesorter providers add deepseek --database ~/star-sorter-test/plan.sqlite
-filesorter providers add openai --model your-model --database ~/star-sorter-test/plan.sqlite
-filesorter providers add anthropic --model your-model --database ~/star-sorter-test/plan.sqlite
-filesorter providers use byok openai --model your-model --database ~/star-sorter-test/plan.sqlite
-filesorter providers dry-run anthropic --model your-model
+database-agent providers add deepseek --database ~/star-sorter-test/plan.sqlite
+database-agent providers add openai --model your-model --database ~/star-sorter-test/plan.sqlite
+database-agent providers add anthropic --model your-model --database ~/star-sorter-test/plan.sqlite
+database-agent providers use byok openai --model your-model --database ~/star-sorter-test/plan.sqlite
+database-agent providers dry-run anthropic --model your-model
 ```

@@ -71,7 +71,7 @@ def validate_choice(choice: dict) -> dict:
         if lane != "byok":
             raise ProviderChoiceRefused(
                 "Claude Code is the unmodified binary, not a subscription "
-                "login. Use: filesorter providers use byok claude-code")
+                "login. Use: database-agent providers use byok claude-code")
         stored = {
             "lane": "byok",
             "provider": "claude-code",

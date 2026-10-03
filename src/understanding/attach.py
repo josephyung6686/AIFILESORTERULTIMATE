@@ -228,7 +228,7 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
         print(STATEMENT, file=out)
         print("Understanding did not run. This folder has no record that "
               "dossier text may be sorted with the model provider. "
-              "Run `filesorter onboard` for this folder. Nothing was sent.",
+              "Run `database-agent onboard` for this folder. Nothing was sent.",
               file=out)
         return None
     if decisions is None:
@@ -270,7 +270,7 @@ def understand_residuals(conn, *, directory, private_areas: set[str],
         print(STATEMENT, file=out)
         print("Understanding did not run. This folder has no record that "
               "dossier text may be sorted with the model provider. "
-              "Run `filesorter onboard` for this folder. Nothing was sent.",
+              "Run `database-agent onboard` for this folder. Nothing was sent.",
               file=out)
         return
     if provider is None or not model_id:

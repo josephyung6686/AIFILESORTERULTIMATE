@@ -1,5 +1,5 @@
 # src/readers/model_provider_cli.py
-"""`database-agent providers` and `filesorter providers`.
+"""`database-agent providers`.
 
 Three lanes, in the order a person reads them:
 
@@ -93,7 +93,8 @@ def _now() -> str:
 
 
 def _database(path: str | None) -> Path:
-    return Path(path) if path else Path.cwd() / "database-agent-plan.sqlite"
+    from database_agent.db import shared_database_path
+    return Path(path) if path else shared_database_path()
 
 
 def _open(path: Path):
@@ -253,7 +254,7 @@ def command_use(conn, lane: str, provider: str, *, user: str, model: str | None,
             print(str(refusal), file=out)
             return 2
         print("Stored Continue with ChatGPT. Sign in with "
-              "`filesorter providers sign-in-chatgpt` when "
+              "`database-agent providers sign-in-chatgpt` when "
               f"{SIWC_FLAG}=1. The plan database has the lane, not the tokens.",
               file=out)
         print(json.dumps(stored, sort_keys=True), file=out)
@@ -497,7 +498,7 @@ def main(argv: list[str], *, out=None, key_reader=None, keychain_run=None,
          siwc_wait=None, siwc_open=None, siwc_now=None, siwc_nonce=None,
          siwc_state=None) -> int:
     out = out if out is not None else sys.stdout
-    parser = argparse.ArgumentParser(prog="filesorter providers")
+    parser = argparse.ArgumentParser(prog="database-agent providers")
     parser.add_argument("--database", default=None)
     parser.add_argument("--user", default="local")
     sub = parser.add_subparsers(dest="command")

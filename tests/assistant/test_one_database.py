@@ -146,3 +146,12 @@ def test_top_level_help_lists_every_subcommand(capsys):
     for word in ("search", "ask", "plan", "preview-plan", "watch", "view",
                  "suggest", "db", "memory", "database-agent <FOLDER>"):
         assert word in out
+
+
+@pytest.mark.parametrize("word", ["onboard", "providers"])
+def test_onboard_and_providers_reach_the_sorter_not_the_chat(word, monkeypatch):
+    import cli
+    seen = []
+    monkeypatch.setattr(cli, "main", lambda args: seen.append(args) or 0)
+    assert main([word]) == 0
+    assert seen == [[word]]
