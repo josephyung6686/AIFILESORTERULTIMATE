@@ -70,10 +70,31 @@ def test_a_protected_file_shows_only_when_its_name_is_asked_for(tmp_path):
     # "research" is only in the key's folder, never in its name.
     result = find_files(conn, "stroke research", mode="fts")
     assert not [h for h in result.hits if h.protected]
-    assert result.protected_count == 0
+    # Its folder matched, so it is counted, never silently omitted.
+    assert result.protected_count == 1
+    unrelated = find_files(conn, "tide chart", mode="fts")
+    assert unrelated.protected_count == 0
     named = find_files(conn, "server", mode="fts")
     assert [h.protected for h in named.hits] == [True]
     assert named.protected_count == 1
+
+
+def test_a_protected_file_matched_by_its_folder_is_counted_not_shown(
+        tmp_path):
+    root = tmp_path / "home"
+    folder = root / "Chinese University Application Materials"
+    folder.mkdir(parents=True)
+    (folder / "id.pem").write_text("-----BEGIN", encoding="utf-8")
+    for n in range(12):
+        (root / f"chinese notes {n:02d}.txt").write_text("x", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    index_folder(conn, root)
+
+    result = find_files(conn, "the chinese folder", mode="fts")
+
+    # Never silently omitted: counted for this search, the row not returned.
+    assert not [h for h in result.hits if h.protected]
+    assert result.protected_count == 1
 
 
 def test_a_folder_name_brings_up_the_project_first(tmp_path):
