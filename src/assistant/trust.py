@@ -1,6 +1,7 @@
 """Per-provider onboarding trust facts (Addendum A4).
 
 Never claim OpenAI/Anthropic retention for DeepSeek.
+Unknown providers refuse — inventing retention copy is not allowed.
 """
 from __future__ import annotations
 
@@ -64,18 +65,16 @@ TRUST_BY_PROVIDER: dict[str, ProviderTrustFacts] = {
     ),
 }
 
+KNOWN_PROVIDERS: frozenset[str] = frozenset(TRUST_BY_PROVIDER)
+
 
 def trust_facts_for(provider: str) -> ProviderTrustFacts:
-    key = (provider or "deepseek").strip().lower()
+    key = (provider or "").strip().lower()
     if key not in TRUST_BY_PROVIDER:
-        # Unknown provider: refuse to invent OpenAI-style 30-day copy.
-        return ProviderTrustFacts(
-            provider=key,
-            data_location="Unknown — check your provider's policy",
-            retention="Unknown — do not assume 30 days",
-            training_note="Unknown — review provider terms before sending files",
-            policy_url="",
-            zdr_available=False,
+        known = ", ".join(sorted(TRUST_BY_PROVIDER))
+        raise RuntimeError(
+            f"Unknown provider {provider!r}. Known: {known}. "
+            "Nothing was sent."
         )
     return TRUST_BY_PROVIDER[key]
 

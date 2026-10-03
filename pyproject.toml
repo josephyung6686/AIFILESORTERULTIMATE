@@ -139,7 +139,11 @@ build-backend = "setuptools.build_meta"
 # default prompt text, draft or otherwise". One glob, so a new template is a new
 # file rather than a second edit here.
 [tool.setuptools.package-data]
+# `library/*` is prompt/catalogue text under each package. Profile JSON lives in
+# `items.profiles` and is loaded by `importlib.resources` after install — without
+# an explicit glob the wheel ships only `__init__.py` and every profile load fails.
 "*" = ["library/*"]
+"items.profiles" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

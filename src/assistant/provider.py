@@ -1,7 +1,9 @@
 """Thin BYOK chat clients (OpenAI-compatible + Anthropic).
 
 Loads credentials from the environment only — never hardcodes keys.
-DeepSeek is the default provider shape used by this repo.
+Provider selection is deterministic: explicit ASSISTANT_PROVIDER wins;
+a single key selects that provider; multiple keys without an explicit
+provider refuse.
 """
 from __future__ import annotations
 
@@ -18,6 +20,9 @@ class ProviderConfig:
     base_url: str
     model: str
     provider: str = "deepseek"  # deepseek | openai | anthropic
+
+
+_CLOUD_PROVIDERS = frozenset({"deepseek", "openai", "anthropic"})
 
 
 def load_dotenv(path: Path | None = None) -> None:
@@ -39,52 +44,97 @@ def load_dotenv(path: Path | None = None) -> None:
             os.environ[key] = value
 
 
+def _env(name: str) -> str:
+    return (os.environ.get(name) or "").strip()
+
+
+def _keys_present() -> dict[str, str]:
+    found: dict[str, str] = {}
+    deepseek = _env("DEEPSEEK_API_KEY")
+    openai = _env("OPENAI_API_KEY")
+    anthropic = _env("ANTHROPIC_API_KEY")
+    if deepseek:
+        found["deepseek"] = deepseek
+    if openai:
+        found["openai"] = openai
+    if anthropic:
+        found["anthropic"] = anthropic
+    return found
+
+
+def _config_for(provider: str, api_key: str) -> ProviderConfig:
+    if provider == "anthropic":
+        return ProviderConfig(
+            api_key=api_key,
+            base_url=_env("ANTHROPIC_BASE_URL") or "https://api.anthropic.com",
+            model=_env("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514",
+            provider="anthropic",
+        )
+    if provider == "openai":
+        return ProviderConfig(
+            api_key=api_key,
+            base_url=(
+                _env("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+            ).rstrip("/"),
+            model=_env("OPENAI_MODEL") or "gpt-4o-mini",
+            provider="openai",
+        )
+    # deepseek
+    return ProviderConfig(
+        api_key=api_key,
+        base_url=(
+            _env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+        ).rstrip("/"),
+        model=(
+            _env("DEEPSEEK_MODEL_FAST")
+            or _env("DEEPSEEK_MODEL_LOGIC")
+            or "deepseek-chat"
+        ),
+        provider="deepseek",
+    )
+
+
 def resolve_provider() -> ProviderConfig:
     load_dotenv()
-    # Explicit override
-    forced = (os.environ.get("ASSISTANT_PROVIDER") or "").strip().lower()
-    if forced == "anthropic" or os.environ.get("ANTHROPIC_API_KEY"):
-        key = os.environ.get("ANTHROPIC_API_KEY")
-        if not key and forced == "anthropic":
+    forced = _env("ASSISTANT_PROVIDER").lower()
+    keys = _keys_present()
+
+    if forced:
+        if forced not in _CLOUD_PROVIDERS:
+            known = ", ".join(sorted(_CLOUD_PROVIDERS))
             raise RuntimeError(
-                "ASSISTANT_PROVIDER=anthropic but ANTHROPIC_API_KEY unset. "
+                f"Unknown ASSISTANT_PROVIDER={forced!r}. "
+                f"Use one of: {known}. Nothing was sent."
+            )
+        key = keys.get(forced)
+        if not key:
+            env_name = {
+                "deepseek": "DEEPSEEK_API_KEY",
+                "openai": "OPENAI_API_KEY",
+                "anthropic": "ANTHROPIC_API_KEY",
+            }[forced]
+            raise RuntimeError(
+                f"ASSISTANT_PROVIDER={forced} but {env_name} unset. "
                 "Nothing was sent."
             )
-        if key:
-            return ProviderConfig(
-                api_key=key,
-                base_url=os.environ.get(
-                    "ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
-                model=(
-                    os.environ.get("ANTHROPIC_MODEL")
-                    or "claude-sonnet-4-20250514"
-                ),
-                provider="anthropic",
-            )
-    key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
-    if not key:
+        return _config_for(forced, key)
+
+    if not keys:
         raise RuntimeError(
-            "No API key in environment. Set DEEPSEEK_API_KEY (BYOK). "
+            "No API key in environment. Set DEEPSEEK_API_KEY, "
+            "OPENAI_API_KEY, or ANTHROPIC_API_KEY "
+            "(or set ASSISTANT_PROVIDER with the matching key). "
             "Nothing was sent."
         )
-    base = (
-        os.environ.get("DEEPSEEK_BASE_URL")
-        or os.environ.get("OPENAI_BASE_URL")
-        or "https://api.deepseek.com"
-    )
-    model = (
-        os.environ.get("DEEPSEEK_MODEL_FAST")
-        or os.environ.get("DEEPSEEK_MODEL_LOGIC")
-        or os.environ.get("OPENAI_MODEL")
-        or "deepseek-chat"
-    )
-    provider = "openai" if "openai" in base.lower() else "deepseek"
-    if os.environ.get("OPENAI_API_KEY") and not os.environ.get(
-            "DEEPSEEK_API_KEY"):
-        provider = "openai"
-    return ProviderConfig(
-        api_key=key, base_url=base.rstrip("/"), model=model,
-        provider=provider)
+    if len(keys) > 1:
+        present = ", ".join(sorted(keys))
+        raise RuntimeError(
+            f"Multiple API keys set ({present}) without ASSISTANT_PROVIDER. "
+            f"Set ASSISTANT_PROVIDER to one of: {present}. "
+            "Nothing was sent."
+        )
+    provider = next(iter(keys))
+    return _config_for(provider, keys[provider])
 
 
 def _openai_tools_to_anthropic(tools: list[dict[str, Any]]) -> list[dict]:
