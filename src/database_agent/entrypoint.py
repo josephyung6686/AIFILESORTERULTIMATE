@@ -63,14 +63,28 @@ def _conversation(args: list[str], out=None) -> int | None:
     # `open_database` reads DATABASE_AGENT_KEY_FILE itself, as the
     # subcommands' `--key-file` does. Without it an encrypted file is not
     # a database to plain SQLite, and the person gets one line.
+    from database_agent.encryption import EncryptedDatabaseError, EncryptionUnavailable
+    shown = out if out is not None else sys.stdout
+    key_file = os.environ.get("DATABASE_AGENT_KEY_FILE")
     try:
         conn = open_database(shared_database_path(), scan_roots=[])
-    except sqlite3.DatabaseError:
-        if os.environ.get("DATABASE_AGENT_KEY_FILE"):
+    except (FileNotFoundError, PermissionError, ValueError) as problem:
+        if not key_file:
             raise
+        print(f"I can't use the key file {key_file} ({problem}). Nothing "
+              "was opened.", file=shown)
+        return 2
+    except EncryptionUnavailable:
+        print("This database is encrypted, but the encryption package isn't "
+              "installed here. Nothing was opened.", file=shown)
+        return 2
+    except (sqlite3.DatabaseError, EncryptedDatabaseError):
+        if key_file:
+            print(f"The key in {key_file} doesn't open this database. Nothing "
+                  "was opened.", file=shown)
+            return 2
         print("This database is encrypted. Set DATABASE_AGENT_KEY_FILE to "
-              "your key file, then run database-agent again.",
-              file=out if out is not None else sys.stdout)
+              "your key file, then run database-agent again.", file=shown)
         return 2
     try:
         if not args:

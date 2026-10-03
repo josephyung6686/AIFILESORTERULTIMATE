@@ -341,3 +341,31 @@ def test_a_file_found_by_name_only_says_so(capsys):
     lines = out.getvalue().splitlines()
     assert lines[1].endswith("(matched by name)")
     assert "matched by name" not in lines[2]
+
+
+def test_a_missing_key_file_is_one_line(tmp_path, monkeypatch, capsys):
+    import io
+    from database_agent.entrypoint import main
+    _encrypted_shared_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("DATABASE_AGENT_KEY_FILE", str(tmp_path / "gone.key"))
+    out = io.StringIO()
+    assert main(["where is my cv"], out=out) == 2
+    shown = out.getvalue() + capsys.readouterr().err
+    assert "Traceback" not in shown
+    assert "can't use the key file" in shown and "gone.key" in shown
+
+
+def test_a_wrong_key_is_one_line(tmp_path, monkeypatch, capsys):
+    import io
+    import os
+    from database_agent.entrypoint import main
+    _encrypted_shared_db(tmp_path, monkeypatch)
+    wrong = tmp_path / "wrong.key"
+    wrong.write_bytes(os.urandom(32))
+    wrong.chmod(0o600)
+    monkeypatch.setenv("DATABASE_AGENT_KEY_FILE", str(wrong))
+    out = io.StringIO()
+    assert main(["where is my cv"], out=out) == 2
+    shown = out.getvalue() + capsys.readouterr().err
+    assert "Traceback" not in shown
+    assert "doesn't open this database" in shown
