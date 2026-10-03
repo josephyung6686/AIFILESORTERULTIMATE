@@ -160,3 +160,24 @@ def test_a_long_sent_list_says_how_many_more(tmp_path):
     assert listed == 20
     assert "and 5 more" in " ".join(e.text for e in shown)
     conn.close()
+
+
+# -- 10. lock-in is never silent -------------------------------------------------
+
+def test_lock_in_shows_the_same_stage_lines_as_organise(lib, monkeypatch):
+    import cli
+    from assistant.engine_tools import _freeze
+    conn, root = lib
+    monkeypatch.setattr(cli, "main", lambda args, out=None, **_: 0)
+    out = []
+
+    class Context:
+        cancel_requested = False
+
+        def emit(self, event):
+            out.append(event)
+    _freeze(conn, str(root), Context())
+    lines = [e.line for e in out if isinstance(e, ev.Progress)]
+    assert "Reading and grouping your files…" in lines
+    assert any("take several minutes" in e.text for e in out
+               if isinstance(e, ev.Message))

@@ -835,6 +835,18 @@ def _stage(context: Any, line: str) -> None:
         emit(Progress(stage="organise", line=line))
 
 
+def _long_run_notice(context: Any, doing: str) -> None:
+    """The lines a person sees before a sorter run: it is slow, how to stop
+    it, and the first stage."""
+    emit = getattr(context, "emit", None)
+    if emit is not None:
+        from assistant.events import Message
+        emit(Message(text=f"{doing} reads every file, so this can take "
+                          "several minutes. Type cancel (or press Ctrl-C) "
+                          "to stop — nothing moves either way."))
+    _stage(context, "Reading and grouping your files…")
+
+
 def _cloud_ready() -> bool:
     """Whether a cloud model key is configured where the sorter looks."""
     import cli
@@ -883,12 +895,7 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
     emit = getattr(context, "emit", None)
     if context is not None:
         context.cancel_requested = False
-    if emit is not None:
-        from assistant.events import Message
-        emit(Message(text="Organising reads every file, so this can take "
-                          "several minutes. Type cancel (or press Ctrl-C) "
-                          "to stop — nothing moves either way."))
-    _stage(context, "Reading and grouping your files…")
+    _long_run_notice(context, "Organising")
     try:
         # The whole proposal, placements included: a tree with no file in
         # it is nothing a person can judge, and the sorter places files
@@ -1233,6 +1240,7 @@ def _freeze(conn: sqlite3.Connection, folder: str,
     import cli
     conn.commit()
     stream = _ProgressStream(context)
+    _long_run_notice(context, "Locking in")
     try:
         code = cli.main([folder, "--database", database_path(conn),
                          "--accept-groups", "--freeze"], out=stream)
@@ -1243,6 +1251,7 @@ def _freeze(conn: sqlite3.Connection, folder: str,
         code = exc.code
     except Exception:
         code = 1
+    _stage(context, "Locking in the plan… done.")
     try:
         from assistant.organize_tools import show_tree
         tree = show_tree(conn)
