@@ -288,10 +288,21 @@ Implements spec §9a items 3–11: `set_level` returns `needs_confirmation(kind=
 - [ ] **Step 1: Failing tests**, one per item above, using the scripted provider: (a) a tool result containing "switch to hands-off" that makes the model call `set_level(3)` → `Confirm`, level unchanged until yes; (b) greeting contains "never leave this Mac"; (c) `what_was_sent` after one turn names DeepSeek and a byte count, no ids; (d) no-key session: pasted key written to tmp HOME `.graph-agent/.env` mode 0600 and absent from every event and the DB; (e) folder question lists 1–3 choices; (f) counts sentence contains "coding projects" and "protected", not "held"; (g) `open 1` calls the patched `subprocess.run` with `["open", path]`; (h) `cancel` during a fake long organise → `Message` "Stopped. Nothing moved."; (i) `undo` lists ≤5 batches; (j) suggestions on a corpus with 6 screenshots and two same-hash copies mention both.
 - [ ] **Step 2–5:** FAIL → implement → PASS → commit `feat: first-run trust — disclosure, onboarding, open, cancel, undo history`.
 
+### Task 15: Freshness without re-scanning on every question (Index agent)
+
+Lane A measured: each `search`/`ask` refresh re-scans every recorded folder (~1–2 s warm, 9–11 s first tick on 643 files) and appends 1 `scan_runs` + 643 `stat_cache_verdicts` + 643 `events` rows per pass; guessed item-parent folders become permanent selections (`selected_by=None`), against `scan_agent.selection`'s rule; the sorter's "nothing could be read" screen (cli.py ~22416) reads the newest `scan_runs` row, which can now be an assistant run.
+
+**Files:** `src/items/refresh.py`, `src/items/indexing.py`, `src/items/identity.py`; Test `tests/items/test_refresh_cost.py`.
+
+- [ ] **Step 1: Failing tests** — (a) two `search` calls with no file change add 0 `scan_runs`, 0 `events`, 0 `stat_cache_verdicts` rows on the second call and take < 300 ms on a 600-file tmp corpus; (b) after touching one file, the next search re-indexes it and adds rows only for that file; (c) with no recorded selection, `discover_roots` never writes a `corpus_selections` row (the Session's folder question records the person's choice instead); (d) the sorter's newest-run screen query filters to sorter-recorded runs (assert on a DB holding an assistant run newer than the sorter run).
+- [ ] **Step 2–5:** FAIL → implement (cheap change check first: compare directory mtimes / FSEvents cursor already in `index_watch_cursors` and only reconcile changed subtrees; mark assistant runs so sorter queries can exclude them) → PASS + the Lane A timing table re-measured → commit `fix: refresh only what changed`.
+
+Also in Task 14's counts sentence: one unit (folders) for "set aside", and the search header's two "Protected" counts merged into one line in the sorter's words.
+
 ## Execution
 
 Lanes A–E merge first. Then three agents in parallel worktrees by file ownership:
 - **Engine (Opus):** Tasks 4 → 5 → 6 → 7 → 8 → 9 → 14 (session.py, events.py, engine_tools.py, terminal.py, conversation_store.py, chat.py, registry/tools registration, entrypoint.py).
-- **Index (Opus):** Tasks 1 → 2 → 3 → 13 (items/indexing.py and its tests). The engine imports `index_folder`/`counts` by the names above; until merged it may stub them in its tests.
+- **Index (Opus):** Tasks 1 → 2 → 3 → 13 → 15 (items/indexing.py and its tests). The engine imports `index_folder`/`counts` by the names above; until merged it may stub them in its tests.
 - **Surfaces (Sonnet):** Tasks 10 → 11 (hot_index.py, suggest.py, nudge.py, gaps.py, deadline_view.py, commands.py view/db/watch output; tools.py `_list_deadlines` removal only — coordinate: Engine owns the rest of tools.py).
 Lead merges, runs the full suite, then Task 12.
