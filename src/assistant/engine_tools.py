@@ -33,14 +33,14 @@ CREATE TABLE IF NOT EXISTS session_settings (
 # -- settings ---------------------------------------------------------------
 
 def get_setting(conn: sqlite3.Connection, key: str, default: str) -> str:
-    conn.executescript(SETTINGS_DDL)
+    conn.execute(SETTINGS_DDL)
     row = conn.execute("SELECT value FROM session_settings WHERE key = ?",
                        (key,)).fetchone()
     return row[0] if row is not None else default
 
 
 def put_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
-    conn.executescript(SETTINGS_DDL)
+    conn.execute(SETTINGS_DDL)
     conn.execute("INSERT INTO session_settings (key, value) VALUES (?, ?) "
                  "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
                  (key, value))

@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS conversation_turns (
 
 
 def _ensure(conn: sqlite3.Connection) -> None:
-    conn.executescript(DDL)
+    conn.execute(DDL)
 
 
 def names_a_protected_file(conn: sqlite3.Connection, text: str) -> bool:
