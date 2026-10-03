@@ -18,7 +18,7 @@ database-agent <FOLDER>   read a folder and propose how to file it
 commands (all use ~/.graph-agent/database-agent.sqlite unless --database is given):
   search QUERY      find files by name or meaning
   ask QUESTION      ask a question about what is indexed
-  view [NAME]       deadlines, folder, table, board, timeline or graph
+  view [NAME]       folder, table, board, timeline or graph
   suggest           print proposed filings; nothing is moved
   plan ACTION       create, show, approve, apply or undo a filing plan
   preview-plan ID   dry-run a plan; nothing is moved

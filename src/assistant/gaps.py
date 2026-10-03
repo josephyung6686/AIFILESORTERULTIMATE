@@ -1,15 +1,9 @@
-"""File/profile nudges — list_gaps + deadline enrichment."""
+"""File/profile gaps — list_gaps."""
 from __future__ import annotations
 
-import re
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-_DATE_IN_NAME = re.compile(
-    r"(20\d{2}[-_/]?(0[1-9]|1[0-2])[-_/]?(0[1-9]|[12]\d|3[01]))"
-)
 
 
 def list_gaps(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]:
@@ -77,53 +71,4 @@ def list_gaps(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]:
         "excluded_areas": excluded_areas(conn),
         "moved": False,
         "note": "file/profile gaps only",
-    }
-
-
-def filename_date_hints(
-        conn: sqlite3.Connection, *, limit: int = 20,
-) -> list[dict[str, Any]]:
-    """Deadlines inferred from YYYY-MM-DD-ish names (weak signal)."""
-    out: list[dict[str, Any]] = []
-    for row in conn.execute(
-        "SELECT item_id, display_label FROM items "
-        "WHERE presence='live' AND item_type='file' "
-        "ORDER BY created_at DESC LIMIT 400"
-    ):
-        label = row["display_label"] or ""
-        m = _DATE_IN_NAME.search(label)
-        if not m:
-            continue
-        raw = m.group(1).replace("_", "-").replace("/", "-")
-        if len(raw) == 8 and raw.isdigit():
-            raw = f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"
-        out.append({
-            "item_id": row["item_id"],
-            "display_label": label,
-            "hint_date": raw,
-            "source": "filename",
-            "weak": True,
-        })
-        if len(out) >= limit:
-            break
-    return out
-
-
-def enriched_deadlines(
-        conn: sqlite3.Connection, *, limit: int = 15,
-) -> dict[str, Any]:
-    """Merge fixture deadline_view with filename date hints."""
-    rows: list[Any] = []
-    try:
-        from items.deadline_view import deadline_view
-        view = deadline_view(conn)
-        rows = list(view.get("deadlines") or [])
-    except Exception:
-        rows = []
-    hints = filename_date_hints(conn, limit=limit)
-    return {
-        "deadlines": rows[:limit],
-        "filename_date_hints": hints,
-        "as_of": datetime.now(timezone.utc).isoformat(),
-        "moved": False,
     }

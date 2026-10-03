@@ -50,41 +50,49 @@ def _nothing_indexed(conn, out) -> bool:
     return empty
 
 
+def _refresh(conn, out) -> None:
+    """Catch the index up with the disk; say so in one line if that fails."""
+    from items.refresh import refresh_index
+    try:
+        refresh_index(conn, prefer_fsevents=False)
+        conn.commit()
+    except Exception as problem:
+        print(f"Could not refresh the index ({problem}); showing what is "
+              f"already indexed.", file=out)
+
+
+def counts_line(conn) -> str:
+    """One plain line of totals. Switch to items.indexing.counts() when it lands."""
+    from items.file_identity import item_is_sensitive
+    from items.identity import excluded_areas
+    live = conn.execute(
+        "SELECT item_id FROM items WHERE presence = 'live' "
+        "AND item_type = 'file' AND superseded_by IS NULL").fetchall()
+    held = sum(1 for r in live if item_is_sensitive(conn, r["item_id"]))
+    areas = excluded_areas(conn)
+    protected = held + sum(a["paths"] for a in areas if a["protected"])
+    aside = sum(a["paths"] for a in areas if not a["protected"])
+    return (f"Indexed {len(live) - held} · Set aside {aside} · "
+            f"Protected {protected}")
+
+
 def view_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter view")
     parser.add_argument(
-        "name", nargs="?", default="deadlines",
-        choices=("deadlines", "folder", "table", "board", "timeline", "graph"),
+        "name", nargs="?", default="folder",
+        choices=("folder", "table", "board", "timeline", "graph"),
     )
     parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
-    parser.add_argument("--html", type=Path, default=None)
     parser.add_argument("--center", default=None, help="item_id for graph focus")
-    parser.add_argument(
-        "--expect", action="append", default=[], metavar="EVENT=FILE",
-        help="an event item id and a file item id expected on that deadline")
     args = parser.parse_args(argv)
     conn = _open(args.database, key_file=args.key_file)
     if _nothing_indexed(conn, out):
         return 2
+    _refresh(conn, out)
     try:
-        if args.name == "deadlines":
-            expected: dict[str, list[str]] = {}
-            for pair in args.expect:
-                event, separator, file_id = pair.partition("=")
-                if not event or not separator or not file_id:
-                    print(f"{pair!r} is not EVENT=FILE.", file=out)
-                    return 2
-                expected.setdefault(event, []).append(file_id)
-            from items.deadline_view import deadline_view, render_html, render_text
-            view = deadline_view(conn, expected=expected)
-            print(render_text(view), file=out)
-            if args.html is not None:
-                args.html.parent.mkdir(parents=True, exist_ok=True)
-                args.html.write_text(render_html(view), encoding="utf-8")
-                print(f"HTML: {args.html}", file=out)
-            return 0
+        print(counts_line(conn), file=out)
         from items import views as item_views
         if args.name == "folder":
             rows = item_views.folder_view(conn)
@@ -124,6 +132,17 @@ def view_main(argv: list[str] | None = None, *, out=None) -> int:
     return 0
 
 
+def _folder_of(hit) -> str:
+    """The hit's folder, relative to the person's home. Protected: name only."""
+    if hit.protected or not hit.open_target:
+        return "(protected)" if hit.protected else ""
+    folder = Path(hit.open_target).parent
+    try:
+        return "~/" + str(folder.relative_to(Path.home())) if folder != Path.home() else "~"
+    except ValueError:
+        return str(folder)
+
+
 def search_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter search")
@@ -134,17 +153,12 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument("--rebuild-fts", action="store_true")
     args = parser.parse_args(argv)
     from items.hot_index import rebuild_fts
-    from items.refresh import refresh_index
     from items.search import meaning_search
     conn = _open(args.database, key_file=args.key_file)
     try:
-        try:
-            refresh_index(conn, prefer_fsevents=False)
-            conn.commit()
-        except Exception:
-            pass
         if _nothing_indexed(conn, out):
             return 2
+        _refresh(conn, out)
         if args.rebuild_fts:
             n = rebuild_fts(conn)
             conn.commit()
@@ -157,9 +171,7 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
         conn.close()
     print(
         f"{len(result.hits)} hit(s). Protected present-but-unopened: "
-        f"{result.protected_count}. Moved: no. "
-        f"latency fts={result.fts_ms:.1f}ms vec={result.vector_ms:.1f}ms "
-        f"total={result.total_ms:.1f}ms",
+        f"{result.protected_count}. Moved: no.",
         file=out)
 
     def _named(areas):
@@ -189,10 +201,7 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
         print(f"Set aside by rule: {sum(a['paths'] for a in aside)} — "
               f"{reasons}: {_named(aside)}.", file=out)
     for hit in result.hits:
-        target = "(protected)" if hit.protected else (hit.open_target or "")
-        print(
-            f"{hit.score:.4f}\t{hit.channel}\t{hit.display_label}\t{target}",
-            file=out)
+        print(f"{hit.display_label}   {_folder_of(hit)}", file=out)
     return 0
 
 
@@ -424,17 +433,19 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     if args.apply:
         print(APPLY_REFUSED, file=out)
         return 2
-    from items.nudge import render
-    from items.suggest import proposals
+    from items.suggest import suggestions
     conn = _open(args.database, key_file=args.key_file)
     if _nothing_indexed(conn, out):
         return 2
+    _refresh(conn, out)
     try:
-        rows = proposals(conn)
-        text = render(rows)
+        rows = suggestions(conn)
     finally:
         conn.close()
-    print(text, file=out)
+    for row in rows:
+        print(f"{row['text']} ({row['action']})", file=out)
+    print("Nothing was moved." if rows else
+          "No suggestions. Nothing was moved.", file=out)
     return 0
 
 
@@ -467,6 +478,7 @@ def watch_main(argv: list[str] | None = None, *, out=None) -> int:
         print(NOTHING_INDEXED, file=out)
         conn.close()
         return 2
+    print(counts_line(conn), file=out)
     watchers = [PathWatcher(r) for r in roots]
     for w in watchers:
         w.ensure_best_backend()

@@ -22,19 +22,8 @@ def test_missing_academic_member_warns_once(tmp_path: Path):
         courses=("transport=CHEN 3120",),
     )
     mint_declared_items(conn, profile_id="student")
-    # Future event with no linked academic file.
-    conn.execute(
-        "INSERT INTO items ("
-        "item_id, item_type, display_label, file_id, open_target, external_key, "
-        "presence, typing_state, type_schema, profile_id, created_at, superseded_by"
-        ") VALUES ('ev1', 'event', 'Midterm', NULL, NULL, 'event:1', "
-        "'live', 'unplaced', NULL, NULL, '2026-10-02T00:00:00+00:00', NULL)")
-    conn.execute(
-        "INSERT INTO item_headers ("
-        "item_id, kind, external_id, happened_at, status"
-        ") VALUES ('ev1', 'event', 'e1', '2099-01-01T12:00:00+00:00', 'confirmed')")
     profile = load_profile("student")
-    rows = nudge_warnings(conn, profile=profile, now="2026-10-02T00:00:00+00:00")
+    rows = nudge_warnings(conn, profile=profile)
     assert len(rows) == 1
     assert rows[0]["kind"] == "missing_member_of"
     assert "CHEN 3120" in rows[0]["message"]

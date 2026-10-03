@@ -58,6 +58,13 @@ def db_main(argv: list[str] | None = None, *, out=None) -> int:
             args.database,
             encryption_key=read_key_file(args.key_file) if args.key_file else None)
         print(json.dumps(report.as_dict(), indent=2), file=out)
+        if report.ok:
+            from items.commands import _open, counts_line
+            conn = _open(args.database, key_file=args.key_file)
+            try:
+                print(counts_line(conn), file=out)
+            finally:
+                conn.close()
         return 0 if report.ok else 2
     if args.action == "backup":
         manifest = m.backup_database(
