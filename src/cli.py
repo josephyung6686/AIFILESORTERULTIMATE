@@ -22421,9 +22421,12 @@ def _nothing_could_be_read_report(
     `tests/p13/test_p13_progress_lines.py` says in a comment that it will be
     spelled "exactly as it will be spelled in `src/cli.py`".
     """
+    # The SORTER'S newest run: its selections carry the person (`--user`); the
+    # assistant's index and refresh runs record none, and are not this screen's.
     scan = conn.execute(
-        "SELECT scan_run_id FROM scan_runs ORDER BY started_at DESC, "
-        "scan_run_id DESC LIMIT 1").fetchone()
+        "SELECT r.scan_run_id FROM scan_runs r JOIN corpus_selections s "
+        "ON s.selection_id = r.selection_id WHERE s.selected_by IS NOT NULL "
+        "ORDER BY r.started_at DESC, r.scan_run_id DESC LIMIT 1").fetchone()
     if scan is None:
         return None
     roster = corpus_roster(conn, scan[0])

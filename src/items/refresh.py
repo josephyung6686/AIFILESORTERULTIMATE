@@ -83,28 +83,33 @@ def refresh_index(
         roots: list[Path] | None = None,
         prefer_fsevents: bool = True,
 ) -> RefreshResult:
-    """One-shot reconcile+FTS for discovered or provided roots."""
-    from items.path_watch import PathWatcher
+    """Bring the index up to disk before a question, recording only changes.
 
-    use = roots if roots is not None else discover_roots(conn)
+    Only folders the person chose are reconciled (recorded selections, or
+    `roots`): a folder guessed from item paths is never recorded as chosen.
+    A folder where nothing changed writes nothing. `prefer_fsevents` is kept
+    for callers; the change check is P3's stat cache, which needs no watcher.
+    """
+    from items.identity import refresh_tree
+    from items.index_refresh import catch_up
+    from items.indexing import _classify_by_name
+
+    use = roots if roots is not None else _collapse(
+        sorted(_selected_sources(conn), key=lambda p: len(p.parts)), 8)
     ticks = 0
     reindexed = False
-    backend = "none"
     for root in use:
         if not root.is_dir():
             continue
-        w = PathWatcher(root, prefer_fsevents=prefer_fsevents)
-        try:
-            # Startup reconcile is restart-safe; tick drains the shared queue.
-            result = w.tick(conn)
-            ticks += 1
-            reindexed = reindexed or bool(result.reindexed)
-            backend = result.backend
-        finally:
-            w.stop_live()
+        ticks += 1
+        if refresh_tree(conn, root):
+            # An edit is a new file version: decide its sensitivity again.
+            _classify_by_name(conn, root)
+            reindexed = True
+    catch_up(conn)
     return RefreshResult(
         roots=tuple(str(r) for r in use),
         ticks=ticks,
         reindexed=reindexed,
-        backend=backend,
+        backend="stat",
     )
