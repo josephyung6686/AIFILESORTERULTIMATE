@@ -102,18 +102,16 @@ def test_answer_question_records_the_persons_words_for_the_question_shown(
         scope_label="default:business_operations")
     record_question(lib, q, asked_at="2026-10-04T00:00:00+00:00")
     lib.commit()
-    context = SimpleNamespace(question_queue=[q],
-                              ask_questions_after_turn=False)
+    context = SimpleNamespace(question_queue=[q], asking=None)
     result = run(lib, "answer_question",
                  {"answer": "they are my school work"}, context=context)
     assert result["ok"] and result["recorded"] == "free_text"
-    assert context.question_queue == []
     row = lib.execute("SELECT raw_wording FROM structural_answers").fetchone()
     assert row[0] == "they are my school work"
     assert open_questions(lib) == ()
     # Nothing on screen: the tool says so instead of guessing a question.
     empty = run(lib, "answer_question", {"answer": "x"},
-                context=SimpleNamespace(question_queue=[]))
+                context=SimpleNamespace(question_queue=[], asking=None))
     assert not empty["ok"]
 
 

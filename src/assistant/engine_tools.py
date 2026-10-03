@@ -522,22 +522,20 @@ def record_person_answer(conn: sqlite3.Connection, question_id: str,
 
 def answer_question(conn: sqlite3.Connection, answer: str,
                     context: Any) -> dict[str, Any]:
-    """The person's words for the question on their screen (the first one
-    the Session is asking), recorded as `--answer` / free text records."""
+    """The person's words for the sorter question on their screen, recorded
+    as a typed answer is. The Session asks the next one after the turn."""
+    asking = getattr(context, "asking", None)
     queue = getattr(context, "question_queue", None) or []
-    if not queue:
+    question_id = (asking.question_id if asking is not None else
+                   queue[0].question_id if queue else None)
+    if question_id is None:
         return {"ok": False, "error": "There is no question on the screen "
                                       "to answer."}
-    q = queue[0]
     try:
-        kind = record_person_answer(conn, q.question_id, answer)
+        kind = record_person_answer(conn, question_id, answer)
     except Exception:
         return {"ok": False, "error": "I couldn't save that answer. Nothing "
                                       "changed."}
-    context.question_queue = [x for x in queue
-                              if x.question_id != q.question_id]
-    if open_questions(conn):
-        context.ask_questions_after_turn = True
     return {"ok": True, "recorded": kind, "moved": False,
             "text": {"choice": "Saved your answer.",
                      "skipped": "Skipped that question.",

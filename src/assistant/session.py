@@ -372,7 +372,8 @@ class Session:
             return
         q = self.question_queue[0]
         index = self.question_total - len(self.question_queue) + 1
-        self.asking = question_event(q, index, self.question_total)
+        self.asking = question_event(q, index, self.question_total,
+                                     self.conn)
         self.emit(self.asking)
 
     def answer(self, question_id: str, value: str) -> None:
