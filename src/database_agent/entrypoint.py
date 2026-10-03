@@ -9,7 +9,9 @@ from __future__ import annotations
 import sys
 
 
-HELP = """usage: database-agent <FOLDER> [OPTIONS]
+HELP = """usage: database-agent                  talk to it: find, ask, sort, undo
+       database-agent "where is my CV"  one answer, then exit
+       database-agent <FOLDER> [OPTIONS]
        database-agent <command> [OPTIONS]
 
 database-agent <FOLDER>   read a folder and propose how to file it
@@ -41,14 +43,46 @@ def _local_command(args: list[str], out=None) -> int | None:
     return handlers[args[0]](args[1:], out=out)
 
 
+def _stdin_is_a_terminal() -> bool:
+    return sys.stdin.isatty()
+
+
+def _conversation(args: list[str], out=None) -> int | None:
+    """The chat: no arguments, a folder alone in a terminal, a sentence, or
+    `--events` for the desktop app. None when the sorter should run."""
+    from pathlib import Path
+    if args and args != ["--events"]:
+        if len(args) != 1 or args[0].startswith("-"):
+            return None
+        if Path(args[0]).expanduser().is_dir() and not _stdin_is_a_terminal():
+            return None
+    from assistant import terminal
+    from database_agent.db import open_database, shared_database_path
+    conn = open_database(shared_database_path(), scan_roots=[])
+    try:
+        if not args:
+            return terminal.run_terminal(conn, folder=None, stdout=out)
+        if args == ["--events"]:
+            return terminal.run_events(conn, stdout=out)
+        folder = Path(args[0]).expanduser()
+        if folder.is_dir():
+            return terminal.run_terminal(conn, folder=folder, stdout=out)
+        return terminal.run_once(conn, args[0], stdout=out)
+    finally:
+        conn.close()
+
+
 def main(argv: list[str] | None = None, *, out=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    if not args or args == ["--help"] or args == ["-h"]:
+    if args == ["--help"] or args == ["-h"]:
         print(HELP, file=out if out is not None else sys.stdout)
         return 0
     local_result = _local_command(args, out=out)
     if local_result is not None:
         return local_result
+    chat_result = _conversation(args, out=out)
+    if chat_result is not None:
+        return chat_result
     from cli import main as legacy_main
     result = legacy_main(args)
     return int(result or 0)

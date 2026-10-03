@@ -86,6 +86,7 @@ class Session:
             self.history = []
         self.no_model = False
         self.offering_questions = False
+        self.awaiting_folder = False
         self.ask_questions_after_turn = False
         #: Folders the person picked in this conversation; tools may read
         #: these without asking again.
@@ -106,6 +107,7 @@ class Session:
                                 protected=c.protected, held=c.held,
                                 open_questions=c.open_questions))
         if c is None or c.indexed == 0:
+            self.awaiting_folder = True
             self.emit(ev.Message(text=FOLDER_QUESTION))
             return
         self.emit(ev.Message(text=f"I'm looking after {c.indexed} files. "
@@ -118,6 +120,28 @@ class Session:
                 text=f"While you were away I have {n} "
                      f"question{'s' if n != 1 else ''} — want to go "
                      f"through {'them' if n != 1 else 'it'}?"))
+
+    def choose_folder(self, text: str) -> None:
+        """The person's answer to the folder question: index it now."""
+        from assistant.engine_tools import check_folder, run_index
+        path = Path(text.strip().strip("'\"")).expanduser()
+        try:
+            self.chosen_folders.add(path.resolve())
+        except OSError:
+            pass
+        folder, refusal = check_folder(self.conn, str(path), self, "index")
+        if refusal is not None:
+            self.emit(ev.Message(text=refusal.get("error") or
+                                 "I can't use that folder."))
+            return
+        self.awaiting_folder = False
+        result = run_index(self.conn, folder, self)
+        if not result.get("ok"):
+            self.awaiting_folder = True
+            self.emit(ev.Error(text=result["error"], changed=False))
+            return
+        self.emit(ev.Message(text=result["text"] + " What would you like "
+                                                   "to find or tidy?"))
 
     def after_index(self, c) -> None:
         self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
@@ -188,6 +212,9 @@ class Session:
 
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
+        if self.awaiting_folder:
+            self.choose_folder(text)
+            return
         if self.offering_questions:
             self.offering_questions = False
             if text.strip().lower().rstrip("!.") in YES_WORDS:
