@@ -264,7 +264,7 @@ def test_cli_memory_release_prints_evidence_stays_dark(tmp_path, monkeypatch):
 
 
 def test_cli_dispatches_memory_subcommand():
-    import cli as cli_mod
-    src = Path(cli_mod.__file__).read_text(encoding="utf-8")
-    assert 'asked[:1] == ["memory"]' in src
+    import database_agent.entrypoint as entry
+    src = Path(entry.__file__).read_text(encoding="utf-8")
+    assert '"memory"' in src
     assert "memory_main" in src

@@ -38,8 +38,8 @@ def test_ask_main_missing_key_exits_2_no_move(tmp_path: Path, monkeypatch):
 
 
 def test_cli_dispatches_ask_subcommand():
-    # Import-time routing table in cli.py includes ask → ask_main.
-    import cli as cli_mod
-    src = Path(cli_mod.__file__).read_text(encoding="utf-8")
-    assert 'asked[:1] == ["ask"]' in src
+    # The routing table in entrypoint.py includes ask → ask_main.
+    import database_agent.entrypoint as entry
+    src = Path(entry.__file__).read_text(encoding="utf-8")
+    assert '"ask"' in src
     assert "ask_main" in src

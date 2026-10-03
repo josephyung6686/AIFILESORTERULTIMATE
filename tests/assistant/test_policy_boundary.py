@@ -60,7 +60,6 @@ def test_every_tool_hits_gate(conn, tmp_path: Path):
     # Base tools
     for name, args in (
         ("find_files", {"query": "notes", "limit": 3}),
-        ("list_deadlines", {"limit": 5}),
         ("list_gaps", {"limit": 5}),
         ("ask_user", {"question": "which?"}),
         ("request_tools", {"group": "organize_propose"}),

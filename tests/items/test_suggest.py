@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from items.schema import create_items_schema
 from items.suggest import proposals
 
-import cli
+from database_agent.entrypoint import main
 
 
 def _counts(conn):
@@ -70,7 +70,7 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
     assert rows[0]["kind"] == "missing_member_of"
     assert _counts(conn) == before
     out = io.StringIO()
-    code = cli.main([
+    code = main([
         "suggest", "--database", str(tmp_path / "agent.sqlite"),
     ], out=out)
     text = out.getvalue()
@@ -80,7 +80,7 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
     assert "No network call was made" in text
     assert _counts(conn) == before
     refused = io.StringIO()
-    assert cli.main([
+    assert main([
         "suggest", "--database", str(tmp_path / "agent.sqlite"), "--apply",
     ], out=refused) == 2
     assert "does not move" in refused.getvalue()

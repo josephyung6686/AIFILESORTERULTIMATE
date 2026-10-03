@@ -27708,41 +27708,6 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
-    asked = list(sys.argv[1:] if argv is None else argv)
-    if asked[:1] == ["view"] and (
-            len(asked) == 1
-            or asked[1] in (
-                "deadlines", "folder", "table", "board", "timeline", "graph")
-            or asked[1].startswith("-")):
-        from items.commands import view_main
-        return view_main(asked[1:], out=out)
-    if asked[:1] == ["suggest"] and (
-            len(asked) == 1 or asked[1].startswith("-")):
-        from items.commands import suggest_main
-        return suggest_main(asked[1:], out=out)
-    if asked[:1] == ["search"]:
-        # Reserved command word, same shape as `sync` / `view` / `suggest`.
-        from items.commands import search_main
-        return search_main(asked[1:], out=out)
-    if asked[:1] == ["ask"]:
-        # Product surface: BYOK read-only assistant over the hot index.
-        from items.commands import ask_main
-        return ask_main(asked[1:], out=out)
-    if asked[:1] == ["preview-plan"]:
-        from items.commands import preview_main
-        return preview_main(asked[1:], out=out)
-    if asked[:1] == ["plan"]:
-        from items.commands import plan_main
-        return plan_main(asked[1:], out=out)
-    if asked[:1] == ["watch"]:
-        from items.commands import watch_main
-        return watch_main(asked[1:], out=out)
-    if asked[:1] == ["db"]:
-        from items.commands_db import db_main
-        return db_main(asked[1:], out=out)
-    if asked[:1] == ["memory"]:
-        from items.commands_memory import memory_main
-        return memory_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
