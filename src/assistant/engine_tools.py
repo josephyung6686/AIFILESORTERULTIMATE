@@ -574,13 +574,10 @@ class _ProgressStream:
     def write(self, text: str) -> int:
         if getattr(self.context, "cancel_requested", False):
             raise Cancelled()
-        from assistant.events import Progress
-        for line in str(text).splitlines():
-            if line.strip():
-                self.lines.append(line.strip())
-                emit = getattr(self.context, "emit", None)
-                if emit is not None:
-                    emit(Progress(stage="organise", line=line.strip()))
+        # Kept for the code that reads it (the branch names a freeze
+        # prints); never shown to the person or the model.
+        self.lines.extend(line.strip() for line in str(text).splitlines()
+                          if line.strip())
         return len(text)
 
     def flush(self) -> None:
@@ -595,8 +592,18 @@ def organise_folder(conn: sqlite3.Connection, folder: str,
     return run_organise(conn, path, context)
 
 
+def _stage(context: Any, line: str) -> None:
+    emit = getattr(context, "emit", None)
+    if emit is not None:
+        from assistant.events import Progress
+        emit(Progress(stage="organise", line=line))
+
+
 def run_organise(conn: sqlite3.Connection, path: Path,
                  context: Any) -> dict[str, Any]:
+    """The sorter over one folder, proposing folders and moving nothing.
+    The person sees a few plain lines; the model gets counts read back from
+    the database, never the sorter's screen."""
     import cli
     conn.commit()
     stream = _ProgressStream(context)
@@ -608,6 +615,7 @@ def run_organise(conn: sqlite3.Connection, path: Path,
         emit(Message(text="Organising reads every file, so this can take "
                           "several minutes. Type cancel (or press Ctrl-C) "
                           "to stop — nothing moves either way."))
+    _stage(context, "Reading and grouping your files…")
     try:
         cli.main([str(path), "--database", database_path(conn),
                   "--stop-after", "tree"], out=stream)
@@ -622,23 +630,23 @@ def run_organise(conn: sqlite3.Connection, path: Path,
     except Exception:
         return {"ok": False, "error": "Organising stopped with a problem. "
                                       "Nothing moved."}
+    _stage(context, "Designing folders… done.")
     n = len(open_questions(conn))
     if n and context is not None:
         context.ask_questions_after_turn = True
     try:
-        from assistant.organize_tools import show_tree
-        tree = show_tree(conn)
+        from assistant.organize_tools import organise_summary
+        summary = organise_summary(conn, path)
     except Exception:
-        tree = None
+        summary = None
     text = ("I've looked through the folder. Nothing moved. "
             + (f"I have {_plural(n, 'question')} first. " if n else "")
             + "When the folders look right, say “lock in the plan” and you "
               "can then move them one folder at a time.")
-    return {"ok": True, "open_questions": n, "tree": tree,
+    return {"ok": True, "open_questions": n, "summary": summary,
             "moved": False, "text": text.strip(),
             "next_step": ("freeze_plan proposes locking in this plan; "
-                          "apply_branch needs it first."),
-            "last_lines": stream.lines[-12:]}
+                          "apply_branch needs it first.")}
 
 
 def counts_sentence(c) -> str:

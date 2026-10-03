@@ -121,3 +121,35 @@ def test_a_file_moved_away_by_hand_is_not_reported_moved(organised):
     assert text.startswith("0 files moved — "), text
     assert not _files(corpus)
     assert before
+
+
+# -- organise says a little, and only what the database holds -----------------
+
+def test_organise_streams_a_few_plain_lines_and_tells_the_model_counts(
+        tmp_path):
+    from items.schema import create_items_schema
+    corpus = _course(tmp_path)
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    out: list = []
+    model = _Model()
+    s = Session(conn, provider_turn=model, emit=out.append)
+    s.chosen_folders.add(corpus.resolve())
+    model.then("organise_folder", {"folder": str(corpus)})
+    s.say("organise my course folder")
+
+    progress = [e for e in out if isinstance(e, ev.Progress)]
+    assert 1 <= len(progress) <= 4, [p.line for p in progress]
+    shown = " ".join(e.text for e in out if isinstance(e, ev.Message))
+    shown += " ".join(p.line for p in progress)
+    to_model = model.seen[-1]
+    for leak in ("--stop-after", "--answer", "--enable-cloud", ".sqlite",
+                 "Plan database", "last_lines", "situation:"):
+        assert leak not in shown, leak
+        assert leak not in to_model, leak
+    reply = json.loads(json.loads(to_model)[-1]["content"])
+    for key in ("folders_proposed", "files_placed", "loose_files",
+                "loose_files_placed", "open_questions", "held", "set_aside"):
+        assert isinstance(reply["summary"][key], int), key
+    assert isinstance(reply["summary"]["top_folders"], list)
+    conn.close()
