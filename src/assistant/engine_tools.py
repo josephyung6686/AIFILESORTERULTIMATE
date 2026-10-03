@@ -589,12 +589,35 @@ def _chosen_by_person(conn: sqlite3.Connection, folder: Path,
     return any(str(folder) in json.loads(r[0] or "[]") for r in rows)
 
 
+def _chosen_by_name(conn: sqlite3.Connection, folder: str,
+                    context: Any) -> Path | None:
+    """The person's chosen folder this argument names: "Desktop", "my
+    desktop", "~/Desktop" or the real `/Users/x/Desktop` all mean the folder
+    called Desktop that they chose. None when nothing chosen is named, or
+    when the argument is already inside a chosen folder."""
+    import json
+    chosen = {Path(p) for p in getattr(context, "chosen_folders", ())}
+    try:
+        for row in conn.execute("SELECT sources FROM corpus_selections"):
+            chosen.update(Path(s) for s in json.loads(row[0] or "[]"))
+    except sqlite3.Error:
+        pass
+    asked = Path(folder.strip()).expanduser()
+    if any(c == asked or c in asked.parents for c in chosen):
+        return None
+    words = re.sub(r"\b(my|the|folder|directory)\b", " ",
+                   asked.name.lower()).split()
+    name = " ".join(words)
+    matches = [c for c in chosen if c.name.lower() == name]
+    return matches[0] if len(matches) == 1 else None
+
+
 def check_folder(conn: sqlite3.Connection, folder: str, context: Any,
                  action: str) -> tuple[Path | None, dict | None]:
     """(path, None) when the folder may be read now; otherwise (None, payload)
     refusing it or asking the person first."""
     from items.file_identity import path_is_protected
-    path = Path(folder).expanduser()
+    path = _chosen_by_name(conn, folder, context) or Path(folder).expanduser()
     try:
         path = path.resolve()
     except OSError:
