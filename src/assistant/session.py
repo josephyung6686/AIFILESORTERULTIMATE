@@ -44,6 +44,9 @@ NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 #: Commands, never answers: they cancel what is on the screen.
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
+#: A bare undo: code asks about the last batch, the model never words it.
+UNDO_WORDS = {"undo", "undo something", "undo that", "undo it", "undo this",
+              "put it back", "put them back", "put those back"}
 _YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
 _NO_FIRST = {"n", "no", "nope", "nah"}
 #: A reply with any of these is more than a yes or a no: the model reads it.
@@ -526,7 +529,7 @@ class Session:
             self.undo(token)
             return True
         self.undo_choices = {}
-        if words in ("undo", "undo something", "put it back"):
+        if words.rstrip("!.") in UNDO_WORDS:
             from assistant.engine_tools import recent_batches
             batches = recent_batches(self.conn)
             token = self.last_undo_token or ""
@@ -1113,9 +1116,12 @@ def _as_moved(conn: sqlite3.Connection, proposal: dict, before: dict,
                 "text": f"Nothing moved — {why}."}
     them = "it" if n == 1 else "them"
     if undoing:
-        text = (f"Put {_plural(n, 'file')} back where "
+        # Said as what is now true, so it never reads as the question again.
+        text = (f"{_plural(n, 'file')} "
+                f"{'is' if n == 1 else 'are'} back where "
                 f"{'it was' if n == 1 else 'they were'}." if is_plan else
-                f"Put {_plural(n, 'file')} from {where} back.")
+                f"{_plural(n, 'file')} from {where} "
+                f"{'is' if n == 1 else 'are'} back.")
     else:
         text = (f"Moved {_plural(n, 'file')} into {where}. Say undo to put "
                 f"{them} back.")
