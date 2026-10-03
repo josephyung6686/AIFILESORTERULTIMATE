@@ -48,6 +48,7 @@ def index_folder(conn: sqlite3.Connection, root: Path, *,
                           P1_INCLUDED_SCAN_STATE)
     _classify_by_name(conn, root)
     rebuild_fts(conn)
+    _index_projects(conn)
     conn.commit()
     report("done", source.files, source.files)
     return counts(conn)
@@ -112,6 +113,67 @@ def _classify_by_name(conn: sqlite3.Connection, root: Path) -> None:
         if candidate is not None:
             assign(conn, candidate, store=store,
                    component_version=authorities.p7_component_version)
+
+
+#: How much of a project's README is read to make the project findable.
+README_CHARS = 2048
+
+
+def _index_projects(conn: sqlite3.Connection) -> None:
+    """One item per software project the scan set aside, never one per file.
+
+    Searchable by the folder name, the first 2 KB of its README and its
+    top-level file names. Code inside is never read; nothing inside is an item.
+    """
+    import uuid
+    from datetime import datetime, timezone
+
+    from items.hot_index import cjk_bigrams, write_chunks_for_item
+    from items.identity import excluded_areas
+    from scan_agent.exclusion import RULE_PROJECT_ROOT_DESCENDANT
+
+    for area in excluded_areas(conn):
+        if area["rule"] != RULE_PROJECT_ROOT_DESCENDANT:
+            continue
+        folder = Path(area["folder"])
+        if not folder.is_dir():
+            continue
+        key = f"project_root:{folder}"
+        row = conn.execute(
+            "SELECT item_id FROM items WHERE external_key = ? "
+            "AND superseded_by IS NULL", (key,)).fetchone()
+        if row is None:
+            item_id = str(uuid.uuid4())
+            conn.execute(
+                "INSERT INTO items (item_id, item_type, display_label, "
+                "open_target, external_key, presence, typing_state, created_at, "
+                "freshness_state) VALUES (?, 'project', ?, ?, ?, 'live', "
+                "'unplaced', ?, 'fresh')",
+                (item_id, folder.name, str(folder), key,
+                 datetime.now(timezone.utc).isoformat()))
+        else:
+            item_id = row["item_id"]
+        names = sorted(child.name for child in folder.iterdir())
+        body = "\n".join([_readme(folder), " ".join(names)]).strip()
+        conn.execute("DELETE FROM item_fts WHERE item_id = ?", (item_id,))
+        conn.execute("DELETE FROM item_chunk_fts WHERE item_id = ?", (item_id,))
+        conn.execute("DELETE FROM item_chunks WHERE item_id = ?", (item_id,))
+        conn.execute(
+            "INSERT INTO item_fts (item_id, label, path, body) VALUES (?,?,?,?)",
+            (item_id, f"{folder.name} {cjk_bigrams(folder.name)}".strip(),
+             str(folder), body))
+        write_chunks_for_item(conn, item_id, body, label=folder.name)
+
+
+def _readme(folder: Path) -> str:
+    for child in sorted(folder.iterdir()):
+        if child.is_file() and child.name.casefold().startswith("readme"):
+            try:
+                with child.open(encoding="utf-8", errors="replace") as handle:
+                    return handle.read(README_CHARS)
+            except OSError:
+                return ""
+    return ""
 
 
 class _CountingSource:
