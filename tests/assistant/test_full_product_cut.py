@@ -1,4 +1,4 @@
-"""Full product cut: truth loop, grounding, held-local, gaps, connectors."""
+"""Full product cut: truth loop, grounding, held-local, gaps."""
 from __future__ import annotations
 
 import hashlib
@@ -126,7 +126,7 @@ def test_held_body_cloud_vs_local(conn, tmp_path: Path):
     assert allowed.payload.get("held_body_via_local") is True
 
 
-def test_list_gaps_and_connectors_disabled(conn, tmp_path: Path):
+def test_list_gaps(conn, tmp_path: Path):
     create_items_schema(conn)
     conn.execute(
         "INSERT INTO items ("
@@ -139,10 +139,5 @@ def test_list_gaps_and_connectors_disabled(conn, tmp_path: Path):
     gaps = list_gaps(conn, limit=10)
     assert any(g["kind"] == "typing" for g in gaps["gaps"])
     rt = ToolRuntime(conn)
-    rt.execute("request_tools", {"group": "connectors"})
-    mail = rt.execute("sync_mail", {})
-    assert mail.ok is False
-    assert mail.payload.get("disabled") is True
-    assert "scratched" in (mail.payload.get("error") or "").lower()
     gaps_tool = rt.execute("list_gaps", {"limit": 10})
     assert gaps_tool.ok

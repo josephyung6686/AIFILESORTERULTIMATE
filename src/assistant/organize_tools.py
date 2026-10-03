@@ -174,7 +174,7 @@ def extract_one(
         conn: sqlite3.Connection, item_id: str, *,
         allow_held: bool = False,
 ) -> dict[str, Any]:
-    from items.mailbox import path_is_protected
+    from items.file_identity import path_is_protected
 
     row = conn.execute(
         "SELECT item_id, display_label, file_id, open_target, typing_state "

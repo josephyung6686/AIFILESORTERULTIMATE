@@ -17,11 +17,6 @@ def test_release_artifacts_present():
     assert (ROOT / "docs/superpowers/plans/2026-10-03-everyday-product-readiness.md").is_file()
 
 
-def test_connectors_scratched():
-    from items.connectors import CONNECTORS_DISABLED_REASON
-    assert "scratched" in CONNECTORS_DISABLED_REASON.lower()
-
-
 def test_db_maintenance_importable():
     from database_agent.maintenance import check_database, backup_database
     assert callable(check_database) and callable(backup_database)
@@ -91,5 +86,4 @@ def test_pilot_copies_corpus_and_safe_defaults(tmp_path):
     assert payload["corpus"]["copied"] is True
     assert payload["cloud"] == payload["memory_steering"] == payload["apply"] == "off"
     assert payload["ui"] == "excluded"
-    assert payload["connectors"] == "scratched"
     assert original.read_text(encoding="utf-8") == "pilot source"

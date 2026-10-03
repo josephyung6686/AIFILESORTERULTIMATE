@@ -25,8 +25,6 @@ DEFERRED_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "organize_apply": ("freeze", "apply_moves", "undo_moves"),
     "graph_links": ("propose_links", "accept_link", "reject_link"),
-    # Live mail/calendar scratched — group kept only to return a hard refuse.
-    "connectors": ("sync_mail", "sync_calendar"),
 }
 
 WRITE_SHAPED: frozenset[str] = frozenset(
@@ -91,13 +89,13 @@ _ALWAYS_SCHEMAS: list[dict[str, Any]] = [
     _fn(
         "list_deadlines",
         "List deadline-linked items plus weak filename date hints. "
-        "No live mail/calendar — file/profile signals only.",
+        "File/profile signals only.",
         {"limit": {"type": "integer", "default": 10}},
     ),
     _fn(
         "list_gaps",
         "Nudge: unplaced/held files, missing-on-disk paths, "
-        "files with no relationships. No mail/calendar.",
+        "files with no relationships.",
         {"limit": {"type": "integer", "default": 20}},
     ),
     _fn(
@@ -123,7 +121,7 @@ _ALWAYS_SCHEMAS: list[dict[str, Any]] = [
     _fn(
         "request_tools",
         "Request a deferred tool group. organize_apply still needs "
-        "ASSISTANT_ENABLE_APPLY=1. connectors are disabled (no mail/cal).",
+        "ASSISTANT_ENABLE_APPLY=1.",
         {
             "group": {
                 "type": "string",
@@ -214,18 +212,6 @@ _DEFERRED_SCHEMAS: dict[str, list[dict[str, Any]]] = {
                 "user_id": {"type": "string"},
             },
             ["relationship_id"],
-        ),
-    ],
-    "connectors": [
-        _fn(
-            "sync_mail",
-            "Disabled — no live Gmail in this product cut.",
-            {},
-        ),
-        _fn(
-            "sync_calendar",
-            "Disabled — no live Calendar in this product cut.",
-            {},
         ),
     ],
 }

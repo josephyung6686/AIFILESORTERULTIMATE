@@ -27709,11 +27709,6 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
     asked = list(sys.argv[1:] if argv is None else argv)
-    if asked[:1] == ["sync"] and (
-            len(asked) == 1 or asked[1] in ("gmail", "calendar")
-            or asked[1].startswith("-")):
-        from items.commands import sync_main
-        return sync_main(asked[1:], out=out)
     if asked[:1] == ["view"] and (
             len(asked) == 1
             or asked[1] in (

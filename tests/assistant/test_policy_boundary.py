@@ -18,7 +18,7 @@ from assistant.policy import (
 from assistant.registry import ALWAYS_TOOLS, DEFERRED_GROUPS
 from assistant.tools import ToolRuntime
 from items.identity import reconcile_tree
-from items.mailbox import path_is_protected
+from items.file_identity import path_is_protected
 from items.schema import create_items_schema
 
 

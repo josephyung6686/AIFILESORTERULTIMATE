@@ -38,7 +38,6 @@ def test_deferred_schemas_absent_until_request(conn, tmp_path: Path):
     assert "extract_one" in after
     # Other deferred groups still dark
     assert "apply_moves" not in after
-    assert "sync_mail" not in after
 
 
 def test_model_receives_exact_deferred_schema(conn, tmp_path: Path):

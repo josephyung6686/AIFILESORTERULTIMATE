@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from items.mailbox import path_is_protected
+from items.file_identity import path_is_protected
 
 RRF_K = 60
 DEFAULT_LIMIT = 20

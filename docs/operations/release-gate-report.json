@@ -78,18 +78,10 @@
       "started": "2026-10-03T04:44:06Z",
       "ended": "2026-10-03T04:44:27Z",
       "status": "passed"
-    },
-    {
-      "name": "connector_boundary",
-      "returncode": 0,
-      "started": "2026-10-03T04:44:27Z",
-      "ended": "2026-10-03T04:44:27Z",
-      "status": "passed"
     }
   ],
   "scope": {
     "ui": "excluded",
-    "live_connectors": "scratched",
     "network": "off",
     "encryption": "preprovisioned wheelhouse required"
   }

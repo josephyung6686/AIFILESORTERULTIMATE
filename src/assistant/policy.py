@@ -19,7 +19,7 @@ from assistant.registry import (
     is_write_shaped,
     schema_for_tool,
 )
-from items.mailbox import path_is_protected
+from items.file_identity import path_is_protected
 
 # Keys that must never appear as free-form write destinations in tool args.
 _DESTINATION_KEYS = frozenset({

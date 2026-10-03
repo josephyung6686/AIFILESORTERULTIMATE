@@ -63,7 +63,6 @@ def main(argv=None) -> int:
     from grouping.schema import create_grouping_schema
     from items.decisions import reject_link
     from items.hot_index import find_files
-    from items.mailbox import ingest_fixture
     from items.profile_loader import load_profile
     from items.refresh import refresh_index
     from items.relationships import project_witnessed_links
@@ -184,21 +183,6 @@ def main(argv=None) -> int:
             conn.commit()
             step("undo", undo.ok and move_src.exists() and not move_dst.exists())
 
-        # 9. fixture sync stores headers, never the body.
-        body = "PILOT-BODY-MUST-NOT-BE-STORED"
-        ingest_fixture(conn, {"messages": [{
-            "message_id": "pilot-msg-1", "thread_id": "pilot-thread-1",
-            "internal_date": "2026-10-03T12:00:00+00:00",
-            "from": "pilot@example.com", "to": ["owner@example.com"],
-            "subject": "Pilot message", "body": body, "attachments": [],
-        }]}, kind="gmail")
-        conn.commit()
-        stored = []
-        for (table,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"):
-            for r in conn.execute(f'SELECT * FROM "{table}"'):
-                stored.extend(str(v) for v in r if v is not None)
-        step("fixture_sync", body not in "\n".join(stored))
-
         ensure_egress_schema(conn)
         egress_rows = conn.execute("SELECT count(*) FROM egress_ledger").fetchone()[0]
         unresolved = len(nonterminal_entries(conn))
@@ -240,7 +224,7 @@ def main(argv=None) -> int:
         "steps": steps, "thresholds": thresholds, "skipped": skipped,
         "egress_rows": egress_rows, "profiles": profiles,
         "cloud": args.cloud, "memory_steering": args.memory_steering, "apply": args.apply,
-        "connectors": "scratched", "ui": "excluded",
+        "ui": "excluded",
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

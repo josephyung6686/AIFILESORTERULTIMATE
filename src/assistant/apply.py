@@ -104,7 +104,7 @@ def _validate_op(
     if _item_held(conn, item_id) or (protected_snapshot or "") == "held":
         return f"held item refused for {item_id}"
     try:
-        from items.mailbox import path_is_protected
+        from items.file_identity import path_is_protected
         if path_is_protected(str(src)) or path_is_protected(str(dst)):
             return f"protected path refused for {item_id}"
     except Exception:

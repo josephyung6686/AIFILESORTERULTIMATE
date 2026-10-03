@@ -8,7 +8,7 @@ Rules (item plan §10):
 - ``member-of`` when a typed academic file's label contains a declared course
   name (casefold). Confidence ``witnessed`` when the course token is in the
   filename; otherwise ``inferred`` only if at least two declared lives exist.
-- ``about`` when an email/event label contains a declared project name and two
+- ``about`` when a file label contains a declared project name and two
   declared lives exist (inferred).
 """
 from __future__ import annotations
@@ -103,7 +103,7 @@ def _about_projects(conn, *, lives: frozenset[str], now: str) -> int:
     }
     candidates = conn.execute(
         "SELECT item_id, display_label FROM items "
-        "WHERE item_type IN ('email', 'event', 'file') AND presence = 'live' "
+        "WHERE item_type = 'file' AND presence = 'live' "
         "AND superseded_by IS NULL"
     ).fetchall()
     written = 0

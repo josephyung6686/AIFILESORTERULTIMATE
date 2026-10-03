@@ -1,20 +1,12 @@
-"""`filesorter sync`, `filesorter view`, `filesorter suggest`, and `search`.
+"""`filesorter view`, `filesorter suggest`, and `search`.
 
-None of these open a socket. Sync without a local fixture stores nothing.
-Suggest never applies a move. Search is read-only.
+None of these open a socket. Suggest never applies a move. Search is read-only.
 """
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
-
-NO_CREDENTIALS = (
-    "No Gmail or Calendar credentials are configured. Live accounts are not "
-    "connected in this build. Nothing was read and nothing was stored. "
-    "Pass --fixture FILE to import a local JSON export. "
-    "No network call was made."
-)
 
 APPLY_REFUSED = (
     "suggest does not move files. A proposal is printed for a person to "
@@ -26,52 +18,6 @@ def _open(path: Path, *, key_file: Path | None = None):
     from database_agent.db import open_database
     return open_database(path, scan_roots=[], encryption=key_file is not None,
                          encryption_key_file=key_file)
-
-
-def sync_main(argv: list[str] | None = None, *, out=None) -> int:
-    out = out if out is not None else sys.stdout
-    parser = argparse.ArgumentParser(prog="filesorter sync")
-    parser.add_argument("kind", choices=("gmail", "calendar"))
-    parser.add_argument("--database", type=Path, default=None)
-    parser.add_argument("--fixture", type=Path, default=None)
-    parser.add_argument("--key-file", type=Path, default=None)
-    parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args(argv)
-    if args.fixture is None:
-        print(NO_CREDENTIALS, file=out)
-        return 0 if args.dry_run else 2
-    from items.mailbox import MailboxRefused, dry_run_plan, ingest_fixture, load_fixture
-    try:
-        data = load_fixture(args.fixture)
-        plan = dry_run_plan(data, kind=args.kind)
-    except MailboxRefused as refusal:
-        print(str(refusal), file=out)
-        return 2
-    if args.dry_run:
-        print(f"Dry-run {args.kind}. Nothing was stored. No network call was made.",
-              file=out)
-        print(f"Would store: {plan['count']}.", file=out)
-        print("Fields: " + ", ".join(plan["fields"]) + ".", file=out)
-        print("Not stored: " + ", ".join(plan["not_stored"]) + ".", file=out)
-        return 0
-    if args.database is None:
-        print("sync needs --database. Nothing was stored.", file=out)
-        return 2
-    conn = _open(args.database, key_file=args.key_file)
-    try:
-        result = ingest_fixture(conn, data, kind=args.kind)
-    except MailboxRefused as refusal:
-        print(str(refusal), file=out)
-        return 2
-    finally:
-        conn.close()
-    print(
-        f"Stored {result['stored']} {args.kind} item"
-        f"{'' if result['stored'] == 1 else 's'}. "
-        f"Held: {result['held']}. Unplaced: {result['unplaced']}. "
-        "Approved links: 0. Nothing was sent.",
-        file=out)
-    return 0
 
 
 def view_main(argv: list[str] | None = None, *, out=None) -> int:

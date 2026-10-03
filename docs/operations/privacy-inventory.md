@@ -6,10 +6,7 @@ plain text at rest. The product reports that fact and does not claim that file
 permissions are encryption.
 
 Stored local data is limited to filesystem metadata, item labels and paths,
-search excerpts/chunks, vector embeddings, relationship and decision records,
-and fixture headers. Fixture ingestion stores message and event headers only:
-message bodies, calendar descriptions, attachment bytes, OAuth access tokens,
-refresh tokens, and authorization headers are discarded.
+search excerpts/chunks, vector embeddings, and relationship and decision records.
 
 Held/protected item details and deletion require a local-authentication callback.
 If no callback is configured, access is refused. Export uses an explicit metadata
@@ -32,5 +29,3 @@ ownership of their transaction; neither operation commits unrelated pending
 writes. An export file is an external artifact and cannot be rolled back by a
 caller's later database rollback.
 
-Live Gmail and Calendar OAuth are disabled in this build. A fixture is a local
-JSON input and makes no network call.

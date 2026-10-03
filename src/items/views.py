@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import PurePath
 
 from items.profile_loader import ProfilePackage
-from items.mailbox import path_is_protected
+from items.file_identity import path_is_protected
 from items.relationship_service import (
     project_relationships,
     projection_hidden_count,

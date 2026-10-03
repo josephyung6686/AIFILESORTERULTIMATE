@@ -1,4 +1,4 @@
-"""File/profile nudges without mail/calendar — list_gaps + deadline enrichment."""
+"""File/profile nudges — list_gaps + deadline enrichment."""
 from __future__ import annotations
 
 import re
@@ -74,7 +74,7 @@ def list_gaps(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]:
         "ok": True,
         "gaps": gaps[:limit],
         "moved": False,
-        "note": "file/profile gaps only — no mail/calendar connectors",
+        "note": "file/profile gaps only",
     }
 
 
@@ -124,5 +124,4 @@ def enriched_deadlines(
         "filename_date_hints": hints,
         "as_of": datetime.now(timezone.utc).isoformat(),
         "moved": False,
-        "connectors": "disabled",
     }

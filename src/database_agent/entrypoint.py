@@ -11,13 +11,13 @@ import sys
 
 def _local_command(args: list[str]) -> int | None:
     """Dispatch the real dependency-free product commands lazily."""
-    if not args or args[0] not in {"search", "ask", "db", "memory", "sync", "view", "suggest", "watch", "plan", "preview-plan"}:
+    if not args or args[0] not in {"search", "ask", "db", "memory", "view", "suggest", "watch", "plan", "preview-plan"}:
         return None
-    from items.commands import ask_main, plan_main, preview_main, search_main, suggest_main, sync_main, view_main, watch_main
+    from items.commands import ask_main, plan_main, preview_main, search_main, suggest_main, view_main, watch_main
     from items.commands_db import db_main
     from items.commands_memory import memory_main
     handlers = {"search": search_main, "ask": ask_main, "db": db_main,
-                "memory": memory_main, "sync": sync_main, "view": view_main,
+                "memory": memory_main, "view": view_main,
                 "suggest": suggest_main, "watch": watch_main,
                 "plan": plan_main, "preview-plan": preview_main}
     return handlers[args[0]](args[1:])

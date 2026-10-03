@@ -20,8 +20,7 @@ skip.
 - [ ] Crash-safe apply/undo green (T7)
 - [ ] Memory release stays dark unless version-bound gate passes (T8)
 - [ ] `db check|backup|restore|rebuild-index` green (T9)
-- [ ] Privacy-at-rest docs + fixture atomicity (T10)
-- [ ] Live connectors scratched assert (T11) — **do not enable OAuth**
+- [ ] Privacy-at-rest docs (T10)
 - [ ] Daily-use pilot report written with cloud/memory/apply off
 
 The pilot must operate on a copied corpus:
@@ -31,9 +30,8 @@ python3 tools/run_daily_use_pilot.py --database "$DB" --corpus /path/to/corpus \
   --cloud off --memory-steering off --apply off
 ```
 
-The source corpus is never modified. The pilot records `ui: excluded` and
-`connectors: scratched` in its JSON output. These are deliberate release scope
-decisions, not passing product gates.
+The source corpus is never modified. The pilot records `ui: excluded` in its JSON output. This is a deliberate release scope
+decision, not a passing product gate.
 
 ## Pilot thresholds (supervised)
 

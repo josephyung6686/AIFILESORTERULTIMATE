@@ -97,7 +97,7 @@ def held_item_fields(conn: sqlite3.Connection, item_id: str, *,
     if row is None:
         return {}
     fields = {column[0]: row[index] for index, column in enumerate(cursor.description)}
-    from items.mailbox import path_is_protected
+    from items.file_identity import path_is_protected
     if (fields.get("typing_state") == "held"
             or path_is_protected(fields.get("open_target") or "")):
         _authenticate(authenticate)
@@ -145,7 +145,7 @@ def _export_metadata(conn: sqlite3.Connection) -> dict[str, list[dict[str, Any]]
     tables: dict[str, list[dict[str, Any]]] = {}
     if not _has_table(conn, "items"):
         return tables
-    from items.mailbox import path_is_protected
+    from items.file_identity import path_is_protected
     item_rows = conn.execute(
         "SELECT item_id, typing_state, open_target FROM items").fetchall()
     held = {r[0] for r in item_rows if r[1] == "held" or path_is_protected(r[2] or "")}

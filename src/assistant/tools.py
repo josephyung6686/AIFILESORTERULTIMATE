@@ -27,7 +27,7 @@ from assistant.registry import (
 )
 from items.heat import bump_agent_touch
 from items.hot_index import find_files
-from items.mailbox import path_is_protected
+from items.file_identity import path_is_protected
 
 SNIPPET_CHARS = 1200
 BYTE_BUDGET = 24_000
@@ -727,16 +727,6 @@ class ToolRuntime:
         elif name == "freeze":
             payload = ot.freeze_plan(
                 self.conn, str(args.get("plan_id") or ""))
-        elif name == "sync_mail" or name == "sync_calendar":
-            payload = {
-                "ok": False,
-                "error": (
-                    "connectors scratched — no live Gmail/Calendar in this "
-                    "product cut; use file/profile graph only"
-                ),
-                "moved": False,
-                "disabled": True,
-            }
         else:
             return None
         blob = json.dumps(payload, ensure_ascii=False, default=str)

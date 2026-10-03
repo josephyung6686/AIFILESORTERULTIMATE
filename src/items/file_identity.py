@@ -5,6 +5,25 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+#: Path parts that are private even when nobody typed them. A name-only walk
+#: can see these without opening the file. Kept here so the item layer does not
+#: depend on the understanding package (which is not on every branch).
+_PROTECTED_PARTS: frozenset[str] = frozenset({
+    ".ssh", ".gnupg", "keychains", "cookies", "passwords",
+})
+_PROTECTED_EXTENSIONS: frozenset[str] = frozenset({
+    ".pem", ".key", ".p12", ".kdbx", ".keystore",
+})
+
+
+def path_is_protected(path: str) -> bool:
+    parts = {part.casefold() for part in path.replace("\\", "/").split("/")}
+    if parts & _PROTECTED_PARTS:
+        return True
+    lower = path.casefold()
+    return any(lower.endswith(ext) for ext in _PROTECTED_EXTENSIONS)
+
+
 BOOKMARK_DDL = """
 CREATE TABLE IF NOT EXISTS item_bookmarks (
     item_id TEXT PRIMARY KEY,

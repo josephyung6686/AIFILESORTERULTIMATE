@@ -72,14 +72,6 @@ python3 -m cli db rebuild-index --database "$DB"
 4. `db check` then `db restore` from last good backup  
 5. `db rebuild-index`
 
-## Connectors
-
-Live Gmail/Calendar are **scratched**. Fixture import only:
-
-```bash
-python3 -m cli sync gmail --fixture FILE --database "$DB"
-```
-
 ## Release gates
 
 ```bash
@@ -91,8 +83,7 @@ The release script builds and installs a wheel in a temporary virtual
 environment, loads all shipped profiles, checks the installed entry point,
 and records each required check in its JSON report. Review the report's scope
 and failures before treating a build as ready for a supervised pilot.
-The Mac UI is excluded from this non-UI release contract, and live Gmail and
-Calendar are scratched; local fixture import remains available.
+The Mac UI is excluded from this non-UI release contract.
 
 For a supervised daily-use check, always pass a corpus directory. The tool
 copies it into a disposable temporary workspace before reading it:

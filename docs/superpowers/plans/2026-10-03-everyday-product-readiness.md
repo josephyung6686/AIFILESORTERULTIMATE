@@ -264,25 +264,7 @@ Each task below is independently testable. Do not enable later behavior behind a
 - [ ] Add explicit data deletion/export commands with an audit event and tests that verify deletion from primary tables, FTS, chunks, vectors, and backups according to the declared policy.
 - [ ] Commit as `security: enforce local privacy and external-data boundaries`.
 
-### Task 11: Implement live Gmail/Calendar as an opt-in, resumable integration
-
-**Files:**
-- Modify: `src/items/mailbox.py`
-- Modify: `src/items/commands.py`
-- Create: `src/items/connectors/gmail.py`
-- Create: `src/items/connectors/calendar.py`
-- Create: `src/items/connectors/sync_state.py`
-- Test: `tests/items/test_connector_sync_state.py`
-- Test: `tests/items/test_connector_live_contract.py`
-
-- [ ] Keep fixture mode and live mode separate in command output, configuration, and ledger rows.
-- [ ] Store OAuth tokens only in the platform credential store; never in SQLite, logs, prompts, or backups.
-- [ ] Add account-scoped sync cursors, retries with bounded backoff, rate-limit handling, deletion/tombstone handling, and revocation detection.
-- [ ] Make each sync page transactional and resumable; a malformed record rolls back only its page and records an actionable error, never silently commits a partial page.
-- [ ] Deduplicate by account + provider object ID + calendar/mailbox scope.
-- [ ] Store headers and attachment metadata only; preserve held classification and no-body egress behavior.
-- [ ] Add live contract tests with a local fake provider; no real OAuth is needed for CI.
-- [ ] Commit as `feat: add resumable opt-in external connectors`.
+Task 11: cut by owner 2026-10-03 — Gmail/Calendar removed from the product.
 
 ### Task 12: Build the no-UI release and daily-use harness
 

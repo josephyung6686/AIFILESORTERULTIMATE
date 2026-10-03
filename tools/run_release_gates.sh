@@ -104,11 +104,6 @@ else
   printf 'installed_artifact\t1\t-\t-\ninstalled_entrypoint\t1\t-\t-\n' >>"$STATUS"
   FAILED=1
 fi
-run_gate connector_boundary "$VENV_PY" - <<'PY'
-from items.connectors import CONNECTORS_DISABLED_REASON
-assert "scratched" in CONNECTORS_DISABLED_REASON.lower(), CONNECTORS_DISABLED_REASON
-print(CONNECTORS_DISABLED_REASON)
-PY
 REPORT="$REPORT" STATUS="$STATUS" python3 - <<'PY'
 import json, os
 from pathlib import Path
@@ -116,7 +111,7 @@ rows = []
 for line in Path(os.environ["STATUS"]).read_text().splitlines():
     name, rc, started, ended = line.split("\t")
     rows.append({"name": name, "returncode": int(rc), "started": started, "ended": ended, "status": "passed" if rc == "0" else "failed"})
-report = {"schema": "release-gate-report/v1", "ok": bool(rows) and all(row["returncode"] == 0 for row in rows), "gates": rows, "scope": {"ui": "excluded", "live_connectors": "scratched", "network": "off", "encryption": "preprovisioned wheelhouse required"}}
+report = {"schema": "release-gate-report/v1", "ok": bool(rows) and all(row["returncode"] == 0 for row in rows), "gates": rows, "scope": {"ui": "excluded", "network": "off", "encryption": "preprovisioned wheelhouse required"}}
 out = Path(os.environ["REPORT"])
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
