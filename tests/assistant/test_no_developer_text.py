@@ -53,3 +53,15 @@ def test_no_indexed_zero_before_a_folder_is_chosen(conn):
     screen = io.StringIO()
     TerminalRenderer(screen)(ev.Counts(0, 0, 0, 0, 0))
     assert "Indexed 0" not in screen.getvalue()
+
+
+def test_internal_lookup_lines_are_dropped_normal_sentences_stay():
+    text = ("- No item ids returned by this lookup\n"
+            "Your essay is in Documents.\n"
+            "The tool payload had no schema.")
+    out = scrub_developer_text(text)
+    assert "item id" not in out and "lookup" not in out
+    assert "payload" not in out
+    assert "Your essay is in Documents." in out
+    line = "I looked up your essay and it is in Documents."
+    assert scrub_developer_text(line) == line

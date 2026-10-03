@@ -1136,6 +1136,9 @@ _DEVELOPER = (
                r"|\bnothing to cite\b", re.IGNORECASE),
     re.compile(r"\b(deepseek-(chat|reasoner|v[\w.]+)|gpt-[\w.-]+|"
                r"claude-[\w.-]+|o[134]-mini)\b", re.IGNORECASE),
+    re.compile(r"\bitem[ _-]?ids?\b|\btool (calls?|names?|results?)\b"
+               r"|\b(this|the|a) (lookup|payload|schema)\b"
+               r"|\bpayloads?\b|\bschemas?\b", re.IGNORECASE),
     # Two or more of + × * = between numbers; never - or /, so dates stay.
     re.compile(r"\b\d[\d,.]*(?:\s*[+×*=]\s*\d[\d,.]*){2,}"),
 )
