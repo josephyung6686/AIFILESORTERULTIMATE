@@ -170,6 +170,26 @@ def test_protect_after_yes_is_sensitive_and_never_sent(db, tmp_path):
     assert str(tmp_path / "lib" / "medical letter.txt") not in sent
 
 
+def test_a_branch_apply_asks_even_at_level_3(db, tmp_path, monkeypatch):
+    import cli
+    import assistant.organize_tools as ot
+    corpus = _corpus(tmp_path)
+    monkeypatch.setattr(ot, "show_tree", lambda conn: {"frozen_moves": 2})
+    ran = []
+    monkeypatch.setattr(cli, "main", lambda args, **kw: ran.append(args) or 0)
+    monkeypatch.delenv("ASSISTANT_ENABLE_APPLY", raising=False)
+    out = []
+    s = Session(db, provider_turn=calls(("apply_branch", {
+        "branch": "Coursework", "folder": str(corpus)})), emit=out.append)
+    s.chosen_folders.add(corpus.resolve())
+    s.set_level(3)
+    s.say("move the coursework folder")
+    confirm = [e for e in out if isinstance(e, Confirm)][-1]
+    assert not ran
+    s.confirm(confirm.confirm_id, True)
+    assert ran[-1][-2:] == ["--apply", "Coursework"]
+
+
 def test_release_always_confirms_and_names_the_cloud(db, tmp_path):
     _seeded(db, tmp_path)
     out = []

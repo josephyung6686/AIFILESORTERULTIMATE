@@ -256,6 +256,14 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         ["folder"],
     ),
     _fn(
+        "apply_branch",
+        "Propose moving the files the sorter planned for one folder of its "
+        "plan (the branch name as the plan shows it). Always asks the "
+        "person; every move can be undone.",
+        {"branch": {"type": "string"}, "folder": {"type": "string"}},
+        ["branch", "folder"],
+    ),
+    _fn(
         "mark_sensitive",
         "Propose protecting one file by its name: never sent to the AI, "
         "never moved automatically. The person confirms.",

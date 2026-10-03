@@ -104,7 +104,10 @@ class ToolRuntime:
         self.model_dir = model_dir
         self.byte_budget = byte_budget
         self.bytes_spent = 0
-        self.loaded_groups: set[str] = {ENGINE_GROUP} if engine else set()
+        # A Session also has the read-only organising tools (show_tree and
+        # the dry previews) from the start (lead ruling, 3 Oct).
+        self.loaded_groups: set[str] = (
+            {ENGINE_GROUP, "organize_propose"} if engine else set())
         self._ask_user = ask_user_handler
         self.pending_user_question: str | None = None
         # Local egress is necessary but is not local authentication. Neither

@@ -159,10 +159,12 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
     parent = Path(os.path.commonpath([str(p.parent) for p in paths]))
     folder = destination or _type_folder([r["display_label"] for r in found])
     target = parent / folder
+    in_tree, not_placed = ({}, []) if destination else _tree_places(
+        conn, found, parent)
     ops, moves = [], []
     for row, src in zip(found, paths):
-        dst = target / src.name
-        if src.parent == target:
+        dst = in_tree.get(row["item_id"], target) / src.name
+        if src.parent == dst.parent:
             continue
         ops.append(PlanOp(item_id=row["item_id"], src=str(src), dst=str(dst),
                           file_id=row["file_id"], content_hash=_sha256(src),
@@ -172,7 +174,12 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
         return {"ok": False, "error": f"Those files are already in {folder}."}
     plan = create_draft_plan(conn, ops=ops)
     conn.commit()
-    summary = f"Move {_plural(len(ops), 'file')} into {folder}"
+    folders = sorted({_home_words(Path(b).parent) if Path(b).parent != target
+                      else folder for _, b in moves})
+    summary = (f"Move {_plural(len(ops), 'file')} into "
+               + (folders[0] if len(folders) == 1 else "the folders below"))
+    if not_placed:
+        summary += ". " + "; ".join(not_placed)
     if protected:
         summary += (". " + ", ".join(protected)
                     + " is protected and stays where it is")
@@ -183,9 +190,40 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
             "not_found": missing}
 
 
+def _tree_places(conn: sqlite3.Connection, found: list,
+                 parent: Path) -> tuple[dict[str, Path], list[str]]:
+    """Where the sorter's tree puts each file, as folders beside them, and a
+    plain line for each file it has not placed (its `why`, never the bare
+    abstention code)."""
+    try:
+        from assistant.organize_tools import propose_tree
+        result = propose_tree(conn, [r["item_id"] for r in found])
+    except Exception:
+        return {}, []
+    if result.get("source") != "sorter_tree":
+        return {}, []
+    places, notes = {}, []
+    for entry in result.get("files") or []:
+        dest = entry.get("destination")
+        if dest:
+            parts = Path(dest).parts
+            if parts and parts[0] == parent.name:
+                parts = parts[1:]
+            places[entry["item_id"]] = parent.joinpath(*parts)
+        elif entry.get("display_label"):
+            why = entry.get("question") or entry.get("why") or (
+                "the sorter has not placed it yet")
+            notes.append(f"{entry['display_label']} goes by type: {why}")
+    return places, notes
+
+
 def undo_proposal(conn: sqlite3.Connection, token: str) -> dict[str, Any]:
     """The confirmation for putting one batch back."""
     kind, _, ref = token.partition(":")
+    if kind == "branch":
+        branch = ref.partition("|")[2]
+        return _proposal("undo", token, f"Put the files from {branch} back "
+                                        "where they were?")
     if kind != "plan":
         return {"ok": False, "error": "I can't find that batch of moves."}
     rows = conn.execute(
@@ -490,6 +528,52 @@ def index_folder(conn: sqlite3.Connection, folder: str,
     return run_index(conn, path, context)
 
 
+def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
+                 context: Any) -> dict[str, Any]:
+    """Propose moving the files the sorter froze for one branch. Always
+    asks, at every level."""
+    path, refusal = check_folder(conn, folder, context, "organise")
+    if refusal is not None:
+        return refusal
+    branch = (branch or "").strip()
+    if not branch or branch.startswith("-"):
+        return {"ok": False, "error": "Which folder of the plan should I "
+                                      "move?"}
+    try:
+        from assistant.organize_tools import show_tree
+        frozen = int(show_tree(conn).get("frozen_moves") or 0)
+    except Exception:
+        frozen = 0
+    if not frozen:
+        return {"ok": False, "error": "There is no approved plan to move "
+                                      "yet. Organise the folder first."}
+    return _proposal("branch", f"{path}|{branch}",
+                     f"Move the files planned for {branch} in "
+                     f"{_home_words(path)}? Every move can be undone.")
+
+
+def _branch(conn: sqlite3.Connection, ref: str, undo: bool) -> dict[str, Any]:
+    import cli
+    folder, _, branch = ref.partition("|")
+    conn.commit()
+    stream = _ProgressStream(None)
+    try:
+        code = cli.main([folder, "--database", database_path(conn),
+                         "--undo" if undo else "--apply", branch], out=stream)
+    except SystemExit as exc:
+        code = exc.code
+    except Exception:
+        code = 1
+    if code not in (0, None):
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": "The sorter refused that, so nothing moved."}
+    return {"ok": True, "moved": True,
+            "undo_token": None if undo else f"branch:{ref}",
+            "text": (f"Put the files from {branch} back." if undo else
+                     f"Moved the files for {branch}. Say undo to put them "
+                     "back.")}
+
+
 def _named_item(conn: sqlite3.Connection, file: str):
     return conn.execute(
         "SELECT item_id, display_label, open_target, file_id FROM items "
@@ -657,10 +741,19 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
 
     Returns `{ok, moved, undo_token, text}`; `text` is a sentence for them.
     """
+    from assistant.apply import SWITCHED_OFF, apply_enabled
+    if kind in ("plan", "undo", "branch") and not apply_enabled(
+            confirmed_by_person=True):
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": SWITCHED_OFF}
     if kind == "protection":
         return _protection(conn, ref)
     if kind == "rule":
         return _rule(conn, ref)
+    if kind == "branch":
+        return _branch(conn, ref, undo=False)
+    if kind == "undo" and ref.startswith("branch:"):
+        return _branch(conn, ref.partition(":")[2], undo=True)
     if kind == "folder":
         action, _, folder = ref.partition(":")
         if context is not None:
@@ -672,11 +765,6 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
                 "undo_token": None,
                 "text": result.get("error") or result.get("text") or
                         "Done. Nothing moved."}
-    from assistant.apply import SWITCHED_OFF, apply_enabled
-    if kind in ("plan", "undo") and not apply_enabled(
-            confirmed_by_person=True):
-        return {"ok": False, "moved": False, "undo_token": None,
-                "text": SWITCHED_OFF}
     if kind == "plan":
         from assistant.apply import apply_plan
         from assistant.plans import approve_plan
@@ -732,6 +820,9 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return index_folder(conn, str(args.get("folder") or ""), context)
     if name == "organise_folder":
         return organise_folder(conn, str(args.get("folder") or ""), context)
+    if name == "apply_branch":
+        return apply_branch(conn, str(args.get("branch") or ""),
+                            str(args.get("folder") or ""), context)
     if name == "mark_sensitive":
         return mark_sensitive(conn, str(args.get("file") or ""))
     if name == "release":
