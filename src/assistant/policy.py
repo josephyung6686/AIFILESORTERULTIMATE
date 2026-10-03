@@ -16,7 +16,6 @@ from assistant.registry import (
     ALWAYS_TOOLS,
     DEFERRED_GROUPS,
     WRITE_SHAPED,
-    deferred_tools,
     is_write_shaped,
     schema_for_tool,
 )
@@ -378,7 +377,61 @@ def gate_tool_call(
         _record(name, result)
         return result
 
-    # Schema validation
+    group = group_for_tool(name)
+
+    # Unlock refusals BEFORE schema — injection fixtures smuggle free-form
+    # destinations; those must still fail as "not enabled"/"locked".
+    if name in ("apply_moves", "undo_moves") and not writes_unlocked:
+        result = PolicyResult(
+            allowed=False,
+            reason=(
+                "apply/undo locked — set ASSISTANT_ENABLE_APPLY=1 "
+                "and request_tools(organize_apply)"
+            ),
+            bytes_in=bytes_in,
+            egress_class=egress_class,
+        )
+        _record(name, result)
+        return result
+
+    if group is not None and name != "place_preview" and group not in loaded:
+        if is_write_shaped(name) or name in WRITE_SHAPED:
+            msg = (
+                "write tools are not enabled until "
+                "request_tools(<group>); apply still locked without "
+                "ASSISTANT_ENABLE_APPLY=1"
+            )
+        else:
+            msg = f"request_tools({group!r}) required first"
+        result = PolicyResult(
+            allowed=False,
+            reason=msg,
+            bytes_in=bytes_in,
+            egress_class=egress_class,
+        )
+        _record(name, result)
+        return result
+
+    if (
+            name not in ALWAYS_TOOLS
+            and group is None
+            and name != "place_preview"
+            and (is_write_shaped(name) or name in WRITE_SHAPED)
+    ):
+        result = PolicyResult(
+            allowed=False,
+            reason=(
+                "write tools are not enabled until "
+                "request_tools(<group>); apply still locked without "
+                "ASSISTANT_ENABLE_APPLY=1"
+            ),
+            bytes_in=bytes_in,
+            egress_class=egress_class,
+        )
+        _record(name, result)
+        return result
+
+    # Schema validation (for tools that are unlocked / always-on)
     ok, reason, cleaned = validate_tool_arguments(name, arguments)
     if not ok:
         result = PolicyResult(
@@ -390,7 +443,7 @@ def gate_tool_call(
         _record(name, result)
         return result
 
-    # place_preview is dry-run — executable without group, schema still deferred.
+    # place_preview is dry-run — executable without group; schema still deferred.
     if name == "place_preview":
         result = PolicyResult(
             allowed=True,
@@ -405,7 +458,6 @@ def gate_tool_call(
 
     # Always-on tools
     if name in ALWAYS_TOOLS:
-        # Held/protected body gate for read_item (cloud path)
         if name == "read_item" and conn is not None:
             item_id = str(cleaned.get("item_id") or "")
             held, protected, _path = item_is_held_or_protected(conn, item_id)
@@ -437,24 +489,8 @@ def gate_tool_call(
         _record(name, result)
         return result
 
-    # place_preview: dry-run, still requires organize_propose group
-    group = group_for_tool(name)
-
-    # apply/undo: env + organize_apply
+    # apply/undo unlocked path
     if name in ("apply_moves", "undo_moves"):
-        if not writes_unlocked:
-            result = PolicyResult(
-                allowed=False,
-                reason=(
-                    "apply/undo locked — set ASSISTANT_ENABLE_APPLY=1 "
-                    "and request_tools(organize_apply)"
-                ),
-                bytes_in=bytes_in,
-                egress_class=egress_class,
-                arguments=cleaned,
-            )
-            _record(name, result)
-            return result
         result = PolicyResult(
             allowed=True,
             reason="ok",
@@ -467,26 +503,6 @@ def gate_tool_call(
         return result
 
     if group is not None:
-        if group not in loaded:
-            # Keep injection-fixture wording for write-shaped tools.
-            if is_write_shaped(name) or name in WRITE_SHAPED:
-                msg = (
-                    "write tools are not enabled until "
-                    f"request_tools(<group>); apply still locked without "
-                    "ASSISTANT_ENABLE_APPLY=1"
-                )
-            else:
-                msg = f"request_tools({group!r}) required first"
-            result = PolicyResult(
-                allowed=False,
-                reason=msg,
-                bytes_in=bytes_in,
-                egress_class=egress_class,
-                arguments=cleaned,
-            )
-            _record(name, result)
-            return result
-
         # extract_one: refuse held/protected entirely
         if name == "extract_one" and conn is not None:
             item_id = str(cleaned.get("item_id") or "")
@@ -512,22 +528,6 @@ def gate_tool_call(
             allowed=True,
             reason="ok",
             untrusted=True,
-            bytes_in=bytes_in,
-            egress_class=egress_class,
-            arguments=cleaned,
-        )
-        _record(name, result)
-        return result
-
-    # Unknown / not registered
-    if is_write_shaped(name) or name in WRITE_SHAPED:
-        result = PolicyResult(
-            allowed=False,
-            reason=(
-                "write tools are not enabled until "
-                "request_tools(<group>); apply still locked without "
-                "ASSISTANT_ENABLE_APPLY=1"
-            ),
             bytes_in=bytes_in,
             egress_class=egress_class,
             arguments=cleaned,

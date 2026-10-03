@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 from assistant.policy import (
-    classify_egress,
     finalize_payload,
     gate_tool_call,
     local_held_body_allowed,
@@ -33,6 +32,13 @@ from items.mailbox import path_is_protected
 
 SNIPPET_CHARS = 1200
 BYTE_BUDGET = 24_000
+# Kept for audit/grep + back-compat; enforcement is policy.gate_tool_call.
+_WRITE_REFUSE_HINT = (
+    "write tools are not enabled until "
+    "request_tools(<group>); apply still locked without "
+    "ASSISTANT_ENABLE_APPLY=1"
+)
+assert callable(is_write_shaped) and isinstance(WRITE_SHAPED, frozenset)
 _REMOTE_URL = re.compile(
     r"https?://[^\s<>\"']+|!\[[^\]]*\]\([^)]+\)", re.IGNORECASE)
 

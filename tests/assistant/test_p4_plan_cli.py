@@ -1,7 +1,7 @@
 """P4 product path: approve → apply → undo on real temp files."""
 from __future__ import annotations
 
-import os
+import hashlib
 from pathlib import Path
 
 from assistant.apply import apply_plan
@@ -9,6 +9,10 @@ from assistant.plans import PlanOp, approve_plan, create_draft_plan
 from assistant.undo import undo_plan
 from items.identity import reconcile_tree
 from items.schema import create_items_schema
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_apply_undo_roundtrip(conn, tmp_path: Path, monkeypatch):
@@ -28,6 +32,8 @@ def test_apply_undo_roundtrip(conn, tmp_path: Path, monkeypatch):
     plan = create_draft_plan(conn, ops=[PlanOp(
         item_id=item["item_id"], src=str(src.resolve()),
         dst=str(dst), file_id=item["file_id"],
+        content_hash=_sha256(src),
+        root_scope=str(tmp_path.resolve()),
     )])
     # Without env / approval — refuse
     monkeypatch.delenv("ASSISTANT_ENABLE_APPLY", raising=False)
