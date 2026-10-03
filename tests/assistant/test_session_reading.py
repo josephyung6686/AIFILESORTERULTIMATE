@@ -40,9 +40,19 @@ def test_the_end_of_reading_reports_its_own_outcome(tmp_path, monkeypatch):
     import threading
     from database_agent.db import open_database
     from items import indexing
-    open_database(tmp_path / "db.sqlite", scan_roots=[]).close()
+    from items.identity import reconcile_tree
+    from items.schema import create_items_schema
+    root = tmp_path / "lib"
+    root.mkdir()
+    (root / "letter.pdf").write_bytes(b"x")
+    db = open_database(tmp_path / "db.sqlite", scan_roots=[])
+    create_items_schema(db)
+    reconcile_tree(db, root)
+    db.commit()
+    item = db.execute("SELECT item_id FROM items").fetchone()[0]
+    db.close()
     monkeypatch.setattr(indexing, "read_document_text", lambda conn, **k:
-                        ReadOutcome(7, unreadable=2, protected_newly_found=1))
+                        ReadOutcome(7, unreadable=2, protected_items=(item,)))
     out = []
     lock = threading.Lock()
     lock.acquire()

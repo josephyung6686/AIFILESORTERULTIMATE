@@ -86,7 +86,8 @@ def test_an_undo_prompt_is_reminded_once_then_dropped(lib):
     s.say("where is my essay")
     assert sum("Still waiting" in t for t in said(out)) == 1
     s.say("thanks")
-    assert "Not done — ask again if you still want it." in said(out)
+    assert ("Not done: Put 20 files back where they were. Nothing moved. "
+            "Ask again if you still want it.") in said(out)
     assert s.on_screen is None and not s.pending
     s.say("and my resume?")
     assert sum("Still waiting" in t for t in said(out)) == 1

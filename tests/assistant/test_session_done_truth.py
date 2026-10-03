@@ -66,7 +66,7 @@ def test_move_and_undo_report_the_real_count(lib):
     assert texts(out)[-1] == ("Moved 2 files into Screenshots. Say undo to "
                               "put them back.")
     undo_all(s, out)
-    assert texts(out)[-1] == "Put 2 files back where they were."
+    assert texts(out)[-1] == "2 files are back where they were."
     assert (root / "a.png").exists()
 
 

@@ -43,11 +43,10 @@ YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
 NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 #: Commands, never answers: they cancel what is on the screen.
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
-#: At most this many search matches are listed when the reply names none.
-FIND_SHOWN = 5
-#: What a dropped yes/no says: one line for every kind of prompt.
-STALE_PROMPT_LINE = "Not done — ask again if you still want it."
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
+#: A bare undo: code asks about the last batch, the model never words it.
+UNDO_WORDS = {"undo", "undo something", "undo that", "undo it", "undo this",
+              "put it back", "put them back", "put those back"}
 _YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
 _NO_FIRST = {"n", "no", "nope", "nah"}
 #: A reply with any of these is more than a yes or a no: the model reads it.
@@ -272,8 +271,15 @@ class Session:
         self.reader = None
         #: The last moved batch's undo token, for `undo_last` and `undo`.
         self.last_undo_token: str | None = None
+        #: Held while the Session answers; the background reader's events
+        #: wait for it, so they never land inside a reply.
+        self._turn_lock = threading.RLock()
 
     def emit(self, event) -> None:
+        with self._turn_lock:
+            self._emit_now(event)
+
+    def _emit_now(self, event) -> None:
         if isinstance(event, ev.Progress) and event.line:
             line = scrub_developer_text(event.line) or "Working…"
             event = ev.Progress(stage=event.stage, done=event.done,
@@ -301,6 +307,10 @@ class Session:
     def open(self) -> None:
         """The greeting, once: a second call (the app's `open` action after
         `--events` already opened) changes nothing."""
+        with self._turn_lock:
+            self._open()
+
+    def _open(self) -> None:
         if self._opened:
             return
         self._opened = True
@@ -384,6 +394,10 @@ class Session:
 
     def choose_folder(self, text: str) -> None:
         """The person's answer to the folder question: index it now."""
+        with self._turn_lock:
+            self._choose_folder(text)
+
+    def _choose_folder(self, text: str) -> None:
         from assistant.engine_tools import check_folder, run_index
         typed = text.strip().strip("'\"")
         typed = FOLDER_CHOICES.get(typed.lower(), typed)
@@ -515,7 +529,7 @@ class Session:
             self.undo(token)
             return True
         self.undo_choices = {}
-        if words in ("undo", "undo something", "put it back"):
+        if words.rstrip("!.") in UNDO_WORDS:
             from assistant.engine_tools import recent_batches
             batches = recent_batches(self.conn)
             token = self.last_undo_token or ""
@@ -576,6 +590,10 @@ class Session:
 
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
+        with self._turn_lock:
+            self._say(text)
+
+    def _say(self, text: str) -> None:
         if self.awaiting_key:
             self._take_key(text)
             return
@@ -632,8 +650,12 @@ class Session:
                 len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
-        self.emit(ev.Message(text=reply, citations=self._citations(
-            self._shown_citations(answer, reply))))
+        if reply != "OK." or not (self._shown_locally or
+                                  self._protected_hits):
+            # A reply emptied by the checks above, with a list of its own
+            # on screen: the list is the answer, not a bare "OK.".
+            self.emit(ev.Message(text=reply, citations=self._citations(
+                self._shown_citations(answer, reply))))
         if self._protected_hits:
             # Protected matches are shown here, from the database, and never
             # through the model's reply.
@@ -668,7 +690,8 @@ class Session:
             return
         self.pending.pop(self.on_screen)
         self.on_screen = None
-        line = STALE_PROMPT_LINE
+        line = (f"Not done: {proposal['summary'].rstrip('?.')}. "
+                f"{_nothing(proposal)} Ask again if you still want it.")
         self._note(line)
         self.emit(ev.Message(text=line))
 
@@ -848,6 +871,10 @@ class Session:
             self.start_questions()
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
+        with self._turn_lock:
+            self._confirm_shown(confirm_id, yes)
+
+    def _confirm_shown(self, confirm_id: str, yes: bool) -> None:
         hidden = self.asking
         self._confirm(confirm_id, yes)
         if hidden is not None and self.asking is hidden and (
@@ -977,16 +1004,16 @@ class Session:
 
     def _shown_citations(self, answer, reply: str) -> list[str]:
         """The files listed under a reply: the ones the model cited, then
-        the ones it named. When it did neither, the search's own top
-        matches, without cache or saved-page folders, at most a few."""
+        the ones it named -- nothing else, so a list never pads a reply
+        that names no file. A reply saying nothing was found lists only
+        files it names."""
         from assistant.policy import parse_answer_citations
-        from items.hot_index import _is_junk_path
         # A citation line the model garbled leaves no valid ids; the
         # search's own matches are still the pool to choose from.
         ids = list(answer.citations) or list(dict.fromkeys(
             o.item_id for o in answer.citation_objs))
-        claimed = [i for i in parse_answer_citations(answer.text)
-                   if i in ids]
+        claimed = [] if _NOT_FOUND.search(reply) else [
+            i for i in parse_answer_citations(answer.text) if i in ids]
         said = reply.casefold()
         rows = {}
         for item_id in ids:
@@ -997,11 +1024,7 @@ class Session:
                 rows[item_id] = row
         named = [i for i in ids if i in rows and rows[i][0]
                  and rows[i][0].casefold() in said]
-        chosen = list(dict.fromkeys(claimed + named))
-        if chosen:
-            return chosen
-        return [i for i in ids if i in rows
-                and not _is_junk_path(rows[i][1] or "")][:FIND_SHOWN]
+        return list(dict.fromkeys(claimed + named))
 
     def _citations(self, item_ids) -> tuple[ev.Citation, ...]:
         out = []
@@ -1093,9 +1116,12 @@ def _as_moved(conn: sqlite3.Connection, proposal: dict, before: dict,
                 "text": f"Nothing moved — {why}."}
     them = "it" if n == 1 else "them"
     if undoing:
-        text = (f"Put {_plural(n, 'file')} back where "
+        # Said as what is now true, so it never reads as the question again.
+        text = (f"{_plural(n, 'file')} "
+                f"{'is' if n == 1 else 'are'} back where "
                 f"{'it was' if n == 1 else 'they were'}." if is_plan else
-                f"Put {_plural(n, 'file')} from {where} back.")
+                f"{_plural(n, 'file')} from {where} "
+                f"{'is' if n == 1 else 'are'} back.")
     else:
         text = (f"Moved {_plural(n, 'file')} into {where}. Say undo to put "
                 f"{them} back.")
@@ -1223,14 +1249,21 @@ def _read_all(path: str, emit, lock) -> None:
         read = indexing.read_document_text(own, on_progress=progress,
                                            limit=None)
         left = getattr(read, "unreadable", 0)
-        found = getattr(read, "protected_newly_found", 0)
+        # Named on the person's own screen only: this line is never part of
+        # the conversation record or a model request.
+        rows = (own.execute("SELECT display_label FROM items "
+                            "WHERE item_id = ?", (i,)).fetchone()
+                for i in getattr(read, "protected_items", ()))
+        names = [r[0] for r in rows if r is not None]
+        found = len(names)
         text = (f"Finished reading document text ({read} "
                 f"file{'s' if read != 1 else ''}).")
         if found:
             text += (f" {found} more file{'s' if found != 1 else ''} "
                      f"look{'' if found != 1 else 's'} personal now that "
                      "I've read them, so I protected "
-                     f"{'them' if found != 1 else 'it'}.")
+                     f"{'them' if found != 1 else 'it'}: "
+                     f"{', '.join(names)}.")
         if left:
             text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
                      "read and "
