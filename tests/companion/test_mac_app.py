@@ -225,10 +225,45 @@ def test_the_six_screens_are_the_onboarding_flow():
         assert label in page
     assert "Needs review" in page
     assert 'value="student"' in page
-    assert "checked" not in page.split("<body>")[-1] if False else "checked" not in page
-    tokens = (ROOT / "src" / "onboarding" / "ui" / "tokens.css").read_text(
-        encoding="utf-8")
-    assert "#364C84" in tokens
-    assert "#95B1EE" in tokens
-    assert "#D9E3FA" in tokens
-    assert "#E7F1A8" in tokens
+    assert "checked" not in page
+
+
+_OLD_PALETTE = ("#364C84", "#95B1EE", "#D9E3FA", "#E7F1A8", "#087bff", "#0069ff", "#2497ff")
+
+
+def test_primary_action_uses_design_blue_and_ember_is_limited():
+    ui = ROOT / "src" / "onboarding" / "ui"
+    tokens = (ui / "tokens.css").read_text(encoding="utf-8")
+    components = (ui / "components.css").read_text(encoding="utf-8")
+    styles = (ui / "source" / "styles.css").read_text(encoding="utf-8")
+    surfaces = (ui / "source" / "folder-surfaces.css").read_text(encoding="utf-8")
+    page = (ui / "source" / "ui.html").read_text(encoding="utf-8")
+    script = (ui / "source" / "controller.js").read_text(encoding="utf-8")
+    built = (ui / "index.html").read_text(encoding="utf-8")
+    assert "--blue-600: #1F5BE0" in tokens
+    assert "Manrope" in tokens and "JetBrains Mono" in tokens
+    primary = components.split(".fc-btn--primary", 1)[1].split("}", 1)[0]
+    assert "var(--blue-600)" in primary
+    assert 'class="fc-btn fc-btn--primary" id="fc-next"' in page
+    real = components.split(".fc-btn--real{", 1)[1].split("}", 1)[0]
+    assert "var(--ember-600)" in real
+    ground = components.split(".fc-empty__pip{", 1)[1].split("}", 1)[0]
+    assert "var(--ember-500)" in ground
+    assert "--ember-500: #FF5A36" in tokens
+    assert "--ember-600: #D4401C" in tokens
+    assert "fc-empty__pip" in page
+    assert "tuck-carry.svg" in page
+    assert "tuck-idle.svg" in page
+    assert "tuck-rest" in script
+    assert "move-real-files" not in page
+    assert "move-real-files" not in script
+    assert page.count("fc-btn--real") == 0
+    assert script.count("fc-btn--real") == 1
+    removal = script.split("case 'remove-empty'", 1)[1].split("case ", 1)[0]
+    assert "fc-btn--real" not in removal
+    assert ",true)" in removal
+    assert "ember" not in styles.lower()
+    assert "ember" not in surfaces.lower()
+    visible = "\n".join((tokens, components, styles, surfaces, page, script, built))
+    for old in _OLD_PALETTE:
+        assert old.lower() not in visible.lower()

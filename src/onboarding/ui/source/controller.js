@@ -4,14 +4,15 @@ if(root){
  const $=s=>root.querySelector(s),$$=s=>[...root.querySelectorAll(s)];
  const steps=['Folder access','Your profile','Areas of work','Your categories','Local scan','Archive briefing'];
  const sides=[
-  ['Your desktop companion','Right where you left them.','The folders you choose stay on your Mac. We only read them.'],
+  ['Your files stay put','Right where you left them.','The folders you choose stay on your Mac. File Companion only reads them.'],
   ['A place to begin','A starting point. Yours to change.','Student suggests a few categories. Start blank leaves it up to you.'],
   ['Keep it personal','Just the work you choose.','Leave out anything you want to keep to yourself.'],
   ['You have the last word','Keep what fits. Leave the rest.','A suggestion becomes a category only when you confirm it.'],
   ['A quiet look around','Nothing gets moved.','Reading your chosen folders with your confirmed categories.'],
-  ['One step closer','The same files. A clearer view.','Your workspace keeps the structure. Your originals stay put.'],
-  ['Ready when you are','Everything starts with your choices.','Change your categories whenever your work changes.']
+  ['One step closer','The same files. A clearer view.','Your workspace keeps the index. Your originals stay put.'],
+  ['Ready when you are','Your sort lives here.','Change your categories whenever your work changes.']
  ];
+ const categoryIcons={Courses:'course.svg',Applications:'application.svg',Projects:'project.svg'};
  const examples={Courses:['Homework_2.pdf','Lecture_notes.pdf'],Applications:['Resume.pdf','Cover_letter.docx'],Recruiting:['Interview_notes.md','Company_research.pdf'],Projects:['Research_notes.pdf','Project_brief.md']};
  let page=0,furthest=0,focusedCategory=null,scanTimer=null,modalConfirm=null,modalCancel=null,previousFocus=null,answersNote='',briefing=null,nativeSeq=0,nativeFlight=null;
  const nativePending={};
@@ -26,6 +27,19 @@ if(root){
  window.fileCompanionDone=function(id,body){const resolve=nativePending[String(id)];if(resolve){delete nativePending[String(id)];resolve(body||{});}};
  function say(text){$('#fc-announcement').textContent=text;}
  function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
+ function iconSrc(origin){return 'assets/icons/'+(categoryIcons[origin]||'folder.svg');}
+ function scanMessage(text){const error=$('#fc-scan-error');if(!error)return;error.hidden=!text;const copy=error.querySelector('p');if(copy)copy.textContent=text||'';}
+ function tuckPose(){
+  if(page===5&&briefing&&briefing.complete&&briefing.unplaced===0)return 'tuck-rest';
+  if(page===6&&!$('#fc-review-files').children.length&&!$('#fc-empty-folders').children.length)return 'tuck-rest';
+  return 'tuck-idle';
+ }
+ function syncTuck(){
+  const img=$('#fc-tuck');if(img)img.src='assets/mascot/'+tuckPose()+'.svg';
+  const accessDenied=!$('#fc-access-error').hidden;
+  const scanFailed=model.scanStatus==='stopped';
+  root.classList.toggle('is-error',(page===0&&accessDenied)||((page===4||page===5)&&scanFailed));
+ }
  function actionButton(text,action,id,cls='fc-text'){const b=el('button',cls+' cursor-interaction',text);b.type='button';b.dataset.action=action;if(id)b.dataset.category=id;return b;}
  function stopTimer(){if(scanTimer!==null){clearTimeout(scanTimer);scanTimer=null;}}
  function scheduleScan(){
@@ -43,8 +57,7 @@ if(root){
  function finishNativeScan(body){
   if(body&&body.ok&&body.briefing&&body.briefing.complete){briefing=body.briefing;model.scanStatus='complete';model.scanPhase=3;}
   else{briefing=null;model.scanStatus='stopped';answersNote=(body&&body.error)||'The scan did not finish. Counts stay empty.';}
-  const error=$('#fc-scan-error');
-  if(error){error.hidden=model.scanStatus!=='stopped';error.textContent=model.scanStatus==='stopped'?answersNote:'';}
+  scanMessage(model.scanStatus==='stopped'?answersNote:'');
   renderScan();
   if(model.scanStatus==='complete')go(5);
   else renderFooter();
@@ -72,17 +85,21 @@ if(root){
  function renderCategories(){
   const list=$('#fc-category-list');list.replaceChildren();
   if(!model.categories.some(c=>c.id===focusedCategory))focusedCategory=model.categories[0]?.id||null;
-  model.categories.forEach(c=>{
-   const row=el('article','fc-category-row'+(c.id===focusedCategory?' is-focused':''));row.dataset.category=c.id;
-   const head=el('div','fc-category-head');
-   const name=actionButton(c.name,'focus-category',c.id,'fc-category-name');name.setAttribute('aria-label','View examples for '+c.name);
-   const badge=el('span','fc-status-badge '+c.status,c.status==='pending'?'Suggested':c.status==='confirmed'?'Confirmed':'Refused');
-   head.append(name,badge);const controls=el('div','fc-category-actions');
-   const confirm=actionButton(c.status==='confirmed'?'Confirmed':'Confirm','confirm',c.id,'fc-secondary');confirm.setAttribute('aria-pressed',String(c.status==='confirmed'));confirm.setAttribute('aria-label','Confirm '+c.name);
-   const edit=actionButton('Edit','edit-category',c.id);edit.setAttribute('aria-label','Edit '+c.name);
-   const refuse=actionButton('Refuse','refuse',c.id);refuse.setAttribute('aria-pressed',String(c.status==='refused'));refuse.setAttribute('aria-label','Refuse '+c.name);
-   controls.append(confirm,edit,refuse);if(c.status==='refused')controls.append(actionButton('Restore','restore',c.id));
-   row.append(head,controls);list.append(row);
+  model.categories.forEach((c,index)=>{
+   const suggested=c.status==='pending';
+   const row=el('article','fc-category-row fc-cat'+(suggested?' fc-cat--suggested':'')+(c.id===focusedCategory?' fc-cat--active':''));row.dataset.category=c.id;
+   const art=el('div','fc-cat__art');const icon=el('img');icon.src=iconSrc(c.origin);icon.alt='';art.append(icon);
+   const body=el('div','fc-cat__body');
+   const name=actionButton(suggested?c.name+'?':c.name,'focus-category',c.id,'fc-category-name');name.setAttribute('aria-label','View examples for '+c.name);
+   const chip=el('span',c.status==='confirmed'?'fc-chip fc-chip--confirmed':c.status==='refused'?'fc-chip fc-chip--refused':'fc-chip fc-chip--suggested',c.status==='pending'?'Suggested':c.status==='confirmed'?'Confirmed':'Refused');
+   if(c.status==='confirmed'){const dot=el('i','fc-chip__dot');dot.style.setProperty('--fc-dot','var(--cat-'+((index%6)+1)+')');chip.prepend(dot);}
+   body.append(name,chip);
+   const controls=el('div','fc-cat__actions');
+   const confirm=actionButton(c.status==='confirmed'?'Confirmed':'Confirm category','confirm',c.id,'fc-btn fc-btn--primary');confirm.setAttribute('aria-pressed',String(c.status==='confirmed'));confirm.setAttribute('aria-label','Confirm '+c.name);
+   const edit=actionButton('Edit','edit-category',c.id,'fc-btn fc-btn--ghost');edit.setAttribute('aria-label','Edit '+c.name);
+   const refuse=actionButton('Refuse','refuse',c.id,'fc-btn fc-btn--ghost');refuse.setAttribute('aria-pressed',String(c.status==='refused'));refuse.setAttribute('aria-label','Refuse '+c.name);
+   controls.append(confirm,edit,refuse);if(c.status==='refused')controls.append(actionButton('Restore','restore',c.id,'fc-btn fc-btn--ghost'));
+   body.append(controls);row.append(art,body);list.append(row);
   });
   $('#fc-category-empty').hidden=model.categories.length>0;
   const accepted=model.confirmed();
@@ -94,13 +111,14 @@ if(root){
   const row=$('.fc-category-row[data-category="'+id+'"]');if(row.querySelector('.fc-edit-form'))return;
   const form=el('div','fc-inline-form fc-edit-form');const label=el('label','fc-field','Category name');
   const input=el('input');input.type='text';input.value=model.category(id).name;input.maxLength=70;input.dataset.editor=id;label.append(input);
-  form.append(label,actionButton('Save name','save-edit',id,'fc-secondary'),actionButton('Cancel','cancel-edit',id));row.append(form);input.focus();input.select();
+  form.append(label,actionButton('Save name','save-edit',id,'fc-btn fc-btn--primary'),actionButton('Cancel','cancel-edit',id,'fc-btn fc-btn--ghost'));row.append(form);input.focus();input.select();
  }
  function renderAside(){
   const [label,title,copy]=sides[page];$('#fc-aside-label').textContent=label;$('#fc-aside-title').textContent=title;$('#fc-aside-copy').textContent=copy;
   const c=page===3?model.categories.find(x=>x.id===focusedCategory):null;
   $('#fc-evidence').hidden=!c;
-  if(c){$('#fc-aside-copy').textContent='Examples for '+c.name+', based on the area you chose.';const list=$('#fc-example-files');list.replaceChildren();(examples[c.origin]||['Sample_document.pdf']).forEach(name=>list.append(el('li','',name)));}
+  if(c){$('#fc-aside-copy').textContent='Example filenames for '+c.name+', based on the area you chose. These are examples, not a scan.';const list=$('#fc-example-files');list.replaceChildren();(examples[c.origin]||['Sample_document.pdf']).forEach(name=>list.append(el('li','',name)));}
+  syncTuck();
  }
  function renderScan(){
   const paused=model.scanStatus==='paused',complete=model.scanStatus==='complete',stopped=model.scanStatus==='stopped';
@@ -127,8 +145,25 @@ if(root){
   if(counts&&typeof counts.unplaced==='number')$('#fc-unplaced-copy').textContent=countText(counts.unplaced,'file is unplaced.','files are unplaced.');
   else $('#fc-unplaced-copy').textContent=model.confirmed().length?'Files without a confirmed category stay here.':'Readable items start unplaced. Sensitive material stays held.';
   $('#fc-left-copy').textContent=model.leaveAlone.length?model.leaveAlone.join(', '):'No folders or topics excluded.';
-  const tags=$('#fc-confirmed-tags');tags.replaceChildren();const confirmed=model.confirmed();if(!confirmed.length)tags.textContent='None confirmed';else confirmed.forEach(c=>tags.append(el('span','fc-confirmed-tag',c.name)));
+  const tags=$('#fc-confirmed-tags');tags.replaceChildren();const confirmed=model.confirmed();if(!confirmed.length)tags.textContent='None confirmed';else confirmed.forEach((c,index)=>{const chip=el('span','fc-chip fc-chip--confirmed');const dot=el('i','fc-chip__dot');dot.style.setProperty('--fc-dot','var(--cat-'+((index%6)+1)+')');chip.append(dot,document.createTextNode(c.name));tags.append(chip);});
   $('#fc-answers-note').textContent=answersNote;
+  renderIndex(counts);
+  syncTuck();
+ }
+ function renderIndex(counts){
+  const box=$('#fc-index');const bar=$('#fc-index-bar');const legend=$('#fc-index-legend');
+  if(!box||!bar||!legend)return;
+  bar.replaceChildren();legend.replaceChildren();
+  const found=counts&&typeof counts.found==='number'?counts.found:null;
+  const held=counts&&typeof counts.held==='number'?counts.held:null;
+  const unplaced=counts&&typeof counts.unplaced==='number'?counts.unplaced:null;
+  if(found===null||held===null||unplaced===null||found<=0){box.hidden=true;return;}
+  const placed=Math.max(0,found-held-unplaced);
+  [['Placed','var(--cat-1)',placed],['Held','var(--warning)',held],['Unplaced','var(--cat-6)',unplaced]].filter(part=>part[2]>0).forEach(part=>{
+   const span=el('span');span.style.width=(part[2]/found*100)+'%';span.style.background=part[1];span.style.minWidth='4px';bar.append(span);
+   const item=el('span');const swatch=el('i');swatch.style.background=part[1];item.append(swatch,document.createTextNode(part[0]+' · '+part[2]));legend.append(item);
+  });
+  box.hidden=false;
  }
  function renderWorkspace(body){
   const outline=$('#fc-outline');
@@ -137,22 +172,30 @@ if(root){
   const review=$('#fc-review-files');review.replaceChildren();
   const files=(body&&body.review)||[];
   files.forEach(file=>{
-   const item=el('li');
-   item.append(el('b',null,file.name||file.path||'File'));
+   const item=el('li','fc-file');
+   const icon=el('img','fc-file__icon');icon.src='assets/icons/unplaced.svg';icon.alt='';
+   const text=el('div');
+   text.append(el('p','fc-file__name',file.name||file.path||'File'));
+   if(file.path)text.append(el('p','fc-file__path',file.path));
+   item.append(icon,text,el('span','fc-chip fc-chip--unplaced','Needs review'));
    review.append(item);
   });
   $('#fc-review-empty').hidden=files.length>0;
   const empty=$('#fc-empty-folders');empty.replaceChildren();
   const folders=(body&&body.emptyFolders)||[];
   folders.forEach(folder=>{
-   const item=el('li');
-   item.append(el('b',null,folder.name||folder.path));
-   const button=actionButton('Remove','remove-empty');
+   const item=el('li','fc-file');
+   const icon=el('img','fc-file__icon');icon.src='assets/icons/folder.svg';icon.alt='';
+   const text=el('div');
+   text.append(el('p','fc-file__name',folder.name||folder.path));
+   if(folder.path)text.append(el('p','fc-file__path',folder.path));
+   const button=actionButton('Remove folder','remove-empty',null,'fc-btn fc-btn--ghost');
    button.dataset.path=folder.path;
-   item.append(button);
+   item.append(icon,text,button);
    empty.append(item);
   });
   $('#fc-empty-none').hidden=folders.length>0;
+  syncTuck();
  }
  function renderFooter(){
   $('#fc-back').disabled=page===0;
@@ -160,12 +203,14 @@ if(root){
   const labels=['Allow folder access','Continue','Review categories','Save choices & scan',model.scanStatus==='complete'||model.scanStatus==='stopped'?'View briefing':model.scanStatus==='paused'?'Resume scan':'Pause scan','Open workspace','Return to briefing'];
   next.textContent=labels[page];
   if(page===0){next.disabled=model.folders.length===0;next.textContent=model.access==='denied'?'Try folder access again':'Allow folder access';}
+  syncTuck();
  }
  function renderNavigation(){
   $$('[data-step]').forEach(button=>{
    const n=Number(button.dataset.step);button.disabled=n>furthest||(n===4&&!model.answersReady)||(n===5&&model.scanStatus!=='complete'&&model.scanStatus!=='stopped');
    if(n===page)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');
-   const mark=button.querySelector('.fc-step-mark');if(mark)mark.textContent=n<page?'✓':String(n+1);
+   button.classList.toggle('is-complete',n<page);
+   const mark=button.querySelector('.fc-step-mark');if(mark)mark.textContent=String(n+1);
   });
  }
  function go(n){
@@ -176,7 +221,7 @@ if(root){
   page=n;furthest=Math.max(furthest,Math.min(n,5));
   root.classList.toggle('is-folder-screen',n===0);
   $$('[data-page]').forEach(section=>section.hidden=Number(section.dataset.page)!==n);
-  $('#fc-window-title').textContent=n===0?'File Companion':'File companion · '+(steps[n]||'Workspace handoff');
+  $('#fc-window-title').textContent=n===0?'File Companion':'File Companion · '+(steps[n]||'Workspace');
   if(n===1)renderProfile();if(n===2)renderAreas();if(n===3){model.propose();renderCategories();}if(n===4)renderScan();if(n===5)renderBriefing();if(n===6)loadWorkspace();
   renderAside();renderFooter();renderNavigation();say(steps[n]||'Workspace handoff');
   if(n===4&&model.scanStatus==='running')scheduleScan();
@@ -185,10 +230,12 @@ if(root){
   const fn=run?modalConfirm:modalCancel;$('#fc-modal').hidden=true;$('.fc-window').inert=false;modalConfirm=null;modalCancel=null;
   if(fn)fn();if(previousFocus?.isConnected)previousFocus.focus();
  }
- function openModal(title,copy,primary,secondary,onConfirm,onCancel){
+ function openModal(title,copy,primary,secondary,onConfirm,onCancel,realFile){
   previousFocus=document.activeElement;$('#fc-dialog-title').textContent=title;$('#fc-dialog-copy').textContent=copy;
-  $('#fc-dialog-primary').textContent=primary;$('#fc-dialog-secondary').textContent=secondary;
-  modalConfirm=onConfirm;modalCancel=onCancel;$('#fc-modal').hidden=false;$('.fc-window').inert=true;$('#fc-dialog-primary').focus();
+  const primaryBtn=$('#fc-dialog-primary');
+  primaryBtn.textContent=primary;primaryBtn.className='fc-btn '+(realFile?'fc-btn--real':'fc-btn--primary');
+  $('#fc-dialog-secondary').textContent=secondary;
+  modalConfirm=onConfirm;modalCancel=onCancel;$('#fc-modal').hidden=false;$('.fc-window').inert=true;primaryBtn.focus();
  }
  async function persistSnapshot(snapshot){
   if(isMacApp()){
@@ -230,16 +277,16 @@ if(root){
    case 'remove-empty':{
     const folderPath=button.dataset.path;
     if(!folderPath||!isMacApp())break;
-    openModal('Remove this empty folder?','It has no files on disk. It is removed only if you say yes.','Yes','No',async()=>{
+    openModal('Remove this empty folder?','It has no files on disk. It is removed only if you say yes.','Remove folder','Cancel',async()=>{
      const body=await callNative('removeEmpty',{path:folderPath,confirm:'yes',snapshot:root.setupSnapshot()});
      if(body&&body.error)say(body.error);
      loadWorkspace();
-    },()=>{});
+    },()=>{},true);
     break;
    }
    case 'skip-folders':model.skipAccess();go(1);break;
-   case 'read-details':openModal('What exactly do we read?','Names, locations, file types and eligible file contents in the folders you choose.\n\nWe keep your structure as metadata in the app. Sensitive finance, identity, medical and legal material stays held and is never sent to a model.','Got it','Back',()=>{},()=>{});break;
-   case 'settings-help':openModal('Allow folder access in System Settings','In the Mac app, this opens System Settings. Allow File companion to read your chosen folders, then return here and try again.','Got it','Back',()=>{},()=>{});break;
+   case 'read-details':openModal('What can File Companion read?','Names, locations, file types, and eligible file contents in the folders you choose.\n\nFile Companion keeps your structure as metadata in the app. Sensitive finance, identity, medical, and legal material stays held and is never sent to a model.','Got it','Back',()=>{},()=>{});break;
+   case 'settings-help':openModal('Allow folder access in System Settings','In the Mac app, this opens System Settings. Allow File Companion to read your chosen folders, then return here and try again.','Got it','Back',()=>{},()=>{});break;
    case 'focus-category':focusedCategory=id;$$('.fc-category-row').forEach(row=>row.classList.toggle('is-focused',row.dataset.category===id));renderAside();break;
    case 'confirm':model.confirm(id);focusedCategory=id;renderCategories();focusAction('confirm',id);say(model.category(id).name+' confirmed.');break;
    case 'refuse':model.refuse(id);focusedCategory=id;renderCategories();focusAction('refuse',id);say(model.category(id).name+' refused.');break;

@@ -1,28 +1,12 @@
-# File companion onboarding
+# File Companion onboarding
 
-The folder-access screen uses a later layout: a Mac window titled File Companion, a top step row (Folders, Profile, Work areas, Categories, Scan, Briefing), the glass companion at the top right, and three folder cards. The primary button stays navy `#364C84`. Documents is not preselected. The other screens keep the left step list and the calm right panel.
+The folder-access screen is a Mac window titled File Companion. A top step row reads Folders, Profile, Work areas, Categories, Scan, Briefing. Tuck, in the carry pose, stands on an ember ground. Folder cards use the supplied glass folder icon on solid surface-1. Documents is not preselected. Later screens keep the step list and one Tuck in the side panel.
 
 ## Visual direction
 
-The Mac window keeps the left step list, central question, calm right panel, Back text button, and one primary action. The visual finish now follows the supplied glass-folder and upload-panel references: broad rounded surfaces, white rims, soft light, layered papers, and pill-shaped controls. The companion is a rendered glass folder with two small eyes, rather than a flat CSS illustration.
+The look is the File Companion design system: `tokens.css`, Manrope, JetBrains Mono, and the supplied glass icons. Primary actions use blue-600. Ember is Tuck's ground and the confirmation that removes an empty folder from disk. Cards and lists are solid surface-1. Glass is the icon and Tuck accent.
 
-The folder-access step uses three layered folder surfaces and a separate Another folder row. Work areas use the same material: angled white paper sheets, a translucent periwinkle front, and a shaped tab. Student uses a small paper notebook. The right panel keeps the glass companion with two little eyes.
-
-The foundation token files match the White & Periwinkle style guide. Key surface colors, fields, card and window radii, font family, and interaction duration use these shared values. Folder material shades and translucent shadow recipes remain component-specific.
-
-Folder cards retain native checkboxes. Selection adds a navy inset ring while the checkbox supplies a second visible cue. Keyboard focus highlights both the input and its enclosing folder. Paper movement appears only on pointer hover and stops when reduced motion is requested. Narrow layouts stack folders, preserve readable captions, and keep the inputs above the paper layers.
-
-| Role | Color |
-| --- | --- |
-| Canvas and cards | `#FFFFFF` |
-| Text, links, buttons and focus | `#364C84` |
-| Folder | `#95B1EE` |
-| Folder gradient start | `#B6CAF4` |
-| Selected cards | `#D9E3FA` |
-| Tiny Ready and Suggested badges | `#E7F1A8` |
-| Supporting text | `#657080` |
-
-Lime is limited to small status badges. Selection uses both a native control and a navy border. There are no preselected folders, profiles, work areas, or categories.
+Folder cards keep native checkboxes. A selected card uses blue-50 with a blue-600 border. Nothing is preselected. Example filenames stay labeled as examples. Tuck is one per screen: carry while choosing folders, idle while waiting, rest when a finished scan has nothing unplaced. Tuck is hidden on errors and is not recolored.
 
 ## Screen map
 

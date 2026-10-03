@@ -1,22 +1,23 @@
 from pathlib import Path
-import base64
 
 project = Path(__file__).resolve().parent
 source = project / 'source'
-tokens = (project / 'tokens.css').read_text().replace(':root {', '#file-companion-onboarding {')
-css = tokens + '\n' + (source / 'styles.css').read_text() + '\n' + (source / 'folder-surfaces.css').read_text()
+tokens = (project / 'tokens.css').read_text()
+components = (project / 'components.css').read_text()
+if components.startswith('@import'):
+    components = components.split('\n', 1)[1]
+css = tokens + '\n' + components + '\n' + (source / 'styles.css').read_text() + '\n' + (source / 'folder-surfaces.css').read_text()
 ui = (source / 'ui.html').read_text()
 js = (source / 'model.js').read_text() + '\n' + (source / 'controller.js').read_text()
 fragment = '<style>\n' + css + '\n</style>\n' + ui + '<script>\n(()=>{\n' + js + '\n})();\n</script>\n'
-asset = 'data:image/webp;base64,' + base64.b64encode((project / 'assets/glass-companion.webp').read_bytes()).decode()
-fragment = fragment.replace('assets/glass-companion.webp', asset)
 head = '''<!doctype html>
 <html lang="en">
 <head>
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width,initial-scale=1">
- <title>File companion | Onboarding</title>
- <style>body{margin:0;padding:32px;background:#EEF1F6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}@media(max-width:600px){body{padding:10px}}</style>
+ <title>File Companion</title>
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+ <style>body{margin:0;padding:32px;background:var(--surface-0,#F5F7FB);color:var(--ink,#18233A);font-family:Manrope,"SF Pro Text",system-ui,sans-serif}@media(max-width:600px){body{padding:10px}}</style>
 </head>
 <body>
 '''
@@ -39,7 +40,7 @@ review = '''<div class="review-toolbar">
  </select>
  <span>Review controls are outside the product.</span>
 </div>
-<style>.review-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1220px;margin:0 auto 18px;color:#364C84;font-size:13px}.review-toolbar select{font:inherit;border:1px solid #DCDDE1;border-radius:8px;padding:9px;background:#FFFFFF;color:#364C84}.review-toolbar span{font-size:12px;color:#657080}@media(max-width:600px){.review-toolbar select{width:100%}}</style>
+<style>.review-toolbar{display:flex;align-items:center;gap:var(--space-3,12px);flex-wrap:wrap;max-width:1180px;margin:0 auto var(--space-4,16px);color:var(--ink-muted,#566176);font:600 13px/18px Manrope,"SF Pro Text",system-ui,sans-serif}.review-toolbar select{font:inherit;border:1px solid var(--line,#E1E6EE);border-radius:var(--radius-sm,8px);padding:9px;background:var(--surface-1,#FFFFFF);color:var(--ink,#18233A)}.review-toolbar span{font-weight:500;font-size:12px}</style>
 '''
 review_js = '''<script>
 document.getElementById('review-state').addEventListener('change',event=>{
