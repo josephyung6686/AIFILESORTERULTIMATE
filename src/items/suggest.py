@@ -22,7 +22,8 @@ _INSTALLERS = {".dmg", ".pkg"}
 
 def _live_files(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
-        "SELECT display_label, open_target, content_hash FROM items "
+        "SELECT item_id, file_id, display_label, open_target, content_hash "
+        "FROM items "
         "WHERE presence = 'live' AND item_type = 'file' "
         "AND superseded_by IS NULL AND open_target IS NOT NULL").fetchall()
 
@@ -31,38 +32,51 @@ def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
 
 
+KINDS = ("screenshots", "copies", "installers")
+
+
+def files_for(conn: sqlite3.Connection, kind: str) -> list[sqlite3.Row]:
+    """The files a suggestion counts: one predicate for the greeting's number
+    and for a sort of the whole set. Rows carry item_id, file_id,
+    display_label, open_target and content_hash."""
+    files = _live_files(conn)
+    if kind == "screenshots":
+        from items.refresh import discover_roots
+        roots = {str(r) for r in discover_roots(conn)}
+        return [f for f in files
+                if _SCREENSHOT.match(f["display_label"] or "")
+                and Path(f["open_target"]).suffix.lower() in _IMAGES
+                and str(Path(f["open_target"]).parent) in roots]
+    if kind == "copies":
+        by_hash: dict[str, list[sqlite3.Row]] = {}
+        for f in files:
+            if f["content_hash"]:
+                by_hash.setdefault(f["content_hash"], []).append(f)
+        return [f for group in by_hash.values() if len(group) > 1
+                for f in group if _COPY.search(f["display_label"] or "")]
+    if kind == "installers":
+        return [f for f in files
+                if Path(f["open_target"]).suffix.lower() in _INSTALLERS]
+    raise ValueError(kind)
+
+
 def suggestions(conn: sqlite3.Connection,
                 profile_name: str = "student") -> list[dict]:
     """Read items. Write nothing. Each: {kind, text, action}."""
-    from items.refresh import discover_roots
     out: list[dict] = []
-    files = _live_files(conn)
-    roots = {str(r) for r in discover_roots(conn)}
-
-    shots = [f for f in files
-             if _SCREENSHOT.match(f["display_label"] or "")
-             and Path(f["open_target"]).suffix.lower() in _IMAGES
-             and str(Path(f["open_target"]).parent) in roots]
+    shots = files_for(conn, "screenshots")
     if shots:
         out.append({"kind": "screenshots", "action": "sort screenshots",
                     "text": _plural(len(shots), "loose screenshot is",
                                     "loose screenshots are")
                             + " at the top of a chosen folder."})
-
-    by_hash: dict[str, list[sqlite3.Row]] = {}
-    for f in files:
-        if f["content_hash"]:
-            by_hash.setdefault(f["content_hash"], []).append(f)
-    copies = sum(1 for group in by_hash.values() if len(group) > 1
-                 for f in group if _COPY.search(f["display_label"] or ""))
+    copies = len(files_for(conn, "copies"))
     if copies:
         out.append({"kind": "copies", "action": "review copies",
                     "text": _plural(copies, "file is a copy",
                                     "files are copies")
                             + " of another file with the same content."})
-
-    installers = [f for f in files
-                  if Path(f["open_target"]).suffix.lower() in _INSTALLERS]
+    installers = files_for(conn, "installers")
     if installers:
         out.append({"kind": "installers", "action": "review installers",
                     "text": _plural(len(installers), "installer (.dmg or .pkg)",

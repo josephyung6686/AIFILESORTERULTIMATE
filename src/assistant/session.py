@@ -40,6 +40,53 @@ PROVIDER_NAMES = {"deepseek": "DeepSeek", "openai": "OpenAI",
 
 YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
              "1", "yes please", "sure thing", "go"}
+NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
+#: Commands, never answers: they cancel what is on the screen.
+CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
+SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
+_YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
+_NO_FIRST = {"n", "no", "nope", "nah"}
+#: A reply with any of these is more than a yes or a no: the model reads it.
+_MORE_THAN_YES_NO = re.compile(
+    r"\?|\b(but|only|except|instead|which|what|why|how|where|wait)\b")
+
+
+def yes_or_no(text: str) -> bool | None:
+    """True / False when the whole reply is a plain yes or no, else None."""
+    words = text.strip().lower().rstrip("!.")
+    if words in YES_WORDS:
+        return True
+    if words in NO_WORDS:
+        return False
+    tokens = re.findall(r"[a-z']+|\d+", words)
+    if not tokens or len(tokens) > 6 or _MORE_THAN_YES_NO.search(words):
+        return None
+    if tokens[0] in _NO_FIRST:
+        return False
+    if tokens[0] in _YES_FIRST or "yes" in tokens:
+        return True
+    return None
+
+
+#: A sentence telling the person something waits on their screen. Removed
+#: from a reply whenever nothing does: code knows, the model guesses.
+_PROMPT_CLAIM = re.compile(
+    r"\b(on|in front of) (your |the )?screen\b|\bwaiting (on|for) (you|your)\b"
+    r"|\bstill waiting\b|\b(tap|press|click) (yes|no|the button|it)\b"
+    r"|\bup for (your )?(confirmation|a yes)|\b(asked|ask) you to confirm\b"
+    r"|\bsay \W*yes\W* (and|to|if)\b|\bwaiting for a yes\b",
+    re.IGNORECASE)
+
+
+def drop_prompt_claims(text: str) -> str:
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not _PROMPT_CLAIM.search(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
 LEVEL_WORDS = {
     1: "OK — I'll ask before moving anything.",
@@ -122,8 +169,15 @@ class Session:
         self.question_total = 0
         #: confirm_id -> proposal awaiting the person's yes or no.
         self.pending: dict[str, dict] = {}
+        #: The one yes/no prompt on the person's screen, and the one sorter
+        #: question being asked: what the chat may say is waiting.
+        self.on_screen: str | None = None
+        self.asking: ev.Question | None = None
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
+        #: Lists a tool built for the person's eyes only, shown after the
+        #: reply and never part of a model request.
+        self._shown_locally: list = []
         self._opened = False
         #: Document text is read once per session, after the first index.
         self._reading_started = False
@@ -132,9 +186,16 @@ class Session:
         self.last_undo_token: str | None = None
 
     def emit(self, event) -> None:
+        if isinstance(event, ev.Progress) and event.line:
+            line = scrub_developer_text(event.line) or "Working…"
+            event = ev.Progress(stage=event.stage, done=event.done,
+                                total=event.total, line=line)
         if isinstance(event, ev.Message) and event.citations:
             self.last_citations = event.citations
         self._emit(event)
+
+    def show_locally(self, event) -> None:
+        self._shown_locally.append(event)
 
     def _provider_name(self) -> str | None:
         """Who answers, or None when no model is set up."""
@@ -204,6 +265,10 @@ class Session:
             self.emit(ev.Message(text=FOLDER_QUESTION))
             return
         self._greet(c)
+        if getattr(c, "unread_documents", 0) and not self._reading_started:
+            # Reading resumes in every session until every file is read.
+            self._reading_started = True
+            self.reader = start_reading(self.conn, self.emit)
         from assistant.engine_tools import open_questions
         n = len(open_questions(self.conn))
         if n:
@@ -219,7 +284,7 @@ class Session:
         name = None if self.no_model else self._provider_name()
         if name:
             lines.append(f"Questions and file snippets go to {name} to answer "
-                         f"you. Protected files ({c.protected + c.held}) "
+                         f"you. Protected files ({c.protected}) "
                          "never leave this Mac.")
         lines.append("What would you like to find or tidy?")
         self.emit(ev.Message(text="\n".join(lines)))
@@ -267,7 +332,27 @@ class Session:
             self.reader = start_reading(self.conn, self.emit)
 
     def cancel(self) -> None:
-        self.cancel_requested = True
+        """`cancel`: No to the prompt on screen, or stop the questions, or
+        stop organising."""
+        if self.on_screen in self.pending:
+            self.confirm(self.on_screen, False)
+        elif self.asking is not None:
+            self._stop_questions()
+        else:
+            self.cancel_requested = True
+
+    def _stop_questions(self) -> None:
+        self.asking = None
+        self.question_queue = []
+        line = "Stopped the questions. Nothing was recorded for that one."
+        self._note(line)
+        self.emit(ev.Message(text=line))
+
+    def _note(self, text: str) -> None:
+        """A code-written line in the conversation's record, so the model
+        (now and in later sessions) knows what really happened."""
+        self.history.append({"role": "assistant", "content": text})
+        self._remember("assistant", text)
 
     # -- the sorter's questions ------------------------------------------
     def start_questions(self) -> None:
@@ -279,6 +364,7 @@ class Session:
 
     def _ask_next(self) -> None:
         from assistant.engine_tools import question_event
+        self.asking = None
         if not self.question_queue:
             self.emit(ev.Message(text="That's all the questions for now. "
                                       "Thanks — I'll use your answers when "
@@ -286,7 +372,8 @@ class Session:
             return
         q = self.question_queue[0]
         index = self.question_total - len(self.question_queue) + 1
-        self.emit(question_event(q, index, self.question_total))
+        self.asking = question_event(q, index, self.question_total)
+        self.emit(self.asking)
 
     def answer(self, question_id: str, value: str) -> None:
         from assistant.engine_tools import record_person_answer
@@ -296,9 +383,10 @@ class Session:
             self.emit(ev.Error(text="I couldn't save that answer. Nothing "
                                     "changed.", changed=False))
             return
-        self.history.append({"role": "assistant", "content": (
-            "The person skipped a question." if kind == "skipped" else
-            "The person answered one of the sorter's questions.")})
+        if self.asking is not None and self.asking.question_id == question_id:
+            self.asking = None
+        self._note("The person skipped a question." if kind == "skipped" else
+                   "The person answered one of the sorter's questions.")
         self.question_queue = [q for q in self.question_queue
                                if q.question_id != question_id]
         self._ask_next()
@@ -382,6 +470,8 @@ class Session:
         if self.awaiting_key:
             self._take_key(text)
             return
+        if self._reply_to_screen(text):
+            return
         if self._local_command(text):
             return
         if self.awaiting_folder:
@@ -397,6 +487,7 @@ class Session:
         self._remember("user", text)
         self._proposals = []
         self._protected_hits = ()
+        self._shown_locally = []
         if self.no_model:
             self._without_model(text)
             return
@@ -409,8 +500,11 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
-        reply = plain_reply(self.conn, _strip_citation_line(answer.text))
-        self.history.append({"role": "assistant", "content": answer.text})
+        reply = plain_reply(self.conn, scrub_developer_text(
+            _strip_citation_line(answer.text))) or "OK."
+        if not self._prompt_will_show():
+            reply = drop_prompt_claims(reply) or "OK."
+        self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
                              citations=self._citations(answer.citations)))
@@ -420,11 +514,119 @@ class Session:
             self.emit(ev.Message(
                 text="Protected — shown only to you, never sent anywhere:",
                 citations=self._citations(self._protected_hits)))
+        for event in self._shown_locally:
+            self.emit(event)
+        shown_before = self.on_screen
         for proposal in self._proposals:
             self._propose(proposal)
         if self.ask_questions_after_turn:
             self.ask_questions_after_turn = False
             self.start_questions()
+            return
+        if self.on_screen in self.pending and self.on_screen == shown_before:
+            summary = self.pending[self.on_screen]["summary"]
+            self.emit(ev.Message(text=f"Still waiting for your yes or no: "
+                                      f"{summary}  1) Yes  2) No"))
+        elif self.asking is not None:
+            self._ask_again()
+
+    def _prompt_will_show(self) -> bool:
+        """Whether, after this turn, something waits on the person's screen."""
+        from assistant.engine_tools import get_level, level_allows
+        if self.on_screen in self.pending or self.asking is not None:
+            return True
+        if self.ask_questions_after_turn:
+            return True
+        level = get_level(self.conn)
+        return any(not level_allows(level, p["kind"],
+                                    len(p.get("moves") or ()),
+                                    bool(p.get("sensitive")))
+                   for p in self._proposals)
+
+    def _ask_again(self) -> None:
+        """The question stays on screen unless the model recorded an answer
+        to it this turn; then the next one is asked."""
+        from assistant.engine_tools import open_questions
+        asked = self.asking
+        if asked.question_id in {q.question_id
+                                 for q in open_questions(self.conn)}:
+            self.emit(asked)
+            return
+        self.question_queue = [q for q in self.question_queue
+                               if q.question_id != asked.question_id]
+        self._ask_next()
+
+    def _reply_to_screen(self, text: str) -> bool:
+        """A reply to the prompt or question on screen, mapped by code.
+        False for anything else: the model then reads it, told what is on
+        the screen, and the prompt stays."""
+        words = text.strip().lower().rstrip("!.")
+        if self._maps_to_screen(words, text):
+            # The person's own reply goes in the record, then what happened.
+            self.history.append({"role": "user", "content": text.strip()})
+            self._remember("user", text.strip())
+        if self.on_screen in self.pending:
+            if words in CANCEL_WORDS:
+                self.confirm(self.on_screen, False)
+                return True
+            answer = yes_or_no(text)
+            if answer is None:
+                return False
+            self.confirm(self.on_screen, answer)
+            return True
+        if self.asking is not None:
+            q = self.asking
+            if words in CANCEL_WORDS:
+                self._stop_questions()
+                return True
+            if words in SKIP_WORDS:
+                self.answer(q.question_id, "skip")
+                return True
+            if words.isdigit() and 1 <= int(words) <= len(q.options):
+                self.answer(q.question_id, q.options[int(words) - 1].id)
+                return True
+            match = next((o for o in q.options
+                          if o.label.casefold() == words.casefold()), None)
+            if match is not None:
+                self.answer(q.question_id, match.id)
+                return True
+        return False
+
+    def _maps_to_screen(self, words: str, text: str) -> bool:
+        if self.on_screen in self.pending:
+            return words in CANCEL_WORDS or yes_or_no(text) is not None
+        if self.asking is not None:
+            q = self.asking
+            return (words in CANCEL_WORDS or words in SKIP_WORDS
+                    or (words.isdigit() and 1 <= int(words) <= len(q.options))
+                    or any(o.label.casefold() == words.casefold()
+                           for o in q.options))
+        return False
+
+    def screen_state(self) -> str:
+        """What is on the person's screen, for the model, from code state."""
+        if self.on_screen in self.pending:
+            summary = self.pending[self.on_screen]["summary"]
+            return ("On the person's screen right now: a yes/no prompt — "
+                    f"“{summary}”. Their newest message did not answer it, "
+                    "so it stays; they answer it by saying yes or no.")
+        if self.asking is not None:
+            q = self.asking
+            options = "; ".join(f"{i}) {o.label}"
+                                for i, o in enumerate(q.options, start=1))
+            from assistant.registry import ENGINE_TOOLS
+            record = ("call answer_question with their words"
+                      if "answer_question" in ENGINE_TOOLS else
+                      "tell them to pick a number or type s to skip")
+            return ("On the person's screen right now: the question "
+                    f"“{q.text}” (options: {options}). If their newest "
+                    f"message answers it, {record}; if they ask about it, "
+                    "explain and leave it open.")
+        return ("Nothing is waiting on the person's screen right now: no "
+                "yes/no prompt and no question. Never say something is "
+                "waiting for them. A prompt earlier in the conversation that "
+                "has no answer after it was dropped and did not happen; if "
+                "the person wants it now, call the tool again.")
 
     # -- decisions the person makes ---------------------------------------
     def _propose(self, proposal: dict) -> None:
@@ -434,8 +636,15 @@ class Session:
                         bool(proposal.get("sensitive"))):
             self._execute(proposal)
             return
+        if self.on_screen in self.pending:
+            old = self.pending.pop(self.on_screen)
+            line = (f"Cancelled: {old['summary'].rstrip('?.')}. "
+                    f"{_nothing(old)}")
+            self._note(line)
+            self.emit(ev.Message(text=line))
         confirm_id = uuid.uuid4().hex
         self.pending[confirm_id] = proposal
+        self.on_screen = confirm_id
         self.emit(ev.Confirm(
             confirm_id=confirm_id, summary=proposal["summary"],
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
@@ -444,6 +653,7 @@ class Session:
 
     def _execute(self, proposal: dict) -> None:
         from assistant.engine_tools import execute_confirmed
+        before = _before_moving(self.conn, proposal)
         try:
             result = execute_confirmed(self.conn, proposal["kind"],
                                        proposal["ref"], context=self)
@@ -451,7 +661,19 @@ class Session:
             result = {"ok": False, "moved": False, "undo_token": None,
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
-        self.history.append({"role": "assistant", "content": result["text"]})
+        if result.get("ok") and proposal["kind"] in ("plan", "undo",
+                                                     "branch"):
+            result = _as_moved(self.conn, proposal, before, result)
+        if result.get("needs_confirmation"):
+            # The step needs one more yes (organise asking about the cloud).
+            self._propose(result["needs_confirmation"])
+            return
+        if _forgets_conversations(proposal) and result["ok"]:
+            # Forgotten means forgotten now, not from the next session; the
+            # model still learns that it happened (this session only).
+            self.history = [{"role": "assistant", "content": result["text"]}]
+        elif not _forgets_conversations(proposal):
+            self._note(result["text"])
         if result["ok"] and result.get("undo_token"):
             self.last_undo_token = result["undo_token"]
         elif result["ok"] and proposal["kind"] == "undo" and (
@@ -467,15 +689,22 @@ class Session:
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
         proposal = self.pending.pop(confirm_id, None)
+        if confirm_id == self.on_screen:
+            self.on_screen = None
         if proposal is None:
             self.emit(ev.Message(text="That question has already been "
                                       "answered. Nothing changed."))
             return
+        if not yes and proposal.get("on_no"):
+            # A no that has its own next step (organise without the cloud).
+            self._capture_no(proposal)
+            self._execute(proposal["on_no"])
+            return
         if not yes:
             self._capture_no(proposal)
-            self.history.append({"role": "assistant",
-                                 "content": "Cancelled. Nothing moved."})
-            self.emit(ev.Message(text="Cancelled. Nothing moved."))
+            line = f"Cancelled. {_nothing(proposal)}"
+            self._note(line)
+            self.emit(ev.Message(text=line))
             return
         self._execute(proposal)
 
@@ -538,7 +767,7 @@ class Session:
         self._proposals = runtime.pending_confirmations
         messages = [{"role": "system",
                      "content": build_system_prompt(self.conn, text)
-                     + "\n" + PLAIN_WORDS},
+                     + "\n" + PLAIN_WORDS + "\n" + self.screen_state()},
                     *self.history]
         # `converse` appends the model turns and tool replies; the history
         # keeps the tool messages (between the last user line and the answer)
@@ -581,6 +810,126 @@ class Session:
                                    matched_by=_matched_by(
                                        self.conn, row["content_hash"])))
         return tuple(out)
+
+
+# -- what really moved ---------------------------------------------------------
+
+CREATED_DDL = """
+CREATE TABLE IF NOT EXISTS assistant_created_folders (
+    plan_id TEXT NOT NULL,
+    folder TEXT NOT NULL,
+    PRIMARY KEY (plan_id, folder)
+);
+"""
+
+
+def _journal_mark(conn: sqlite3.Connection) -> int:
+    try:
+        return conn.execute("SELECT COALESCE(MAX(rowid), 0) "
+                            "FROM move_journal").fetchone()[0]
+    except sqlite3.Error:
+        return 0
+
+
+def _before_moving(conn: sqlite3.Connection, proposal: dict) -> dict:
+    """What to compare against after a move: the folders a sort will create,
+    and where the sorter's journal ends."""
+    created: list[Path] = []
+    if proposal.get("kind") == "plan":
+        for move in proposal.get("moves") or ():
+            folder = Path(move["to"]).parent
+            while not folder.exists() and folder not in created and (
+                    folder != folder.parent):
+                created.append(folder)
+                folder = folder.parent
+    return {"created": created, "journal": _journal_mark(conn)}
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def _as_moved(conn: sqlite3.Connection, proposal: dict, before: dict,
+              result: dict) -> dict:
+    """The result's words rebuilt from the disk and the journals: a count of
+    files that really moved, or "Nothing moved" with the reason."""
+    kind, ref = proposal["kind"], str(proposal["ref"])
+    is_plan = kind == "plan" or ref.startswith("plan:")
+    undoing = kind == "undo"
+    if is_plan:
+        plan_id = ref.partition(":")[2] if undoing else ref
+        try:
+            rows = conn.execute("SELECT src, dst FROM assistant_plan_ops "
+                                "WHERE plan_id = ?", (plan_id,)).fetchall()
+        except sqlite3.Error:
+            rows = []
+        here, gone = (0, 1) if undoing else (1, 0)
+        n = sum(1 for r in rows
+                if Path(r[here]).exists() and not Path(r[gone]).exists())
+        where = ", ".join(sorted({Path(r[1]).parent.name for r in rows}))
+    else:
+        where = ref.rpartition("|")[2]
+        try:
+            rows = conn.execute(
+                "SELECT destination_path FROM move_journal WHERE rowid > ?",
+                (before["journal"],)).fetchall()
+        except sqlite3.Error:
+            rows = []
+        n = sum(1 for r in rows if Path(r[0]).exists())
+    if n == 0:
+        why = ("the files weren't where I left them, so nothing was put "
+               "back" if undoing else
+               "the files weren't where I expected, so I left everything "
+               "as it was" if is_plan else
+               f"the plan had no files ready to move into {where}")
+        return {"ok": True, "moved": False, "undo_token": None,
+                "text": f"Nothing moved — {why}."}
+    them = "it" if n == 1 else "them"
+    if undoing:
+        text = (f"Put {_plural(n, 'file')} back where "
+                f"{'it was' if n == 1 else 'they were'}." if is_plan else
+                f"Put {_plural(n, 'file')} from {where} back.")
+    else:
+        text = (f"Moved {_plural(n, 'file')} into {where}. Say undo to put "
+                f"{them} back.")
+    if is_plan:
+        _created_folders(conn, plan_id, before["created"], undoing)
+    return {**result, "moved": True, "text": text}
+
+
+def _created_folders(conn: sqlite3.Connection, plan_id: str,
+                     created: list[Path], undoing: bool) -> None:
+    """Remember the folders a sort created; after its undo, remove each one
+    that is empty. A folder that existed before, or holds anything, stays."""
+    conn.execute(CREATED_DDL)
+    if not undoing:
+        conn.executemany(
+            "INSERT OR IGNORE INTO assistant_created_folders VALUES (?, ?)",
+            [(plan_id, str(f)) for f in created if f.is_dir()])
+        conn.commit()
+        return
+    folders = [Path(r[0]) for r in conn.execute(
+        "SELECT folder FROM assistant_created_folders WHERE plan_id = ?",
+        (plan_id,))]
+    for folder in sorted(folders, key=lambda f: len(f.parts), reverse=True):
+        try:
+            folder.rmdir()  # only ever succeeds on an empty folder
+        except OSError:
+            pass
+    conn.execute("DELETE FROM assistant_created_folders WHERE plan_id = ?",
+                 (plan_id,))
+    conn.commit()
+
+
+def _forgets_conversations(proposal: dict) -> bool:
+    return (proposal.get("kind") == "rule"
+            and str(proposal.get("ref", "")).startswith("forget-conversations"))
+
+
+def _nothing(proposal: dict) -> str:
+    return ("Nothing moved." if proposal.get("kind") in ("plan", "undo",
+                                                         "branch")
+            else "Nothing changed.")
 
 
 def open_in_finder(path: str, *, reveal: bool) -> bool:
@@ -666,9 +1015,15 @@ def _read_all(path: str, emit, lock) -> None:
                                       f"{total - done} left"))
         read = indexing.read_document_text(own, on_progress=progress,
                                            limit=None)
-        left = getattr(indexing.counts(own), "unread_documents", 0)
+        left = getattr(read, "unreadable", 0)
+        found = getattr(read, "protected_newly_found", 0)
         text = (f"Finished reading document text ({read} "
                 f"file{'s' if read != 1 else ''}).")
+        if found:
+            text += (f" {found} more file{'s' if found != 1 else ''} "
+                     f"look{'' if found != 1 else 's'} personal now that "
+                     "I've read them, so I protected "
+                     f"{'them' if found != 1 else 'it'}.")
         if left:
             text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
                      "read and "
@@ -703,8 +1058,14 @@ def route_without_model(conn: sqlite3.Connection, text: str) -> list:
         c = _counts(conn)
         return [ev.Message(text=counts_sentence(c) if c is not None else
                            "Nothing is indexed yet. " + FOLDER_QUESTION)]
-    if lower in ("show skipped", "show protected"):
-        return [_excluded_list(conn, protected=lower.endswith("protected"))]
+    if lower == "show protected":
+        from types import SimpleNamespace
+        from assistant.engine_tools import show_protected
+        shown: list = []
+        show_protected(conn, SimpleNamespace(show_locally=shown.append))
+        return shown
+    if lower == "show skipped":
+        return [_excluded_list(conn, protected=False)]
     return [ev.Message(text=NO_MODEL_HELP)]
 
 
@@ -760,7 +1121,36 @@ def _strip_citation_line(text: str) -> str:
     """The model's `Citations:` line carries internal ids; the person gets
     the citations as names instead."""
     return "\n".join(line for line in text.splitlines()
-                     if not line.lower().startswith("citations:")).strip()
+                     if not _CITATIONS_LINE.match(line)).strip()
+
+
+_CITATIONS_LINE = re.compile(r"^\W*citations?\b", re.IGNORECASE)
+
+#: Sentences no person should read: database files, command-line flags,
+#: model ids, sums the model worked out loud, internal snake_case codes.
+_DEVELOPER = (
+    re.compile(r"\S*\.sqlite\w*\b"),
+    re.compile(r"(?<![\w-])--[a-z][\w-]*"),
+    re.compile(r"\bno citations?\b|\bcitations? (needed|line)\b"
+               r"|\bnothing to cite\b", re.IGNORECASE),
+    re.compile(r"\b(deepseek-(chat|reasoner|v[\w.]+)|gpt-[\w.-]+|"
+               r"claude-[\w.-]+|o[134]-mini)\b", re.IGNORECASE),
+    # Two or more of + × * = between numbers; never - or /, so dates stay.
+    re.compile(r"\b\d[\d,.]*(?:\s*[+×*=]\s*\d[\d,.]*){2,}"),
+)
+def scrub_developer_text(text: str) -> str:
+    """The text without any sentence carrying developer text. (Internal
+    codes inside a sentence are replaced by `plain_reply`.)"""
+    def developer(sentence: str) -> bool:
+        return any(p.search(sentence) for p in _DEVELOPER)
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not developer(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
 
 PLAIN_WORDS = (
@@ -768,7 +1158,14 @@ PLAIN_WORDS = (
     "state names or codes: not unplaced, typed, held, schema ids, situation "
     "codes, branch ids or item ids. Say \"not sorted yet\", not "
     "\"unplaced\"; say \"protected\", not \"held\"; name a folder the way "
-    "the plan shows it.")
+    "the plan shows it.\n"
+    "\"Put / move my screenshots (or installers, copies) into a folder\" is "
+    "a one-off: call quick_sort with kind, which takes every loose one. "
+    "Only \"always / whenever / from now on …\" is a standing rule: call "
+    "remember_rule. Never both for one request.\n"
+    "Keep replies to a few short sentences. Never mention file paths of "
+    "databases, model names, command-line flags or internal codes, and "
+    "don't show arithmetic.")
 
 #: State words a person should never read, and what to say instead. "typed"
 #: is ordinary English after you/I, so only the state use is replaced.

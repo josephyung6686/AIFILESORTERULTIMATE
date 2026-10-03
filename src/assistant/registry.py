@@ -229,15 +229,18 @@ ENGINE_GROUP = "engine"
 _ENGINE_SCHEMAS: list[dict[str, Any]] = [
     _fn(
         "quick_sort",
-        "Propose moving a few named files into one folder. Moves nothing: "
-        "the person is shown the moves and says yes or no. `destination` is "
-        "a single folder NAME (no slashes) created beside the files; omit it "
+        "Propose a one-off move of named files, or of a whole set with "
+        "`kind` (screenshots / copies / installers: exactly the loose files "
+        "the suggestions counted), into one folder. Moves nothing: the "
+        "person is shown the moves and says yes or no. `destination` is a "
+        "single folder NAME (no slashes) created beside the files; omit it "
         "to group them by type.",
         {
             "files": {"type": "array", "items": {"type": "string"}},
+            "kind": {"type": "string",
+                     "enum": ["screenshots", "copies", "installers"]},
             "destination": {"type": "string"},
         },
-        ["files"],
     ),
     _fn(
         "index_folder",
@@ -264,8 +267,14 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         {"level": {"type": "integer"}},
         ["level"],
     ),
-    _fn("what_was_sent", "Today's requests to the AI model, in plain words: "
-        "how many, how many bytes, which questions.", {}),
+    _fn("what_was_sent", "Show the person what went to the AI model today: "
+        "requests, size and the files whose names or text were included. "
+        "Listed on their screen by the app.", {}),
+    _fn("show_protected", "Show the person their protected files and "
+        "folders, with why each is protected. Listed on their screen by "
+        "this Mac; you are told only how many.", {}),
+    _fn("show_copies", "Show the person which files are copies: files with "
+        "exactly the same content, found by comparing contents.", {}),
     _fn(
         "freeze_plan",
         "After organise_folder: propose accepting the proposed folders and "

@@ -699,7 +699,14 @@ class ToolRuntime:
         payload = engine_tools.run(self.conn, name, args,
                                    context=self.engine_context)
         proposal = payload.get("needs_confirmation")
-        if proposal:
+        if proposal and self.pending_confirmations:
+            # One prompt at a time, so a yes always answers the one shown.
+            first = self.pending_confirmations[0]["summary"]
+            payload = {"ok": False, "error": (
+                "Not shown: the person already gets a yes/no prompt this "
+                f"turn (“{first}”). Ask for this after they answer. "
+                "Nothing changed.")}
+        elif proposal:
             self.pending_confirmations.append(proposal)
             payload = {
                 **{k: v for k, v in payload.items()
@@ -707,8 +714,9 @@ class ToolRuntime:
                 "waiting_for_person": True,
                 "summary": proposal["summary"],
                 "moves": len(proposal.get("moves") or ()),
-                "note": ("The person is being shown this and will answer "
-                         "yes or no. Nothing has changed yet; do not say "
+                "note": ("A yes/no prompt is now on the person's screen: "
+                         f"{proposal['summary']} Nothing has changed yet; "
+                         "you will be told what they answer. Do not say "
                          "it is done."),
             }
         payload.setdefault("moved", False)

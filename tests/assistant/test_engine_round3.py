@@ -304,7 +304,7 @@ def test_document_text_is_read_once_on_its_own_connection(lib, monkeypatch):
         on_progress("read", 0, 3)
         gate.wait(5)
         on_progress("read", 2, 3)
-        return 2
+        return indexing.ReadOutcome(2, unreadable=1)
 
     @dataclass
     class C:

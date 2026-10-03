@@ -2,7 +2,7 @@
 
 Nothing here decides anything: the Session does. This file turns events into
 lines a person reads, and their typing into Session calls. No internal id ever
-reaches the screen -- confirmation and question ids stay in this file's state.
+reaches the screen; the Session keeps what is waiting for an answer.
 """
 from __future__ import annotations
 
@@ -16,8 +16,6 @@ from assistant.session import Session
 
 MOVES_SHOWN = 10
 QUIT = {"quit", "exit", "bye", "q"}
-YES = {"1", "y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead"}
-NO = {"2", "n", "no", "nope", "cancel", "stop"}
 
 
 def _home(path: str) -> str:
@@ -32,8 +30,6 @@ class TerminalRenderer:
         self.out = stdout
         self.tty = bool(getattr(stdout, "isatty", lambda: False)())
         self.progress_open = False
-        self.confirm: ev.Confirm | None = None
-        self.question: ev.Question | None = None
         self.citations: tuple[ev.Citation, ...] = ()
 
     def _line(self, text: str = "") -> None:
@@ -61,9 +57,9 @@ class TerminalRenderer:
                 for i, c in enumerate(event.citations, start=1):
                     self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}"
                                + ("   (matched by name)"
-                                  if c.matched_by == "name" else ""))
+                                  if c.matched_by == "name" else "")
+                               + (f"   — {c.note}" if c.note else ""))
         elif isinstance(event, ev.Question):
-            self.question = event
             head = f"Question {event.index} of {event.of}: " if event.of > 1 \
                 else ""
             self._line(head + event.text)
@@ -73,7 +69,6 @@ class TerminalRenderer:
                 self._line(f"  {i}) {option.label}")
             self._line("  or type your own · s) skip")
         elif isinstance(event, ev.Confirm):
-            self.confirm = event
             self._line(event.summary)
             for move in event.moves[:MOVES_SHOWN]:
                 self._line(f"  {Path(move.src).name}  →  "
@@ -84,11 +79,13 @@ class TerminalRenderer:
                 self._line(self._dim("  This touches protected files."))
             self._line("Go ahead? 1) Yes  2) No")
         elif isinstance(event, ev.Counts):
+            if not event.indexed:
+                return  # nothing chosen yet: the folder question says so
             parts = [f"Indexed {event.indexed}"]
             if event.set_aside:
                 parts.append(f"Set aside {event.set_aside}")
-            if event.protected + event.held:
-                parts.append(f"Protected {event.protected + event.held}")
+            if event.protected:
+                parts.append(f"Protected {event.protected}")
             if event.open_questions:
                 parts.append(f"Questions {event.open_questions}")
             self._line("· " + " · ".join(parts))
@@ -102,28 +99,9 @@ class TerminalRenderer:
 
 
 def _handle(session: Session, renderer: TerminalRenderer, text: str) -> None:
-    words = text.strip().lower()
-    if renderer.confirm is not None:
-        confirm = renderer.confirm
-        if words in YES or words in NO:
-            renderer.confirm = None
-            session.confirm(confirm.confirm_id, words in YES)
-            return
-        renderer.confirm = None
-        session.confirm(confirm.confirm_id, False)
-    if renderer.question is not None:
-        question = renderer.question
-        renderer.question = None
-        if words in ("s", "skip"):
-            session.answer(question.question_id, "skip")
-            return
-        if words.isdigit() and 1 <= int(words) <= len(question.options):
-            session.answer(question.question_id,
-                           question.options[int(words) - 1].id)
-            return
-        session.answer(question.question_id, text.strip())
-        return
-    if words == "cancel":
+    # The Session maps a reply to whatever is on the screen (yes / no / a
+    # number / skip / cancel); the renderer only draws.
+    if text.strip().lower() == "cancel":
         session.cancel()
         return
     session.say(text.strip())
