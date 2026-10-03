@@ -43,6 +43,8 @@ YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
 NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 #: Commands, never answers: they cancel what is on the screen.
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
+#: What a dropped yes/no says: one line for every kind of prompt.
+STALE_PROMPT_LINE = "Not done — ask again if you still want it."
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
 _YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
 _NO_FIRST = {"n", "no", "nope", "nah"}
@@ -564,7 +566,7 @@ class Session:
                 self.history.append({"role": "user", "content": text})
                 self.start_questions()
                 return
-        self._drop_stale_rule()
+        self._drop_stale_prompt()
         self.history.append({"role": "user", "content": text})
         self._remember("user", text)
         self._proposals = []
@@ -626,16 +628,15 @@ class Session:
             # until it is answered.
             self._ask_again()
 
-    def _drop_stale_rule(self) -> None:
-        """A rule's yes/no is reminded once; a second reply that does not
+    def _drop_stale_prompt(self) -> None:
+        """Every yes/no is reminded once; a second reply that does not
         answer it drops it, so it never trails the conversation."""
         proposal = self.pending.get(self.on_screen or "")
-        if proposal is None or proposal["kind"] != "rule" or not (
-                proposal.get("reminded")):
+        if proposal is None or not proposal.get("reminded"):
             return
         self.pending.pop(self.on_screen)
         self.on_screen = None
-        line = "Not saved — say it again if you want that rule."
+        line = STALE_PROMPT_LINE
         self._note(line)
         self.emit(ev.Message(text=line))
 

@@ -252,8 +252,8 @@ def test_a_pending_rule_is_reminded_once_then_dropped(lib):
     s.say("where is my essay")
     assert sum("Still waiting for your yes or no" in t for t in said(out)) == 1
     s.say("thanks")
-    assert said(out)[-2:] == ["Not saved — say it again if you want that "
-                              "rule.", "Sure."]
+    assert said(out)[-2:] == ["Not done — ask again if you still want "
+                              "it.", "Sure."]
     assert s.on_screen is None and not s.pending
     assert sum("Still waiting for your yes or no" in t for t in said(out)) == 1
 
