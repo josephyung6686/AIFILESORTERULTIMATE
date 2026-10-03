@@ -3063,14 +3063,17 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
     if reason == SITUATION_UNANSWERED:
         # THE JUDGE ANSWERED AND THE RUN COULD NOT ACT ON IT ALONE. Not the
         # sentence below: no request was turned away, and running again settles
-        # nothing -- answering the branch question printed beneath does.
+        # nothing -- the person's word does. It names `--situation-of`, which
+        # always exists, and never promises a question this run may not have
+        # recorded (on a 33-file Desktop it had not).
         return (
             "Which situation of its kind this file is part of has not been "
             "answered: the kind was named, the library carries several "
             "situations under it, and nobody has said which. So its fields were "
             "not asked and nothing moved; everything read about it is kept. "
-            "The question for its branch is printed below, and answering it is "
-            "what files this on the next run."
+            "Saying which situation it is part of -- the question about its "
+            "kind, where this run printed one, or --situation-of FILE=SITUATION "
+            "as --list-situations names them -- is what files it on the next run."
         )
     if reason == NO_MODEL_JUDGEMENT:
         # A THIRD ABSTENTION THE DEFAULT SENTENCE DESCRIBES FALSELY, and it is

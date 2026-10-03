@@ -12195,7 +12195,7 @@ def draft_for_review(conn: sqlite3.Connection,
                      domain_of: Callable[[str], str | None] | None = None,
                      branches: Sequence[Branch] = (),
                      situation_evidence_of: Callable[
-                         [str], tuple[str, str] | None] | None = None,
+                         [str, str], tuple[str, str] | None] | None = None,
                      ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named DRAFT.
 
@@ -12336,7 +12336,7 @@ def draft_for_review(conn: sqlite3.Connection,
 def _drafts_of_the_files_the_judge_named(
         conn: sqlite3.Connection, branches: Sequence[Branch], *,
         opened: set[tuple[str, str]],
-        evidence_of: Callable[[str], tuple[str, str] | None],
+        evidence_of: Callable[[str, str], tuple[str, str] | None],
         domain_of: Callable[[str], str | None] | None,
         created_at: str) -> list[tuple[Branch, str]]:
     """One draft per (branch, kind) for the files the JUDGE put there, where P9
@@ -12374,9 +12374,11 @@ def _drafts_of_the_files_the_judge_named(
     for branch in branches:
         by_domain: dict[str, list[tuple[str, str, str]]] = {}
         for file_id in branch.file_ids:
-            named = evidence_of(file_id)
             kind = branch.kind_of(file_id)
-            if named is None or kind is None:
+            if kind is None:
+                continue
+            named = evidence_of(file_id, kind)
+            if named is None:
                 continue
             domain = (kind if kind in SCHEMA_IDS
                       else domain_of(kind) if domain_of is not None else None)
@@ -18223,15 +18225,30 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             return None
         return value if value in _shipped_names else None
 
-    def _situation_evidence_of(file_id: str) -> tuple[str, str] | None:
-        """`(content_hash, observation key)` of the situation the judge (or the
-        person) named for this file, as `_situation_fact_of` reads it; `None`
-        where it named none or the row cites nothing a membership could."""
-        if _situation_fact_of(file_id) is None:
-            return None
+    def _situation_evidence_of(file_id: str,
+                               kind: str) -> tuple[str, str] | None:
+        """`(content_hash, observation key)` for a file whose situation someone
+        NAMED: the judge's `situation` fact, or the person's answer -- their word
+        for this file, or for its kind at the kind's scope (the question
+        `cli.kinds_asked_one_by_one` puts). `None` where nobody named one.
+
+        The citation is the situation fact's own where there is one. A file only
+        the person answered for -- a text-less capture, settled by its kind and
+        never put to the judge (`00` 13 Sep item 5) -- cites the first thing
+        this product read of it, which is all the evidence there is."""
         row = preferred_fact(conn, file_id=file_id, field_key=SITUATION_FIELD)
-        key = first_evidence_ref(row)
-        return None if key is None else (row["content_hash"], key)
+        if _situation_fact_of(file_id) is not None:
+            key = first_evidence_ref(row)
+            return None if key is None else (row["content_hash"], key)
+        if (_their_situations().get(file_id) is None
+                and _the_situation_the_person_chose(kind, file_id) is None):
+            return None
+        first = conn.execute(
+            "SELECT f.content_hash, e.observation_key FROM files f "
+            "JOIN evidence e ON e.file_id = f.file_id "
+            "AND e.content_hash = f.content_hash "
+            "WHERE f.file_id = ? ORDER BY e.rowid LIMIT 1", (file_id,)).fetchone()
+        return None if first is None else (first[0], first[1])
 
     def _alternatives_of(file_id: str) -> tuple[str, ...]:
         """Every live `situation_alternative` row's value that is a shipped
@@ -20447,9 +20464,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         G alone left a file an anchor had settled in no kind's question at all.
         """
         questions = []
-        if branch.is_default or len(branch.schemas) < 2:
-            return questions
-        for kind in branch.schemas:
+        for kind in kinds_asked_one_by_one(branch):
             files = files_of_kind_still_open(
                 branch, kind,
                 judged_kind_of=situation_cell[0].named.get,
@@ -23975,6 +23990,22 @@ def placement_words(policy: str, *, disposition: str | None) -> str | None:
     except Exception:
         return ordinary
     return ordinary if moves else PLACEMENT_WORDS_NOT_MOVED
+
+
+def kinds_asked_one_by_one(branch) -> tuple[str, ...]:
+    """The kinds whose question a life branch asks of each kind's open files.
+
+    Every kind of a life branch that has no question of its own: two kinds
+    (`00` amendment 16), or ONE kind whose files already carry two situations,
+    which `branch_situation._asked_of_a_life` rightly offers no branch question
+    for. Before this the second case asked nothing, and the kind's files no
+    situation had answered had no way out -- `00` amendment 1 of 14 Sep: "the
+    person is asked only where the judge cannot", and is asked there. The
+    default branch's kinds are asked by their own loop.
+    """
+    if branch.is_default or branch.candidate_situations:
+        return ()
+    return tuple(branch.schemas)
 
 
 def files_of_kind_still_open(branch, kind: str, *, judged_kind_of,
