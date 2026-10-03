@@ -1189,8 +1189,8 @@ def _refusal_text(lines: list[str]) -> str:
                 "it, so it refuses the whole plan. Nothing changed and "
                 "nothing moved.")
     if any(line.startswith("Nothing was frozen") for line in lines):
-        return ("Nothing could be locked in: every file is still waiting on "
-                "a question or held for review. Nothing moved.")
+        return ("Nothing could be locked in: the plan has no file ready to "
+                "move yet. Nothing moved.")
     if any(line.startswith("No plan was made") for line in lines):
         return ("The sorter couldn't make a plan for this folder, so there "
                 "is nothing to lock in. Nothing moved.")
