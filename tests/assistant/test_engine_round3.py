@@ -168,7 +168,7 @@ def test_organise_freeze_apply_and_undo_in_the_conversation(tmp_path,
     assert "lock in the plan" in asked.summary and not asked.moves
     assert _files(corpus) == before
     locked = [e for e in out if isinstance(e, ev.Message)][-1].text
-    assert locked.startswith("Locked in: 2 files ready to move")
+    assert locked.startswith("Locked in 2 folders (2 files).")
     branches = [line.strip() for line in locked.splitlines()[1:]]
     assert branches and all(b.startswith("Education/") for b in branches)
 

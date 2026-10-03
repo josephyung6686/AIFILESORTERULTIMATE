@@ -395,6 +395,25 @@ def _whole_sentences(text: str, options) -> str:
     return " ".join(kept)
 
 
+def _branch_rows(conn, base: str, branch: str) -> list:
+    """The files the plan places under a proposed folder of that name."""
+    try:
+        from assistant.organize_tools import _sorter_tree
+        tree = _sorter_tree(conn)
+    except Exception:
+        return []
+    if tree is None or not branch:
+        return []
+    ids = [file_id for file_id, d in tree["by_file"].items()
+           if d.outcome == "place" and d.destination is not None and (
+               (path := tree["path"](d.destination.node_id)) == branch
+               or path.startswith(branch + "/"))][:400]
+    if not ids:
+        return []
+    return conn.execute(base + f"AND file_id IN ({','.join('?' * len(ids))})"
+                        " ORDER BY display_label LIMIT 40", ids).fetchall()
+
+
 def _question_files(conn, q, count: int | None = None) -> list[str]:
     """Up to three ordinary files a question is about, by name. Never a
     protected or held one. Read from the index by the question's scope:
@@ -428,6 +447,8 @@ def _question_files(conn, q, count: int | None = None) -> list[str]:
             rows = conn.execute(
                 base + "AND type_schema IS NULL ORDER BY display_label "
                 "LIMIT 40").fetchall()
+        elif kind == "branch" and (placed := _branch_rows(conn, base, rest)):
+            rows = placed
         elif kind == "branch" and rest and "." not in rest:
             rows = conn.execute(
                 base + "AND (type_schema = ? OR type_schema LIKE ?) "
@@ -453,20 +474,88 @@ def _question_files(conn, q, count: int | None = None) -> list[str]:
     return names
 
 
+#: Sentences the sorter writes about its own workings -- counts of levels,
+#: warnings, what a library carries -- which a person cannot act on.
+_ENGINE_SENTENCE = re.compile(
+    r"warning|would create|records? no values|library carries|kind-of-file "
+    r"word|no model has judged|file\(s\)|unresolved|own facts|own words "
+    r"support|nobody has said|not because anything", re.I)
+
+#: An ordering number in front of a folder name ("98 Review and Unsorted"):
+#: two digits, so a date such as "4 AUG 2023" is left alone.
+_ORDERING = re.compile(r"^\d{2}\s+(?=\S)")
+
+
+def display_name(path: str) -> str:
+    """A folder path as the person reads it, without ordering numbers."""
+    return "/".join(_ORDERING.sub("", part) for part in str(path).split("/"))
+
+
+def _person_sentences(text: str, options) -> str:
+    """The whole sentences of `text` that speak to the person, not about
+    the engine."""
+    return " ".join(
+        s for s in re.split(r"(?<=[.!?])\s+", _whole_sentences(text, options))
+        if s and not _ENGINE_SENTENCE.search(s))
+
+
+def _folders_inside(branch: str, paths: list[str]) -> str:
+    """The folders a shape builds inside `branch`, named from inside it:
+    its first level, or the level under a single first folder."""
+    rel = [p[len(branch) + 1:] if p.startswith(branch + "/") else p
+           for p in paths]
+    first = list(dict.fromkeys(p.split("/")[0] for p in rel))
+    prefix = ""
+    if len(first) == 1:
+        second = list(dict.fromkeys(p.split("/")[1] for p in rel
+                                    if p.count("/") >= 1))
+        if second:
+            prefix, first = first[0] + ": ", second
+    more = f" and {len(first) - 5} more" if len(first) > 5 else ""
+    return prefix + ", ".join(first[:5]) + more
+
+
+def _option_label(o, options, branch: str) -> str:
+    """An option as a folder path, or a short plain sentence."""
+    if getattr(o, "chooses_destination", None):
+        return display_name(o.label)
+    if getattr(o, "gates_template", None) is not None:
+        built = re.search(r"builds (.*?)(?: -- |$)", o.label)
+        if built:
+            return _folders_inside(branch, [
+                display_name(re.sub(r" \(\d+\)$", "", c))
+                for c in built.group(1).split(", ")])
+        said = _person_sentences(o.label, options)
+        return said or ("No subfolders: all of them go straight into "
+                        f"{display_name(branch)}")
+    return _plain(o.label, options)
+
+
 def question_event(q, index: int, of: int, conn=None):
-    """A sorter question in the person's words, naming the files it is
-    about. A prompt whose subject was an internal code (and so would read
-    "Which of these is?") is replaced by the files themselves; the sorter's
-    options are kept exactly."""
+    """A sorter question as one plain sentence naming its files (folder,
+    two or three names, the count). The sorter's own sentences about its
+    workings are left out, and options that read the same are shown once
+    (the first one's id is the answer)."""
     from assistant.events import Option, Question
     m = re.match(r"\s*(\d[\d,]*) files?\b", q.evidence_context or "")
     stated = int(m.group(1).replace(",", "")) if m else None
     names = _question_files(conn, q, stated)
     count = stated if stated is not None else len(names)
-    text, holes = _plain_and_holes(q.prompt, q.options)
+    kind, _, where = q.scope.partition(":")
+    where = display_name(where.strip("/")) if kind in ("folder", "branch") \
+        and not where.startswith("default:") else ""
     e_g = (f" ({names[0]})" if count == 1 and names else
            f" (e.g. {', '.join(names)})" if names else "")
-    if holes or not text:
+    files = ("this file" if count == 1 else f"the {count} files" if count
+             else "these files")
+    inside = f" in {where}" if where and where != "." else ""
+    text, holes = _plain_and_holes(q.prompt, q.options)
+    if any(getattr(o, "gates_template", None) is not None
+           for o in q.options):
+        text = f"How should {files}{inside}{e_g} be split into folders?"
+    elif any(getattr(o, "chooses_destination", None) for o in q.options):
+        text = f"Where should {files}{inside}{e_g} go?"
+    elif holes or not text:
         they = "it" if count == 1 else "they"
         asks = (f"what {'is' if count == 1 else 'are'} {they}?"
                 if any(getattr(o, "selects_situation", None)
@@ -475,30 +564,71 @@ def question_event(q, index: int, of: int, conn=None):
         these = ("This file" if count == 1 else
                  f"These {count} files" if count else "Some of your files")
         text = f"{these}{e_g} — {asks}"
-        why = _whole_sentences(q.evidence_context, q.options)
-    else:
-        why = _whole_sentences(q.evidence_context, q.options)
-        if names and not any(n in text for n in names):
-            why = (f"For example: {', '.join(names)}. " + why).strip()
+    elif names and not any(n in text for n in names):
+        text = (f"{text} ({_plural(count, 'file')}"
+                f"{', e.g. ' + ', '.join(names) if count > 1 else ': ' + names[0]})")
+    options: list = []
+    for o in q.options:
+        label = _option_label(o, q.options, where or "this folder")
+        if label and label not in [x.label for x in options]:
+            options.append(Option(id=o.option_id, label=label))
     return Question(
         question_id=q.question_id,
-        text=text,
-        why=why,
-        changes=_whole_sentences(q.unlocks, q.options),
-        # A folder option is the person's own path: shown verbatim.
-        options=tuple(Option(id=o.option_id, label=(
-            o.label if getattr(o, "chooses_destination", None)
-            else _plain(o.label, q.options))) for o in q.options),
+        text=text[:1].upper() + text[1:],
+        why=_person_sentences(q.evidence_context, q.options),
+        changes=_person_sentences(q.unlocks, q.options),
+        options=tuple(options),
         allow_text=True, allow_skip=True,
         files_preview=tuple(names), count=count, index=index, of=of)
 
 
-def open_questions(conn: sqlite3.Connection) -> tuple:
+def askable_questions(conn: sqlite3.Connection) -> tuple[tuple, dict]:
+    """The sorter's open questions a person can answer, and a count of the
+    rest: those about files inside a set-aside coding project, and those
+    naming no file anyone could recognise (files nothing could read)."""
     try:
         from questions.store import open_questions as store_open
-        return store_open(conn)
+        every = store_open(conn)
     except sqlite3.Error:
-        return ()
+        return (), {"inside_projects": 0, "unnamed_files": 0}
+    from assistant.organize_tools import _set_aside_folders, inside_set_aside
+    aside = _set_aside_folders(conn)
+    asked, projects, unnamed = [], 0, 0
+    for q in every:
+        kind, _, rest = q.scope.partition(":")
+        if kind == "folder" and aside and inside_set_aside(
+                conn, rest.strip("/"), aside):
+            projects += 1
+            continue
+        event = question_event(q, 1, 1, conn)
+        # A folder's files, or a subject that was an internal code, are
+        # nameable only by the files themselves.
+        if not event.files_preview and (
+                kind == "folder" or _plain_and_holes(q.prompt, q.options)[1]):
+            unnamed += event.count or 1
+            continue
+        asked.append(q)
+    return tuple(asked), {"inside_projects": projects,
+                          "unnamed_files": unnamed}
+
+
+def open_questions(conn: sqlite3.Connection) -> tuple:
+    return askable_questions(conn)[0]
+
+
+def skipped_sentence(skipped: dict) -> str:
+    """The questions left unasked, as a plain count."""
+    parts = []
+    if skipped.get("unnamed_files"):
+        n = skipped["unnamed_files"]
+        parts.append(f"{_plural(n, 'file')} I couldn't read — "
+                     f"{'it' if n == 1 else 'they'}'ll stay where "
+                     f"{'it is' if n == 1 else 'they are'}.")
+    if skipped.get("inside_projects"):
+        n = skipped["inside_projects"]
+        parts.append(f"{_plural(n, 'question')} about files inside coding "
+                     f"projects {'was' if n == 1 else 'were'} skipped.")
+    return " ".join(parts)
 
 
 SKIP_WORDS = {"skip", "s", "skip it", "not now", "later"}
@@ -522,10 +652,22 @@ def record_person_answer(conn: sqlite3.Connection, question_id: str,
     q = _question_of(row)
     typed = (value or "").strip()
     user = getpass.getuser()
+    # An answer can change the plan, so a lock-in the last run could not
+    # offer is worth trying again.
+    conn.execute(SETTINGS_DDL)
+    conn.execute("UPDATE session_settings SET value = '' "
+                 "WHERE key LIKE 'lock_in_blocked:%'")
     now = datetime.now(timezone.utc).isoformat()
     option = next((o.option_id for o in q.options
                    if typed == o.option_id
                    or typed.casefold() == o.label.casefold()), None)
+    if option is None:
+        # The words or the number the person was shown.
+        shown = question_event(q, 1, 1, conn).options
+        number = re.fullmatch(r"(?:option\s*)?(\d+)", typed.casefold())
+        option = next((o.id for i, o in enumerate(shown, 1)
+                       if typed.casefold() == o.label.casefold()
+                       or (number and int(number.group(1)) == i)), None)
     if option is not None or typed.casefold() in SKIP_WORDS:
         # The sorter's own `--answer` path, so the answer is also remembered
         # as an event exactly as the sorter remembers it.
@@ -753,22 +895,30 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         # groups (`--accept-groups --freeze`), so what is shown here is what
         # locking in would approve. Without `--freeze` nothing is approved
         # for moving and nothing moves.
-        cli.main([str(path), "--database", database_path(conn),
-                  "--accept-groups",
-                  *(["--enable-cloud"] if cloud else [])], out=stream)
+        code = cli.main([str(path), "--database", database_path(conn),
+                         "--accept-groups",
+                         *(["--enable-cloud"] if cloud else [])], out=stream)
     except (Cancelled, KeyboardInterrupt):
         if emit is not None:
             from assistant.events import Message
             emit(Message(text="Stopped. Nothing moved."))
         return {"ok": False, "cancelled": True,
                 "error": "The person stopped organising. Nothing moved."}
-    except SystemExit:
-        pass
+    except SystemExit as exc:
+        code = exc.code
     except Exception:
         return {"ok": False, "error": "Organising stopped with a problem. "
                                       "Nothing moved."}
+    # The sorter refuses a plan by name; lock-in reruns the same design and
+    # would refuse it again, so it is not offered until a run succeeds.
+    refused = (_refusal_text(stream.lines)
+               if code not in (0, None) else "")
+    put_setting(conn, f"lock_in_blocked:{path}", refused)
+    if refused:
+        return {"ok": False, "moved": False, "error": refused}
     _stage(context, "Designing folders… done.")
-    n = len(open_questions(conn))
+    asked, skipped = askable_questions(conn)
+    n = len(asked)
     if n and context is not None:
         context.ask_questions_after_turn = True
     try:
@@ -776,9 +926,19 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         summary = organise_summary(conn, path)
     except Exception:
         summary = None
+    if summary is not None and not summary.get("files_to_move"):
+        # Locking in would freeze nothing: say so now, not after a rerun.
+        put_setting(conn, f"lock_in_blocked:{path}", (
+            "There's nothing to lock in yet: the plan doesn't move any file "
+            f"({_plural(summary.get('files_already_in_place') or 0, 'file')} "
+            "it places are already where it puts them). "
+            + ("Answering the questions may change that. " if n else "")
+            + "Nothing moved."))
     text = ((ROUGH + " " if cloud is False else "")
             + "I've looked through the folder. Nothing moved. "
             + (f"I have {_plural(n, 'question')} first. " if n else "")
+            + (skipped_sentence(skipped) + " " if any(skipped.values())
+               else "")
             + "When the folders look right, say “lock in the plan” and you "
               "can then move them one folder at a time.")
     return {"ok": True, "open_questions": n, "summary": summary,
@@ -1004,6 +1164,10 @@ def freeze_plan(conn: sqlite3.Connection, folder: str,
     path, refusal = check_folder(conn, folder, context, "organise")
     if refusal is not None:
         return refusal
+    # Never a yes/no the sorter can already be seen to refuse.
+    blocked = get_setting(conn, f"lock_in_blocked:{path}", "")
+    if blocked:
+        return {"ok": False, "error": blocked}
     if _selection_root(conn, path) is None:
         return {"ok": False, "error": "I haven't looked through that folder "
                                       "yet. Organise it first."}
@@ -1033,6 +1197,27 @@ def _branches_printed(lines: list[str]) -> list[str]:
     return found
 
 
+def _refusal_text(lines: list[str]) -> str:
+    """Why the sorter made no plan, or froze nothing, in the person's words.
+    A refused folder's name is theirs to read; the code around it is not."""
+    empty = next((m.group(1) for m in (
+        re.search(r"accepting 'branch:([^']+)' produced no node", line)
+        for line in lines) if m), None)
+    if empty:
+        return (f"I can't lock in this plan: the proposed folder "
+                f"“{display_name(empty)}” has no file the sorter can put in "
+                "it, so it refuses the whole plan. Nothing changed and "
+                "nothing moved.")
+    if any(line.startswith("Nothing was frozen") for line in lines):
+        return ("Nothing could be locked in: the plan has no file ready to "
+                "move yet. Nothing moved.")
+    if any(line.startswith("No plan was made") for line in lines):
+        return ("The sorter couldn't make a plan for this folder, so there "
+                "is nothing to lock in. Nothing moved.")
+    return ("There was nothing ready to lock in, so nothing changed. "
+            "Nothing moved.")
+
+
 def _freeze(conn: sqlite3.Connection, folder: str,
             context: Any) -> dict[str, Any]:
     """The sorter's own `--accept-groups --freeze`. Never moves a file."""
@@ -1051,30 +1236,47 @@ def _freeze(conn: sqlite3.Connection, folder: str,
         code = 1
     try:
         from assistant.organize_tools import show_tree
-        frozen = int(show_tree(conn).get("frozen_moves") or 0)
+        tree = show_tree(conn)
     except Exception:
-        frozen = 0
+        tree = {}
+    frozen = int(tree.get("frozen_moves") or 0)
     branches = _branches_printed(stream.lines)
     if code not in (0, None) or not frozen or not branches:
-        # The sorter's refusal names the proposed folder it could not
-        # build; that name is the person's to read, the code around it not.
-        empty = next((m.group(1) for m in (
-            re.search(r"accepting 'branch:([^']+)' produced no node", line)
-            for line in stream.lines) if m), None)
         return {"ok": False, "moved": False, "undo_token": None,
-                "text": (f"I couldn't lock in the plan: the proposed folder "
-                         f"“{empty}” has no file the sorter can put in it, "
-                         "so it refused the whole plan. Nothing changed and "
-                         "nothing moved." if empty else
-                         "There was nothing ready to lock in, so nothing "
-                         "changed. Nothing moved.")}
-    shown = "\n".join(f"  {b}" for b in branches[:12])
-    more = (f"\n  and {len(branches) - 12} more" if len(branches) > 12
-            else "")
+                "text": _refusal_text(stream.lines)}
+    shown = [display_name(b) for b in branches]
+    waiting = [f["path"] for f in tree.get("folders") or ()
+               if f["kind"] != "existing" and "/" not in f["path"]
+               and not any(b == f["path"] or b.startswith(f["path"] + "/")
+                           for b in shown)]
+    listed = "\n".join(f"  {b}" for b in shown[:12])
+    more = (f"\n  and {len(shown) - 12} more" if len(shown) > 12 else "")
+    rest = (f" {_plural(len(waiting), 'proposed folder')} "
+            f"({', '.join(waiting[:5])}) "
+            f"{'has' if len(waiting) == 1 else 'have'} nothing ready to "
+            "move yet — still waiting on questions or a closer look."
+            if waiting else "")
     return {"ok": True, "moved": False, "undo_token": None,
-            "text": f"Locked in: {_plural(frozen, 'file')} ready to move. "
-                    "Nothing moved yet. Tell me which folder to move:\n"
-                    + shown + more}
+            "text": f"Locked in {_plural(len(shown), 'folder')} "
+                    f"({_plural(frozen, 'file')}).{rest} Nothing moved yet. "
+                    "Tell me which folder to move:\n" + listed + more}
+
+
+def _real_branch(conn: sqlite3.Connection, branch: str) -> str:
+    """The plan's own folder path for a name the person was shown (which
+    has its ordering numbers dropped)."""
+    try:
+        from assistant.organize_tools import _sorter_tree
+        tree = _sorter_tree(conn)
+    except Exception:
+        tree = None
+    if tree is not None:
+        shown = display_name(branch).casefold()
+        for node_id in tree["nodes"]:
+            path = tree["path"](node_id)
+            if display_name(path).casefold() == shown:
+                return path
+    return branch
 
 
 def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
@@ -1097,8 +1299,9 @@ def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
         return {"ok": False, "error": "There is no locked-in plan to move "
                                       "yet. Organise the folder, then lock "
                                       "in the plan (freeze_plan)."}
+    branch = _real_branch(conn, branch)
     return _proposal("branch", f"{path}|{branch}",
-                     f"Move the files planned for {branch} in "
+                     f"Move the files planned for {display_name(branch)} in "
                      f"{_home_words(path)}? Every move can be undone.")
 
 
@@ -1167,10 +1370,11 @@ def _branch(conn: sqlite3.Connection, ref: str, undo: bool) -> dict[str, Any]:
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": f"0 files {'put back' if undo else 'moved'} — {why}"}
     them = "it" if n == 1 else "them"
+    shown = display_name(branch)
     return {"ok": True, "moved": True,
             "undo_token": None if undo else f"branch:{ref}",
-            "text": (f"Put {_plural(n, 'file')} back from {branch}." if undo
-                     else f"Moved {_plural(n, 'file')} into {branch}. Say "
+            "text": (f"Put {_plural(n, 'file')} back from {shown}." if undo
+                     else f"Moved {_plural(n, 'file')} into {shown}. Say "
                           f"undo to put {them} back.")}
 
 
