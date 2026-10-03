@@ -12323,8 +12323,14 @@ def draft_for_review(conn: sqlite3.Connection,
         opened = {(branch.label, category)
                   for branch, category, _label, _bucket in buckets
                   if branch is not None}
+        # AND A FILE ALREADY IN A DRAFT IS NOT DRAFTED AGAIN: a member of two
+        # accepted groups is skipped by both (§6.9), and a plan of nothing is
+        # refused. Measured: a person's kind answer put a file under Career
+        # while P9 had drafted its group under Education.
+        covered = {membership.file_id for group_id in drafted
+                   for membership in memberships_for_group(conn, group_id)}
         for branch, merged_id in _drafts_of_the_files_the_judge_named(
-                conn, branches, opened=opened,
+                conn, branches, opened=opened, covered=covered,
                 evidence_of=situation_evidence_of, domain_of=domain_of,
                 created_at=created_at):
             if on_accepted is not None:
@@ -12336,6 +12342,7 @@ def draft_for_review(conn: sqlite3.Connection,
 def _drafts_of_the_files_the_judge_named(
         conn: sqlite3.Connection, branches: Sequence[Branch], *,
         opened: set[tuple[str, str]],
+        covered: set[str],
         evidence_of: Callable[[str, str], tuple[str, str] | None],
         domain_of: Callable[[str], str | None] | None,
         created_at: str) -> list[tuple[Branch, str]]:
@@ -12375,7 +12382,7 @@ def _drafts_of_the_files_the_judge_named(
         by_domain: dict[str, list[tuple[str, str, str]]] = {}
         for file_id in branch.file_ids:
             kind = branch.kind_of(file_id)
-            if kind is None:
+            if kind is None or file_id in covered:
                 continue
             named = evidence_of(file_id, kind)
             if named is None:

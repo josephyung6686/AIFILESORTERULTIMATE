@@ -106,3 +106,32 @@ def test_the_situation_is_asked_under_the_kind_the_branch_put_the_file_under():
 
     assert asked == [("p1", "photos"), ("p2", "photos")]
     assert len(drafted) == 1
+
+
+def test_a_file_already_in_a_p9_draft_is_not_drafted_a_second_time(monkeypatch):
+    """Measured: a person's `career` answer put a file under Career while its
+    P9 group was drafted under Education. Drafted twice, it was a member of two
+    accepted groups, §6.9 skipped it in both, and the Career plan was empty --
+    `GroupPlan` refused it and the run stopped."""
+    from types import SimpleNamespace
+    conn = _conn()
+    default = _branch("career", (), {}, default=True, schemas=("career",))
+    career = _branch("Career", ("f1",), {"f1": "career"}, schemas=("career",))
+    education = _branch("Education", (), {}, schemas=("research",))
+    p9 = SimpleNamespace(group=SimpleNamespace(group_id="g"), stop_rule_outcome=None)
+    monkeypatch.setattr(cli, "_grouped_by_branch",
+                        lambda *a, **k: [(education, "research", "Education", [p9])])
+    monkeypatch.setattr(cli, "_draft_as_one", lambda *a, **k: "p9-draft")
+    real = cli.memberships_for_group
+    monkeypatch.setattr(cli, "memberships_for_group",
+                        lambda c, gid: ((SimpleNamespace(file_id="f1"),)
+                                        if gid == "p9-draft" else real(c, gid)))
+
+    drafted = cli.draft_for_review(
+        conn, [p9], group_category="career", label="career",
+        created_at="2026-10-03T00:00:00Z",
+        branch_for=lambda f: career, default_branch=default,
+        schema_of_file=lambda f: None, branches=(default, career, education),
+        situation_evidence_of=lambda f, k: ("h", "sha256:o"))
+
+    assert drafted == ("p9-draft",)
