@@ -96,6 +96,14 @@ _DISOWNS_LIST = re.compile(
     r" (file )?names\b", re.IGNORECASE)
 
 
+#: "I can't point to a location" -- false when the Session shows it next.
+_CANT_LOCATE = re.compile(
+    r"\b(can'?t|cannot|unable to) (point to|tell you|say|give|share|show)"
+    r" (you )?(a |the |its |exact |where)\w*", re.IGNORECASE)
+PROTECTED_HITS_LINE = ("I can't read it or send it to the AI — here it is "
+                       "for you:")
+
+
 def _drop_sentences(text: str, pattern: re.Pattern) -> str:
     out = []
     for line in text.splitlines():
@@ -597,7 +605,9 @@ class Session:
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
         if self._protected_hits:
-            reply = not_found_corrected(reply, len(self._protected_hits))
+            reply = not_found_corrected(
+                _drop_sentences(reply, _CANT_LOCATE) or "OK.",
+                len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
@@ -605,9 +615,9 @@ class Session:
         if self._protected_hits:
             # Protected matches are shown here, from the database, and never
             # through the model's reply.
-            self.emit(ev.Message(
-                text="Protected — shown only to you, never sent anywhere:",
-                citations=self._citations(self._protected_hits)))
+            self.emit(ev.Message(text=PROTECTED_HITS_LINE,
+                                 citations=self._citations(
+                                     self._protected_hits)))
         for event in self._shown_locally:
             self.emit(event)
         shown_before = self.on_screen
@@ -1346,7 +1356,16 @@ def plain_reply(conn: sqlite3.Connection, text: str) -> str:
         if named is None:
             text = text.replace(token, "")
             dropped = True
-    if not dropped:
+    text, emptied = _EMPTY_EMPHASIS.subn("", text)
+    if emptied:
+        # "inside ****" lost its name: the word goes with it.
+        text = re.sub(r"\s*\binside\b\s*(,|(?=\s|[.;!?]))", "", text)
+    if not dropped and not emptied:
         return text.strip()
     return re.sub(r"(?<=\S)[ \t]{2,}", " ",
                   re.sub(r"[ \t]+([?.,!:;])", r"\1", text)).strip()
+
+
+#: Bold or italics around nothing ("****", "** **", "__"): the model's name
+#: for something it was not told.
+_EMPTY_EMPHASIS = re.compile(r"(\*\*|__)\s*\1|(?<![*\w])\*\s*\*(?![*\w])")

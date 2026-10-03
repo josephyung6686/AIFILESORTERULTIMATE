@@ -90,3 +90,43 @@ def test_an_undo_prompt_is_reminded_once_then_dropped(lib):
     assert s.on_screen is None and not s.pending
     s.say("and my resume?")
     assert sum("Still waiting" in t for t in said(out)) == 1
+
+
+# -- 7. rendering ------------------------------------------------------------
+
+@pytest.mark.parametrize("raw, want", [
+    ("A folder **03 code**, inside ****, within **tencent**.",
+     "A folder **03 code**, within **tencent**."),
+    ("It sits inside **** on the Desktop.", "It sits on the Desktop."),
+    ("Nothing ** ** here.", "Nothing here."),
+])
+def test_empty_emphasis_never_reaches_the_screen(conn, raw, want):
+    from assistant.session import plain_reply
+    assert plain_reply(conn, raw) == want
+
+
+def _resume_is_protected(monkeypatch):
+    import assistant.tools as tools_mod
+    real = tools_mod.item_is_sensitive
+
+    def sensitive(c, item_id):
+        row = c.execute("SELECT display_label FROM items WHERE item_id = ?",
+                        (item_id,)).fetchone()
+        return bool(row and "Resume" in row[0]) or real(c, item_id)
+    monkeypatch.setattr(tools_mod, "item_is_sensitive", sensitive)
+
+
+def test_a_protected_match_says_it_cannot_be_read_then_shows_it(lib,
+                                                                monkeypatch):
+    conn, _ = lib
+    _resume_is_protected(monkeypatch)
+    out = []
+    s = Session(conn, provider_turn=turns(
+        tool("find_files", {"query": "resume"}),
+        text("Your resume is protected, so I can't point to a location. "
+             "It is shown on your screen.")), emit=out.append)
+    s.say("where is my resume?")
+    lines = said(out)
+    assert not any("point to a location" in t for t in lines)
+    assert ("I can't read it or send it to the AI — here it is for you:"
+            in lines)
