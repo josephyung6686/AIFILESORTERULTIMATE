@@ -219,10 +219,10 @@ def _print_understanding_summary(report, budget: Budget, out) -> None:
 def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
                         declared_areas: set[str], offline: bool, out,
                         provider=None, model_id: str = "", now: str = "",
-                        profile_note: str = "", budget: Budget | None = None) -> None:
+                        profile_note: str = "", budget: Budget | None = None):
     if offline:
         print("offline: the understanding pass sent nothing.", file=out)
-        return
+        return None
     root = str(directory)
     if not consent_recorded(conn, root):
         print(STATEMENT, file=out)
@@ -230,18 +230,18 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
               "dossier text may be sorted with the model provider. "
               "Run `filesorter onboard` for this folder. Nothing was sent.",
               file=out)
-        return
+        return None
     if decisions is None:
         views = indexed_views(conn, directory)
     else:
         views = unplaced_views(conn, decisions, private_areas=private_areas)
     if not views:
         print("Understanding: no unplaced file to ask about.", file=out)
-        return
+        return None
     if provider is None or not model_id:
         print("Understanding did not run: no model is configured. "
               "Nothing was sent.", file=out)
-        return
+        return None
     budget = budget or Budget()
     report = run_understanding(
         conn=conn, views=views, declared_areas=declared_areas,
@@ -249,6 +249,7 @@ def understand_unplaced(conn, decisions, *, directory, private_areas: set[str],
         offline=False, consent=True, budget=budget, now=now,
         profile_note=profile_note)
     _print_understanding_summary(report, budget, out)
+    return report
 
 
 def understand_residuals(conn, *, directory, private_areas: set[str],

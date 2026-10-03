@@ -19,7 +19,7 @@ from dataclasses import replace
 from tree_design.records import ExpectedValue, Node
 from tree_design.vocabulary import ARCHIVE, PROPOSED, PROTECTED, REVIEW_AND_UNSORTED
 
-__all__ = ["shape_proposed_tree"]
+__all__ = ["course_key", "is_course_code", "shape_proposed_tree"]
 
 #: Finder's own copy marker, `Name (2)` or `Name(2)`, and the numbered form
 #: `Name 2` that the same downloads leave behind.
@@ -38,33 +38,70 @@ _NOISE_STEMS = frozenset({"files", "starter"})
 _SUBJECT = "subject"
 _TERM = "term"
 _WORK_TYPE = "work_type"
+#: A course code is letters then a number (`COMS4701`, `CHEN 2100`). A term
+#: like `2025-Spring` is not one: it starts with a digit.
+_COURSE_CODE = re.compile(r"[a-z]{2,12}\d{3,4}[a-z0-9]*")
+
+
+def course_key(text: str) -> str:
+    """One spelling for a course. `CHEN 2100` and `CHEN2100` are the same key.
+
+    Copy markers `(2)` and `_export` are noise. A trailing course number is
+    not: `COMS 4701` must not be stripped down to `COMS`.
+    """
+    cleaned = _strip(text or "", numbered_copy=False)
+    return re.sub(r"[^a-z0-9]", "", cleaned.casefold())
+
+
+def is_course_code(text: str) -> bool:
+    """Whether this label is a course code, not a term or a dump name."""
+    key = course_key(text)
+    return _COURSE_CODE.fullmatch(key) is not None
 
 
 def shape_proposed_tree(nodes: Sequence[Node], *,
                         holds: Mapping[str, Sequence[str]] | None = None,
+                        on_disk: Mapping[str, Sequence[str]] | None = None,
+                        declared_courses: Sequence[str] = (),
                         ) -> tuple[Node, ...]:
     """The proposed folders, with obvious duplicates no longer top-level peers.
 
-    `holds` is node id to the files seated on that node, the same map the
-    outline uses for its counts. A node with nothing in its subtree is empty.
+    `holds` is node id to the files the plan seated on that node. That count
+    is placements. It is not emptiness.
+
+    `on_disk` is node id to the files sitting in that directory. When it is
+    passed, an existing directory is empty only when that map gives it and
+    its children nothing. Zero placements do not park it and do not drop it.
+    `None` means the caller did not measure the disk; disposal then follows
+    `holds`, which is what the tests written before that measurement do.
+
+    `declared_courses` are the person's own course strings. A leaf that
+    matches one is not disposable empty noise. Spacing does not make a
+    second course.
     """
     files_of = {node_id: tuple(file_ids)
                 for node_id, file_ids in (holds or {}).items()}
+    disk_of = None if on_disk is None else {
+        node_id: tuple(file_ids) for node_id, file_ids in on_disk.items()}
+    declared = tuple(declared_courses)
     by_id = {node.node_id: node for node in nodes}
     # Empty copy and export folders, remembered before their labels are cleaned.
     noise: set[str] = set()
-    _collapse_finder_copies(by_id, files_of, noise)
-    _group_courses(by_id, files_of)
-    _collapse_finder_copies(by_id, files_of, noise)
+    _collapse_finder_copies(by_id, files_of, noise, disk_of, declared)
+    _collapse_same_course_labels(by_id, files_of, noise, disk_of, declared)
+    _group_courses(by_id, files_of, declared)
+    _collapse_finder_copies(by_id, files_of, noise, disk_of, declared)
     _remember_export_and_copy_labels(by_id, noise)
     _strip_export_noise(by_id)
-    _park_empty_noise(by_id, files_of, noise)
+    _park_empty_noise(by_id, files_of, noise, disk_of, declared)
     return tuple(by_id.values())
 
 
 def _collapse_finder_copies(by_id: dict[str, Node],
                             files_of: Mapping[str, Sequence[str]],
-                            noise: set[str]) -> None:
+                            noise: set[str],
+                            disk_of: Mapping[str, Sequence[str]] | None,
+                            declared: Sequence[str]) -> None:
     """One node per stem among siblings, unless their subjects disagree.
 
     The richest sibling keeps the id. Empty copies are dropped. A copy that
@@ -87,12 +124,48 @@ def _collapse_finder_copies(by_id: dict[str, Node],
                 continue
             if len({_field(node, _SUBJECT) for node in group}) != 1:
                 continue
-            _collapse_group(by_id, files_of, group, noise)
+            _collapse_group(by_id, files_of, group, noise, disk_of, declared)
+
+
+def _collapse_same_course_labels(by_id: dict[str, Node],
+                                 files_of: Mapping[str, Sequence[str]],
+                                 noise: set[str],
+                                 disk_of: Mapping[str, Sequence[str]] | None,
+                                 declared: Sequence[str]) -> None:
+    """Siblings whose labels are the same course code are one folder.
+
+    `CHEN 2100` and `CHEN2100` do not share a stem, so the Finder-copy pass
+    leaves them as peers. The course key does not.
+    """
+    depths = {node_id: _depth(node_id, by_id) for node_id in list(by_id)}
+    parents = sorted({node.parent_node_id for node in by_id.values()},
+                     key=lambda parent: depths.get(parent or "", 0),
+                     reverse=True)
+    for parent_id in parents:
+        siblings = [node for node in by_id.values()
+                    if node.parent_node_id == parent_id
+                    and node.node_type != PROTECTED]
+        grouped: dict[str, list[Node]] = {}
+        for node in siblings:
+            key = course_key(node.display_label)
+            if not is_course_code(node.display_label):
+                continue
+            grouped.setdefault(key, []).append(node)
+        for group in grouped.values():
+            if len(group) < 2:
+                continue
+            subjects = {course_key(_field(node, _SUBJECT) or "") for node in group}
+            subjects.discard("")
+            if len(subjects) > 1:
+                continue
+            _collapse_group(by_id, files_of, group, noise, disk_of, declared)
 
 
 def _collapse_group(by_id: dict[str, Node],
                     files_of: Mapping[str, Sequence[str]],
-                    group: Sequence[Node], noise: set[str]) -> None:
+                    group: Sequence[Node], noise: set[str],
+                    disk_of: Mapping[str, Sequence[str]] | None,
+                    declared: Sequence[str]) -> None:
     present = [by_id[node.node_id] for node in group if node.node_id in by_id]
     if len(present) < 2:
         return
@@ -100,13 +173,13 @@ def _collapse_group(by_id: dict[str, Node],
         _richness(node, by_id, files_of), node.node_id))
     label = _display_for(present, by_id, files_of)
     by_id[winner.node_id] = _relabel(winner, label)
-    if _subtree_files(winner.node_id, by_id, files_of) == 0:
+    if _disposable(winner.node_id, by_id, files_of, disk_of, declared):
         noise.add(winner.node_id)
     for loser in present:
         if loser.node_id == winner.node_id or loser.node_id not in by_id:
             continue
         loser = by_id[loser.node_id]
-        if _subtree_files(loser.node_id, by_id, files_of) == 0 and (
+        if _disposable(loser.node_id, by_id, files_of, disk_of, declared) and (
                 loser.display_label not in _KEPT_WHEN_EMPTY):
             for child in _children(loser.node_id, by_id):
                 by_id[child.node_id] = _reparent(child, winner.node_id)
@@ -118,7 +191,8 @@ def _collapse_group(by_id: dict[str, Node],
 
 
 def _group_courses(by_id: dict[str, Node],
-                   files_of: Mapping[str, Sequence[str]]) -> None:
+                   files_of: Mapping[str, Sequence[str]],
+                   declared: Sequence[str] = ()) -> None:
     """Subject, then term, then kind of work, when the files agree.
 
     Two peers that share a subject become one course. The same export stem
@@ -135,7 +209,7 @@ def _group_courses(by_id: dict[str, Node],
         by_stem.setdefault(_stem_key(node.display_label), []).append(node)
         subject = _field(node, _SUBJECT)
         if subject:
-            by_subject.setdefault(subject, []).append(node)
+            by_subject.setdefault(course_key(subject), []).append(node)
 
     place: set[str] = set()
     for group in by_stem.values():
@@ -143,8 +217,9 @@ def _group_courses(by_id: dict[str, Node],
         if len(group) < 2 or len(subjects) < 2:
             continue
         place.update(node.node_id for node in group if _field(node, _SUBJECT))
-    for group in by_subject.values():
-        if len(group) >= 2:
+    for key, group in by_subject.items():
+        if len(group) >= 2 or _another_course_home(
+                by_id, key, {node.node_id for node in group}):
             place.update(node.node_id for node in group)
     if not place:
         return
@@ -154,24 +229,34 @@ def _group_courses(by_id: dict[str, Node],
     subject_count = {subject: len(group) for subject, group in by_subject.items()}
     for node in members:
         _place_in_course(by_id, node, academic=academic,
-                         subject_count=subject_count)
+                         subject_count=subject_count, declared=declared)
 
 
 def _place_in_course(by_id: dict[str, Node], node: Node, *,
-                     academic: Node, subject_count: Mapping[str, int]) -> None:
+                     academic: Node, subject_count: Mapping[str, int],
+                     declared: Sequence[str] = ()) -> None:
     subject = _field(node, _SUBJECT)
     if not subject or node.node_id not in by_id:
         return
     node = by_id[node.node_id]
     term = _field(node, _TERM)
     work = _field(node, _WORK_TYPE)
-    sole = subject_count.get(subject, 0) == 1
+    key = course_key(subject)
+    label = _course_label(subject, declared, by_id, academic)
+    sole = subject_count.get(key, 0) == 1
+    # This folder's own name is the course. It is the home, not a child of a
+    # second copy of the same name.
+    if (is_course_code(node.display_label) and course_key(node.display_label) == key
+            and not work and not term):
+        by_id[node.node_id] = _retitle(
+            node, label=label, parent=academic.node_id, dimension=_SUBJECT)
+        return
     if sole and not term and not work:
         by_id[node.node_id] = _retitle(
-            node, label=subject, parent=academic.node_id, dimension=_SUBJECT)
+            node, label=label, parent=academic.node_id, dimension=_SUBJECT)
         return
     course = _ensure_level(
-        by_id, parent=academic, label=subject, dimension=_SUBJECT,
+        by_id, parent=academic, label=label, dimension=_SUBJECT,
         expected=((_SUBJECT, subject),), donor=node)
     parent = course
     if term:
@@ -205,7 +290,9 @@ def _strip_export_noise(by_id: dict[str, Node]) -> None:
 
 def _park_empty_noise(by_id: dict[str, Node],
                       files_of: Mapping[str, Sequence[str]],
-                      noise: set[str]) -> None:
+                      noise: set[str],
+                      disk_of: Mapping[str, Sequence[str]] | None = None,
+                      declared: Sequence[str] = ()) -> None:
     """Finder copies, export leftovers, and dump names are not top-level peers.
 
     A branch the plan proposed can count as empty and still be the branch.
@@ -214,7 +301,7 @@ def _park_empty_noise(by_id: dict[str, Node],
     and `98 Review and Unsorted` stay where they are.
     """
     parked = [node for node in by_id.values()
-              if _is_empty_noise(node, by_id, files_of, noise)]
+              if _is_empty_noise(node, by_id, files_of, noise, disk_of, declared)]
     if not parked:
         return
     archive = _archive_parent(by_id, donor=parked[0])
@@ -226,17 +313,121 @@ def _park_empty_noise(by_id: dict[str, Node],
 
 def _is_empty_noise(node: Node, by_id: Mapping[str, Node],
                     files_of: Mapping[str, Sequence[str]],
-                    noise: set[str]) -> bool:
+                    noise: set[str],
+                    disk_of: Mapping[str, Sequence[str]] | None = None,
+                    declared: Sequence[str] = ()) -> bool:
     if node.parent_node_id is not None or node.node_type == PROTECTED:
         return False
     if node.display_label in _KEPT_WHEN_EMPTY:
         return False
     if _children(node.node_id, by_id):
         return False
-    if _subtree_files(node.node_id, by_id, files_of) != 0:
+    if not _disposable(node.node_id, by_id, files_of, disk_of, declared):
         return False
     stem = _stem_key(node.display_label)
     return (node.node_id in noise or stem in _NOISE_STEMS or stem.isdigit())
+
+
+def _disposable(node_id: str, by_id: Mapping[str, Node],
+               files_of: Mapping[str, Sequence[str]],
+               disk_of: Mapping[str, Sequence[str]] | None,
+               declared: Sequence[str]) -> bool:
+    """A folder can be parked or dropped only when it is actually empty.
+
+    An existing directory is empty when `disk_of` was measured and the
+    directory holds no file. Zero placements are not that measurement.
+    A leaf that matches a declared course is not disposable.
+    """
+    node = by_id.get(node_id)
+    if node is None or _matches_declared(node, declared):
+        return False
+    if disk_of is not None and getattr(node, "existing_path", None):
+        return _disk_files(node_id, by_id, disk_of) == 0
+    return _subtree_files(node_id, by_id, files_of) == 0
+
+
+def _matches_declared(node: Node, declared: Sequence[str]) -> bool:
+    keys = {course_key(item) for item in declared if item and course_key(item)}
+    if not keys:
+        return False
+    subject = _field(node, _SUBJECT)
+    if subject and course_key(subject) in keys:
+        return True
+    return course_key(node.display_label) in keys
+
+
+def _disk_files(node_id: str, by_id: Mapping[str, Node],
+                disk_of: Mapping[str, Sequence[str]]) -> int:
+    seen: set[str] = set()
+
+    def walk(current: str) -> int:
+        if current in seen:
+            return 0
+        seen.add(current)
+        total = len(disk_of.get(current, ()))
+        for child in _children(current, by_id):
+            total += walk(child.node_id)
+        return total
+
+    return walk(node_id)
+
+
+def _another_course_home(by_id: Mapping[str, Node], key: str,
+                         group_ids: set[str]) -> bool:
+    """Whether this course already has a home outside this top-level group.
+
+    A child of a group member is the same home, not a second one. That is
+    what kept a course folder from being pulled under Academic just because
+    a notes folder beneath it carries the same subject.
+    """
+    if not key:
+        return False
+    for node in by_id.values():
+        if node.node_id in group_ids:
+            continue
+        if any(_is_ancestor(by_id, member, node.node_id) for member in group_ids):
+            continue
+        if _node_course_key(node) == key:
+            return True
+    return False
+
+
+def _node_course_key(node: Node) -> str:
+    subject = _field(node, _SUBJECT)
+    if subject and course_key(subject):
+        return course_key(subject)
+    if is_course_code(node.display_label):
+        return course_key(node.display_label)
+    return ""
+
+
+def _course_label(subject: str, declared: Sequence[str],
+                  by_id: Mapping[str, Node], academic: Node) -> str:
+    key = course_key(subject)
+    for course in declared:
+        if course and course_key(course) == key:
+            return course.strip()
+    for node in by_id.values():
+        if (node.parent_node_id == academic.node_id
+                and is_course_code(node.display_label)
+                and course_key(node.display_label) == key):
+            return node.display_label
+    for node in by_id.values():
+        if is_course_code(node.display_label) and course_key(node.display_label) == key:
+            return node.display_label
+    return subject
+
+
+def _is_ancestor(by_id: Mapping[str, Node], ancestor_id: str, node_id: str) -> bool:
+    seen: set[str] = set()
+    current: str | None = node_id
+    while current and current not in seen:
+        if current == ancestor_id:
+            return True
+        seen.add(current)
+        node = by_id.get(current)
+        current = node.parent_node_id if node is not None else None
+    return False
 
 
 def _academic_parent(by_id: dict[str, Node], *, donor: Node) -> Node:
@@ -264,10 +455,29 @@ def _archive_parent(by_id: dict[str, Node], *, donor: Node) -> Node:
 def _ensure_level(by_id: dict[str, Node], *, parent: Node, label: str,
                   dimension: str, expected: Sequence[tuple[str, str]],
                   donor: Node) -> Node:
+    wanted = course_key(label) if dimension == _SUBJECT else ""
     for node in by_id.values():
-        if (node.parent_node_id == parent.node_id and node.display_label == label
-                and node.dimension == dimension):
+        if node.parent_node_id != parent.node_id:
+            continue
+        if node.display_label == label and node.dimension == dimension:
             return node
+        if (wanted and is_course_code(node.display_label)
+                and course_key(node.display_label) == wanted):
+            return node
+    if wanted:
+        for node in list(by_id.values()):
+            if node.node_id == parent.node_id:
+                continue
+            if not is_course_code(node.display_label):
+                continue
+            if course_key(node.display_label) != wanted:
+                continue
+            if _is_ancestor(by_id, node.node_id, parent.node_id):
+                continue
+            moved = node if node.parent_node_id == parent.node_id else _reparent(
+                node, parent.node_id)
+            by_id[node.node_id] = moved
+            return by_id[node.node_id]
     node_id = f"shaped:{parent.node_id}:{dimension}:{label}"
     return _mint(by_id, donor=donor, node_id=node_id, label=label,
                  parent=parent.node_id, dimension=dimension, expected=expected,

@@ -25734,8 +25734,73 @@ def _holds_the_outline_counted(conn: sqlite3.Connection, nodes, plan_version: st
     return _files_held_by_node(conn, result)
 
 
+def _declared_course_names(args, conn, directory) -> tuple[str, ...]:
+    """Course strings from this command and from the stored profile.
+
+    Spacing is kept. The shaper's course key treats `CHEN 2100` and
+    `CHEN2100` as one course.
+    """
+    names: list[str] = []
+    for item in getattr(args, "profile_course", None) or []:
+        text = item.split("=", 1)[1] if isinstance(item, str) and "=" in item else item
+        if isinstance(text, str) and text.strip():
+            names.append(text.strip())
+    try:
+        from onboarding.answers import stored_answers
+        stored = stored_answers(conn, str(directory))
+    except Exception:
+        stored = None
+    if stored:
+        for course in stored.get("courses") or []:
+            if isinstance(course, dict):
+                code = str(course.get("code") or "").strip()
+                if code:
+                    names.append(code)
+            elif isinstance(course, str) and course.strip():
+                names.append(course.strip())
+    return tuple(dict.fromkeys(names))
+
+
+def _on_disk_by_node(conn, nodes) -> dict[str, list[str]]:
+    """Indexed files sitting in each existing directory. Not placements."""
+    try:
+        rows = list(conn.execute("SELECT file_id, current_path FROM files"))
+    except sqlite3.OperationalError:
+        return {}
+    return _files_sitting_in_their_own_folders(rows, nodes)
+
+
+def _proposal_outline(result, conn, *, situations, declared_courses=(),
+                      understandings=None):
+    """The outline rows, after understanding has been seated.
+
+    This is the picture `--structure-out` writes. Rule placements are the
+    starting holds. Understanding answers and abstentions are applied
+    before the rows exist, so the file is not the pre-understand picture.
+    """
+    from understanding.into_placement import seat_unplaced
+    base = _files_held_by_node(conn, result)
+    decisions = () if result.placement is None else result.placement.decisions
+    nodes = result.tree.tree.nodes
+    seating = seat_unplaced(
+        nodes, placement_holds=base, decisions=decisions,
+        understandings=understandings or {},
+        declared_courses=declared_courses)
+    return structure_rows(
+        result, situations=situations, words_of=situation_words,
+        holds=seating.holds, shape_holds=base,
+        on_disk=_on_disk_by_node(conn, nodes),
+        declared_courses=declared_courses, review_ids=seating.review_ids,
+        extra_nodes=seating.extra_nodes)
+
+
 def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
                    words_of, holds: Mapping[str, Sequence[str]] | None = None,
+                   on_disk: Mapping[str, Sequence[str]] | None = None,
+                   declared_courses: Sequence[str] = (),
+                   review_ids: Sequence[str] = (),
+                   extra_nodes: Sequence = (),
+                   shape_holds: Mapping[str, Sequence[str]] | None = None,
                    ) -> tuple[StructureRow, ...]:
     """The proposed tree as the outline the person edits.
 
@@ -25764,10 +25829,33 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             if decision.destination is not None:
                 holds.setdefault(decision.destination.node_id, []).extend(
                     _files_of(decision))
+    else:
+        holds = {node_id: list(file_ids) for node_id, file_ids in holds.items()}
     # Finder copies, `_export` titles, and same-subject peers are still the
     # scan's own names at this point. The outline the person edits is the
     # shaped tree; the plan's node ids are unchanged.
-    nodes = shape_proposed_tree(result.tree.tree.nodes, holds=holds)
+    # Review files are seated here, before the outline is composed, so a
+    # run that abstained does not print "0 files" on that line.
+    nodes = tuple(result.tree.tree.nodes) + tuple(extra_nodes)
+    if review_ids:
+        review = next((node for node in nodes
+                       if node.parent_node_id is None
+                       and node.display_label == tv.REVIEW_AND_UNSORTED), None)
+        if review is not None:
+            bucket = holds.setdefault(review.node_id, [])
+            already = {file_id for file_ids in holds.values() for file_id in file_ids}
+            for file_id in review_ids:
+                if file_id not in already:
+                    bucket.append(file_id)
+                    already.add(file_id)
+    # The walk is shaped from the rule placements. Understanding seats and
+    # abstentions change the counts on the lines, not which folders the
+    # walk contains, so an unedited file is the same walk this plan wrote.
+    nodes = shape_proposed_tree(
+        nodes, holds=shape_holds if shape_holds is not None else holds,
+        on_disk=on_disk, declared_courses=declared_courses)
+    disk_of = {} if on_disk is None else {
+        node_id: tuple(file_ids) for node_id, file_ids in on_disk.items()}
     by_parent = _children_of(nodes)
     by_id = {node.node_id: node for node in nodes}
 
@@ -25787,13 +25875,25 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             files.extend(under(child.node_id))
         return files
 
+    def on_disk_under(node_id: str) -> list[str]:
+        files = list(disk_of.get(node_id, ()))
+        for child in by_parent.get(node_id, ()):
+            files.extend(on_disk_under(child.node_id))
+        return files
+
     rows: list[StructureRow] = []
     for marker, depth, node in _outline_walk(nodes):
         files = under(node.node_id)
+        sitting = on_disk_under(node.node_id) if disk_of else []
         if node.node_type == PROTECTED_NODE_TYPE:
             # `106` Phase 7 §C producer 3: a bundle at the root is not a folder
             # of the plan, and "0 files" beside it read as an empty one.
             said = [PROTECTED_ROW_WORDS]
+        elif not files and sitting:
+            # Placements were zero. The directory still has files, so the
+            # line is not an empty folder and not "0 files".
+            count = len(sitting)
+            said = [f"{count} file{'' if count == 1 else 's'} in this folder"]
         else:
             said = [f"{len(files)} file{'' if len(files) == 1 else 's'}"]
             # `106` Phase 7 §B.3: what the folder holds without a level for it.
@@ -25908,7 +26008,8 @@ def _branch_question(conn: sqlite3.Connection, label: str) -> str:
 
 def structure_edits(conn: sqlite3.Connection, text: str, *,
                     plan_version: str, names: Mapping[str, str],
-                    situation_schema) -> dict[str, list[str]]:
+                    situation_schema, declared_courses: Sequence[str] = (),
+                    ) -> dict[str, list[str]]:
     """One edited outline, as the gestures this command already has.
 
     Returns the flags' own strings, so `main` appends them to what the person
@@ -25940,7 +26041,9 @@ def structure_edits(conn: sqlite3.Connection, text: str, *,
     # unedited file is the walk this plan wrote and not the scan underneath it.
     shaped = shape_proposed_tree(
         raw_nodes, holds=_holds_the_outline_counted(
-            conn, raw_nodes, plan_version))
+            conn, raw_nodes, plan_version),
+        on_disk=_on_disk_by_node(conn, raw_nodes),
+        declared_courses=declared_courses)
     nodes = {marker: node
              for marker, _depth, node in _outline_walk(shaped)}
     parents = {marker: None for marker in nodes}
@@ -27928,10 +28031,11 @@ def _understanding_budget(args):
     )
 
 
-def _understand_after_scan(args, conn, directory, *, decisions, consent, out) -> int:
-    """Ask about files this scan did not place. A missing plan places none.
+def _understand_before_outline(args, conn, directory, *, decisions, consent, out):
+    """Ask about files the rules did not place. Returns ``(status, report)``.
 
-    A cloud understanding pass with no provider returns 2 before any call.
+    The outline is written after this returns, and the report's answers are
+    seated first. A cloud pass with no provider returns 2 and no report.
     Offline stays on this device and returns 0.
     """
     from understanding.attach import understand_unplaced
@@ -27942,7 +28046,7 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
             conn, decisions, directory=directory,
             private_areas=private, declared_areas=declared, offline=True,
             provider=None, model_id="", profile_note=note, out=out)
-        return 0
+        return 0, None
     resolved = getattr(args, "understanding_resolved", None)
     if resolved is None:
         from providers.record import load_provider_choice
@@ -27952,8 +28056,8 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
         provider, model_id = resolved
     if provider is None or not model_id:
         print(NO_UNDERSTANDING_PROVIDER, file=out)
-        return 2
-    understand_unplaced(
+        return 2, None
+    report = understand_unplaced(
         conn, decisions, directory=directory,
         private_areas=private,
         declared_areas=declared,
@@ -27963,7 +28067,19 @@ def _understand_after_scan(args, conn, directory, *, decisions, consent, out) ->
         profile_note=note,
         budget=_understanding_budget(args),
         out=out)
-    return 0
+    return 0, report
+
+
+def _report_empty_directories(directory, args, out) -> None:
+    """List directories with no files. Remove them only on an explicit yes."""
+    from empty_directories import apply_empty_removal
+    confirm = getattr(args, "remove_empty", "no")
+    message, removed = apply_empty_removal(directory, confirm=confirm or "no")
+    if message:
+        print("", file=out)
+        print(message, file=out)
+    if removed:
+        print(f"Removed {len(removed)} empty folder(s).", file=out)
 
 
 def _continue_understanding(args, conn, directory, *, consent, out) -> int:
@@ -28483,6 +28599,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "model already marked needs-review is left there and is not sent "
              "again. A budget stop is sent again, under this run's budget.")
     parser.add_argument(
+        "--remove-empty", choices=("yes", "no"), default="no",
+        help="List folders that contain no files and leave them in place. "
+             "--remove-empty yes removes exactly that listed set and nothing "
+             "else. Any other value removes nothing. A folder that still has "
+             "files is not listed. Zero placements is not emptiness.")
+    parser.add_argument(
         "--accept-cloud-understanding", action="store_true",
         help="record that dossier text (not whole files) may go to the "
              "provider's servers for this folder. A normal scan records the "
@@ -28991,7 +29113,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                 conn, args.structure.read_text(encoding="utf-8"),
                 plan_version=_from,
                 names=file_names(conn, directory, *also_read),
-                situation_schema=situation_schema_id)
+                situation_schema=situation_schema_id,
+                declared_courses=_declared_course_names(args, conn, directory))
             args.answer = [*args.answer, *_edited["answer"]]
             args.rename = [*args.rename, *_edited["rename"]]
             args.reject = [*args.reject, *_edited["reject"]]
@@ -29299,8 +29422,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # The files were read and none of them were placed. --understand asks
         # about those files. The refusal above stays on the screen.
         if _understanding_wanted(args) and isinstance(refusal, NothingToDesign):
-            return _understand_after_scan(
+            status, _report = _understand_before_outline(
                 args, conn, directory, decisions=None, consent=consent, out=out)
+            return status
         return 1
     except BaseException:
         if scan_profile_run is not None:
@@ -29356,9 +29480,22 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # leave alone, and one the next scan would index.
     structure_path = (args.structure_out if args.structure_out is not None
                       else database.parent / STRUCTURE_FILENAME)
-    outline = structure_rows(result, situations=situations,
-                             words_of=situation_words,
-                             holds=_files_held_by_node(conn, result))
+    # Understanding runs before the outline exists. Its answers are an
+    # input to where unplaced files are counted. A later residuals pass is
+    # not required for the outline to include them.
+    understanding_status = 0
+    understandings: dict = {}
+    if result.placement is not None and _understanding_wanted(args):
+        understanding_status, understanding_report = _understand_before_outline(
+            args, conn, directory, decisions=result.placement.decisions,
+            consent=consent, out=out)
+        if understanding_report is not None:
+            from understanding.into_placement import understandings_from_report
+            understandings = understandings_from_report(understanding_report)
+    declared_courses = _declared_course_names(args, conn, directory)
+    outline = _proposal_outline(
+        result, conn, situations=situations,
+        declared_courses=declared_courses, understandings=understandings)
     if result.placement is None:
         # `--stop-after tree` (`106` Phase 5.3): the proposal is the outline
         # and nothing was placed, so the report -- which is a report ON A
@@ -29374,6 +29511,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             structure_render(outline, path=str(structure_path),
                              plan=result.tree.tree.plan_version_id),
             encoding="utf-8")
+        _report_empty_directories(directory, args, out)
         return 0
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
@@ -29480,6 +29618,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         structure_render(outline, path=str(structure_path),
                          plan=result.tree.tree.plan_version_id),
         encoding="utf-8")
+    _report_empty_directories(directory, args, out)
     if args.record:
         # AFTER the report, because it ends in a command to type and a command
         # printed above forty lines of report is a command nobody sees. The
@@ -29491,12 +29630,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         for line in recorded_lines(args.record, recorded,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
-    if _understanding_wanted(args):
-        understood = _understand_after_scan(
-            args, conn, directory, decisions=result.placement.decisions,
-            consent=consent, out=out)
-        if understood:
-            return understood
+    if understanding_status:
+        return understanding_status
     if not args.freeze:
         return 0
 
