@@ -268,8 +268,15 @@ class Session:
         self.reader = None
         #: The last moved batch's undo token, for `undo_last` and `undo`.
         self.last_undo_token: str | None = None
+        #: Held while the Session answers; the background reader's events
+        #: wait for it, so they never land inside a reply.
+        self._turn_lock = threading.RLock()
 
     def emit(self, event) -> None:
+        with self._turn_lock:
+            self._emit_now(event)
+
+    def _emit_now(self, event) -> None:
         if isinstance(event, ev.Progress) and event.line:
             line = scrub_developer_text(event.line) or "Working…"
             event = ev.Progress(stage=event.stage, done=event.done,
@@ -297,6 +304,10 @@ class Session:
     def open(self) -> None:
         """The greeting, once: a second call (the app's `open` action after
         `--events` already opened) changes nothing."""
+        with self._turn_lock:
+            self._open()
+
+    def _open(self) -> None:
         if self._opened:
             return
         self._opened = True
@@ -380,6 +391,10 @@ class Session:
 
     def choose_folder(self, text: str) -> None:
         """The person's answer to the folder question: index it now."""
+        with self._turn_lock:
+            self._choose_folder(text)
+
+    def _choose_folder(self, text: str) -> None:
         from assistant.engine_tools import check_folder, run_index
         typed = text.strip().strip("'\"")
         typed = FOLDER_CHOICES.get(typed.lower(), typed)
@@ -572,6 +587,10 @@ class Session:
 
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
+        with self._turn_lock:
+            self._say(text)
+
+    def _say(self, text: str) -> None:
         if self.awaiting_key:
             self._take_key(text)
             return
@@ -849,6 +868,10 @@ class Session:
             self.start_questions()
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
+        with self._turn_lock:
+            self._confirm_shown(confirm_id, yes)
+
+    def _confirm_shown(self, confirm_id: str, yes: bool) -> None:
         hidden = self.asking
         self._confirm(confirm_id, yes)
         if hidden is not None and self.asking is hidden and (
