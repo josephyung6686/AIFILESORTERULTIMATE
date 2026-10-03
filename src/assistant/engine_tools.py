@@ -573,19 +573,25 @@ def _protection(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
     if row is None or not row["open_target"]:
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": "I can't find that file any more. Nothing changed."}
-    conn.commit()
-    flag = "--file-held" if action == "hold" else "--release"
-    stream = _ProgressStream(None)
+    import getpass
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    # The sorter's own `--file-held` / `--release` gestures, on this database.
     try:
-        code = cli.main([str(Path(row["open_target"]).parent), "--database",
-                         database_path(conn), flag, row["file_id"]],
-                        out=stream)
-    except SystemExit as exc:
-        code = exc.code
+        if action == "hold":
+            cli.apply_file_held(conn, [row["file_id"]],
+                                plan_version=cli.PLAN_VERSION,
+                                user_id=getpass.getuser(), recorded_at=now)
+        else:
+            cli.apply_release(conn, [row["file_id"]],
+                              user_id=getpass.getuser(), recorded_at=now)
+        conn.commit()
     except Exception:
-        code = 1
-    done = item_is_sensitive(conn, item_id) == (action == "hold")
-    if not done or code not in (0, None):
+        conn.rollback()
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": ("I can't change protection until this folder has "
+                         "been organised once. Nothing changed.")}
+    if item_is_sensitive(conn, item_id) != (action == "hold"):
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": "I couldn't change that file's protection. Nothing "
                         "changed."}
