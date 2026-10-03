@@ -36,6 +36,9 @@ classifiers = [
 dev = ["pytest>=8", "pytest-randomly>=3.15", "jsonschema>=4"]
 # Optional live macOS FSEvents backend for PathWatcher (P1). Polling works without it.
 watch = ["watchdog>=4; sys_platform == 'darwin'"]
+# Required when encrypted local storage is selected. Plain installs retain the
+# stdlib SQLite path; requesting encryption without this extra fails closed.
+encryption = ["sqlcipher3>=0.6.2"]
 # The deployment layer (`src/readers/`) and ONLY it. `dependencies` above stays
 # empty on purpose: P5's SPEC says it "adds no third-party runtime dependency" and
 # every format reader is a caller-supplied callable, so the libraries are installed
@@ -110,7 +113,7 @@ models = [
 # The command a person types after installing. The name is the one `cli.py` already
 # gives its own `ArgumentParser`, so `--help` names the command that produced it.
 [project.scripts]
-database-agent = "cli:main"
+database-agent = "database_agent.entrypoint:main"
 
 [build-system]
 requires = ["setuptools>=68"]

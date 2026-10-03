@@ -1,0 +1,96 @@
+{
+  "schema": "release-gate-report/v1",
+  "ok": true,
+  "gates": [
+    {
+      "name": "wheel_build",
+      "returncode": 0,
+      "started": "2026-10-03T04:43:30Z",
+      "ended": "2026-10-03T04:43:35Z",
+      "status": "passed"
+    },
+    {
+      "name": "venv_create",
+      "returncode": 0,
+      "started": "2026-10-03T04:43:35Z",
+      "ended": "2026-10-03T04:43:39Z",
+      "status": "passed"
+    },
+    {
+      "name": "wheel_install",
+      "returncode": 0,
+      "started": "2026-10-03T04:43:39Z",
+      "ended": "2026-10-03T04:43:42Z",
+      "status": "passed"
+    },
+    {
+      "name": "declared_dependencies",
+      "returncode": 0,
+      "started": "2026-10-03T04:43:42Z",
+      "ended": "2026-10-03T04:44:04Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_encryption",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:04Z",
+      "ended": "2026-10-03T04:44:04Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_artifact",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:04Z",
+      "ended": "2026-10-03T04:44:04Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_entrypoint",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:04Z",
+      "ended": "2026-10-03T04:44:05Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_plan_help",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:05Z",
+      "ended": "2026-10-03T04:44:05Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_preview_help",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:05Z",
+      "ended": "2026-10-03T04:44:05Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_local_db",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:05Z",
+      "ended": "2026-10-03T04:44:05Z",
+      "status": "passed"
+    },
+    {
+      "name": "installed_assistant_items",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:06Z",
+      "ended": "2026-10-03T04:44:27Z",
+      "status": "passed"
+    },
+    {
+      "name": "connector_boundary",
+      "returncode": 0,
+      "started": "2026-10-03T04:44:27Z",
+      "ended": "2026-10-03T04:44:27Z",
+      "status": "passed"
+    }
+  ],
+  "scope": {
+    "ui": "excluded",
+    "live_connectors": "scratched",
+    "network": "off",
+    "encryption": "preprovisioned wheelhouse required"
+  }
+}

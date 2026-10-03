@@ -28,14 +28,48 @@ def test_db_maintenance_importable():
 
 
 def test_release_gate_is_clean_wheel_and_does_not_skip_safety():
-    text = (ROOT / "tools/run_release_gates.sh").read_text()
-    assert "python3 -m venv" in text or '"$PYTHON" -m venv' in text
-    assert "--no-index" in text
-    assert "--no-build-isolation" in text
-    assert "tests/test_database_migrations.py" in text
-    assert "tests/test_privacy_at_rest.py" in text
-    assert "|| true" not in text
-    assert "release-gate-report/v1" in text
+    script = (ROOT / "tools/run_release_gates.sh").read_text()
+    assert "--system-site-packages" not in script
+    assert "export PYTHONPATH" not in script
+    assert "installed_local_db" in script
+    assert "tests/test_database_migrations.py" in script
+    assert "tests/test_privacy_at_rest.py" in script
+    assert "|| true" not in script
+    assert "release-gate-report/v1" in script
+
+
+def test_clean_wheel_installs_profiles_and_entrypoint(tmp_path):
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    built = subprocess.run(
+        [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation",
+         "--wheel-dir", str(wheelhouse), str(ROOT)], cwd=ROOT, text=True,
+        capture_output=True,
+    )
+    assert built.returncode == 0, built.stdout + built.stderr
+    venv = tmp_path / "venv"
+    created = subprocess.run([sys.executable, "-m", "venv", str(venv)],
+                             text=True, capture_output=True)
+    assert created.returncode == 0, created.stderr
+    wheel = next(wheelhouse.glob("*.whl"))
+    installed = subprocess.run(
+        [str(venv / "bin/pip"), "install", "--no-deps", "--no-index", str(wheel)],
+        text=True, capture_output=True,
+    )
+    assert installed.returncode == 0, installed.stdout + installed.stderr
+    probe = subprocess.run(
+        [str(venv / "bin/python"), "-c",
+         "from items.profile_loader import load_profile; "
+         "[load_profile(n) for n in ('student','files_only','job_seeker')]"],
+        text=True, capture_output=True,
+    )
+    assert probe.returncode == 0, probe.stdout + probe.stderr
+    help_run = subprocess.run(
+        [str(venv / "bin/python"), "-m", "database_agent.entrypoint", "--help"],
+        text=True, capture_output=True,
+    )
+    assert help_run.returncode == 0
+    assert "usage: database-agent" in help_run.stdout
 
 
 def test_pilot_copies_corpus_and_safe_defaults(tmp_path):

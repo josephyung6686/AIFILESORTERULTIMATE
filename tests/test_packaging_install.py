@@ -62,16 +62,14 @@ def test_wheel_contains_profiles_and_entry_point(installed_wheel: Path):
             f"wheel missing items/profiles/{profile}.json"
         )
     assert "database-agent" in text
-    assert "cli:main" in text
+    assert "database_agent.entrypoint:main" in text
 
 
 def test_installed_wheel_loads_profiles_and_cli(installed_wheel: Path, tmp_path: Path):
     """Install into a clean venv and exercise CLI without repo PYTHONPATH."""
     venv_dir = tmp_path / "venv"
-    # Runtime deps stay empty; optional reader libs (docx, etc.) are host-provided.
-    # system_site_packages keeps the install free of repo PYTHONPATH while still
-    # allowing `database-agent --help` to import the optional readers layer.
-    venv.create(venv_dir, with_pip=True, clear=True, system_site_packages=True)
+    # A release wheel must run without host packages or repository source paths.
+    venv.create(venv_dir, with_pip=True, clear=True, system_site_packages=False)
     if sys.platform == "win32":
         python = venv_dir / "Scripts" / "python"
         script = venv_dir / "Scripts" / "database-agent"
@@ -80,10 +78,10 @@ def test_installed_wheel_loads_profiles_and_cli(installed_wheel: Path, tmp_path:
         script = venv_dir / "bin" / "database-agent"
 
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-    env["PYTHONPATH"] = ""
+    env.pop("PYTHONPATH", None)
     # Offline local wheel install; runtime deps are empty.
     pip = subprocess.run(
-        [str(python), "-m", "pip", "install", "--no-deps", str(installed_wheel)],
+        [str(python), "-m", "pip", "install", "--no-deps", "--no-index", str(installed_wheel)],
         cwd=str(tmp_path),
         env=env,
         capture_output=True,

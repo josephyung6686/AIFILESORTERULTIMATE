@@ -218,7 +218,7 @@ def test_there_is_a_console_script_and_it_points_at_the_cli(wheel_contents):
     """
     scripts = _manifest()["project"].get("scripts", {})
     assert scripts, "an installed product with no command is a library"
-    assert scripts.get("database-agent") == "cli:main", scripts
+    assert scripts.get("database-agent") == "database_agent.entrypoint:main", scripts
 
     module = scripts["database-agent"].split(":")[0].replace(".", "/")
     assert (f"{module}.py" in wheel_contents
