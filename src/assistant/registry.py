@@ -20,7 +20,7 @@ ALWAYS_TOOLS: tuple[str, ...] = (
 DEFERRED_GROUPS: dict[str, tuple[str, ...]] = {
     "organize_propose": (
         "scan_refresh", "extract_one", "propose_groups",
-        "propose_tree", "place_preview",
+        "show_tree", "propose_tree", "place_preview",
     ),
     "organize_apply": ("freeze", "apply_moves", "undo_moves"),
     "graph_links": ("propose_links", "accept_link", "reject_link"),
@@ -145,9 +145,19 @@ _DEFERRED_SCHEMAS: dict[str, list[dict[str, Any]]] = {
             {},
         ),
         _fn(
-            "propose_tree",
-            "Dry folder outline from typed items. Nothing moves.",
+            "show_tree",
+            "The sorter's proposed or frozen folder tree, read from the "
+            "database: folders, file counts per outcome, held counts. "
+            "Nothing moves.",
             {},
+        ),
+        _fn(
+            "propose_tree",
+            "Quick sort for the files the person names: where each would go "
+            "in the sorter's tree and why, or its type when no tree exists. "
+            "Nothing moves.",
+            {"item_ids": {"type": "array", "items": {"type": "string"}}},
+            ["item_ids"],
         ),
         _fn(
             "place_preview",
