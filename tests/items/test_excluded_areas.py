@@ -55,5 +55,5 @@ def test_search_says_what_it_did_not_read(tmp_path: Path):
     out = io.StringIO()
     search_main(["essay", "--database", str(db)], out=out)
     text = out.getvalue()
-    assert "Not read: 1 folder" in text
+    assert "Set aside by rule: 2" in text
     assert "ThirdEye" in text

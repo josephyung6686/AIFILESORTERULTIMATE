@@ -8,7 +8,8 @@ Reused, unchanged:
   stays inside `observe_path`.
 - `reconcile_disappearances`, which calls `set_path_no_longer_exists` and
   deletes nothing.
-- `traversal.walk` over `FilesystemCorpusSource`, after `require_access`.
+- P3's `scan` over `FilesystemCorpusSource`, so the folders it does not read
+  are `exclusion_verdicts`, the sorter's record.
 - `SessionWatch` is still only a detection. It does not rewrite `files`.
 
 Added here:
@@ -20,6 +21,7 @@ Added here:
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -38,12 +40,14 @@ from items.freshness import (
     transition,
 )
 from items.schema import create_items_schema
-from scan_agent.access import require_access
-from scan_agent.basic_record import record_basic_record
 from scan_agent.corpus_source import FilesystemCorpusSource
-from scan_agent.disappearance import _is_absent, reconcile_disappearances
-from scan_agent.exclusion import APPLIES_TO_SCANNED_SOURCE, ExclusionVerdict
-from scan_agent.traversal import ObservedFile, walk
+from scan_agent.disappearance import _is_absent
+from scan_agent.exclusion import (
+    APPLIES_TO_SCANNED_SOURCE, RULE_PROJECT_ROOT_DESCENDANT,
+    RULE_PROTECTED_CONTAINER, exclusion_verdicts,
+)
+from scan_agent.scan import scan
+from scan_agent.selection import record_selection
 
 ITEM_TYPE_FILE = "file"
 PRESENCE_LIVE = "live"
@@ -52,62 +56,73 @@ TYPING_UNPLACED = "unplaced"
 
 
 def reconcile_tree(conn: sqlite3.Connection, root: Path) -> None:
-    """Walk `root`, resolve each file through `observe_path`, and refresh items.
+    """Scan `root` the way the sorter does, then point items at the result.
 
     This is the pass a session watch schedules after `poll`. The watch records
     that a path appeared or disappeared; this pass is what re-finds the bytes.
+    It is the orchestrator's sequence -- R1 selection, P3 `scan`, projection --
+    so the folders it does not read land in `exclusion_verdicts`, one record
+    for the sorter and the assistant.
     """
     create_items_schema(conn)
     root = Path(root)
-    require_access([root])
-    prefix = str(root.resolve())
-    conn.execute(
-        "DELETE FROM excluded_areas WHERE path = ? OR substr(path, 1, ?) = ?",
-        (prefix, len(prefix) + 1, prefix + "/"))
-    now = datetime.now(timezone.utc).isoformat()
-    for item in walk(
-            FilesystemCorpusSource(), sources=[root], candidate_roots=[],
-            budget_exhausted=lambda: False):
-        if isinstance(item, ExclusionVerdict):
-            # Marked and counted, never silently omitted.
-            if item.applies_to == APPLIES_TO_SCANNED_SOURCE:
-                conn.execute(
-                    "INSERT OR REPLACE INTO excluded_areas "
-                    "(path, rule, rule_subject, seen_at) VALUES (?, ?, ?, ?)",
-                    (str(Path(item.path).resolve()), item.rule,
-                     item.rule_subject, now))
-            continue
-        if not isinstance(item, ObservedFile):
-            continue
-        if item.applies_to != APPLIES_TO_SCANNED_SOURCE or item.dataless:
-            continue
-        file_id = record_basic_record(
-            conn, item, mime_type_for=lambda _path: None,
-            scan_state=P1_INCLUDED_SCAN_STATE)
-        follow_move(conn, file_id)
-    reconcile_disappearances(
-        conn, str(uuid.uuid4()), sources=[root],
-        scan_state=P1_INCLUDED_SCAN_STATE)
-    _mark_missing_under(conn, [root])
+    scan(conn, _selection_for(conn, root), source=FilesystemCorpusSource(),
+         mime_type_for=lambda _path: None, scan_state=P1_INCLUDED_SCAN_STATE,
+         budget_exhausted=lambda: False)
+    project_after_scan(conn, [root], P1_INCLUDED_SCAN_STATE)
+
+
+def _selection_for(conn: sqlite3.Connection, root: Path) -> str:
+    """The selection already recorded for exactly this folder, or a new one."""
+    row = conn.execute(
+        "SELECT selection_id FROM corpus_selections "
+        "WHERE sources = ? AND candidate_roots = '[]' "
+        "ORDER BY selected_at DESC LIMIT 1",
+        (json.dumps([str(root)]),),
+    ).fetchone()
+    if row is not None:
+        return row["selection_id"]
+    return record_selection(conn, sources=[root], candidate_roots=[],
+                            cross_folder_moves=False, selected_by=None)
 
 
 def excluded_areas(conn: sqlite3.Connection) -> list[dict]:
-    """Skipped folders, one per excluded parent, with the rule that skipped them.
+    """Folders the latest scan of each selection did not read, with the rule.
 
-    The scan does not descend into an excluded area, so each verdict names a
-    child of the folder that was refused; its parent is what the person knows.
+    Read from `exclusion_verdicts`, newest completed run per selected source
+    set. A project-root verdict names a child of the project, so the project
+    folder is its parent; every other verdict names the folder itself.
+    `protected` marks containers that are never opened.
     """
     if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
-                    "AND name='excluded_areas'").fetchone() is None:
+                    "AND name='exclusion_verdicts'").fetchone() is None:
         return []
+    runs = conn.execute(
+        "SELECT r.scan_run_id, s.sources FROM scan_runs r "
+        "JOIN corpus_selections s ON s.selection_id = r.selection_id "
+        "WHERE r.completed_at IS NOT NULL "
+        "ORDER BY r.started_at DESC").fetchall()
+    latest: dict[str, str] = {}
+    for run in runs:
+        latest.setdefault(run["sources"], run["scan_run_id"])
+    seen: set[str] = set()
     folders: dict[tuple[str, str], dict] = {}
-    for row in conn.execute(
-            "SELECT path, rule, rule_subject FROM excluded_areas ORDER BY path"):
-        folder = str(Path(row[0]).parent)
-        entry = folders.setdefault((folder, row[1]), {
-            "folder": folder, "rule": row[1], "rule_subject": row[2], "paths": 0})
-        entry["paths"] += 1
-    return list(folders.values())
+    for run_id in latest.values():
+        for row in exclusion_verdicts(conn, run_id):
+            if row["applies_to"] != APPLIES_TO_SCANNED_SOURCE:
+                continue
+            if row["path"] in seen:
+                continue
+            seen.add(row["path"])
+            folder = (str(Path(row["path"]).parent)
+                      if row["rule"] == RULE_PROJECT_ROOT_DESCENDANT
+                      else row["path"])
+            entry = folders.setdefault((folder, row["rule"]), {
+                "folder": folder, "rule": row["rule"],
+                "rule_subject": row["rule_subject"], "paths": 0,
+                "protected": row["rule"] == RULE_PROTECTED_CONTAINER})
+            entry["paths"] += 1
+    return sorted(folders.values(), key=lambda a: a["folder"])
 
 
 def project_after_scan(conn: sqlite3.Connection, sources, scan_state: str) -> None:
