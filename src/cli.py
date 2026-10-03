@@ -27742,6 +27742,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if asked[:1] == ["watch"]:
         from items.commands import watch_main
         return watch_main(asked[1:], out=out)
+    if asked[:1] == ["db"]:
+        from items.commands_db import db_main
+        return db_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
