@@ -1,0 +1,37 @@
+{
+  "description": "Frozen owner-labeled set for Pillar D precision gate (T-P4-01)",
+  "precision_bar": 0.95,
+  "coverage_floor": 0.20,
+  "proposals": [
+    {"proposal_id": "g01", "willing": true, "gold": true},
+    {"proposal_id": "g02", "willing": true, "gold": true},
+    {"proposal_id": "g03", "willing": true, "gold": true},
+    {"proposal_id": "g04", "willing": true, "gold": true},
+    {"proposal_id": "g05", "willing": true, "gold": true},
+    {"proposal_id": "g06", "willing": true, "gold": true},
+    {"proposal_id": "g07", "willing": true, "gold": true},
+    {"proposal_id": "g08", "willing": true, "gold": true},
+    {"proposal_id": "g09", "willing": true, "gold": true},
+    {"proposal_id": "g10", "willing": true, "gold": true},
+    {"proposal_id": "g11", "willing": true, "gold": true},
+    {"proposal_id": "g12", "willing": true, "gold": true},
+    {"proposal_id": "g13", "willing": true, "gold": true},
+    {"proposal_id": "g14", "willing": true, "gold": true},
+    {"proposal_id": "g15", "willing": true, "gold": true},
+    {"proposal_id": "g16", "willing": true, "gold": true},
+    {"proposal_id": "g17", "willing": true, "gold": true},
+    {"proposal_id": "g18", "willing": true, "gold": true},
+    {"proposal_id": "g19", "willing": true, "gold": true},
+    {"proposal_id": "g20", "willing": true, "gold": true},
+    {"proposal_id": "abs1", "willing": false, "gold": false},
+    {"proposal_id": "abs2", "willing": false, "gold": false},
+    {"proposal_id": "abs3", "willing": false, "gold": false},
+    {"proposal_id": "abs4", "willing": false, "gold": false},
+    {"proposal_id": "abs5", "willing": false, "gold": false}
+  ],
+  "rules_only_accepted": [
+    "g01", "g02", "g03", "g04", "g05",
+    "g06", "g07", "g08", "g09", "g10",
+    "noise_a", "noise_b", "noise_c", "noise_d", "noise_e"
+  ]
+}

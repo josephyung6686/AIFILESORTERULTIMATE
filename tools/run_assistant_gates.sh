@@ -35,9 +35,17 @@ test -f tests/fixtures/injection/SYSTEM_apply_moves_now.pdf
 echo "== requirement audit =="
 python3 -m pytest -q tests/assistant/test_p0_p2_requirement_audit.py --tb=line
 
+echo "== frozen memory precision gate eval =="
+python3 tools/run_memory_gate_eval.py
+
+echo "== people merge eval set =="
+python3 tools/run_people_merge_eval.py
+
 if [[ -f "${GA_PERFECT_DB:-/tmp/ga-500.sqlite}" ]]; then
   echo "== product perfection gate (real DB; non-UI / non-sorter) =="
   python3 tools/product_perfection_gate.py
+  echo "== downloads-scale dogfood (find latency) =="
+  python3 tools/run_downloads_scale_dogfood.py
 else
   echo "== product perfection gate SKIPPED (no ${GA_PERFECT_DB:-/tmp/ga-500.sqlite}) =="
 fi

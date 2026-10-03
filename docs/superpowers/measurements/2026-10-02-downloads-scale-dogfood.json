@@ -1,0 +1,69 @@
+{
+  "db": "/tmp/ga-500.sqlite",
+  "copy": "/tmp/ga-500-copy",
+  "n_live_items": 504,
+  "fts_rows": 504,
+  "chunks": 2581,
+  "find_p50_ms": 5.98095849272795,
+  "find_p95_ms": 9.999583009630442,
+  "n_samples": 30,
+  "per_query": {
+    "Joint PMFs": {
+      "p50_ms": 5.999124987283722,
+      "top": [
+        "03-11-Conditioning with random variables.pdf",
+        "03-09-Joint PMFs.pdf",
+        "1 Review of Conditional Probability.pdf"
+      ]
+    },
+    "resume": {
+      "p50_ms": 5.4463749984279275,
+      "top": [
+        "AKPsi Resume Template Spring 2024.docx",
+        "2025 Resume Submission Guideline (Eng)_wmn.pdf",
+        "Joseph draft resume __ (1).docx"
+      ]
+    },
+    "作業": {
+      "p50_ms": 5.012791982153431,
+      "top": [
+        "202505_jpmf-emerg_markets_local_currency_debt_c.pdf",
+        "83d863317f2f44edb605348e4de40993.pdf",
+        "D148268-M-000_20260612.pdf"
+      ]
+    },
+    "Conditioning": {
+      "p50_ms": 6.419541983632371,
+      "top": [
+        "03-11-Conditioning with random variables.pdf",
+        "1 Review of Conditional Probability.pdf",
+        "APAL_2025-03-27_1930_GALLERY_H_9.jpeg"
+      ]
+    },
+    "Columbia": {
+      "p50_ms": 6.820000009611249,
+      "top": [
+        "1956668089929-13718720623-ticket.pdf",
+        "Columbia GRC Our Impact Highlights.pdf",
+        "2.png"
+      ]
+    },
+    "稅務": {
+      "p50_ms": 5.146957992110401,
+      "top": [
+        "202505_jpmf-emerg_markets_local_currency_debt_c.pdf",
+        "Joseph Jan-Mar CX_ET.pdf",
+        "D148268-M-000_20260612.pdf"
+      ]
+    }
+  },
+  "capability": [
+    "apple_foundation_models: no",
+    "local_generation: no (none)",
+    "index_find_local: yes",
+    "reason: Apple FM probe: /Users/jy/GRAPH AGENT/tools/apple_fm_probe.swift:12:9: error: 'SystemLanguageModel' is only available in macOS 26.0 or newer\n10 |     // LanguageModelSession exists when the framework is present; readiness\n11 |     // still depends on device Apple Intelligence entitlement.\n12 |     _ = SystemLanguageModel.self\n   |         |- error: 'SystemLanguageModel' is only available in macOS 26.0 or newer\n   |         `- note: add 'if #available' version check\n13 |     print(\"available\")\n14 | }"
+  ],
+  "live_ask": null,
+  "kind": "downloads_copy_scale",
+  "ok": true
+}

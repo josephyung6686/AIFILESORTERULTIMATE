@@ -14,7 +14,7 @@ from typing import Any
 import os
 
 from assistant.egress import PersistentEgress
-from assistant.local_model import require_local_or_refuse
+from assistant.local_model import local_chat_turn, require_local_or_refuse
 from assistant.memory_v1 import format_rules_block, retrieve_for_proposal
 from assistant.model_hint import hint_for_question
 from assistant.provider import chat_turn, dump_safe, resolve_provider
@@ -124,7 +124,7 @@ def _local_find_answer(
         source_ids=found.source_ids)]
     hits = (found.payload or {}).get("hits") or []
     lines = [
-        "Local-only find (no cloud). Apple FM not available — "
+        "Local-only find (no cloud). On-device generator unavailable — "
         "answered from the hybrid index only.",
         "",
     ]
@@ -163,19 +163,35 @@ def ask(
 ) -> ChatAnswer:
     """One user question → tool loop → final answer."""
     started = time.perf_counter()
+    use_local_gen = False
+    local_status = None
     if local_only:
-        # Prefer on-device FM when available; else deterministic local find
-        # (no cloud) for find/list/explain-style questions.
-        status = require_local_or_refuse(local_only=True)
-        if status.available:
-            pass  # future: FM tool loop
+        local_status = require_local_or_refuse(local_only=True)
+        if local_status.available and local_status.supports_tools:
+            use_local_gen = True
+        elif local_status.available and local_status.backend == "apple_fm":
+            # FM present but no tool-loop adapter — index find, no cloud.
+            return _local_find_answer(
+                conn, question, started=started, session_id=session_id,
+                model_dir=model_dir,
+            )
         else:
             return _local_find_answer(
                 conn, question, started=started, session_id=session_id,
                 model_dir=model_dir,
             )
-    cfg = resolve_provider()
-    provider = _provider_name(cfg)
+    if use_local_gen:
+        cfg = None
+        provider = "local"
+        model_name = (
+            os.environ.get("ASSISTANT_LOCAL_MODEL")
+            or os.environ.get("OLLAMA_MODEL")
+            or "local"
+        )
+    else:
+        cfg = resolve_provider()
+        provider = _provider_name(cfg)
+        model_name = cfg.model
     # Touch trust facts so wrong provider copy cannot silently ship.
     _ = trust_facts_for(provider)
     # Advisory only — never gates which tools are registered.
@@ -195,8 +211,12 @@ def ask(
     all_objs: list[Citation] = []
 
     for _ in range(max_rounds):
-        assistant_msg = chat_turn(
-            messages=messages, tools=runtime.schemas(), config=cfg)
+        if use_local_gen:
+            assistant_msg = local_chat_turn(
+                messages=messages, tools=runtime.schemas())
+        else:
+            assistant_msg = chat_turn(
+                messages=messages, tools=runtime.schemas(), config=cfg)
         messages.append(assistant_msg)
         tool_calls = assistant_msg.get("tool_calls") or []
         if not tool_calls:
@@ -204,7 +224,7 @@ def ask(
             total_ms = (time.perf_counter() - started) * 1000.0
             unique = tuple(dict.fromkeys(all_citations))
             ledger.add(
-                provider=provider, model=cfg.model,
+                provider=provider, model=model_name,
                 item_ids=unique, bytes_out=runtime.bytes_spent,
                 question=question)
             return ChatAnswer(
@@ -216,7 +236,7 @@ def ask(
                 egress_bytes=runtime.bytes_spent,
                 egress_session_id=ledger.session_id,
                 provider=provider,
-                model=cfg.model,
+                model=model_name,
                 total_ms=total_ms,
                 moved=any_moved,
                 pending_user_question=runtime.pending_user_question,
@@ -236,7 +256,7 @@ def ask(
             all_citations.extend(result.citations)
             all_objs.extend(result.citation_objs)
             ledger.add(
-                provider=provider, model=cfg.model,
+                provider=provider, model=model_name,
                 item_ids=list(result.citations),
                 bytes_out=result.bytes_out,
                 question=question if name == "find_files" else None)
@@ -265,7 +285,7 @@ def ask(
                     egress_bytes=runtime.bytes_spent,
                     egress_session_id=ledger.session_id,
                     provider=provider,
-                    model=cfg.model,
+                    model=model_name,
                     total_ms=total_ms,
                     moved=any_moved,
                     pending_user_question=runtime.pending_user_question,
@@ -274,7 +294,7 @@ def ask(
     total_ms = (time.perf_counter() - started) * 1000.0
     unique = tuple(dict.fromkeys(all_citations))
     ledger.add(
-        provider=provider, model=cfg.model,
+        provider=provider, model=model_name,
         item_ids=unique, bytes_out=runtime.bytes_spent,
         question=question)
     return ChatAnswer(
@@ -286,7 +306,7 @@ def ask(
         egress_bytes=runtime.bytes_spent,
         egress_session_id=ledger.session_id,
         provider=provider,
-        model=cfg.model,
+        model=model_name,
         total_ms=total_ms,
         moved=any_moved,
         pending_user_question=runtime.pending_user_question,

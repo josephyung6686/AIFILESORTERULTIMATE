@@ -1,0 +1,13 @@
+{
+  "golden": "/Users/jy/GRAPH AGENT/tests/fixtures/memory_gate_golden.json",
+  "passed": true,
+  "precision": 1.0,
+  "abstention": 0.19999999999999996,
+  "coverage": 0.8,
+  "rules_only_precision": 0.6666666666666666,
+  "n_proposals": 20,
+  "precision_bar": 0.95,
+  "coverage_floor": 0.2,
+  "steering_would_open": true,
+  "notes": "precision=1.000 bar=0.95 abstention=0.200 coverage=0.800 rules_only=0.667 beats_rules=True"
+}

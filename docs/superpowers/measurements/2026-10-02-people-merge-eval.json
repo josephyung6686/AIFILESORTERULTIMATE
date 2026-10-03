@@ -1,0 +1,9 @@
+{
+  "golden": "/Users/jy/GRAPH AGENT/tests/fixtures/people_merge_eval.json",
+  "precision": 1.0,
+  "n_pred": 2.0,
+  "n_tp": 2.0,
+  "n_gold": 2,
+  "precision_bar": 0.95,
+  "passed": true
+}

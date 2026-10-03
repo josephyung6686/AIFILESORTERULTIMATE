@@ -190,7 +190,7 @@ tests/assistant/
 | Heat user vs agent (T-P4-02) | **Done** |
 | FSEvents policy (debounce/own-move) | **Done** |
 | Anthropic provider adapter | **Done** (normalize + mock-tested) |
-| Local-model mode | **Done (index path)** — `--local-only` / `--show-local-capability`; Apple FM gen still not wired |
+| Local-model mode | **Done** — Apple FM Swift probe + Ollama/OpenAI-compat local gen when up; else index-only |
 | PathWatcher + inode rename-follow | **Done** (`path_watch.tick` + bookmarks) |
 | Live macOS FSEvents subscription | **Done** — `fsevents_live` via optional `watchdog` (`.[watch]`); polling fallback + inode rename-follow |
 | Embedding bake-off EN+ZH | **Done** — n_zh=100 winner `minilm_hybrid_plus_cjk_fts` ([decision](../measurements/2026-10-02-embedding-bakeoff-decision.json)) |
@@ -199,9 +199,13 @@ tests/assistant/
 | Apply / undo tool path | **Done** — `ASSISTANT_ENABLE_APPLY=1` + `request_tools(organize_apply)`; default locked |
 | Memory v1 rules steering | **Done** — explicit rules inject into system prompt |
 | Memory v2 atoms + gate | **Done dark** — ADD/supersede + precision gate (≥0.95 + coverage); `ASSISTANT_ATOMS_STEER=0` force-dark |
+| L2/L3 playbook rollups | **Done** — `assistant/playbook_rollups.py` |
+| Frozen precision eval CI | **Done** — `tests/fixtures/memory_gate_golden.json` + gate script |
+| People merge eval set | **Done** — `tests/fixtures/people_merge_eval.json` + runner |
+| Downloads-scale dogfood | **Done** — `/tmp/ga-500` measure ([downloads](../measurements/2026-10-02-downloads-scale-dogfood.json)) |
 | Live BYOK dogfood | **Done** — 4 live DeepSeek turns EN+ZH ([dogfood](../measurements/2026-10-02-live-byok-dogfood.json)) |
 
-**Verified (2026-10-02):** gates green; padded-row find p95 **0.6ms @2k / 12ms @50k / 62ms @250k** ([padded](../measurements/2026-10-02-find-latency-2k-50k-250k.json)); **real files+chunks** p95 **~19ms @500 files / 20.5k chunks (~41/file, 40KB bodies)** ([pdf-scale](../measurements/2026-10-02-chunked-find-500-pdfscale.json)). Do **not** treat 250k padded p95 as Downloads-library proof. Organize/apply stays opt-in.
+**Verified (2026-10-02):** gates green; padded-row find p95 **0.6ms @2k / 12ms @50k / 62ms @250k** ([padded](../measurements/2026-10-02-find-latency-2k-50k-250k.json)); **real files+chunks** p95 **~19ms @500 files / 20.5k chunks** ([pdf-scale](../measurements/2026-10-02-chunked-find-500-pdfscale.json)); **Downloads copy** dogfood ([downloads](../measurements/2026-10-02-downloads-scale-dogfood.json)). Organize/apply stays opt-in; atoms dark until gate.
 
 ---
 

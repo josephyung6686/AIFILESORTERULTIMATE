@@ -1,0 +1,21 @@
+{
+  "description": "Labeled person merge eval set (P5)",
+  "people": [
+    {"key": "jy_school", "label": "Joseph Yung", "email": "jy@school.edu"},
+    {"key": "jy_personal", "label": "Joseph Yung", "email": "jy@personal.com"},
+    {"key": "ada", "label": "Ada Lovelace", "email": "ada@a.com"},
+    {"key": "grace", "label": "Grace Hopper", "email": "grace@navy.mil"},
+    {"key": "alex1", "label": "Alex One", "email": "alex@one.com"},
+    {"key": "alex2", "label": "Alex Two", "email": "alex@two.com"},
+    {"key": "sam_a", "label": "Sam Lee", "email": "sam.lee@uni.edu"},
+    {"key": "sam_b", "label": "Sam Lee", "email": "samlee@gmail.com"},
+    {"key": "pat", "label": "Pat Kim", "email": "pat@kim.org"},
+    {"key": "rin", "label": "Rin Cho", "email": "rin@cho.org"}
+  ],
+  "gold_merges": [
+    ["jy_school", "jy_personal"],
+    ["sam_a", "sam_b"]
+  ],
+  "precision_bar": 0.95,
+  "score_blocking": "label"
+}

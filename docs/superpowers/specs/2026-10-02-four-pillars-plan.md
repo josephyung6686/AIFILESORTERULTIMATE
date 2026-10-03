@@ -337,8 +337,8 @@ Never steers recognition/filing while dark. Never shadows safety holds.
 | Atom table (L1) + ADD/supersede | **Done** (`memory_v2`) — dark by default |
 | v1 rules + few-shot | **Done** (`memory_v1` injects into system prompt) |
 | v2 atoms steering | **Done dark** — needs `ASSISTANT_ATOMS_STEER=1` + passing gate |
-| L2/L3 Markdown rollups | **Not built** (post-gate; atoms stay dark) |
-| Precision gate harness | **Done** (`memory_v2.evaluate_gate` + CI tests; atoms dark until pass) |
+| L2/L3 Markdown rollups | **Done** (`playbook_rollups` → `playbook/clusters|profiles`) |
+| Precision gate harness | **Done** — frozen golden + `tools/run_memory_gate_eval.py` in CI |
 
 ## D.7 Build tasks
 
