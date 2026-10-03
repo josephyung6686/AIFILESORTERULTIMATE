@@ -31,7 +31,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from extractors.ocr import OcrOutput, OcrRegion
+from extractors.ocr import OcrOutput, OcrRegion, pages_within_cap
 
 #: Bound by `_apple` on the first call. The module itself must import on Linux:
 #: these frameworks exist only on macOS, and importing them at module scope made
@@ -198,6 +198,42 @@ def _pdf_document(path: Path):
     """
     with _core_graphics_kept_quiet():
         return Quartz.CGPDFDocumentCreateWithURL(NSURL.fileURLWithPath_(str(path)))
+
+
+def fitted_pixel_size(width: int, height: int,
+                      long_edge: int | None) -> tuple[int, int, bool]:
+    """The size to recognise, and whether that is smaller than the source.
+
+    `long_edge` is the caller's. None leaves the image alone. A source whose
+    longer side is already within the edge is unchanged. The shorter side keeps
+    the source's aspect.
+    """
+    if not long_edge or width <= 0 or height <= 0:
+        return width, height, False
+    longest = width if width >= height else height
+    if longest <= long_edge:
+        return width, height, False
+    # Integer arithmetic: a float scale drops a pixel (4032×3024 at 2200
+    # became 2200×1649). The shorter side stays the source's aspect.
+    return (max((width * long_edge) // longest, 1),
+            max((height * long_edge) // longest, 1),
+            True)
+
+
+def _scaled_cg_image(image, long_edge):
+    """The image Vision should see, shrunk when its long edge exceeds `long_edge`."""
+    width = int(image.width())
+    height = int(image.height())
+    new_w, new_h, scaled = fitted_pixel_size(width, height, long_edge)
+    if not scaled:
+        return image, False
+    context = Quartz.CGBitmapContextCreate(
+        None, new_w, new_h, 8, 0,
+        Quartz.CGColorSpaceCreateDeviceRGB(),
+        Quartz.kCGImageAlphaPremultipliedLast)
+    Quartz.CGContextDrawImage(
+        context, Quartz.CGRectMake(0, 0, new_w, new_h), image)
+    return Quartz.CGBitmapContextCreateImage(context), True
 
 
 def _render_pdf_page(page, dpi: float):
@@ -464,6 +500,7 @@ def vision_ocr() -> Callable[..., OcrOutput]:
             Vision.VNRecognizeTextRequest.alloc().init())
         page_cap = settings.get("page_cap")
         time_limit = settings.get("time_limit_seconds")
+        long_edge = settings.get("max_long_edge_px")
 
         path = Path(path)
         document = _pdf_document(path)
@@ -485,34 +522,45 @@ def vision_ocr() -> Callable[..., OcrOutput]:
                 # like the rest. `extract_ocr` reads this the way `extract_pdf`
                 # reads a `None` document.
                 return None
+            image, scaled = _scaled_cg_image(image, long_edge)
+            started = time.monotonic()
             for index, (text, confidence, rect) in enumerate(
                     _recognise(image, languages=languages, level=level), 1):
                 regions.append(OcrRegion(page=None, region=index, text=text,
                                          box=_box(rect), confidence=confidence))
+            elapsed = time.monotonic() - started
+            # A loose image is one Vision call, so the time limit cannot stop it
+            # mid-recognition. Crossing it is still recorded as a partial read.
+            over_time = time_limit is not None and elapsed >= time_limit
             return OcrOutput(provider=PROVIDER, provider_version=_provider_version(),
                              regions=tuple(regions), pages_processed=1, pages_total=1,
-                             capped=False, detects_language=detects_language)
+                             capped=over_time, detects_language=detects_language,
+                             scaled=scaled)
 
         started = time.monotonic()
         processed = 0
-        stopped_early = False
+        scaled_any = False
         # `pages`: the subset the policy asked for (`ocr_policy.sparse_pages`), or
         # every page. A number outside the document is skipped, not an error.
+        # `pages_within_cap` is the classification page cap. It holds no number;
+        # the cap arrives on `config`.
         wanted = settings.get("pages")
         numbers = ([n for n in wanted if 1 <= n <= total] if wanted
                    else range(1, total + 1))
-        for number in numbers:
-            if page_cap is not None and processed >= page_cap:
-                stopped_early = True
-                break
+        chosen, page_capped = pages_within_cap(numbers, page_cap)
+        stopped_early = page_capped
+        for number in chosen:
             if time_limit is not None and time.monotonic() - started >= time_limit:
                 stopped_early = True
                 break
             page = Quartz.CGPDFDocumentGetPage(document, number)
             if page is None:
                 continue
+            rendered, scaled_page = _scaled_cg_image(
+                _render_pdf_page(page, dpi), long_edge)
+            scaled_any = scaled_any or scaled_page
             for index, (text, confidence, rect) in enumerate(
-                    _recognise(_render_pdf_page(page, dpi),
+                    _recognise(rendered,
                                languages=languages, level=level), 1):
                 # `region` is numbered WITHIN its page: P4 D3 makes it an address,
                 # and a document-wide counter would leave page 2's first region
@@ -527,6 +575,7 @@ def vision_ocr() -> Callable[..., OcrOutput]:
             # §2.7's partial-read state. True only when a limit stopped the run --
             # a document that simply ended is not a partial read, and §8.6 needs the
             # two distinguishable so unfinished work stays visible as unfinished.
-            capped=stopped_early, detects_language=detects_language)
+            capped=stopped_early, detects_language=detects_language,
+            scaled=scaled_any)
 
     return ocr_engine

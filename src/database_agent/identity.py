@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -58,11 +59,19 @@ def hash_file(path: Path, *, materialized: bool) -> str:
             f"{path} was not declared materialized; P3 detects dataless items before "
             "hashing and P1 does not download them (11-ops-runtime.md §5)"
         )
+    # One lookup. Nothing is timed, and the clock is not read, unless a scan
+    # asked for a profile.
+    from scan_profile import active_scan_profile
+    profile = active_scan_profile()
+    started = time.perf_counter() if profile is not None else None
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         while chunk := handle.read(_CHUNK):
             digest.update(chunk)
-    return digest.hexdigest()
+    result = digest.hexdigest()
+    if started is not None:
+        profile.note_hash(path, time.perf_counter() - started)
+    return result
 
 
 def volume_id_for(path: Path) -> str:

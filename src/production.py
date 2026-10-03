@@ -26,7 +26,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Sequence
 
-from database_agent.db import create_schema
+from database_agent.db import create_schema, rebuildable_durability
 from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
@@ -827,8 +827,14 @@ def compose_p1_p7(
 def run_production_p1_p7(
         conn: sqlite3.Connection, selection_id: str, *,
         authorities: P1P7Authorities) -> P1P7Run:
-    """Compose and execute one production P1--P7 run."""
-    return compose_p1_p7(conn, authorities=authorities)(selection_id)
+    """Compose and execute one production P1--P7 run.
+
+    The rows this writes are the index a rescan rebuilds. Answers, refusals
+    and profile gestures are recorded before this function is called, at
+    `synchronous=FULL`.
+    """
+    with rebuildable_durability(conn):
+        return compose_p1_p7(conn, authorities=authorities)(selection_id)
 
 
 # --- P9 through P11, in order, deciding nothing --------------------------------------
@@ -1102,18 +1108,29 @@ def _group_corpus(conn: sqlite3.Connection, roster, *,
                   authorities: CorpusAuthorities,
                   decisions: CorpusDecisions,
                   created_at: str) -> tuple[GroupingResult, ...]:
-    """P9 over every file, one subject at a time. `group_subject` takes one."""
-    return tuple(
-        group_subject(
-            conn, file_id=file_id, content_hash=content_hash,
-            plan_version_id=decisions.plan_version_id,
-            limits=authorities.grouping_limits,
-            knowledge=authorities.grouping_knowledge,
-            user_seed_for=authorities.user_seed_for,
-            p8_run_call=authorities.p8_run_call,
-            p8_authorities=authorities.p8_authorities,
-            embeddings=authorities.embeddings, created_at=created_at)
-        for file_id, content_hash in roster)
+    """P9 over every file, one subject at a time. `group_subject` takes one.
+
+    The grouping index is rebuildable, so these commits run at NORMAL. The
+    acceptance, the plan approval and the privacy policy are written after
+    this function returns, back at FULL.
+
+    One transaction is not held across the loop. A model call reserves its
+    budget only when no transaction is open, and `group_subject` is where
+    that call happens.
+    """
+    results: list[GroupingResult] = []
+    with rebuildable_durability(conn):
+        for file_id, content_hash in roster:
+            results.append(group_subject(
+                conn, file_id=file_id, content_hash=content_hash,
+                plan_version_id=decisions.plan_version_id,
+                limits=authorities.grouping_limits,
+                knowledge=authorities.grouping_knowledge,
+                user_seed_for=authorities.user_seed_for,
+                p8_run_call=authorities.p8_run_call,
+                p8_authorities=authorities.p8_authorities,
+                embeddings=authorities.embeddings, created_at=created_at))
+    return tuple(results)
 
 
 def run_production_p8_p11(

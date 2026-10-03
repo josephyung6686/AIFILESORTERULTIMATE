@@ -1,0 +1,1216 @@
+# tests/understanding/test_understanding.py
+"""The understanding pass, against a fake transport. No key is an answer."""
+from __future__ import annotations
+
+import io
+import json
+import sqlite3
+
+import pytest
+
+from understanding.answer import interpret_answer
+from understanding.catalog import ModelIdNotListed, resolve_model_id
+from understanding.dossier import FileView
+from understanding.onboarding import questions_from_names
+from understanding.provider import CompletionRequest
+from understanding.reasoning import read_completion
+from understanding.run import Budget, run_understanding
+from understanding.store import audit
+from readers.model_understanding_http import (
+    DeepSeekUnderstanding, OllamaUnderstanding, ProviderError,
+)
+
+SECRET = "sk-test-understanding-secret"
+
+
+def _answer(**overrides) -> str:
+    body = {
+        "kind": "syllabus",
+        "life_area": "academic",
+        "course": "CHEM",
+        "term": "2026 Fall",
+        "company": None,
+        "project": None,
+        "concerns": "user",
+        "confidence": 0.9,
+        "evidence_quote": "office hours",
+    }
+    body.update(overrides)
+    return json.dumps(body)
+
+
+def _completion(content: str, *, finish: str = "stop", reasoning: str = "") -> dict:
+    message = {"content": content}
+    if reasoning:
+        message["reasoning_content"] = reasoning
+    return {
+        "choices": [{"finish_reason": finish, "message": message}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 4},
+    }
+
+
+class Fake:
+    def __init__(self, payloads, *, locality="cloud"):
+        self.payloads = list(payloads)
+        self.locality_name = locality
+        self.calls = []
+
+    def provider_name(self):
+        return "fake"
+
+    def locality(self):
+        return self.locality_name
+
+    def complete(self, request: CompletionRequest):
+        assert SECRET not in request.prompt
+        assert request.thinking == "disabled"
+        self.calls.append(request)
+        return self.payloads.pop(0)
+
+
+def _conn():
+    conn = sqlite3.connect(":memory:")
+    return conn
+
+
+def _view(name="notes.txt", text="office hours json", **kwargs):
+    return FileView(
+        file_id=kwargs.pop("file_id", name),
+        path=kwargs.pop("path", f"/folder/{name}"),
+        filename=name, text=text, **kwargs)
+
+
+def test_catalog_accepts_the_flash_alias_and_names_a_bad_id():
+    assert resolve_model_id("deepseek-v4-flash", {"deepseek-flash", "deepseek-v4-pro"}) == "deepseek-flash"
+    assert resolve_model_id("deepseek-flash", {"deepseek-v4-flash"}) == "deepseek-v4-flash"
+    assert resolve_model_id("deepseek-v4-pro", {"deepseek-v4-pro"}) == "deepseek-v4-pro"
+    with pytest.raises(ModelIdNotListed) as raised:
+        resolve_model_id("DeepSeek-R1", {"deepseek-flash"})
+    assert "DeepSeek-R1" in str(raised.value)
+    assert "deepseek-flash" in str(raised.value)
+
+
+def test_empty_content_with_length_is_a_retry_and_not_an_answer():
+    reading = read_completion(_completion("", finish="length", reasoning="thinking"))
+    assert reading.retry
+    assert reading.content == ""
+    conn = _conn()
+    provider = Fake([
+        _completion("", finish="length", reasoning="thinking"),
+        _completion(_answer()),
+    ])
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t")
+    assert report.called_complete == 2
+    assert report.results[0].status == "answered"
+    assert provider.calls[1].max_tokens == provider.calls[0].max_tokens * 4
+
+
+def test_category_gate_rejects_business_when_it_was_not_declared():
+    understood = interpret_answer(
+        _answer(life_area="business_operations", confidence=0.99),
+        file_id="f", declared_areas={"academic"})
+    assert understood.needs_review
+    assert "business_operations" in understood.reason
+    kept = interpret_answer(
+        _answer(life_area="academic"), file_id="f", declared_areas={"academic"})
+    assert kept.needs_review is False
+    assert kept.life_area == "academic"
+
+
+def test_private_and_protected_files_are_not_sent():
+    conn = _conn()
+    provider = Fake([])
+    report = run_understanding(
+        conn=conn,
+        views=[
+            _view("secret.pem", path="/folder/secret.pem", file_id="pem"),
+            _view("notes.txt", path="/medical/notes.txt", file_id="med"),
+            _view("held.txt", held=True, file_id="held"),
+        ],
+        declared_areas={"academic"}, private_areas={"medical"},
+        provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t")
+    assert provider.calls == []
+    assert report.sent == 0
+    assert report.excluded == 3
+
+
+def test_consent_is_required_and_offline_sends_nothing():
+    conn = _conn()
+    provider = Fake([_completion(_answer())])
+    with pytest.raises(Exception) as raised:
+        run_understanding(
+            conn=conn, views=[_view()], declared_areas={"academic"},
+            private_areas=set(), provider=provider, model_id="m",
+            offline=False, consent=False)
+    assert SECRET not in str(raised.value)
+    assert provider.calls == []
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="m",
+        offline=True, consent=True)
+    assert report.sent == 0
+    assert provider.calls == []
+    assert report.results[0].reason == "offline"
+
+
+def test_a_profile_note_reaches_the_prompt_and_not_the_persons_name():
+    from onboarding.answers import model_context
+    note = model_context({
+        "person_name": SECRET,
+        "lives": ["academic"],
+        "school": "Example School",
+        "courses": [{"code": "CHEM 101", "name": "Chemistry", "term": "2026 Fall"}],
+        "companies": ["Example Lab"],
+        "situations": {"academic": "academic.coursework"},
+    })
+    conn = _conn()
+    provider = Fake([_completion(_answer()), _completion(_answer())])
+    first = run_understanding(
+        conn=conn, views=[_view(text="office hours Tuesday")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        profile_note=note)
+    assert first.sent == 1
+    prompt = provider.calls[0].prompt
+    assert SECRET not in prompt
+    assert "Example School" in prompt
+    assert "CHEM 101" in prompt
+    assert "Example Lab" in prompt
+    assert "Business is not a fallback" in prompt
+    assert '"concerns" is one string' in prompt
+    second = run_understanding(
+        conn=conn, views=[_view(text="office hours Tuesday")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t2",
+        profile_note=note + " changed")
+    assert second.cache_hits == 0
+    assert second.sent == 1
+    assert len(provider.calls) == 2
+
+
+def test_cache_hit_does_not_call_the_provider_again():
+    conn = _conn()
+    provider = Fake([_completion(_answer())])
+    first = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t")
+    assert first.sent == 1
+    second = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t2")
+    assert second.cache_hits == 1
+    assert second.called_complete == 0
+    assert provider.calls and len(provider.calls) == 1
+
+
+def test_default_budget_admits_a_downloads_sized_corpus():
+    """About 1800 files, each its own call, must fit the default ceiling.
+
+    A long excerpt stays under the word cap and still exceeds the batch
+    token cap, so the pass cannot hide the cost inside a batch of eight.
+    The old ceiling, 200 calls and 200,000 estimated input tokens, stopped
+    a Downloads copy mid-pass.
+    """
+    from understanding.dossier import build_dossier, estimate_input_tokens
+
+    text = " ".join(["longwordxx"] * 400)
+    sample = build_dossier(_view(text=text), private_areas=set())
+    tokens = estimate_input_tokens(sample)
+    corpus = 1800
+    budget = Budget()
+    assert budget.max_calls >= corpus
+    assert budget.max_input_tokens >= corpus * tokens
+    views = [
+        _view(f"{i}.txt", file_id=f"id-{i}", text=text) for i in range(corpus)
+    ]
+    payload = _completion(_answer())
+
+    class Endless(Fake):
+        def complete(self, request):
+            self.calls.append(request)
+            return payload
+
+    report = run_understanding(
+        conn=_conn(), views=views, declared_areas={"academic"},
+        private_areas=set(), provider=Endless([]), model_id="deepseek-flash",
+        offline=False, consent=True, budget=budget, now="t", workers=1,
+        sleep=lambda _seconds: None)
+    assert report.budget_stopped == 0
+    assert report.called_complete == corpus
+    assert report.sent == corpus
+
+
+def test_a_token_ceiling_stops_when_calls_remain():
+    """The input-token cap is its own stop, not a second name for max_calls."""
+    conn = _conn()
+    provider = Fake([_completion(_answer())])
+    report = run_understanding(
+        conn=conn, views=[_view("a.txt", file_id="a"), _view("b.txt", file_id="b")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True,
+        budget=Budget(max_calls=10, max_input_tokens=1), now="t",
+        sleep=lambda _seconds: None)
+    assert report.called_complete == 0
+    assert report.budget_stopped == 2
+    assert provider.calls == []
+
+
+def test_budget_stop_and_low_confidence_need_review():
+    conn = _conn()
+    provider = Fake([_completion(_answer(confidence=0.2))])
+    report = run_understanding(
+        conn=conn, views=[_view("a.txt", file_id="a"), _view("b.txt", file_id="b")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True,
+        budget=Budget(max_calls=0), now="t")
+    assert report.budget_stopped == 2
+    assert provider.calls == []
+    provider = Fake([_completion(_answer(confidence=0.2))])
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t")
+    assert report.needs_review == 1
+    assert report.results[0].understanding.needs_review
+
+
+def test_malformed_output_is_rejected():
+    conn = _conn()
+    provider = Fake([_completion("not json")])
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=provider, model_id="m",
+        offline=False, consent=True, now="t")
+    assert report.needs_review == 1
+    assert report.results[0].status == "needs_review"
+
+
+def test_audit_and_provider_errors_do_not_contain_the_key():
+    conn = _conn()
+    audit(conn, file_id="f", fields=("filename",), model_id="deepseek-flash",
+          prompt_tokens=1, completion_tokens=1, cache_hit=False, recorded_at="t")
+    dumped = " ".join(str(row) for row in conn.execute("SELECT * FROM understanding_audit"))
+    assert SECRET not in dumped
+
+    def post(url, headers, body):
+        raise RuntimeError(SECRET)
+
+    adapter = DeepSeekUnderstanding(
+        api_key=SECRET, base_url="https://api.deepseek.com", post=post)
+    with pytest.raises(ProviderError) as raised:
+        adapter.complete(CompletionRequest(
+            model_id="deepseek-flash", prompt="Reply with one JSON object",
+            max_tokens=16, thinking="disabled"))
+    assert SECRET not in str(raised.value)
+    with pytest.raises(ProviderError):
+        OllamaUnderstanding(base_url="https://example.invalid", post=post)
+
+
+def test_small_dossiers_share_one_call():
+    conn = _conn()
+    files = [_answer(kind="a"), _answer(kind="b")]
+    # file_id is overwritten by interpret from the view, but the object must parse.
+    payload = {"files": [json.loads(_answer()) , json.loads(_answer())]}
+    payload["files"][0]["file_id"] = "a.txt"
+    payload["files"][1]["file_id"] = "b.txt"
+    provider = Fake([_completion(json.dumps(payload))])
+    report = run_understanding(
+        conn=conn,
+        views=[_view("a.txt", file_id="a.txt"), _view("b.txt", file_id="b.txt")],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t")
+    assert report.called_complete == 1
+    assert report.sent == 2
+
+
+def test_onboarding_questions_require_consent_and_use_names_only():
+    provider = Fake([_completion(json.dumps({
+        "summary": "These names look like a course.",
+        "questions": ["Which term is CHEM?"],
+    }))])
+    with pytest.raises(Exception):
+        questions_from_names(["CHEM.pdf"], declared_areas={"academic"},
+                             provider=provider, model_id="deepseek-v4-pro",
+                             consent=False)
+    assert provider.calls == []
+    result = questions_from_names(
+        ["CHEM.pdf"], declared_areas={"academic"}, provider=provider,
+        model_id="deepseek-v4-pro", consent=True)
+    assert "CHEM.pdf" in provider.calls[0].prompt
+    assert "course" in result["summary"].lower() or result["questions"]
+
+
+def test_dry_run_prints_fields_and_the_formula_and_sends_nothing(tmp_path):
+    import cli
+    (tmp_path / "notes.txt").write_text("hello")
+    (tmp_path / "secret.pem").write_text(SECRET)
+    out = io.StringIO()
+    code = cli.main([str(tmp_path), "--model-dry-run"], out=out)
+    text = out.getvalue()
+    assert code == 0
+    assert "Nothing was sent" in text
+    assert "filename" in text
+    assert "input_usd_per_million" in text
+    assert SECRET not in text
+    assert "Candidates: 1" in text
+    assert "No network call was made" in text
+    for field in ("filename", "path_hints", "kind", "text_excerpt", "metadata"):
+        assert field in text
+
+
+def test_model_dry_run_counts_a_large_folder_and_opens_no_socket(tmp_path, monkeypatch):
+    import http.client
+    import cli
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    count = 40
+    for index in range(count):
+        (tmp_path / f"note-{index}.txt").write_text("hours\n")
+    (tmp_path / "secret.pem").write_text(SECRET)
+    out = io.StringIO()
+    code = cli.main([str(tmp_path), "--model-dry-run"], out=out)
+    text = out.getvalue()
+    assert code == 0, text
+    assert f"Candidates: {count}." in text
+    assert "Excluded as protected or private: 1." in text
+    assert "No network call was made" in text
+    assert SECRET not in text
+    for field in ("filename", "path_hints", "kind", "text_excerpt", "metadata"):
+        assert f"    {field}" in text
+
+
+def test_understand_without_a_provider_fails_before_the_scan(tmp_path, monkeypatch):
+    import http.client
+    import cli
+    from cli import NO_UNDERSTANDING_PROVIDER
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    for name in (
+            "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL_FAST", "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    folder = tmp_path / "inbox"
+    folder.mkdir()
+    (folder / "hours.txt").write_text("office hours Tuesday\n")
+    answers = tmp_path / "answers.json"
+    answers.write_text(json.dumps({
+        "person_name": "Ada Localname",
+        "lives": ["academic"],
+        "not_lives": [],
+        "situations": {},
+        "school": "Example School",
+        "courses": [],
+        "companies": [],
+        "confirmed": True,
+    }), encoding="utf-8")
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+        "--enable-cloud", "--accept-cloud-understanding", "--understand",
+    ], out=out)
+    text = out.getvalue()
+    assert code == 2, text[-800:]
+    assert NO_UNDERSTANDING_PROVIDER in text
+    assert "filesorter providers" in text
+    assert "DEEPSEEK_API_KEY" in text
+    assert "Ada Localname" not in text
+    conn = sqlite3.connect(database)
+    try:
+        try:
+            files = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        except sqlite3.OperationalError:
+            files = 0
+    finally:
+        conn.close()
+    assert files == 0
+
+
+def _quiet_keys(monkeypatch):
+    import http.client
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
+    monkeypatch.setattr(http.client.HTTPSConnection, "request", boom)
+    for name in (
+            "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL_FAST", "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+
+
+def _one_folder(tmp_path):
+    folder = tmp_path / "inbox"
+    folder.mkdir()
+    (folder / "hours.txt").write_text("office hours Tuesday\n")
+    answers = tmp_path / "answers.json"
+    answers.write_text(json.dumps({
+        "person_name": "Ada Localname",
+        "lives": ["academic"],
+        "not_lives": [],
+        "situations": {},
+        "school": "Example School",
+        "courses": [],
+        "companies": [],
+        "confirmed": True,
+    }), encoding="utf-8")
+    return folder, answers, tmp_path / "plan.sqlite"
+
+
+class _ScanFake:
+    def __init__(self):
+        self.calls = []
+
+    def provider_name(self):
+        return "fake"
+
+    def locality(self):
+        return "cloud"
+
+    def complete(self, request):
+        self.calls.append(request.prompt)
+        return {
+            "choices": [{
+                "finish_reason": "stop",
+                "message": {"content": json.dumps({
+                    "kind": "note",
+                    "life_area": "academic",
+                    "course": None,
+                    "term": None,
+                    "company": None,
+                    "project": None,
+                    "concerns": "user",
+                    "confidence": 0.9,
+                    "evidence_quote": "office hours",
+                })},
+            }],
+            "usage": {"prompt_tokens": 12, "completion_tokens": 8},
+        }
+
+
+def test_a_scan_runs_understanding_without_an_opt_in_flag(tmp_path, monkeypatch):
+    """A normal scan asks the model. The person does not pass --understand."""
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    lowered = said.lower()
+    assert "do you want ai" not in lowered
+    assert "use ai" not in lowered
+    conn = sqlite3.connect(database)
+    try:
+        rows = conn.execute("SELECT COUNT(*) FROM understanding_audit").fetchone()[0]
+    finally:
+        conn.close()
+    assert rows >= 1, said[-800:]
+    assert fake.calls, said[-800:]
+    assert "Ada Localname" not in fake.calls[0]
+
+
+def test_a_scan_without_a_provider_refuses_before_any_file_is_read(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 2, said[-800:]
+    assert "set up a model provider" in said.lower()
+    assert "filesorter providers" in said
+    assert "onboard" in said
+    assert "do you want ai" not in said.lower()
+    assert "Ada Localname" not in said
+    conn = sqlite3.connect(database)
+    try:
+        try:
+            files = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        except sqlite3.OperationalError:
+            files = 0
+    finally:
+        conn.close()
+    assert files == 0
+
+
+def test_no_understand_is_the_only_scan_flag_that_skips_the_pass(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--no-understand",
+    ], out=out)
+    said = out.getvalue()
+    assert code in (0, 1), said[-800:]
+    assert "set up a model provider" not in said.lower()
+    assert "Plan database:" in said
+
+
+def test_the_skip_env_keeps_a_rules_scan_from_refusing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.setenv("FILESORTER_SKIP_UNDERSTANDING", "1")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers),
+    ], out=out)
+    said = out.getvalue()
+    assert code in (0, 1), said[-800:]
+    assert "set up a model provider" not in said.lower()
+    assert "Plan database:" in said
+
+
+def test_model_dry_run_stays_local_when_understanding_is_the_default(
+        tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, _answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--model-dry-run", "--database", str(database),
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert "Nothing was sent" in said
+    assert "No network call was made" in said
+    assert "Candidates: 1" in said
+    assert not database.exists()
+
+
+def test_rate_limit_waits_and_is_not_an_answer():
+    from understanding.backoff import RateLimited
+    from readers.model_understanding_http import status_error
+
+    refused = status_error(429, SECRET)
+    assert isinstance(refused, RateLimited)
+    assert SECRET not in str(refused)
+    assert status_error(429, "0.25").retry_after == 0.25
+
+    class Once(Fake):
+        def complete(self, request):
+            assert SECRET not in request.prompt
+            self.calls.append(request)
+            if len(self.calls) == 1:
+                raise RateLimited(0.25)
+            return self.payloads.pop(0)
+
+    slept = []
+    report = run_understanding(
+        conn=_conn(), views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=Once([_completion(_answer())]),
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        sleep=slept.append, attempts=3)
+    assert slept == [0.25]
+    assert report.results[0].status == "answered"
+    assert report.called_complete == 1
+
+
+def test_two_batches_overlap_when_workers_allow_it():
+    import threading
+    barrier = threading.Barrier(2)
+
+    class Overlap(Fake):
+        def complete(self, request):
+            barrier.wait(timeout=2)
+            self.calls.append(request)
+            if "one object per dossier" in request.prompt:
+                count = request.prompt.count('"file_id"')
+                body = {"files": [json.loads(_answer()) for _ in range(count)]}
+                return _completion(json.dumps(body))
+            return _completion(_answer())
+
+    views = [_view(f"n{i}.txt", file_id=f"n{i}.txt") for i in range(9)]
+    report = run_understanding(
+        conn=_conn(), views=views, declared_areas={"academic"},
+        private_areas=set(), provider=Overlap([]), model_id="deepseek-flash",
+        offline=False, consent=True, now="t", workers=2, sleep=lambda _seconds: None)
+    assert report.sent == 9
+    assert report.called_complete == 2
+
+
+def test_logic_and_reasoning_keep_the_category_gate():
+    from understanding.roles import group_files, resolve_conflict
+
+    provider = Fake([_completion(json.dumps({"groups": [
+        {"life_area": "academic", "file_ids": ["a"], "reason": "course"},
+        {"life_area": "business", "file_ids": ["b"], "reason": "guess"},
+    ]}))])
+    with pytest.raises(Exception):
+        group_files([], provider=provider, model_id="deepseek-chat",
+                    declared_areas={"academic"}, consent=False)
+    assert provider.calls == []
+    grouped = group_files(
+        [{"file_id": "a", "life_area": "academic", "kind": "notes"}],
+        provider=provider, model_id="deepseek-chat",
+        declared_areas={"academic"}, consent=True, sleep=lambda _seconds: None)
+    assert grouped["groups"][0]["life_area"] == "academic"
+    assert grouped["groups"][1]["life_area"] == "needs_review"
+    assert provider.calls[0].model_id == "deepseek-chat"
+
+    provider = Fake([_completion(_answer(life_area="business"))])
+    resolved = resolve_conflict(
+        file_id="a", dossier={"file_id": "a", "filename": "notes.txt"},
+        candidates=["academic", "business"], provider=provider,
+        model_id="deepseek-v4-pro", declared_areas={"academic"}, consent=True,
+        sleep=lambda _seconds: None)
+    assert resolved.needs_review
+    assert provider.calls[0].model_id == "deepseek-v4-pro"
+
+
+def test_a_stored_excerpt_is_capped_before_it_can_leave():
+    from understanding.attach import stored_excerpt
+    from understanding.dossier import build_dossier
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE extraction_runs (run_id TEXT, file_id TEXT, started_at TEXT)")
+    conn.execute("CREATE TABLE text_units (run_id TEXT, text TEXT)")
+    words = " ".join(f"w{i}" for i in range(500))
+    conn.execute("INSERT INTO extraction_runs VALUES ('r', 'f', 't')")
+    conn.execute("INSERT INTO text_units VALUES ('r', ?)", (words,))
+    text = stored_excerpt(conn, "f")
+    assert text.split()[0] == "w0"
+    assert len(text.split()) == 400
+    assert "w499" not in text
+    dossier = build_dossier(
+        FileView(file_id="f", path="/folder/notes.txt", filename="notes.txt", text=text),
+        private_areas=set())
+    assert len(dossier["text_excerpt"].split()) == 400
+    assert SECRET not in dossier["text_excerpt"]
+    # A filename record and the document can share one timestamp. The body
+    # is the excerpt. The filename is already its own field.
+    conn.execute("INSERT INTO extraction_runs VALUES ('name', 'f', 't')")
+    conn.execute("INSERT INTO text_units VALUES ('name', 'notes.txt')")
+    assert stored_excerpt(conn, "f").split()[0] == "w0"
+
+
+def test_concerns_that_are_not_one_string_are_rejected_without_a_type_error():
+    """A list, a dict, or an empty list is an answer failure, not a crash."""
+    for concerns in ([], ["user", "someone_else"], {"who": "user"}, [["user"]], None, 1):
+        with pytest.raises(Exception) as raised:
+            interpret_answer(
+                _answer(concerns=concerns), file_id="f",
+                declared_areas={"academic"})
+        assert type(raised.value).__name__ == "AnswerRejected"
+        assert not isinstance(raised.value, TypeError)
+
+
+def test_a_fault_reading_one_cached_answer_does_not_drop_the_next_file(monkeypatch):
+    """The cache is read on the main thread. One bad row must not abort the pass."""
+    from understanding.run import interpret_answer as real_interpret
+
+    payload = {"files": [json.loads(_answer()), json.loads(_answer())]}
+    conn = _conn()
+    first = run_understanding(
+        conn=conn,
+        views=[_view("a.txt", file_id="a.txt"), _view("b.txt", file_id="b.txt")],
+        declared_areas={"academic"}, private_areas=set(),
+        provider=Fake([_completion(json.dumps(payload))]),
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        sleep=lambda _seconds: None)
+    assert first.sent == 2
+    assert first.cache_hits == 0
+
+    def flaky(raw, *, file_id, declared_areas):
+        if file_id == "a.txt":
+            raise RuntimeError(SECRET)
+        return real_interpret(raw, file_id=file_id, declared_areas=declared_areas)
+
+    monkeypatch.setattr("understanding.run.interpret_answer", flaky)
+    second = run_understanding(
+        conn=conn,
+        views=[_view("a.txt", file_id="a.txt"), _view("b.txt", file_id="b.txt")],
+        declared_areas={"academic"}, private_areas=set(), provider=Fake([]),
+        model_id="deepseek-flash", offline=False, consent=True, now="t2",
+        sleep=lambda _seconds: None)
+    by_id = {item.file_id: item for item in second.results}
+    assert by_id["a.txt"].status == "needs_review"
+    assert SECRET not in by_id["a.txt"].reason
+    assert by_id["b.txt"].status == "cache"
+    assert by_id["b.txt"].understanding.life_area == "academic"
+    rows = conn.execute(
+        "SELECT file_id, exception_class FROM understanding_audit "
+        "WHERE cache_hit = 1 ORDER BY audit_id"
+    ).fetchall()
+    assert ("a.txt", "RuntimeError") in rows
+
+
+def test_a_one_element_concerns_list_is_not_a_type_error():
+    understood = interpret_answer(
+        _answer(concerns=["user"]), file_id="f", declared_areas={"academic"})
+    assert understood.concerns == "user"
+    assert not understood.needs_review
+    with pytest.raises(Exception) as raised:
+        interpret_answer(
+            _answer(concerns=["user", "someone_else"]),
+            file_id="f", declared_areas={"academic"})
+    assert type(raised.value).__name__ == "AnswerRejected"
+    assert not isinstance(raised.value, TypeError)
+
+
+def test_one_bad_member_does_not_drop_the_rest_of_the_batch():
+    good = json.loads(_answer())
+    listed = json.loads(_answer())
+    listed["concerns"] = ["user", "someone_else"]
+    also = json.loads(_answer(kind="notes"))
+    payload = {"files": [good, listed, also]}
+    provider = Fake([_completion(json.dumps(payload))])
+    conn = _conn()
+    report = run_understanding(
+        conn=conn,
+        views=[
+            _view("a.txt", file_id="a.txt"),
+            _view("b.txt", file_id="b.txt"),
+            _view("c.txt", file_id="c.txt"),
+        ],
+        declared_areas={"academic"}, private_areas=set(), provider=provider,
+        model_id="deepseek-flash", offline=False, consent=True, now="t",
+        workers=2, sleep=lambda _seconds: None)
+    assert len(report.results) == 3
+    by_id = {item.file_id: item for item in report.results}
+    assert by_id["a.txt"].status == "answered"
+    assert by_id["b.txt"].status == "needs_review"
+    assert by_id["c.txt"].status == "answered"
+    rows = conn.execute(
+        "SELECT file_id, exception_class FROM understanding_audit"
+    ).fetchall()
+    assert {row[0] for row in rows} == {"a.txt", "b.txt", "c.txt"}
+    rejected = [row for row in rows if row[0] == "b.txt"]
+    assert rejected and rejected[0][1] == "AnswerRejected"
+
+
+def test_an_unexpected_error_is_audited_as_its_class_and_not_the_key():
+    class Boom(Fake):
+        def complete(self, request):
+            raise RuntimeError(SECRET)
+
+    conn = _conn()
+    report = run_understanding(
+        conn=conn, views=[_view()], declared_areas={"academic"},
+        private_areas=set(), provider=Boom([]), model_id="deepseek-flash",
+        offline=False, consent=True, now="t", sleep=lambda _seconds: None)
+    assert report.results[0].status == "needs_review"
+    assert SECRET not in report.results[0].reason
+    row = conn.execute(
+        "SELECT exception_class, fields_sent FROM understanding_audit"
+    ).fetchone()
+    assert row[0] == "RuntimeError"
+    assert SECRET not in " ".join(str(cell) for cell in row)
+
+
+def test_onboarding_questions_command_sends_nothing_without_consent(tmp_path):
+    import cli
+    (tmp_path / "CHEM.pdf").write_text(SECRET)
+    out = io.StringIO()
+    code = cli.main([str(tmp_path), "--onboarding-questions"], out=out)
+    text = out.getvalue()
+    assert code == 0
+    assert "sent nothing" in text
+    assert SECRET not in text
+    assert "Names seen: 1" in text
+
+
+def test_after_understanding_prints_life_areas_including_cached_answers():
+    """The rules' gist is printed before this pass. This block is the pass."""
+    from understanding.answer import Understanding
+    from understanding.attach import print_after_understanding
+    from understanding.run import FileResult, PassReport
+
+    def named(file_id, area, *, needs=False):
+        return Understanding(
+            file_id=file_id, kind="resume", life_area=area,
+            course=None, term=None, company=None, project=None,
+            concerns="user", confidence=0.4 if needs else 0.9,
+            evidence_quote="cover letter", needs_review=needs,
+            reason="confidence is low" if needs else "")
+
+    report = PassReport(results=[
+        FileResult("a", "cache", understanding=named("a", "career")),
+        FileResult("b", "answered", understanding=named("b", "career")),
+        FileResult("c", "answered", understanding=named("c", "academic", needs=True)),
+        FileResult("d", "needs_review", reason="budget stop"),
+        FileResult("e", "excluded", reason="protected"),
+    ])
+    out = io.StringIO()
+    print_after_understanding(report, out)
+    text = out.getvalue()
+    assert "After understanding: 5 files." in text
+    assert "2 career" in text
+    assert "1 academic" in text
+    assert "1 need review" in text
+    assert "1 excluded" in text
+    assert "1 of the named files need review" in text
+    assert "business" not in text
+
+
+def test_http_402_stops_the_pass_and_names_the_balance_in_the_audit():
+    """A fake 402. Not retried, and later batches are not sent."""
+    from understanding.attach import print_after_understanding
+    from understanding.backoff import BALANCE_EMPTY, InsufficientBalance
+
+    class Empty(Fake):
+        def complete(self, request):
+            self.calls.append(request)
+            raise InsufficientBalance()
+
+    provider = Empty([])
+    conn = _conn()
+    views = [_view(f"{i}.txt", file_id=f"{i}.txt", text="office hours json")
+             for i in range(9)]
+    slept = []
+    report = run_understanding(
+        conn=conn, views=views, declared_areas={"academic", "career"},
+        private_areas=set(), provider=provider, model_id="deepseek-flash",
+        offline=False, consent=True, now="t", workers=1, attempts=4,
+        sleep=slept.append)
+    assert len(provider.calls) == 1
+    assert slept == []
+    assert report.called_complete == 1
+    assert report.balance_notice == BALANCE_EMPTY
+    assert report.needs_review == 9
+    classes = {
+        row[0] for row in conn.execute(
+            "SELECT exception_class FROM understanding_audit")
+    }
+    assert classes == {"InsufficientBalance"}
+    assert "ProviderError" not in classes
+    out = io.StringIO()
+    print_after_understanding(report, out)
+    text = out.getvalue()
+    assert BALANCE_EMPTY in text
+    assert SECRET not in text
+
+
+def test_a_402_response_and_an_insufficient_balance_body_are_not_retried(monkeypatch):
+    import io as _io
+    import urllib.error
+    import urllib.request
+    from understanding.backoff import (
+        BALANCE_EMPTY, InsufficientBalance, complete_with_backoff,
+    )
+    from understanding.provider import CompletionRequest
+    from readers.model_understanding_http import DeepSeekUnderstanding, post_json, status_error
+
+    payload = json.dumps({
+        "error": {
+            "message": "Insufficient Balance",
+            "code": "invalid_request_error",
+        },
+    }).encode()
+    calls = []
+
+    def unpaid(request, timeout=None):
+        calls.append(request.full_url)
+        raise urllib.error.HTTPError(
+            request.full_url, 402, "Payment Required", hdrs=None,
+            fp=_io.BytesIO(payload))
+
+    monkeypatch.setattr(urllib.request, "urlopen", unpaid)
+    with pytest.raises(InsufficientBalance) as raised:
+        post_json("https://api.deepseek.com/chat/completions",
+                  {"Authorization": "Bearer " + SECRET},
+                  {"model": "deepseek-flash"})
+    assert str(raised.value) == BALANCE_EMPTY
+    assert SECRET not in str(raised.value)
+    assert type(raised.value).__name__ == "InsufficientBalance"
+    assert len(calls) == 1
+
+    def paid_looking(request, timeout=None):
+        calls.append("200")
+
+        class _Body:
+            def read(self):
+                return payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        return _Body()
+
+    monkeypatch.setattr(urllib.request, "urlopen", paid_looking)
+    with pytest.raises(InsufficientBalance):
+        post_json("https://api.deepseek.com/chat/completions", {}, {"model": "x"})
+
+    refused = status_error(400, None, payload)
+    assert isinstance(refused, InsufficientBalance)
+    ordinary = status_error(401, None, b'{"error":{"message":"Invalid API key"}}')
+    assert type(ordinary).__name__ == "ProviderError"
+    assert "balance" not in str(ordinary)
+    vague = status_error(400, None, b'{"error":{"message":"the balance of evidence is low"}}')
+    assert type(vague).__name__ == "ProviderError"
+    assert "evidence" not in str(vague)
+
+    adapter = DeepSeekUnderstanding(
+        api_key=SECRET, base_url="https://api.deepseek.com", post=post_json)
+    monkeypatch.setattr(urllib.request, "urlopen", unpaid)
+    before = len(calls)
+    slept = []
+    with pytest.raises(InsufficientBalance):
+        complete_with_backoff(
+            adapter,
+            CompletionRequest(
+                model_id="deepseek-flash", prompt="Reply with one JSON object",
+                max_tokens=16, thinking="disabled"),
+            sleep=slept.append, attempts=4)
+    assert len(calls) == before + 1
+    assert slept == []
+    assert SECRET not in str(raised.value)
+
+
+def test_the_facts_summary_prints_an_empty_balance_without_the_body():
+    import cli
+    from llm_harness.records import CallFailed
+
+    def failed(kind, status):
+        return CallFailed(
+            request_identity="req", release_id="rel", audit_id=1,
+            explanation=json.dumps({"type": kind, "status": status}),
+            validator_version="v", policy_version="p")
+
+    out = io.StringIO()
+    cli._print_fact_pass(
+        written=0, withheld={}, files=2,
+        outcomes=[
+            ("a", failed("InsufficientBalance", 402)),
+            ("b", failed("ProviderDidNotAnswer", 401)),
+        ],
+        model_id="deepseek-chat", out=out)
+    text = out.getvalue()
+    assert "cloud provider balance is empty — top up or switch keys" in text
+    assert "1 refused: the call did not come back (CallFailed)." in text
+    assert "Insufficient Balance" not in text
+    assert SECRET not in text
+
+
+def _files_db(directory):
+    """The columns `indexed_views` reads, plus a placement the residual pass can see."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE files (file_id TEXT, current_path TEXT, filename TEXT)")
+    conn.execute(
+        "CREATE TABLE plan_versions (plan_version_id TEXT, created_at TEXT)")
+    conn.execute(
+        "CREATE TABLE placement_decisions ("
+        "subject_ref TEXT, plan_version TEXT, outcome TEXT, superseded_by TEXT)")
+    return conn
+
+
+def _seed_file(conn, directory, file_id, name):
+    path = str(directory / name)
+    conn.execute(
+        "INSERT INTO files (file_id, current_path, filename) VALUES (?, ?, ?)",
+        (file_id, path, name))
+    return path
+
+
+def test_residuals_ask_only_unplaced_files_the_budget_never_settled(tmp_path):
+    """A second pass spends calls on budget stops, not on settled or placed files.
+
+    A cached needs-review answer was already asked. It stays in the review
+    pile and is not sent again.
+    """
+    from understanding.attach import residual_views
+    from understanding.store import cache_put, ensure_schema
+    from understanding.dossier import build_dossier, dossier_hash
+
+    directory = tmp_path / "inbox"
+    directory.mkdir()
+    conn = _files_db(directory)
+    ensure_schema(conn)
+    stopped = _seed_file(conn, directory, "stopped", "stopped.txt")
+    settled = _seed_file(conn, directory, "settled", "settled.txt")
+    reviewed = _seed_file(conn, directory, "reviewed", "reviewed.txt")
+    placed = _seed_file(conn, directory, "placed", "placed.txt")
+    (directory / "stopped.txt").write_text("office hours\n")
+    conn.execute(
+        "INSERT INTO plan_versions VALUES ('plan-1', '2026-10-02T00:00:00Z')")
+    conn.execute(
+        "INSERT INTO placement_decisions VALUES (?, 'plan-1', 'place', NULL)",
+        (f"file:placed:hash",))
+    conn.execute(
+        "INSERT INTO placement_decisions VALUES (?, 'plan-1', 'abstain', NULL)",
+        ("file:stopped:hash",))
+    note = ""
+    model_id = "deepseek-flash"
+
+    def _store(file_id, path, name, body):
+        # No extraction tables: the pass reads an empty excerpt, and the
+        # cache key has to be that same dossier.
+        view = FileView(file_id=file_id, path=path, filename=name, text="")
+        key = dossier_hash(
+            build_dossier(view, private_areas=set()),
+            model_id=model_id, profile_note=note)
+        cache_put(conn, cache_key=key, model_id=model_id,
+                  response_json=body, stored_at="t")
+
+    _store("settled", settled, "settled.txt", _answer())
+    _store("reviewed", reviewed, "reviewed.txt", _answer(confidence=0.2))
+    selection = residual_views(
+        conn, directory, private_areas=set(), declared_areas={"academic"},
+        model_id=model_id, profile_note=note)
+    assert [view.file_id for view in selection.pending] == ["stopped"]
+    assert selection.settled == 1
+    assert selection.already_review == 1
+    provider = Fake([_completion(_answer())])
+    from understanding.attach import understand_residuals
+    out = io.StringIO()
+    from understanding.store import record_consent
+    record_consent(conn, corpus_root=str(directory), user_id="t", decided_at="t")
+    understand_residuals(
+        conn, directory=directory, private_areas=set(),
+        declared_areas={"academic"}, offline=False, out=out,
+        provider=provider, model_id=model_id, now="t2", profile_note=note,
+        budget=Budget(max_calls=5, max_input_tokens=100_000))
+    text = out.getvalue()
+    assert len(provider.calls) == 1
+    assert "stopped" in provider.calls[0].prompt
+    assert "settled.txt" not in provider.calls[0].prompt
+    assert "placed.txt" not in provider.calls[0].prompt
+    assert "reviewed.txt" not in provider.calls[0].prompt
+    assert "still to ask" in text
+    assert "stopped by the budget" in text
+
+
+def test_understand_max_calls_zero_sends_nothing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-max-calls", "0",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert fake.calls == []
+    assert "stopped by the budget" in said
+    assert "0 of 0 calls" in said
+
+
+def test_a_negative_understand_budget_is_refused(tmp_path, monkeypatch, capsys):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    with pytest.raises(SystemExit) as exited:
+        cli.main([
+            str(folder), "--database", str(database), "--user", "t",
+            "--answers", str(answers), "--understand-max-calls", "-3",
+        ], out=io.StringIO())
+    assert exited.value.code == 2
+    assert "cannot be negative" in capsys.readouterr().err
+
+
+def test_understand_residuals_does_not_scan_or_resend_settled_files(
+        tmp_path, monkeypatch):
+    """The second command spends calls only on what the first pass left open."""
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    fake = _ScanFake()
+    monkeypatch.setattr(cli, "_understanding_provider", lambda out: fake)
+    monkeypatch.setattr(
+        cli, "_understanding_model_id", lambda out, role="fast": "deepseek-flash")
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-max-calls", "0",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 0, said[-800:]
+    assert fake.calls == []
+    assert "stopped by the budget" in said
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("residuals scanned the folder again")
+
+    monkeypatch.setattr(cli, "run", boom)
+    out2 = io.StringIO()
+    code2 = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out2)
+    said2 = out2.getvalue()
+    assert code2 == 0, said2[-1200:]
+    assert len(fake.calls) == 1, said2[-800:]
+    assert "still to ask" in said2
+    out3 = io.StringIO()
+    code3 = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out3)
+    said3 = out3.getvalue()
+    assert code3 == 0, said3[-800:]
+    assert len(fake.calls) == 1, said3[-800:]
+    assert "already settled" in said3
+
+
+def test_residuals_without_a_plan_database_sends_nothing(tmp_path, monkeypatch):
+    import cli
+
+    _quiet_keys(monkeypatch)
+    monkeypatch.delenv("FILESORTER_SKIP_UNDERSTANDING", raising=False)
+    folder, answers, database = _one_folder(tmp_path)
+    out = io.StringIO()
+    code = cli.main([
+        str(folder), "--database", str(database), "--user", "t",
+        "--answers", str(answers), "--understand-residuals",
+    ], out=out)
+    said = out.getvalue()
+    assert code == 2, said[-800:]
+    assert "plan database" in said.lower()
+    assert not database.exists()

@@ -38,6 +38,15 @@ class AnswerConflict(ValueError):
     """An answer that does not belong to the question it names."""
 
 
+def _forget_settled(conn: sqlite3.Connection) -> None:
+    """Drop the binding-answer cache. The next read sees this write."""
+    from database_agent.db import connection_cache
+
+    cache = connection_cache(conn, "_answered_options")
+    if cache is not None:
+        cache.clear()
+
+
 def record_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
                     asked_at: str) -> str:
     """Record that the product raised this question. Idempotent by question id.
@@ -49,6 +58,7 @@ def record_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
     resetting it cannot tell a question it has raised once from one it has raised
     for the fortieth time.
     """
+    _forget_settled(conn)
     conn.execute(
         "INSERT INTO structural_questions "
         "(question_id, answer_class, prompt, evidence_context, unlocks, "
@@ -138,6 +148,7 @@ def the_option_they_named(conn: sqlite3.Connection, question_id: str,
 
 def record_answer(conn: sqlite3.Connection, answer: StructuralAnswer) -> str:
     """Record one answer, and return its id so a later edit can supersede it."""
+    _forget_settled(conn)
     row = _question_row(conn, answer.question_id)
     if row is None:
         raise AnswerConflict(
@@ -285,7 +296,17 @@ def answered_options(conn: sqlite3.Connection, *,
     person has actually settled and gets back the options, not the raw rows. Only
     `confirmed` answers are binding -- a skip, a "not about me" and a revocation
     all decide nothing, which is what makes them safe to offer.
+
+    A scan asks this once per explanation, and an explanation is asked several
+    times per file. The table does not change between those reads. A question
+    or an answer written on this connection drops the cache, so a gesture
+    recorded earlier in the same invocation is visible to the next read.
     """
+    from database_agent.db import connection_cache
+
+    cache = connection_cache(conn, "_answered_options")
+    if cache is not None and scope in cache:
+        return cache[scope]
     out: list[QuestionOption] = []
     for row in conn.execute("SELECT * FROM structural_questions "
                             "ORDER BY question_id"):
@@ -298,7 +319,10 @@ def answered_options(conn: sqlite3.Connection, *,
         for option in _question_of(row).options:
             if option.option_id == answer.option_id:
                 out.append(option)
-    return tuple(out)
+    found = tuple(out)
+    if cache is not None:
+        cache[scope] = found
+    return found
 
 
 def activated_schemas(conn: sqlite3.Connection, *,

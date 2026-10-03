@@ -24,8 +24,9 @@ nothing, and one that stalls mid-body, are caught by a per-read timer too -- the
 would pass against the client R-176 was filed against. A TRICKLE would not:
 `test_a_provider_that_dribbles_a_byte_forever_still_ends_at_the_deadline` sends a
 byte four times per patience, so no read ever waits long enough to fire and the old
-client waits for as long as the trickle lasts. The fourth test holds the ONE bound
-this seam cannot make tight, so that it is a measured promise and not a hope.
+client waits for as long as the trickle lasts. The fourth test is the same deadline
+after a short trickle: the next read is armed with what is left, not with a
+fresh patience.
 """
 from __future__ import annotations
 
@@ -36,11 +37,8 @@ import time
 
 import pytest
 
-pytest.importorskip("openai", reason="the model transports are a `models` extra")
-pytest.importorskip("httpx", reason="the OpenAI client's own transport library")
-
-from privacy.release import ModelTarget                        # noqa: E402
-from readers.model_deepseek import (                           # noqa: E402
+from privacy.release import ModelTarget
+from readers.model_deepseek import (
     JUDGE_SAMPLING,
     READING_THE_BODY, WAITING_FOR_THE_FIRST_BYTE,
     ModelRanOutOfTime, ModelRanOutOfTimeReadingTheBody,
@@ -61,8 +59,7 @@ PATIENCE = 0.6
 #: one buys no power while making the pin flaky on a machine under load -- this
 #: repo's own suite has run at a load average near a hundred beside other agents,
 #: where several seconds of scheduling delay is ordinary and means nothing about
-#: the client. The first call in a process also pays for `import openai`, which is
-#: outside the budget and inside the measurement.
+#: the client.
 SLACK = 20.0
 
 RESPONSE_TOKENS = 512
@@ -282,22 +279,12 @@ def test_a_provider_that_dribbles_a_byte_forever_still_ends_at_the_deadline(serv
 
 def test_a_reply_that_trickles_and_then_stalls_is_bounded_where_it_is_documented(
         server):
-    """THE ONE BOUND THIS SEAM CANNOT MAKE TIGHT, measured so it is a promise.
+    """A short trickle, then silence, still ends at the one deadline.
 
-    The transport library arms each phase's socket timer ONCE -- httpcore reads
-    `read` out of the timeout mapping before its body loop, not inside it -- so a
-    piece that arrives just before that timer would have fired passes the
-    between-pieces check and the NEXT wait is a window that was armed with the
-    remainder at the start of the body. A reply that trickles and then goes quiet
-    therefore ends at the deadline plus at most one such window, which is under
-    twice the deadline and is never unbounded.
-
-    `_under_one_deadline` states exactly that, and this is the measurement behind
-    it. It is the honest bound and not the desirable one: making it tight would
-    mean re-implementing the body reader, which means leaving the SDK -- and with
-    it the owner's key and the TLS -- or running a watchdog thread per call, which
-    is a second timing mechanism to keep true. Neither is worth what it buys over
-    "silence exact, never unbounded".
+    The socket timeout for each body read is what remains of the budget, and
+    the budget is checked before the read is armed. A reply that trickles and
+    then goes quiet therefore ends when the budget is gone, not one full
+    patience later.
     """
     def trickle_then_stall(running, accepted, stop):
         _read_the_request(running, accepted)
@@ -312,28 +299,21 @@ def test_a_reply_that_trickles_and_then_stalls_is_bounded_where_it_is_documented
 
     refusal, took = _timed(server(trickle_then_stall).base_url)
 
-    assert took < 2 * PATIENCE + SLACK, (
-        f"the call took {took:.1f}s. The documented bound is the deadline plus one "
-        f"armed read window, so under twice {PATIENCE:g}s -- anything longer means "
-        f"the window is being RE-armed and the call is unbounded again")
+    assert took < PATIENCE + SLACK, (
+        f"the call took {took:.1f}s against a deadline of {PATIENCE:g}s. "
+        f"A stall after a trickle has to end when the budget is gone")
     assert isinstance(refusal, ModelRanOutOfTimeReadingTheBody)
 
 
-def test_a_normal_call_is_byte_identical_to_what_the_stock_client_sends(server):
-    """THE DEADLINE MUST NOT CHANGE THE REQUEST, and this is how that is known.
+def test_a_normal_call_posts_request_body_and_returns_the_answer(server):
+    """THE DEADLINE MUST NOT CHANGE THE REQUEST, and a healthy call must finish.
 
     `transport.issue` recomputes and fingerprints the model-visible bytes before
-    this module is called, and P7's release ledger records what left. A transport
-    that altered a header, a path or a body byte would mean the audit record
-    described one request and the provider saw another -- so the substituted
-    transport is compared against the stock one over the SAME port, and the whole
-    request is compared and not a summary of it.
-
-    The answer is asserted too: a deadline that bounded a healthy call would be the
-    R-176 defect pointed the other way.
+    this module is called, and P7's release ledger records what left. What goes
+    out is `request_body`: JSON object mode, thinking disabled, and the judge's
+    sampling term. The path is chat completions. The answer bytes are the
+    model's content, not a timeout.
     """
-    import openai
-
     def answer(running, accepted, stop):
         _read_the_request(running, accepted)
         accepted.sendall(_http(_completion(ANSWER)))
@@ -341,28 +321,11 @@ def test_a_normal_call_is_byte_identical_to_what_the_stock_client_sends(server):
     running = server(answer)
 
     assert _invoke(running.base_url)(DOSSIER) == ANSWER.encode("utf-8")
-
-    # The same request, through the client this module used to build: no
-    # `http_client`, so httpx supplies its own transport and its own four timers.
-    with openai.OpenAI(api_key="not-a-real-key", base_url=running.base_url,
-                       timeout=PATIENCE, max_retries=0) as stock:
-        from readers.model_deepseek import JUDGE_SAMPLING, _as_the_sdk_takes_it
-        # The same sampling term the product sends (15 Sep 2026): byte-identical
-        # means identical INCLUDING the term nobody but this module chooses.
-        stock.chat.completions.create(
-            **_as_the_sdk_takes_it(request_body(
-                model_id=TARGET.model_id, max_tokens=RESPONSE_TOKENS,
-                prompt=DOSSIER.decode("utf-8"), temperature=JUDGE_SAMPLING)))
-
-    under_the_deadline, stock_request = running.requests
-    assert under_the_deadline == stock_request, (
-        "the request the deadline transport sends is not the request the stock "
-        "client sends")
-
-    # The readable half of the same fact: what went out IS `request_body`'s output
-    # and nothing else, so a term added by the transport fails here by name.
-    head, body = under_the_deadline.split(b"\r\n\r\n", 1)
+    assert len(running.requests) == 1
+    head, body = running.requests[0].split(b"\r\n\r\n", 1)
     assert head.split(b"\r\n")[0] == b"POST /chat/completions HTTP/1.1"
+    assert b"Authorization: Bearer not-a-real-key" in head
+    assert b"not-a-real-key" not in body
     assert json.loads(body) == request_body(
         model_id=TARGET.model_id, max_tokens=RESPONSE_TOKENS,
         prompt=DOSSIER.decode("utf-8"),

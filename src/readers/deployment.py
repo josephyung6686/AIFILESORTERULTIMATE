@@ -63,9 +63,13 @@ SENSOR_RATIO_TOLERANCE: float = 0.005
 #: `ocr_config` -- so the run says which languages were available, and no list in
 #: this product decides it. Every stored OCR fingerprint changes with this, which is
 #: exactly what a cache key exists to do when the configuration really did change.
+#: The classification pass uses Vision's fast level. The engine still accepts
+#: `accurate`; a later pass that needs it passes that level in `config`. Fast is
+#: the level Apple documents as the smaller model. Label agreement between the
+#: two levels is not measured on this machine.
 VISION_CONFIG: dict[str, Any] = {
     "dpi": 200,
-    "recognition_level": "accurate",
+    "recognition_level": "fast",
 }
 
 
@@ -117,6 +121,7 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
                   spreadsheet_cell_ceiling: int,
                   ocr_page_ceiling: int, ocr_seconds_per_file: int,
                   ocr_sparse_page_words: int | None = None,
+                  ocr_image_long_edge: int | None = None,
                   **overrides: Any) -> Readers:
     """The wired `Readers`. Pass `**overrides` to swap any single reader.
 
@@ -203,7 +208,11 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
                        # bare rule (a page with no words at all); the product
                        # passes `cli.OCR_SPARSE_PAGE_WORDS`. SPEC OQ1's deferred
                        # configuration value, held here and not in the policy.
-                       "sparse_page_words": ocr_sparse_page_words},
+                       "sparse_page_words": ocr_sparse_page_words,
+                       # None leaves a loose image at its own pixel size. The
+                       # product passes `cli.OCR_IMAGE_LONG_EDGE_PX`.
+                       **({} if ocr_image_long_edge is None else
+                          {"max_long_edge_px": ocr_image_long_edge})},
         "read_docx": python_docx_reader(),
         # §2.5's manifest, from the standard library. No ceiling: how many members
         # are worth listing is a deployment budget, and this deployment would

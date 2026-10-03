@@ -182,6 +182,114 @@ def _require_target(model_target: ModelTarget) -> None:
         )
 
 
+#: Messages API. https://docs.anthropic.com/en/api/messages
+#: `anthropic-version` is the version that page names for this request shape.
+ANTHROPIC_VERSION: str = "2023-06-01"
+MESSAGES_URL: str = "https://api.anthropic.com/v1/messages"
+ENV_MODEL: str = "ANTHROPIC_MODEL"
+
+
+class AnthropicRequestRefused(RuntimeError):
+    """The Messages request was not sent, or the body was not an answer."""
+
+
+def messages_headers(api_key: str) -> dict[str, str]:
+    """`x-api-key` and `anthropic-version`, which the Messages API requires."""
+    if not isinstance(api_key, str) or not api_key.strip():
+        raise AnthropicRequestRefused("no API key was injected")
+    return {
+        "x-api-key": api_key.strip(),
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+    }
+
+
+def messages_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
+    if not isinstance(model_id, str) or not model_id.strip():
+        raise AnthropicRequestRefused(
+            f"no model id. Set {ENV_MODEL}. This module does not pick a model.")
+    if not isinstance(max_tokens, int) or max_tokens < 1:
+        raise AnthropicRequestRefused("max_tokens must be a positive integer")
+    return {
+        "model": model_id.strip(),
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+
+def messages_text(payload: dict) -> str:
+    """The joined text blocks, or a refusal. A max_tokens stop is not an answer."""
+    stop = payload.get("stop_reason")
+    if stop == "refusal":
+        raise AnthropicRequestRefused(
+            "the provider declined (stop_reason='refusal')")
+    if stop == "max_tokens":
+        raise AnthropicRequestRefused(
+            "the answer was cut off at the token ceiling (stop_reason='max_tokens')")
+    blocks = payload.get("content")
+    if not isinstance(blocks, list):
+        raise AnthropicRequestRefused("the response carried no content list")
+    text = "".join(
+        block.get("text", "") for block in blocks
+        if isinstance(block, dict) and block.get("type") == "text")
+    if not text.strip():
+        raise AnthropicRequestRefused(
+            f"the response carried no text block (stop_reason={stop!r})")
+    return text
+
+
+def post_json(url: str, headers: dict, body: dict, *, timeout: float = 90) -> dict:
+    """One HTTPS POST to the Messages API. The error never contains the key."""
+    import json
+    import urllib.request
+    request = urllib.request.Request(
+        url, data=json.dumps(body).encode("utf-8"), headers=dict(headers),
+        method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            parsed = json.loads(response.read().decode("utf-8"))
+    except Exception as problem:
+        code = getattr(problem, "code", None)
+        raise AnthropicRequestRefused(
+            "the provider did not answer"
+            + (f" (HTTP {code})" if code else "")) from None
+    if not isinstance(parsed, dict):
+        raise AnthropicRequestRefused("the provider's reply was not a JSON object")
+    return parsed
+
+
+def anthropic_http_invoke(*, api_key: str, model_target: ModelTarget,
+                          max_response_tokens: int,
+                          post: Callable[..., dict],
+                          url: str = MESSAGES_URL,
+                          ) -> Callable[[bytes], bytes]:
+    """Messages API through an injected POST. The SDK path above is unchanged.
+
+    Bedrock and Vertex signing are not implemented. A deployment that reaches
+    Claude through those clouds can put an Anthropic-compatible HTTPS URL here;
+    this function does not invent SigV4 or Google credentials.
+    """
+    _require_target(model_target)
+    key = _require_credential(api_key)
+    headers = messages_headers(key)
+    model_id = model_target.model_id
+
+    def invoke(payload: bytes) -> bytes:
+        try:
+            prompt = payload.decode("utf-8")
+        except UnicodeDecodeError as problem:
+            raise ModelVisibleBytesNotText(
+                "the released bytes are not UTF-8") from problem
+        body = messages_body(model_id=model_id, max_tokens=max_response_tokens,
+                             prompt=prompt)
+        answer = post(url, headers, body)
+        if not isinstance(answer, dict):
+            raise AnthropicRequestRefused("the transport did not return an object")
+        return messages_text(answer).encode("utf-8")
+
+    return invoke
+
+
 def anthropic_invoke(*, api_key: str | None, model_target: ModelTarget,
                      max_response_tokens: int,
                      send: Callable[..., object] = _send,
@@ -219,3 +327,35 @@ def anthropic_invoke(*, api_key: str | None, model_target: ModelTarget,
         )).encode("utf-8")
 
     return invoke
+
+
+class AnthropicUnderstanding:
+    """Messages API for the understanding pass. The key stays on the request."""
+
+    def __init__(self, *, api_key: str, post, model_id: str = ""):
+        self._headers = messages_headers(api_key)
+        self._post = post
+        self._model = model_id
+
+    def provider_name(self) -> str:
+        return "anthropic"
+
+    def locality(self) -> str:
+        return "cloud"
+
+    def complete(self, request) -> dict:
+        from understanding.backoff import InsufficientBalance, RateLimited
+        body = messages_body(
+            model_id=request.model_id or self._model,
+            max_tokens=request.max_tokens, prompt=request.prompt)
+        try:
+            payload = self._post(MESSAGES_URL, self._headers, body)
+        except (RateLimited, AnthropicRequestRefused, InsufficientBalance):
+            raise
+        except Exception:
+            raise AnthropicRequestRefused("the provider did not answer") from None
+        if not isinstance(payload, dict):
+            raise AnthropicRequestRefused("the transport did not return an object")
+        text = messages_text(payload)
+        return {"choices": [{"finish_reason": "stop",
+                             "message": {"content": text}}]}

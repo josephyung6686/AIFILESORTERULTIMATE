@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from extractors.sink import ExtractionResult
 
@@ -150,25 +150,70 @@ def document_ocr_decision(*, result: ExtractionResult, file_id: str,
                        reason="the text layer produced usable facts")
 
 
-def image_ocr_decision(*, result: ExtractionResult) -> OcrDecision:
-    """Every image is read. Nothing about an image's metadata holds OCR back.
+def metadata_words(result: ExtractionResult) -> int:
+    """Words already stored on this image's metadata observations.
+
+    A camera tag such as `Canon` is one word. A caption that is already a sentence
+    is many. The count uses the same word rule as a PDF page, and the floor that
+    decides "enough" is the caller's.
+    """
+    total = 0
+    for item in result.observations:
+        raw = item.get("raw_value") if isinstance(item, Mapping) else None
+        if raw:
+            total += _words(str(raw))
+    return total
+
+
+def text_meets_word_floor(*, result: ExtractionResult,
+                          word_floor: int | None) -> bool:
+    """Whether the text layer already has a page the deployment can classify from.
+
+    `word_floor` is the caller's (`cli.OCR_SPARSE_PAGE_WORDS` on the product path).
+    None keeps the bare rule: one page with a word. A document with no text at all
+    is not classifiable from the text layer, and OCR remains the route for it.
+    """
+    if not _has_text(result):
+        return False
+    floor = 1 if word_floor is None else word_floor
+    words: dict[int, int] = {}
+    loose = 0
+    for unit in result.text_units:
+        page = _page_of(unit)
+        if page is None:
+            loose += _words(unit["text"])
+            continue
+        words[page] = words.get(page, 0) + _words(unit["text"])
+    if words:
+        return any(count >= floor for count in words.values())
+    return loose >= floor
+
+
+def image_ocr_decision(*, result: ExtractionResult,
+                       word_floor: int | None = None) -> OcrDecision:
+    """Whether an image still needs OCR.
 
     §2.7 wrote the trigger as "no usable text AND no usable metadata", and the owner
     ruled it away on 11 Sep 2026 (`00` amendment 6, `104` §18.52-§18.53) after
     reading the second corpus: four designed graphics were filed with nothing
     extracted, and camera photographs of a book page (11,000 characters of words)
     and of a printed passage were skipped because their EXIF said "photograph". A
-    photograph of a page IS words. Reading an image classifies nothing; the pixels
-    are read, the metadata stays what it was, and §2.6's tiers keep their meaning
-    for what the image is -- they no longer decide whether it is looked at.
+    photograph of a page IS words. A camera tag does not hold OCR back.
 
-    The only thing that holds OCR back is text this run already stored, which an
-    image run never does; the branch is kept so the decision stays a decision.
+    A caption that already meets `word_floor` is the text. OCR is not the default
+    for that file. The floor is the caller's; None keeps the 11 Sep rule and a
+    camera tag still goes to the engine.
     """
     if _has_text(result):
         return OcrDecision(state=None, run_ocr=False, targeted=False,
                            reason="the file yielded usable text")
+    if word_floor is not None and metadata_words(result) >= word_floor:
+        return OcrDecision(
+            state=None, run_ocr=False, targeted=False,
+            reason=("image metadata already has enough words to classify; "
+                    "OCR was not run"))
     return OcrDecision(
         state=None, run_ocr=True, targeted=False,
-        reason=("every image is read (owner's ruling of 11 Sep 2026): the words on "
-                "a graphic or a photographed page are the file"))
+        reason=("every image without enough metadata text is read "
+                "(owner's ruling of 11 Sep 2026): the words on a graphic or a "
+                "photographed page are the file"))

@@ -45,13 +45,14 @@ import sys
 import uuid
 import textwrap
 import threading
+import time
 import unicodedata
 from collections import namedtuple
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePath, PurePosixPath
 from functools import lru_cache, partial
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Callable, Collection, Mapping, Sequence
 
 from database_agent.budget import set_ceiling
@@ -496,6 +497,7 @@ from structure_file import (
     plan_in as structure_plan_in, read as structure_read,
     render as structure_render,
 )
+from structure_shape import shape_proposed_tree
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import (
     BranchRefused, branches_named, qualified_path as _qualified_path,
@@ -923,11 +925,10 @@ LOCAL_MAX_RESPONSE_TOKENS: int = 4096
 #: is not a budget ceiling and a call that hits it is not `budget_deferred`; it is a
 #: failed call, and P8 records it as one.
 #:
-#: **THE ONE THING IT DOES NOT PROMISE.** The transport library arms each phase's
-#: socket timer once, so a reply that trickles and then stalls is cut at the first
-#: piece after the deadline plus the window already armed -- under twice this number,
-#: never unbounded -- and name resolution runs before any timer applies, so a dead
-#: resolver adds the operating system's own patience to the connecting phase.
+#: **THE ONE THING IT DOES NOT PROMISE.** Name resolution runs before any timer
+#: applies, so a dead resolver adds the operating system's own patience to the
+#: connecting phase. The body itself is checked before every chunk, so a reply
+#: that trickles is cut at the deadline rather than held open by the next byte.
 #: `readers.model_deepseek._under_one_deadline` states that bound where it is built
 #: and `tests/readers/test_model_deepseek_deadline.py` measures it.
 #:
@@ -2937,6 +2938,41 @@ SPREADSHEET_CELL_CEILING: int = 2000
 #: is the order of a minute; 287 would be twenty.
 OCR_PAGE_CEILING: int = 20
 
+#: How many pages of a scanned PDF the first scan OCRs in order to classify it.
+#:
+#: WHY TWO. The ground-truth corpus measured 2026-09-06 with pdfium, no OCR and
+#: no model: 68 readable PDFs, median 2 pages. A cap of 2 reads the whole
+#: document for that median file. The synthetic 2,000-file corpus in
+#: `docs/performance-architecture-plan.md` is one-page PDFs, so this cap does
+#: not shorten any of them.
+#:
+#: WHY NOT THE TWENTY ABOVE. That twenty is the earlier full-read bound: at 20
+#: pages, 61 of those 68 PDFs are untouched. The owner's Mac profile of the
+#: 1,821-file Downloads copy (macOS, SQLite 3.50.4, `--scan-profile`, wall
+#: 717 s before the targeted-OCR crash) already ran with this twenty-page cap
+#: and with `OCR_SECONDS_PER_FILE` at 120. Vision still took 1,031 s over 600
+#: files (p50 0.58 s, p95 5.8 s, max 33.8 s). The cap did not bind the total,
+#: because hundreds of files each stayed inside it. The first scan now stops at
+#: the median length and records a longer file as capped.
+#:
+#: The text-layer measurement that chose `PDF_PAGE_CEILING` at 50 is a different
+#: reader. Cutting that reader to 20 pages lost 3 classifications. This constant
+#: does not change that reader.
+FIRST_SCAN_OCR_PAGES: int = 2
+
+#: The long edge, in pixels, a loose image is shrunk to before Vision.
+#:
+#: 11 inches is the long side of a US Letter page. At the 200 DPI already in
+#: `readers.deployment.VISION_CONFIG`, that side is 2,200 pixels, which is the
+#: long edge `_render_pdf_page` already produces for a letter page. A loose
+#: image is not submitted larger than a page this engine already renders.
+#:
+#: The Mac profile's slowest image was a 1.8 MB PNG at 63 s of file time. The
+#: report does not include its pixel size, so this edge is not fitted to that
+#: file. Whether 2,200 pixels changes that PNG is unverified until the next
+#: Mac run.
+OCR_IMAGE_LONG_EDGE_PX: int = 2200
+
 #: §8.6's "Maximum OCR time per file" (`00`:246), in seconds, and it is deliberately
 #: a fraction of `EXTRACTION_SECONDS_PER_FILE` below.
 #:
@@ -2948,6 +2984,10 @@ OCR_PAGE_CEILING: int = 20
 #: stopped. An in-process limit is only worth having if it is reached first, which is
 #: why 120 sits well under 600 and why a test asserts the inequality rather than
 #: trusting whoever next edits one of them.
+#: The Mac profile's Vision samples maxed at 33.8 s, under this 120. There is
+#: no classification-versus-time measurement that would justify a lower cap, so
+#: 120 stays. The page cap above is what bounds a long scan. A single image
+#: cannot be interrupted mid-call; an overrun is recorded as capped.
 OCR_SECONDS_PER_FILE: int = 120
 
 #: A PDF page with fewer words than this has no text layer and is sent to OCR, page
@@ -3303,7 +3343,12 @@ def _say_what_is_installed(found: Sequence[str], endpoint: str, *, out) -> None:
               file=out)
 
 
-def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
+def model_route(*, out, on_usage=None, discover=None,
+                credential: str | None = None,
+                provider_choice: dict | None = None,
+                keychain_run=None, siwc_post=None,
+                siwc_post_form=None, siwc_jwks=None,
+                siwc_now: int | None = None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -3361,9 +3406,30 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     # environment still wins over the file when it is not set, which is unchanged.
     supplied = ({} if environ.get("GRAPH_AGENT_NO_DOTENV")
                 else _dotenv(ENV_FILE))
+    # A stored "none" means this folder asked for no cloud model, even if a
+    # DeepSeek key is sitting in the environment. Absent choice leaves the
+    # key in force, which is the default the suite and a fresh checkout use.
+    suppress_cloud = bool(
+        provider_choice and provider_choice.get("lane") == "none")
+    other_cloud = bool(
+        provider_choice and provider_choice.get("lane") == "byok"
+        and provider_choice.get("provider") in (
+            "openai", "anthropic", "openai-compatible"))
+    # A stored ChatGPT sign-in must not fall through to DeepSeek. The sign-in
+    # is a different lane, and it does not send until the flag and the token
+    # check both allow it.
+    subscription = bool(
+        provider_choice and provider_choice.get("lane") == "subscription")
 
     def value(name: str) -> str:
         # The environment first, then the file, then nothing. Never a literal.
+        # `credential` is a key the caller already resolved (the keychain). It
+        # replaces only the DeepSeek env key, and only when the caller passed
+        # one. Tests do not pass it, so this function's other reads are unchanged.
+        if suppress_cloud and name == CREDENTIAL_NAME:
+            return ""
+        if name == CREDENTIAL_NAME and credential:
+            return credential.strip()
         return (environ.get(name) or supplied.get(name) or "").strip()
 
     local_model = value(LOCAL_MODEL_NAME)
@@ -3374,7 +3440,7 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
     installed: tuple[str, ...] = ()
     if not local_model:
         installed = (discover or _discover_local_models)(local_endpoint)
-    if not value(CREDENTIAL_NAME) and not local_model:
+    if not other_cloud and not subscription and not value(CREDENTIAL_NAME) and not local_model:
         if installed:
             # THE DEFECT, CLOSED. A person with models pulled and no name set
             # used to be told the product had nothing and be sent to `ollama
@@ -3418,7 +3484,37 @@ def model_route(*, out, on_usage=None, discover=None) -> TierRouting | None:
             file=out)
         return None
     cloud: TierRouting | None = None
-    if value(CREDENTIAL_NAME):
+    if subscription:
+        from readers.model_siwc import flag_enabled, siwc_cloud_routing
+        run = keychain_run
+        if run is None and flag_enabled():
+            from readers.model_provider_cli import _keychain_run
+            run = _keychain_run()
+        try:
+            cloud = siwc_cloud_routing(
+                out=out, tier_of_call_site=TIER_OF_CALL_SITE,
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                keychain_run=run, post=siwc_post, post_form=siwc_post_form,
+                jwks=siwc_jwks, now=siwc_now)
+        except Exception as refusal:
+            # The class name only. A token-exchange failure must not print
+            # the token, and this branch does not continue on to DeepSeek.
+            print("No ChatGPT subscription model was consulted "
+                  f"({type(refusal).__name__}).", file=out)
+    elif other_cloud:
+        from readers.model_provider_cli import _keychain_run, route_byok
+        try:
+            cloud = route_byok(
+                provider_choice, tier_of_call_site=TIER_OF_CALL_SITE,
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS, out=out,
+                keychain_run=(_keychain_run()
+                              if provider_choice.get("credential") == "keychain"
+                              else None))
+        except (ValueError, RuntimeError) as refusal:
+            print(f"\nNo cloud model was consulted, and here is what it needed:\n"
+                  f"  {refusal}", file=out)
+    elif value(CREDENTIAL_NAME):
         try:
             cloud = deepseek_routing(
                 api_key=value(CREDENTIAL_NAME),
@@ -11897,9 +11993,10 @@ def extraction_context() -> ExtractionContext:
                               # publishes these same two numbers on P1's table, so
                               # what bounded a run can be read back from the run's
                               # own database rather than from this file.
-                              ocr_page_ceiling=OCR_PAGE_CEILING,
+                              ocr_page_ceiling=FIRST_SCAN_OCR_PAGES,
                               ocr_seconds_per_file=OCR_SECONDS_PER_FILE,
-                              ocr_sparse_page_words=OCR_SPARSE_PAGE_WORDS),
+                              ocr_sparse_page_words=OCR_SPARSE_PAGE_WORDS,
+                              ocr_image_long_edge=OCR_IMAGE_LONG_EDGE_PX),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -12480,13 +12577,24 @@ def _draft_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
         supersede_reason=("the rules merged P9's groups under the label and "
                           "situation the user supplied on the command line"))
     record_group(conn, reviewed)
+    # ONE CARRY PER SOURCE GROUP. `grouped` is one result per subject file, and
+    # a second file that joined a group already standing is a second result
+    # with the same `group_id`. Grouping has finished before this merge, so
+    # the first carry reads every member the group has. Carrying again copies
+    # those same rows and finds them already stored. On a 2,000-file corpus
+    # that repeat was 680,699 `SELECT * FROM memberships WHERE membership_id`
+    # calls, all inside this loop.
+    carried_groups: set[str] = set()
     for result in grouped:
+        source = result.group.group_id
+        if source in carried_groups:
+            continue
+        carried_groups.add(source)
         # `grouping.store`'s carry, not a local one. `104` R-80 gives the MODEL a
         # supersession too -- a second, differing answer mints a superseding group
         # the same way this does -- and two transforms for one act is two things
         # to drift. The comment that used to be here is on the transform.
-        carry_memberships(conn, from_group_id=result.group.group_id,
-                          into_group_id=merged_id)
+        carry_memberships(conn, from_group_id=source, into_group_id=merged_id)
     # `104` SF-3: AND HERE IS WHERE THE ACCEPTANCE USED TO BE.
     #
     #     record_acceptance(conn, GroupAcceptance(
@@ -13094,6 +13202,13 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_mutation_schema(conn)
     create_review_schema(conn)
     create_items_schema(conn)
+    # The understanding pass's consent, cache, and audit. Same rule as the
+    # tables above: the pass should not discover the missing table after the
+    # scan has already read the disk.
+    from understanding.store import ensure_schema
+    ensure_schema(conn)
+    from onboarding.answers import ensure_record
+    ensure_record(conn)
     for name, key in CEILINGS.items():
         # Named, so the one that is not a spend ceiling is visibly not one, and so
         # that the one with a SECOND ANSWER elsewhere is visibly the same number as
@@ -13149,7 +13264,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # exactly as every run this product has made.
     #
     # Setting either is now one `set_ceiling` call and needs no other change.
-    set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
+    set_ceiling(conn, "ocr.max_pages_per_file", FIRST_SCAN_OCR_PAGES)
     set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
@@ -13709,6 +13824,20 @@ def _dossier_cut(conn: sqlite3.Connection,
     return calls, readings, dropped_bytes
 
 
+def _failed_because_balance_is_empty(result: object) -> bool:
+    """A fact call the provider refused because the balance is empty.
+
+    The durable explanation is the type name and the status, not the body.
+    """
+    if type(result).__name__ != "CallFailed":
+        return False
+    try:
+        parsed = json.loads(getattr(result, "explanation", ""))
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return isinstance(parsed, dict) and parsed.get("type") == "InsufficientBalance"
+
+
 def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out, not_asked: Mapping[str, int] = MappingProxyType({}),
@@ -13839,9 +13968,17 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     named = {"CallFailed": "the call did not come back",
              "ValidationUnavailable": "something the check needed was missing",
              "NeedsConsent": "it needs an answer from you first"}
+    balance_empty = sum(
+        1 for _file_id, result in outcomes
+        if _failed_because_balance_is_empty(result))
+    if balance_empty:
+        kinds["CallFailed"] = kinds.get("CallFailed", 0) - balance_empty
+        print(f"  {balance_empty} refused: cloud provider balance is empty — "
+              f"top up or switch keys.", file=out)
     for kind, count_ in sorted(kinds.items()):
-        if kind in named:
-            print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+        if not count_ or kind not in named:
+            continue
+        print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
     # `104` R-O's line. A refusal raised inside a model-site call used to end the
     # run with a traceback and no report at all, so there was nothing here to
     # print; now it is an outcome, and an outcome a person is never told about is
@@ -21945,23 +22082,37 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # to leave a composition for a case that is not an error. Hoisted into a
     # local, the stop is an `if` between two statements and the ordinary run is
     # the same three steps in the same order it always ran them.
-    p1_p7 = run_production_p1_p7(
-        conn, selection_id, authorities=p1_p7_authorities(
-            now=now, detector=classify_producer, operation_mode=operation_mode,
-            source=recording,
-            # THE ONE CONDITION, and it is the same one that decides `recording`
-            # two lines up: §8.5's envelope is built when the person asked to keep
-            # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
-            # the bundle has to exist by the time it is called and cannot be
-            # assembled afterwards -- a sealed bundle is immutable by trigger.
-            bundle_content=record is not None))
+    from scan_profile import active_scan_profile
+    _scan_profile = active_scan_profile()
+    if _scan_profile is not None:
+        _scan_profile.push_phase("p1_p7")
+    try:
+        p1_p7 = run_production_p1_p7(
+            conn, selection_id, authorities=p1_p7_authorities(
+                now=now, detector=classify_producer, operation_mode=operation_mode,
+                source=recording,
+                # THE ONE CONDITION, and it is the same one that decides `recording`
+                # two lines up: §8.5's envelope is built when the person asked to keep
+                # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
+                # the bundle has to exist by the time it is called and cannot be
+                # assembled afterwards -- a sealed bundle is immutable by trigger.
+                bundle_content=record is not None))
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
     # THE FACT PASS AND THE THREE BLOCKS THAT REPORT THE SCAN, all of which are
     # inside `downstream`. Everything the database gets from a stopped run is
     # written by the time this returns.
     # `downstream` always returns authorities. A missing situation is not an
     # exit: the question prints inside it, and the proposal still runs.
     # `--stop-after` returns None below, on purpose, after that work.
-    corpus_authorities = downstream(p1_p7)
+    if _scan_profile is not None:
+        _scan_profile.push_phase("downstream")
+    try:
+        corpus_authorities = downstream(p1_p7)
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
     if stop_after == STOP_AFTER_GATE:
         _print_stopped_after_gate(out=out)
         return None
@@ -21972,13 +22123,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # takes, and P8--P11 is what this run was told not to do.
         _print_stopped_after_facts(conn, run_id=p1_p7.scan_run_id, out=out)
         return None
-    result = run_production_p8_p11(
-        conn, p1_p7, authorities=corpus_authorities,
-        decisions=CorpusDecisions(
-            plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
-            design=design_decisions, approve_plan=approve_plan,
-            set_privacy_policy=set_privacy_policy),
-        stop_after_design=(stop_after == STOP_AFTER_TREE))
+    _p8_started = time.perf_counter() if _scan_profile is not None else None
+    if _scan_profile is not None:
+        _scan_profile.push_phase("p8_p11")
+    try:
+        result = run_production_p8_p11(
+            conn, p1_p7, authorities=corpus_authorities,
+            decisions=CorpusDecisions(
+                plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
+                design=design_decisions, approve_plan=approve_plan,
+                set_privacy_policy=set_privacy_policy),
+            stop_after_design=(stop_after == STOP_AFTER_TREE))
+    finally:
+        if _scan_profile is not None:
+            _scan_profile.pop_phase()
+            _scan_profile.add_time("p8_p11", time.perf_counter() - _p8_started)
     if stop_after == STOP_AFTER_TREE:
         # `106` Phase 5.3. Everything below this line reads `result.placement`
         # -- the on-demand Generals, the two-home questions, the residual sets
@@ -22564,7 +22723,7 @@ def _nothing_could_be_read_report(
 #: A source type absent from this mapping produces no sentence rather than a guess.
 _CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
     "ocr": ("OCR stopped at this deployment's per-file ceiling of "
-            f"{OCR_PAGE_CEILING} pages or {OCR_SECONDS_PER_FILE} seconds"),
+            f"{FIRST_SCAN_OCR_PAGES} pages or {OCR_SECONDS_PER_FILE} seconds"),
     "text_document": ("PDF text extraction stopped at this deployment's ceiling "
                       f"of {PDF_PAGE_CEILING} pages per file"),
     "spreadsheet": ("a spreadsheet stopped at this deployment's ceiling of "
@@ -25690,8 +25849,88 @@ def _deepest_folder_under(nodes, named: Mapping[str, set[str]], *,
     return home.node_id
 
 
+def _holds_the_outline_counted(conn: sqlite3.Connection, nodes, plan_version: str):
+    """The file counts `structure_rows` used when it wrote this plan's outline.
+
+    A run that stopped at the tree has no placement, and the outline counted
+    files from the groups and the folders they already sit in. A run that
+    placed files counted the placement. The edited file is checked against
+    whichever of those the outline was built from.
+    """
+    decisions = tuple(placement_decisions_for(conn, plan_version=plan_version))
+    result = SimpleNamespace(
+        placement=(None if not decisions else SimpleNamespace(decisions=decisions)),
+        tree=SimpleNamespace(tree=SimpleNamespace(nodes=tuple(nodes))))
+    return _files_held_by_node(conn, result)
+
+
+def _declared_course_names(args, conn, directory) -> tuple[str, ...]:
+    """Course strings from this command and from the stored profile.
+
+    Spacing is kept. The shaper's course key treats `CHEN 2100` and
+    `CHEN2100` as one course.
+    """
+    names: list[str] = []
+    for item in getattr(args, "profile_course", None) or []:
+        text = item.split("=", 1)[1] if isinstance(item, str) and "=" in item else item
+        if isinstance(text, str) and text.strip():
+            names.append(text.strip())
+    try:
+        from onboarding.answers import stored_answers
+        stored = stored_answers(conn, str(directory))
+    except Exception:
+        stored = None
+    if stored:
+        for course in stored.get("courses") or []:
+            if isinstance(course, dict):
+                code = str(course.get("code") or "").strip()
+                if code:
+                    names.append(code)
+            elif isinstance(course, str) and course.strip():
+                names.append(course.strip())
+    return tuple(dict.fromkeys(names))
+
+
+def _on_disk_by_node(conn, nodes) -> dict[str, list[str]]:
+    """Indexed files sitting in each existing directory. Not placements."""
+    try:
+        rows = list(conn.execute("SELECT file_id, current_path FROM files"))
+    except sqlite3.OperationalError:
+        return {}
+    return _files_sitting_in_their_own_folders(rows, nodes)
+
+
+def _proposal_outline(result, conn, *, situations, declared_courses=(),
+                      understandings=None):
+    """The outline rows, after understanding has been seated.
+
+    This is the picture `--structure-out` writes. Rule placements are the
+    starting holds. Understanding answers and abstentions are applied
+    before the rows exist, so the file is not the pre-understand picture.
+    """
+    from understanding.into_placement import seat_unplaced
+    base = _files_held_by_node(conn, result)
+    decisions = () if result.placement is None else result.placement.decisions
+    nodes = result.tree.tree.nodes
+    seating = seat_unplaced(
+        nodes, placement_holds=base, decisions=decisions,
+        understandings=understandings or {},
+        declared_courses=declared_courses)
+    return structure_rows(
+        result, situations=situations, words_of=situation_words,
+        holds=seating.holds, shape_holds=base,
+        on_disk=_on_disk_by_node(conn, nodes),
+        declared_courses=declared_courses, review_ids=seating.review_ids,
+        extra_nodes=seating.extra_nodes)
+
+
 def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
                    words_of, holds: Mapping[str, Sequence[str]] | None = None,
+                   on_disk: Mapping[str, Sequence[str]] | None = None,
+                   declared_courses: Sequence[str] = (),
+                   review_ids: Sequence[str] = (),
+                   extra_nodes: Sequence = (),
+                   shape_holds: Mapping[str, Sequence[str]] | None = None,
                    ) -> tuple[StructureRow, ...]:
     """The proposed tree as the outline the person edits.
 
@@ -25720,8 +25959,35 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             if decision.destination is not None:
                 holds.setdefault(decision.destination.node_id, []).extend(
                     _files_of(decision))
-    by_parent = _children_of(result.tree.tree.nodes)
-    by_id = {node.node_id: node for node in result.tree.tree.nodes}
+    else:
+        holds = {node_id: list(file_ids) for node_id, file_ids in holds.items()}
+    # Finder copies, `_export` titles, and same-subject peers are still the
+    # scan's own names at this point. The outline the person edits is the
+    # shaped tree; the plan's node ids are unchanged.
+    # Review files are seated here, before the outline is composed, so a
+    # run that abstained does not print "0 files" on that line.
+    nodes = tuple(result.tree.tree.nodes) + tuple(extra_nodes)
+    if review_ids:
+        review = next((node for node in nodes
+                       if node.parent_node_id is None
+                       and node.display_label == tv.REVIEW_AND_UNSORTED), None)
+        if review is not None:
+            bucket = holds.setdefault(review.node_id, [])
+            already = {file_id for file_ids in holds.values() for file_id in file_ids}
+            for file_id in review_ids:
+                if file_id not in already:
+                    bucket.append(file_id)
+                    already.add(file_id)
+    # The walk is shaped from the rule placements. Understanding seats and
+    # abstentions change the counts on the lines, not which folders the
+    # walk contains, so an unedited file is the same walk this plan wrote.
+    nodes = shape_proposed_tree(
+        nodes, holds=shape_holds if shape_holds is not None else holds,
+        on_disk=on_disk, declared_courses=declared_courses)
+    disk_of = {} if on_disk is None else {
+        node_id: tuple(file_ids) for node_id, file_ids in on_disk.items()}
+    by_parent = _children_of(nodes)
+    by_id = {node.node_id: node for node in nodes}
 
     def ancestor_fields(node) -> frozenset[str]:
         """The fields the folders ABOVE this one already claim -- the path."""
@@ -25739,13 +26005,25 @@ def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
             files.extend(under(child.node_id))
         return files
 
+    def on_disk_under(node_id: str) -> list[str]:
+        files = list(disk_of.get(node_id, ()))
+        for child in by_parent.get(node_id, ()):
+            files.extend(on_disk_under(child.node_id))
+        return files
+
     rows: list[StructureRow] = []
-    for marker, depth, node in _outline_walk(result.tree.tree.nodes):
+    for marker, depth, node in _outline_walk(nodes):
         files = under(node.node_id)
+        sitting = on_disk_under(node.node_id) if disk_of else []
         if node.node_type == PROTECTED_NODE_TYPE:
             # `106` Phase 7 §C producer 3: a bundle at the root is not a folder
             # of the plan, and "0 files" beside it read as an empty one.
             said = [PROTECTED_ROW_WORDS]
+        elif not files and sitting:
+            # Placements were zero. The directory still has files, so the
+            # line is not an empty folder and not "0 files".
+            count = len(sitting)
+            said = [f"{count} file{'' if count == 1 else 's'} in this folder"]
         else:
             said = [f"{len(files)} file{'' if len(files) == 1 else 's'}"]
             # `106` Phase 7 §B.3: what the folder holds without a level for it.
@@ -25860,7 +26138,8 @@ def _branch_question(conn: sqlite3.Connection, label: str) -> str:
 
 def structure_edits(conn: sqlite3.Connection, text: str, *,
                     plan_version: str, names: Mapping[str, str],
-                    situation_schema) -> dict[str, list[str]]:
+                    situation_schema, declared_courses: Sequence[str] = (),
+                    ) -> dict[str, list[str]]:
     """One edited outline, as the gestures this command already has.
 
     Returns the flags' own strings, so `main` appends them to what the person
@@ -25887,9 +26166,16 @@ def structure_edits(conn: sqlite3.Connection, text: str, *,
             f"would rename and remove folders you never touched. Run the command "
             f"without `--structure` to get the current outline, and make your "
             f"edits in that.")
+    raw_nodes = tuple(nodes_for_version(conn, plan_version))
+    # The same pass `structure_rows` applies before `--structure-out`, so an
+    # unedited file is the walk this plan wrote and not the scan underneath it.
+    shaped = shape_proposed_tree(
+        raw_nodes, holds=_holds_the_outline_counted(
+            conn, raw_nodes, plan_version),
+        on_disk=_on_disk_by_node(conn, raw_nodes),
+        declared_courses=declared_courses)
     nodes = {marker: node
-             for marker, _depth, node in _outline_walk(
-                 nodes_for_version(conn, plan_version))}
+             for marker, _depth, node in _outline_walk(shaped)}
     parents = {marker: None for marker in nodes}
     place = {node.node_id: marker for marker, node in nodes.items()}
     for marker, node in nodes.items():
@@ -27777,6 +28063,252 @@ def say_where_you_are_when_asked() -> None:
         pass
 
 
+def _understanding_env(name: str) -> str:
+    from os import environ
+    supplied = {} if environ.get("GRAPH_AGENT_NO_DOTENV") else _dotenv(ENV_FILE)
+    return (environ.get(name) or supplied.get(name) or "").strip()
+
+
+def _understanding_model_id(out, role: str = "fast") -> str:
+    """One tier's id, after `/models`. Empty means do not send.
+
+    `fast` classifies files. `logic` groups them. `reasoning` writes the
+    onboarding questions and resolves a hard conflict. A missing id is not
+    filled from another tier.
+    """
+    from understanding.catalog import ModelIdNotListed, resolve_model_id
+    env_name = {
+        "fast": "DEEPSEEK_MODEL_FAST",
+        "logic": "DEEPSEEK_MODEL_LOGIC",
+        "reasoning": "DEEPSEEK_MODEL_REASONING",
+    }.get(role)
+    if env_name is None:
+        print(f"{role} is not a model role, so nothing will be sent.", file=out)
+        return ""
+    configured = _understanding_env(env_name)
+    key = _understanding_env("DEEPSEEK_API_KEY")
+    if not key or not configured:
+        return ""
+    base = _understanding_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+    from readers.model_understanding_http import get_json, list_model_ids
+    try:
+        listed = list_model_ids(base, key, get=get_json)
+    except Exception:
+        print("Understanding did not read /models, so it will not send.", file=out)
+        return ""
+    try:
+        return resolve_model_id(configured, listed)
+    except ModelIdNotListed as refusal:
+        print(str(refusal), file=out)
+        return ""
+
+
+NO_UNDERSTANDING_PROVIDER = (
+    "Set up a model provider before this folder can be sorted. Nothing was sent. "
+    "Run `filesorter onboard` for this folder if the profile is not stored yet, "
+    "then `filesorter providers` to store a lane, or set DEEPSEEK_API_KEY and "
+    "DEEPSEEK_MODEL_FAST. `filesorter providers add` stores a key in the keychain."
+)
+
+
+def _understanding_wanted(args) -> bool:
+    """A normal scan runs the pass. Developers opt out; they do not opt in.
+
+    ``--no-understand`` wins over ``--understand``. The explicit flag still
+    forces the pass when ``FILESORTER_SKIP_UNDERSTANDING=1``, which is how
+    the suite stays on the rules. A person's run does not set that name.
+    """
+    if getattr(args, "no_understand", False):
+        return False
+    if getattr(args, "understand", False) or getattr(
+            args, "understand_residuals", False):
+        return True
+    return os.environ.get("FILESORTER_SKIP_UNDERSTANDING") != "1"
+
+
+def _understanding_context(args, conn, directory):
+    """Declared lives, private areas, and the profile note for one folder."""
+    from onboarding.answers import model_context, stored_answers
+    declared = set()
+    private = set(args.private_area or [])
+    for item in args.declare_life or []:
+        if "=" in item:
+            declared.add(item.split("=", 1)[1].strip())
+    stored = stored_answers(conn, str(directory))
+    note = ""
+    if stored:
+        for life in stored.get("lives") or []:
+            if isinstance(life, str) and life.strip():
+                declared.add(life.strip())
+        for area in stored.get("private_areas") or []:
+            if isinstance(area, str) and area.strip():
+                private.add(area.strip())
+        note = model_context(stored)
+    return declared, private, note
+
+
+def _understanding_budget(args):
+    """The ceiling for this run. Flags override the Downloads-sized default."""
+    from understanding.run import (
+        DEFAULT_MAX_CALLS, DEFAULT_MAX_INPUT_TOKENS, Budget,
+    )
+    calls = getattr(args, "understand_max_calls", None)
+    tokens = getattr(args, "understand_max_input_tokens", None)
+    return Budget(
+        max_calls=DEFAULT_MAX_CALLS if calls is None else calls,
+        max_input_tokens=(
+            DEFAULT_MAX_INPUT_TOKENS if tokens is None else tokens),
+    )
+
+
+def _understand_before_outline(args, conn, directory, *, decisions, consent, out):
+    """Ask about files the rules did not place. Returns ``(status, report)``.
+
+    The outline is written after this returns, and the report's answers are
+    seated first. A cloud pass with no provider returns 2 and no report.
+    Offline stays on this device and returns 0.
+    """
+    from understanding.attach import understand_unplaced
+    declared, private, note = _understanding_context(args, conn, directory)
+    offline = operation_mode_for(consent) == OPERATION_MODE
+    if offline:
+        understand_unplaced(
+            conn, decisions, directory=directory,
+            private_areas=private, declared_areas=declared, offline=True,
+            provider=None, model_id="", profile_note=note, out=out)
+        return 0, None
+    resolved = getattr(args, "understanding_resolved", None)
+    if resolved is None:
+        from providers.record import load_provider_choice
+        provider, model_id = _understanding_selection(
+            out, load_provider_choice(conn), role="fast")
+    else:
+        provider, model_id = resolved
+    if provider is None or not model_id:
+        print(NO_UNDERSTANDING_PROVIDER, file=out)
+        return 2, None
+    report = understand_unplaced(
+        conn, decisions, directory=directory,
+        private_areas=private,
+        declared_areas=declared,
+        offline=False,
+        provider=provider,
+        model_id=model_id,
+        profile_note=note,
+        budget=_understanding_budget(args),
+        out=out)
+    return 0, report
+
+
+def _report_empty_directories(directory, args, out) -> None:
+    """List directories with no files. Remove them only on an explicit yes."""
+    from empty_directories import apply_empty_removal
+    confirm = getattr(args, "remove_empty", "no")
+    message, removed = apply_empty_removal(directory, confirm=confirm or "no")
+    if message:
+        print("", file=out)
+        print(message, file=out)
+    if removed:
+        print(f"Removed {len(removed)} empty folder(s).", file=out)
+
+
+def _continue_understanding(args, conn, directory, *, consent, out) -> int:
+    """Ask about residuals only. The scan has already been done.
+
+    Does not call ``run``. A missing provider is the same refusal as a scan.
+    """
+    from understanding.attach import understand_residuals
+    declared, private, note = _understanding_context(args, conn, directory)
+    offline = operation_mode_for(consent) == OPERATION_MODE
+    resolved = getattr(args, "understanding_resolved", None)
+    if resolved is None:
+        from providers.record import load_provider_choice
+        provider, model_id = _understanding_selection(
+            out, load_provider_choice(conn), role="fast")
+    else:
+        provider, model_id = resolved
+    if not offline and (provider is None or not model_id):
+        print(NO_UNDERSTANDING_PROVIDER, file=out)
+        return 2
+    understand_residuals(
+        conn, directory=directory, private_areas=private,
+        declared_areas=declared, offline=offline, out=out,
+        provider=provider, model_id=model_id or "", profile_note=note,
+        budget=_understanding_budget(args))
+    return 0
+
+
+def _provider_choice_if_database(args):
+    """The stored lane when the plan database already exists. Does not create one."""
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    path = Path(database)
+    if not path.is_file():
+        return None
+    try:
+        from database_agent.db import open_database
+        from providers.record import load_provider_choice
+        directory = args.directory.expanduser().resolve()
+        conn = open_database(path, scan_roots=[directory])
+    except Exception:
+        return None
+    try:
+        return load_provider_choice(conn)
+    finally:
+        conn.close()
+
+
+def _understanding_selection(out, choice, *, role: str = "fast"):
+    """DeepSeek's env path when nothing else is stored. A stored lane decides."""
+    if not choice:
+        return _understanding_provider(out), _understanding_model_id(out, role=role)
+    from readers.model_provider_cli import understanding_from_choice
+    from readers.model_siwc import flag_enabled
+    run = None
+    if (choice.get("credential") == "keychain"
+            or (choice.get("lane") == "subscription" and flag_enabled())):
+        from readers.model_provider_cli import _keychain_run
+        run = _keychain_run()
+    decided = understanding_from_choice(
+        choice, out=out, role=role, env_lookup=_understanding_env,
+        keychain_run=run)
+    if decided is None:
+        return _understanding_provider(out), _understanding_model_id(out, role=role)
+    return decided
+
+
+def _understanding_provider(out):
+    key = _understanding_env("DEEPSEEK_API_KEY")
+    if not key:
+        return None
+    base = _understanding_env("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+    from readers.model_understanding_http import DeepSeekUnderstanding, post_json
+    try:
+        return DeepSeekUnderstanding(api_key=key, base_url=base, post=post_json)
+    except Exception:
+        print("Understanding has no usable DeepSeek endpoint, so it will not send.",
+              file=out)
+        return None
+
+
+def _record_understanding_consent(args, out) -> None:
+    """Write the one-time sentence for this folder. Does not send a dossier."""
+    from datetime import datetime, timezone
+
+    from database_agent.db import DatabaseInsideCorpus, open_database
+    from understanding.store import record_consent
+    directory = args.directory.expanduser().resolve()
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    try:
+        conn = open_database(database, scan_roots=[directory])
+    except DatabaseInsideCorpus as refusal:
+        print(str(refusal), file=out)
+        return
+    record_consent(
+        conn, corpus_root=str(directory), user_id=args.user,
+        decided_at=datetime.now(timezone.utc).isoformat())
+    conn.close()
+
+
 def main(argv: Sequence[str] | None = None, *, out=None,
          # `104` R-175. NOT A FLAG, and that is the decision. A per-file ceiling is
          # not a thing a person types: it is derived from the deployment's own
@@ -27790,6 +28322,21 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
+    asked = list(sys.argv[1:] if argv is None else argv)
+    # `providers` is a command, not a folder. It is recognised only as the first
+    # word, and only when the next word is one of its own commands, so a scan of
+    # a directory that happens to be named `providers` still scans.
+    if asked[:1] == ["onboard"] and (
+            len(asked) == 1 or asked[1].startswith("-")):
+        from onboarding.ask import main as onboard_main
+        return onboard_main(asked[1:], out=out)
+    if asked[:1] == ["providers"] and (
+            len(asked) == 1 or asked[1] in (
+                "list", "add", "remove", "use", "dry-run", "status",
+                "sign-in-chatgpt", "claude-code", "session")
+            or asked[1].startswith("-")):
+        from readers.model_provider_cli import main as providers_main
+        return providers_main(asked[1:], out=out)
     say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
@@ -27870,6 +28417,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--database", type=Path, default=None,
         help=f"where to keep the plan (default: {DEFAULT_DATABASE}). It "
              "may not live inside the folder being read.")
+    parser.add_argument(
+        "--scan-profile", action="store_true",
+        help="write a timing report beside the plan database. Off unless you "
+             "pass it. The report is plan.scan-profile.json and "
+             "plan.scan-profile.csv next to that database. It names file "
+             "paths, so leave it on this machine. A plain run still moves "
+             "nothing; this flag does not apply a plan.")
     parser.add_argument("--list-situations", action="store_true",
                         help="print every situation the shipped library carries")
     parser.add_argument(
@@ -27913,6 +28467,11 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         help="name one life this folder may be sorted into, e.g. "
              "--declare-life coursework=academic. Only a confirmed life may "
              "win. Can be given more than once.")
+    parser.add_argument(
+        "--answers", default=None, type=Path, metavar="FILE",
+        help="a completed onboarding file. confirmed must be true and every "
+             "TODO must already be replaced. A template is refused and "
+             "nothing in the folder is scanned.")
     parser.add_argument(
         "--refuse-life", action="append", default=[], metavar="NAME=SCHEMA",
         help="say a schema is not a life of this folder, e.g. "
@@ -28118,6 +28677,66 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
     parser.add_argument(
+        "--model-dry-run", action="store_true",
+        help="print how many ordinary files a cloud understanding pass would "
+             "ask about, the token estimate, the cost formula, and the field "
+             "names that would leave the device. Sends nothing and does not "
+             "read file contents. The count is an upper bound, because the "
+             "deterministic tier has not run.")
+    parser.add_argument(
+        "--understand", action="store_true",
+        help="developer: run the understanding pass even when "
+             "FILESORTER_SKIP_UNDERSTANDING=1. A normal scan already runs it "
+             "after the rules, when a model provider is configured. Protected "
+             "files and private areas are not sent.")
+    parser.add_argument(
+        "--no-understand", action="store_true",
+        help="developer: skip the understanding pass on this scan. "
+             "FILESORTER_SKIP_UNDERSTANDING=1 does the same for the process. "
+             "A normal scan runs the pass.")
+    from understanding.run import DEFAULT_MAX_CALLS, DEFAULT_MAX_INPUT_TOKENS
+    parser.add_argument(
+        "--understand-max-calls", type=int, default=None, metavar="N",
+        help="how many understanding calls this run may make. "
+             f"The default is {DEFAULT_MAX_CALLS:,}, enough for a folder of "
+             "about 1800 files when each file is its own call. "
+             "Cache hits do not count. Files past the cap need review. "
+             "Ask about those later with --understand-residuals.")
+    parser.add_argument(
+        "--understand-max-input-tokens", type=int, default=None, metavar="N",
+        help="estimated input-token ceiling for the understanding pass "
+             f"(len(dossier json) / 4). The default is {DEFAULT_MAX_INPUT_TOKENS:,}. "
+             "When the next call would not fit, the remaining files need review.")
+    parser.add_argument(
+        "--understand-residuals", action="store_true",
+        help="ask only about files that are still unplaced and were not "
+             "settled by an earlier understanding answer. Does not scan the "
+             "folder again. Needs the plan database from a scan. A file the "
+             "model already marked needs-review is left there and is not sent "
+             "again. A budget stop is sent again, under this run's budget.")
+    parser.add_argument(
+        "--remove-empty", choices=("yes", "no"), default="no",
+        help="List folders that contain no files and leave them in place. "
+             "--remove-empty yes removes exactly that listed set and nothing "
+             "else. Any other value removes nothing. A folder that still has "
+             "files is not listed. Zero placements is not emptiness.")
+    parser.add_argument(
+        "--accept-cloud-understanding", action="store_true",
+        help="record that dossier text (not whole files) may go to the "
+             "provider's servers for this folder. A normal scan records the "
+             "same sentence when a provider is configured. Does not send "
+             "anything by itself.")
+    parser.add_argument(
+        "--onboarding-questions", action="store_true",
+        help="from filenames only, ask the REASONING model for a plain-language "
+             "summary and follow-up questions. Does not open file contents and "
+             "does not scan. Requires --enable-cloud and "
+             "--accept-cloud-understanding. offline sends nothing.")
+    parser.add_argument(
+        "--private-area", action="append", default=[], metavar="NAME",
+        help="a life area or folder name that must never be sent to a cloud "
+             "model, e.g. --private-area medical. Can be given more than once.")
+    parser.add_argument(
         "--enable-cloud", action="store_true",
         help="allow this folder's files to be sent to a cloud model, from this "
              "run on. Recorded against THIS FOLDER and remembered between runs, "
@@ -28250,6 +28869,23 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         parser.error("--enable-cloud and --disable-cloud say opposite things "
                      "about the same folder; pass one")
 
+    if args.understand_max_calls is not None and args.understand_max_calls < 0:
+        parser.error("--understand-max-calls cannot be negative")
+    if (args.understand_max_input_tokens is not None
+            and args.understand_max_input_tokens < 0):
+        parser.error("--understand-max-input-tokens cannot be negative")
+    if args.understand_residuals and args.no_understand:
+        parser.error("--understand-residuals runs a pass and --no-understand "
+                     "skips it; pass one")
+    if args.understand_residuals and args.model_dry_run:
+        parser.error("--understand-residuals sends dossiers and "
+                     "--model-dry-run sends nothing; pass one")
+    if args.understand_residuals and (
+            bool(args.apply) or args.apply_everything
+            or bool(args.undo) or args.undo_everything):
+        parser.error("--understand-residuals does not move files; "
+                     "pass it without --apply or --undo")
+
     # `84` §6 again, and BEFORE the `--apply` dispatch below because that one
     # returns: a `--stop-after --apply` checked after it would move a person's
     # files and never reach this refusal at all.
@@ -28343,6 +28979,39 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if args.replay is not None:
         return _replay_bundle(args, out=out)
 
+    if args.model_dry_run:
+        if args.directory is None:
+            parser.error("--model-dry-run needs the folder to estimate")
+        from os import environ
+        from understanding.command import dry_run_folder
+        return dry_run_folder(
+            args.directory, out=out,
+            private_areas=set(args.private_area or []),
+            offline=not args.enable_cloud,
+            consent=False,
+            model_id=(environ.get("DEEPSEEK_MODEL_FAST") or "").strip())
+
+    if args.onboarding_questions:
+        if args.directory is None:
+            parser.error("--onboarding-questions needs the folder")
+        from understanding.command import onboarding_questions_folder
+        send = bool(args.accept_cloud_understanding and args.enable_cloud)
+        if send:
+            provider, model_id = _understanding_selection(
+                out, _provider_choice_if_database(args), role="reasoning")
+        else:
+            provider, model_id = None, ""
+        if args.accept_cloud_understanding:
+            _record_understanding_consent(args, out)
+        declared = set()
+        for item in args.declare_life or []:
+            if "=" in item:
+                declared.add(item.split("=", 1)[1].strip())
+        return onboarding_questions_folder(
+            args.directory, out=out, consent=bool(args.accept_cloud_understanding),
+            offline=not args.enable_cloud, provider=provider, model_id=model_id,
+            declared_areas=declared)
+
     # BEFORE the required-argument check, for the reason `--replay` is: reading
     # what a run recorded about one file needs no folder, no situation and no
     # label, and re-running the pipeline to answer it would scan a person's disk
@@ -28380,6 +29049,41 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if not directory.is_dir():
         print(f"{directory} is not a folder", file=out)
         return 2
+
+    if args.understand_residuals:
+        # Before the answers gate, which opens (and would create) the database.
+        # A second pass has nothing to continue if the scan never wrote one.
+        residual_database = (
+            args.database or (Path.cwd() / "database-agent-plan.sqlite"))
+        if not Path(residual_database).expanduser().is_file():
+            print("Understanding residuals needs a plan database from a scan "
+                  "of this folder. Nothing was sent.", file=out)
+            return 2
+
+    # Before any file in the folder is opened. A person's run refuses until a
+    # completed answers file is stored for this folder. The suite sets
+    # FILESORTER_ONBOARDING_OPTIONAL=1 and skips this unless --answers is
+    # passed. --model-dry-run and --onboarding-questions already returned.
+    from onboarding.gate import allow_scan, onboarding_optional
+    if args.answers or not onboarding_optional():
+        from datetime import datetime, timezone
+        database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+        try:
+            gate_conn = open_database(database, scan_roots=[directory])
+        except DatabaseInsideCorpus as refusal:
+            print(f"\n{refusal}", file=out)
+            return 2
+        try:
+            _bootstrap(gate_conn)
+            refusal = allow_scan(
+                gate_conn, corpus_root=str(directory), answers=args.answers,
+                user_id=args.user,
+                recorded_at=datetime.now(timezone.utc).isoformat())
+        finally:
+            gate_conn.close()
+        if refusal:
+            print(refusal, file=out)
+            return 2
 
     # `00`:20's other two answers, checked before anything is opened. A folder
     # that is not there gets the same sentence the first one gets, because a
@@ -28427,7 +29131,26 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
     # at the bottom that each read as a statement about one of their files.
-    routing = model_route(out=out, on_usage=usage_recorder)
+    provider_choice = None
+    provider_credential = None
+    try:
+        from providers.record import load_provider_choice
+        provider_choice = load_provider_choice(conn)
+    except sqlite3.OperationalError:
+        provider_choice = None
+    if (provider_choice and provider_choice.get("credential") == "keychain"
+            and provider_choice.get("provider") == "deepseek"):
+        from readers.model_provider_cli import _keychain_run, resolve_api_key
+        provider_credential = resolve_api_key(
+            "deepseek", credential="keychain", keychain_run=_keychain_run(),
+        ) or None
+    routing = model_route(out=out, on_usage=usage_recorder,
+                          credential=provider_credential,
+                          provider_choice=provider_choice)
+    if args.accept_cloud_understanding:
+        from understanding.store import record_consent
+        record_consent(conn, corpus_root=str(directory), user_id=args.user,
+                       decided_at=now())
     if args.enable_cloud:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
@@ -28445,10 +29168,39 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # every source into one corpus and one dossier, so a folder that has not
     # been cleared cannot be protected by a mode chosen for a folder that has.
     # Absent is refusal, and refusal wins.
+    if _understanding_wanted(args):
+        # Before the folder is walked. A missing provider must not become a
+        # rules-only scan that looks like the product worked.
+        provider, model_id = _understanding_selection(
+            out, provider_choice, role="fast")
+        if provider is None or not model_id:
+            print(NO_UNDERSTANDING_PROVIDER, file=out)
+            return 2
+        if not args.accept_cloud_understanding:
+            from understanding.store import record_consent
+            record_consent(conn, corpus_root=str(directory), user_id=args.user,
+                           decided_at=now())
+        if not args.enable_cloud:
+            for source in (directory, *also_read):
+                record_cloud_consent(
+                    conn, corpus_root=str(source), decision=ENABLED,
+                    user_id=args.user, decided_at=now())
+        args.understanding_resolved = (provider, model_id)
     consent = _weakest_consent(
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
+    if args.understand_residuals:
+        return _continue_understanding(
+            args, conn, directory, consent=consent, out=out)
+    scan_profile_run = None
+    if args.scan_profile:
+        from scan_profile import arm_scan_profile
+        scan_profile_run = arm_scan_profile(conn)
+        _wired = extraction_context().readers
+        scan_profile_run.note_production_readers(
+            read_pdf=_wired.read_pdf, ocr_engine=_wired.ocr_engine)
+        scan_profile_run.push_phase("before_scan")
     try:
         # INSIDE the `try`, because it refuses: a folder `--entity-model` names that
         # the reader cannot be built from raises `NotConfigured`, and the handler
@@ -28479,7 +29231,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                 conn, args.structure.read_text(encoding="utf-8"),
                 plan_version=_from,
                 names=file_names(conn, directory, *also_read),
-                situation_schema=situation_schema_id)
+                situation_schema=situation_schema_id,
+                declared_courses=_declared_course_names(args, conn, directory))
             args.answer = [*args.answer, *_edited["answer"]]
             args.rename = [*args.rename, *_edited["rename"]]
             args.reject = [*args.reject, *_edited["reject"]]
@@ -28784,7 +29537,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # design worked hard to give into a crash.
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
+        # The files were read and none of them were placed. --understand asks
+        # about those files. The refusal above stays on the screen.
+        if _understanding_wanted(args) and isinstance(refusal, NothingToDesign):
+            status, _report = _understand_before_outline(
+                args, conn, directory, decisions=None, consent=consent, out=out)
+            return status
         return 1
+    except BaseException:
+        if scan_profile_run is not None:
+            scan_profile_run.mark_partial()
+        raise
+    finally:
+        if scan_profile_run is not None:
+            try:
+                written = scan_profile_run.write(database)
+                print(f"Scan profile: {written['json']}", file=out)
+            finally:
+                scan_profile_run.disarm()
     # `--stop-after` ENDED THE RUN, and `run` has already said so on the same
     # stream. Everything below this line reads `result.tree` or
     # `result.placement`, which a stopped run does not have: the report is a report
@@ -28828,9 +29598,22 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # leave alone, and one the next scan would index.
     structure_path = (args.structure_out if args.structure_out is not None
                       else database.parent / STRUCTURE_FILENAME)
-    outline = structure_rows(result, situations=situations,
-                             words_of=situation_words,
-                             holds=_files_held_by_node(conn, result))
+    # Understanding runs before the outline exists. Its answers are an
+    # input to where unplaced files are counted. A later residuals pass is
+    # not required for the outline to include them.
+    understanding_status = 0
+    understandings: dict = {}
+    if result.placement is not None and _understanding_wanted(args):
+        understanding_status, understanding_report = _understand_before_outline(
+            args, conn, directory, decisions=result.placement.decisions,
+            consent=consent, out=out)
+        if understanding_report is not None:
+            from understanding.into_placement import understandings_from_report
+            understandings = understandings_from_report(understanding_report)
+    declared_courses = _declared_course_names(args, conn, directory)
+    outline = _proposal_outline(
+        result, conn, situations=situations,
+        declared_courses=declared_courses, understandings=understandings)
     if result.placement is None:
         # `--stop-after tree` (`106` Phase 5.3): the proposal is the outline
         # and nothing was placed, so the report -- which is a report ON A
@@ -28846,6 +29629,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             structure_render(outline, path=str(structure_path),
                              plan=result.tree.tree.plan_version_id),
             encoding="utf-8")
+        _report_empty_directories(directory, args, out)
         return 0
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
@@ -28952,6 +29736,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         structure_render(outline, path=str(structure_path),
                          plan=result.tree.tree.plan_version_id),
         encoding="utf-8")
+    _report_empty_directories(directory, args, out)
     if args.record:
         # AFTER the report, because it ends in a command to type and a command
         # printed above forty lines of report is a command nobody sees. The
@@ -28963,6 +29748,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         for line in recorded_lines(args.record, recorded,
                                    count=len(accepted_groups(conn, recorded))):
             print(line, file=out)
+    if understanding_status:
+        return understanding_status
     if not args.freeze:
         return 0
 

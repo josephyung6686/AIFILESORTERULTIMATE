@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePath
 
-from database_agent.db import batched_writes
+from database_agent.db import batched_writes, rebuildable_durability
 
 from scan_agent.access import require_access
 from scan_agent.basic_record import (
@@ -48,8 +49,11 @@ from scan_agent.inventory import record_directory
 #: them, exactly as if the scan had been stopped before reaching them. At these
 #: rates 512 files is about half a second of observations.
 #:
-#: Nothing here relaxes `synchronous`, which would buy the same speed by making the
-#: database itself damageable. See `batched_writes`.
+#: The batches above still commit. What changed for the scan itself is the
+#: durability of those commits: `rebuildable_durability` runs them at
+#: `synchronous=NORMAL` in WAL, because a rescan writes these rows again, and
+#: restores `FULL` before this function returns. A decision the person made is
+#: written later, outside that block. See `database_agent.db`.
 SCAN_COMMIT_BATCH = 512
 
 
@@ -72,20 +76,62 @@ def scan(conn: sqlite3.Connection, selection_id: str, *,
     # file is observed, so a scan interrupted halfway is a visible incomplete run
     # rather than an absent one.
     scan_run_id = start_scan_run(conn, selection_id)
-    with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
-        for item in walk(source, sources=sources, candidate_roots=candidate_roots,
-                         budget_exhausted=budget_exhausted):
-            _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
-                    scan_state=scan_state)
-            item_recorded()
-    # AFTER the walk, inside the run: the walk is what proves a recorded file was
-    # not found, and a person's disk changing between runs is the normal case
-    # rather than the edge one. Without this the corpus only ever grew, and every
-    # later plan went on offering to file something they had deleted.
-    reconcile_disappearances(conn, scan_run_id, sources=sources,
-                             scan_state=scan_state)
-    finish_scan_run(conn, scan_run_id)
-    return scan_run_id
+    from scan_profile import active_scan_profile
+    profile = active_scan_profile()
+    # The walked rows are the rebuildable index. A direct scan writes the run
+    # row above at FULL, which is how `open_database` leaves the connection.
+    # A production pass already holds NORMAL around this call, and this block
+    # does not put FULL back in the middle of that pass.
+    with rebuildable_durability(conn):
+        if profile is None:
+            with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
+                for item in walk(source, sources=sources,
+                                 candidate_roots=candidate_roots,
+                                 budget_exhausted=budget_exhausted):
+                    _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
+                            scan_state=scan_state)
+                    item_recorded()
+            # AFTER the walk, inside the run: the walk is what proves a recorded
+            # file was not found, and a person's disk changing between runs is the
+            # normal case rather than the edge one. Without this the corpus only
+            # ever grew, and every later plan went on offering to file something
+            # they had deleted.
+            reconcile_disappearances(conn, scan_run_id, sources=sources,
+                                     scan_state=scan_state)
+            finish_scan_run(conn, scan_run_id)
+            return scan_run_id
+
+        with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
+            walker = walk(source, sources=sources, candidate_roots=candidate_roots,
+                          budget_exhausted=budget_exhausted)
+            while True:
+                started = time.perf_counter()
+                try:
+                    item = next(walker)
+                except StopIteration:
+                    profile.add_time("walk_stat", time.perf_counter() - started)
+                    break
+                profile.add_time("walk_stat", time.perf_counter() - started)
+                if isinstance(item, ObservedFile):
+                    suffix = PurePath(item.path).suffix.lower()
+                    profile.note_file(path=item.path, extension=suffix or "(none)",
+                                      size=item.size)
+                started = time.perf_counter()
+                hashed_before = profile.stages_seconds("hash")
+                with profile.phase("scan_record"):
+                    _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
+                            scan_state=scan_state)
+                elapsed = time.perf_counter() - started
+                hashed = profile.stages_seconds("hash") - hashed_before
+                profile.add_time("db_writes", max(0.0, elapsed - hashed))
+                item_recorded()
+        started = time.perf_counter()
+        with profile.phase("disappearance"):
+            reconcile_disappearances(conn, scan_run_id, sources=sources,
+                                     scan_state=scan_state)
+            finish_scan_run(conn, scan_run_id)
+        profile.add_time("db_writes", time.perf_counter() - started)
+        return scan_run_id
 
 
 def _record(conn: sqlite3.Connection, scan_run_id: str, item, *,

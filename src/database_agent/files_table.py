@@ -302,7 +302,25 @@ def record_file(conn: sqlite3.Connection, path: Path, *,
 
 
 def get_file(conn: sqlite3.Connection, file_id: str) -> sqlite3.Row:
-    return conn.execute("SELECT * FROM files WHERE file_id = ?", (file_id,)).fetchone()
+    """The current `files` row. A repeat with no write since the last read is the same row.
+
+    `conn.total_changes` moves on every insert, update and delete on this
+    connection, including one a test issued as SQL, so a cached row is not
+    served across a write. A handle that cannot hold attributes reads through.
+    """
+    from database_agent.db import connection_cache
+
+    cache = connection_cache(conn, "_file_rows")
+    generation = getattr(conn, "total_changes", None)
+    if cache is not None and generation is not None:
+        slot = cache.get(file_id)
+        if slot is not None and slot[0] == generation:
+            return slot[1]
+    row = conn.execute(
+        "SELECT * FROM files WHERE file_id = ?", (file_id,)).fetchone()
+    if cache is not None and generation is not None:
+        cache[file_id] = (generation, row)
+    return row
 
 
 from database_agent.events import append_event

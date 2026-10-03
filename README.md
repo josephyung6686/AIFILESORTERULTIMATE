@@ -6,6 +6,8 @@ destination tree, and does not move anything until you freeze that tree and appl
 Undo puts the bytes back. A file it is not sure about stays where it is. Sensitive files
 are held and are not sent to a cloud model.
 
+Product direction → [`docs/product-one-pager.md`](docs/product-one-pager.md).
+
 The design this implements is
 [`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).
 Search and the folder watcher are not part of this path.
@@ -29,8 +31,14 @@ database-agent /path/to/folder --user you --database ./plan.sqlite --undo-everyt
 `--apply BRANCH` moves the files that branch froze. `--undo-everything` puts them back.
 `--stop-after tree` stops once the outline exists.
 
-No model is required for this path. Cloud models are off unless you opt in, and they cannot
-invent a folder or move a file outside the frozen tree.
+A scan sorts with a model provider. Set the profile with `filesorter onboard`, then
+`filesorter providers`, then `database-agent FOLDER --database ./plan.sqlite`. The
+scan runs understanding after the rules. It does not ask whether to use a model.
+Protected files stay on this computer. A folder with no provider stops and says to
+set one up. `--model-dry-run` prints what would be sent and does not open a network
+connection. Developers skip the pass with `--no-understand` or
+`FILESORTER_SKIP_UNDERSTANDING=1`. A model cannot invent a folder or move a file
+outside the frozen tree.
 
 Score a labelled folder without moving it:
 
