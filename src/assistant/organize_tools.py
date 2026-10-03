@@ -116,6 +116,35 @@ def _set_aside_by_rule(conn: sqlite3.Connection) -> dict[str, int]:
     return by_rule
 
 
+def _set_aside_folders(conn: sqlite3.Connection) -> list[Path]:
+    """The coding projects (and other set-aside folders) the latest scan
+    kept whole. Protected containers are counted elsewhere, never listed."""
+    from items.identity import excluded_areas
+    try:
+        return [Path(a["folder"]) for a in excluded_areas(conn)
+                if not a["protected"]]
+    except sqlite3.Error:
+        return []
+
+
+def _roots(conn: sqlite3.Connection) -> list[Path]:
+    try:
+        return [Path(s) for (sources,) in conn.execute(
+            "SELECT sources FROM corpus_selections")
+            for s in json.loads(sources or "[]")]
+    except sqlite3.Error:
+        return []
+
+
+def inside_set_aside(conn: sqlite3.Connection, relative: str,
+                     folders: list[Path] | None = None) -> bool:
+    """Whether a folder path (relative to a chosen folder) lies inside a
+    set-aside folder: its insides are never shown or asked about."""
+    folders = _set_aside_folders(conn) if folders is None else folders
+    return any(f in (root / relative).parents
+               for root in _roots(conn) for f in folders)
+
+
 def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
     """The sorter's proposed or frozen tree, read from its tables. Moves nothing."""
     tree = _sorter_tree(conn)
@@ -138,15 +167,22 @@ def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
     # a real Desktop mirrors hundreds and would overrun the turn's byte budget.
     quiet = {n.node_id for n in tree["nodes"].values()
              if n.node_type == "existing" and not placed.get(n.node_id)}
+    from assistant.engine_tools import display_name
+    aside_folders = _set_aside_folders(conn)
+    inside = {n.node_id for n in tree["nodes"].values()
+              if inside_set_aside(conn, tree["path"](n.node_id),
+                                  aside_folders)}
     out = {
         "ok": True,
         "moved": False,
         "plan_version": tree["version"],
         "folders": [
-            {"node_id": n.node_id, "path": tree["path"](n.node_id),
+            {"node_id": n.node_id,
+             "path": display_name(tree["path"](n.node_id)),
              "kind": n.node_type, "role": n.node_role,
              "files": placed.get(n.node_id, 0)}
-            for n in tree["nodes"].values() if n.node_id not in quiet
+            for n in tree["nodes"].values()
+            if n.node_id not in quiet and n.node_id not in inside
         ],
         "your_folders_receiving_nothing": len(quiet),
         "files": {"decided": len(tree["by_file"]), "by_outcome": outcomes,
@@ -167,13 +203,18 @@ def organise_summary(conn: sqlite3.Connection, root: Path) -> dict[str, Any]:
 
     A file the plan "places" in the folder it already sits in does not
     move, so moving and staying are counted apart."""
+    from assistant.engine_tools import display_name
     tree = show_tree(conn)
     sorter = _sorter_tree(conn)
     nodes = sorter["nodes"] if sorter else {}
-    by_file = sorter["by_file"] if sorter else {}
     where = {r["file_id"]: Path(r["open_target"]).parent for r in conn.execute(
         "SELECT file_id, open_target FROM items WHERE presence = 'live' "
         "AND superseded_by IS NULL AND open_target IS NOT NULL")}
+    aside = _set_aside_folders(conn)
+    # Files inside a set-aside project are the project's, never counted here.
+    by_file = {f: d for f, d in (sorter["by_file"] if sorter else {}).items()
+               if not (f in where and any(a == where[f] or a in
+                                          where[f].parents for a in aside))}
 
     def destination(file_id):
         d = by_file.get(file_id)
@@ -199,7 +240,7 @@ def organise_summary(conn: sqlite3.Connection, root: Path) -> dict[str, Any]:
     return {
         "folders_proposed": sum(1 for n in nodes.values()
                                 if n.node_type != "existing"),
-        "top_folders": [{"name": n.display_label,
+        "top_folders": [{"name": display_name(n.display_label),
                          "new": n.node_type != "existing",
                          "files_moving_in": moving_into.get(n.node_id, 0)}
                         for n in sorted(top, key=lambda n: (

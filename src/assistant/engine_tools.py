@@ -1105,13 +1105,30 @@ def _freeze(conn: sqlite3.Connection, folder: str,
                          "nothing moved." if empty else
                          "There was nothing ready to lock in, so nothing "
                          "changed. Nothing moved.")}
-    shown = "\n".join(f"  {b}" for b in branches[:12])
+    shown = "\n".join(f"  {display_name(b)}" for b in branches[:12])
     more = (f"\n  and {len(branches) - 12} more" if len(branches) > 12
             else "")
     return {"ok": True, "moved": False, "undo_token": None,
             "text": f"Locked in: {_plural(frozen, 'file')} ready to move. "
                     "Nothing moved yet. Tell me which folder to move:\n"
                     + shown + more}
+
+
+def _real_branch(conn: sqlite3.Connection, branch: str) -> str:
+    """The plan's own folder path for a name the person was shown (which
+    has its ordering numbers dropped)."""
+    try:
+        from assistant.organize_tools import _sorter_tree
+        tree = _sorter_tree(conn)
+    except Exception:
+        tree = None
+    if tree is not None:
+        shown = display_name(branch).casefold()
+        for node_id in tree["nodes"]:
+            path = tree["path"](node_id)
+            if display_name(path).casefold() == shown:
+                return path
+    return branch
 
 
 def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
@@ -1134,8 +1151,9 @@ def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
         return {"ok": False, "error": "There is no locked-in plan to move "
                                       "yet. Organise the folder, then lock "
                                       "in the plan (freeze_plan)."}
+    branch = _real_branch(conn, branch)
     return _proposal("branch", f"{path}|{branch}",
-                     f"Move the files planned for {branch} in "
+                     f"Move the files planned for {display_name(branch)} in "
                      f"{_home_words(path)}? Every move can be undone.")
 
 
@@ -1204,10 +1222,11 @@ def _branch(conn: sqlite3.Connection, ref: str, undo: bool) -> dict[str, Any]:
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": f"0 files {'put back' if undo else 'moved'} — {why}"}
     them = "it" if n == 1 else "them"
+    shown = display_name(branch)
     return {"ok": True, "moved": True,
             "undo_token": None if undo else f"branch:{ref}",
-            "text": (f"Put {_plural(n, 'file')} back from {branch}." if undo
-                     else f"Moved {_plural(n, 'file')} into {branch}. Say "
+            "text": (f"Put {_plural(n, 'file')} back from {shown}." if undo
+                     else f"Moved {_plural(n, 'file')} into {shown}. Say "
                           f"undo to put {them} back.")}
 
 
