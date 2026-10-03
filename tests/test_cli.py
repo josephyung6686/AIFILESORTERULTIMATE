@@ -4526,6 +4526,54 @@ def test_the_answer_the_person_gave_is_the_shape_that_is_built():
     assert choose(candidate, options) == "opt_1"
 
 
+def test_an_answer_whose_shape_vanished_on_a_rerun_is_asked_again():
+    """A stored shape whose option no longer exists is not silently ignored.
+
+    The old answer is superseded (append-only: a new row names it), the
+    question comes back open with TODAY's shapes, and a new answer naming one
+    of them is accepted and built.
+    """
+    from questions.store import (
+        StructuralAnswer, answer_by_id, live_answer, live_answer_id,
+        open_questions, record_answer)
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    candidate = _candidate("Coursework", source="accepted-group")
+    first = (_option("opt_0", ("subject", "work_type")),
+             _option("opt_1", ("work_type", "subject")), _no_split())
+    assert choose(candidate, first) is None
+    old_id = record_answer(conn, StructuralAnswer(
+        question_id="branch:Coursework", option_id="work_type>subject",
+        state="confirmed", scope="branch:Coursework", user_id="jy",
+        recorded_at="2026-09-11T00:01:00Z", supersedes=None))
+    assert not open_questions(conn)
+
+    rerun = (_option("opt_0", ("subject", "work_type")),
+             _option("opt_1", ("term", "subject")), _no_split())
+    assert cli.nesting_chooser(conn, asked_at="2026-09-12T00:00:00Z")(
+        candidate, rerun) is None
+
+    reopened = open_questions(conn)
+    assert [q.question_id for q in reopened] == ["branch:Coursework"]
+    assert {o.option_id for o in reopened[0].options} == {
+        "subject>work_type", "term>subject", cli.NO_SPLIT_KEY}
+    superseding = live_answer(conn, question_id="branch:Coursework",
+                              scope="branch:Coursework")
+    assert superseding.state == "revoked"
+    assert superseding.supersedes == old_id
+    assert answer_by_id(conn, old_id).option_id == "work_type>subject"
+
+    record_answer(conn, StructuralAnswer(
+        question_id="branch:Coursework", option_id="term>subject",
+        state="confirmed", scope="branch:Coursework", user_id="jy",
+        recorded_at="2026-09-12T00:01:00Z",
+        supersedes=live_answer_id(conn, question_id="branch:Coursework",
+                                  scope="branch:Coursework")))
+    assert cli.nesting_chooser(conn, asked_at="2026-09-12T00:02:00Z")(
+        candidate, rerun) == "opt_1"
+
+
 # ======================================================================================
 # `104` §18.42 item 1: the branch CARDS, item 5: the node type, item 4: tree health
 # ======================================================================================

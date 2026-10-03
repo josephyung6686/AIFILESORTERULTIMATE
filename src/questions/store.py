@@ -69,6 +69,36 @@ def record_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
     return question.question_id
 
 
+def reask_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
+                   recorded_at: str, reason: str) -> None:
+    """Ask a question again because its live answer names an option it no
+    longer offers.
+
+    The question row takes today's wording and options (`first_asked_at` is
+    kept), and the live answer is superseded by a `revoked` row carrying
+    `reason` -- append-only, so what the person said before stays readable.
+    A revoked answer reopens its question in `open_questions`.
+    """
+    record_question(conn, question, asked_at=recorded_at)
+    conn.execute(
+        "UPDATE structural_questions SET prompt = ?, evidence_context = ?, "
+        "unlocks = ?, options = ? WHERE question_id = ?",
+        (question.prompt, question.evidence_context, question.unlocks,
+         canonical_json([asdict(option) for option in question.options]),
+         question.question_id))
+    previous = live_answer(conn, question_id=question.question_id,
+                           scope=question.scope)
+    if previous is None or previous.state == REVOKED:
+        return
+    record_answer(conn, StructuralAnswer(
+        question_id=question.question_id, option_id=None, state=REVOKED,
+        scope=question.scope, user_id=previous.user_id,
+        recorded_at=recorded_at,
+        supersedes=live_answer_id(conn, question_id=question.question_id,
+                                  scope=question.scope),
+        supersede_reason=reason))
+
+
 def _question_row(conn: sqlite3.Connection, question_id: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM structural_questions WHERE question_id = ?",

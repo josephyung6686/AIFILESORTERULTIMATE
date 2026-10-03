@@ -340,7 +340,7 @@ from questions.schema import create_questions_schema
 from questions.store import (
     RESIDUAL_KIND_ID,
     activated_schemas, chosen_destination, declared_lives, gated_template,
-    live_answer,
+    live_answer, reask_question,
     selected_situation,
     live_answer_id,
     open_questions,
@@ -12943,7 +12943,16 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str,
                 # branch nothing was built inside, and it is false in exactly the
                 # case where the person most needs to act.
                 waits_for_the_answer=theirs)
-            record_question(conn, question, asked_at=asked_at)
+            if answered is not None:
+                # The shape they chose is not among today's: ask again with
+                # today's shapes rather than silently ignore what they said.
+                reask_question(
+                    conn, question, recorded_at=asked_at,
+                    reason=(f"the shape {answered!r} this answer chose is no "
+                            "longer one the files support, so it is asked "
+                            "again"))
+            else:
+                record_question(conn, question, asked_at=asked_at)
             # A proposed branch that builds nothing until this is answered has
             # to show the question. An existing folder is asked too, and its
             # question stays in the store: printing one per directory is the
