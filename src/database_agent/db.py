@@ -14,6 +14,18 @@ from pathlib import Path
 # no cycle to avoid and no reason to keep two spellings of one table.
 from database_agent.cloud_consent import CLOUD_CONSENT_DDL
 
+#: The ONE database. The sorter and every assistant command default to this file,
+#: wherever the person runs them from, so `database-agent FOLDER` and a later
+#: `database-agent search ...` meet without a flag. An explicit --database wins.
+DEFAULT_DATABASE = "~/.graph-agent/database-agent.sqlite"
+
+
+def shared_database_path() -> Path:
+    path = Path(DEFAULT_DATABASE).expanduser()
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return path
+
+
 #: 2 added `st_dev`/`st_ino` to `files` (see FILES_DDL). `create_schema` migrates
 #: an existing database in place, so the bump records the change rather than gating it.
 SCHEMA_VERSION = 2

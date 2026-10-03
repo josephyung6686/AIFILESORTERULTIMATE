@@ -5,6 +5,7 @@ None of these open a socket. Suggest never applies a move. Search is read-only.
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -14,10 +15,39 @@ APPLY_REFUSED = (
 )
 
 
-def _open(path: Path, *, key_file: Path | None = None):
-    from database_agent.db import open_database
-    return open_database(path, scan_roots=[], encryption=key_file is not None,
+NOTHING_INDEXED = "Nothing indexed yet — run: database-agent <FOLDER>"
+
+
+#: Database files this process created, so an empty answer can take them back.
+_created: set[str] = set()
+
+
+def _open(path: Path | None, *, key_file: Path | None = None):
+    from database_agent.db import shared_database_path, open_database
+    path = (path or shared_database_path()).expanduser().resolve()
+    if not path.exists():
+        _created.add(str(path))
+    return open_database(path, scan_roots=[],
+                         encryption=key_file is not None,
                          encryption_key_file=key_file)
+
+
+def _nothing_indexed(conn, out) -> bool:
+    """True (after saying so) when the database holds no items to work on."""
+    try:
+        empty = conn.execute("SELECT 1 FROM items LIMIT 1").fetchone() is None
+    except sqlite3.OperationalError:
+        empty = True
+    if empty:
+        print(NOTHING_INDEXED, file=out)
+        file = next((r[2] for r in conn.execute("PRAGMA database_list")
+                     if r[1] == "main"), "")
+        conn.close()
+        if file in _created:
+            for suffix in ("", "-wal", "-shm", "-journal"):
+                Path(file + suffix).unlink(missing_ok=True)
+            _created.discard(file)
+    return empty
 
 
 def view_main(argv: list[str] | None = None, *, out=None) -> int:
@@ -27,7 +57,7 @@ def view_main(argv: list[str] | None = None, *, out=None) -> int:
         "name", nargs="?", default="deadlines",
         choices=("deadlines", "folder", "table", "board", "timeline", "graph"),
     )
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--html", type=Path, default=None)
     parser.add_argument("--center", default=None, help="item_id for graph focus")
@@ -36,6 +66,8 @@ def view_main(argv: list[str] | None = None, *, out=None) -> int:
         help="an event item id and a file item id expected on that deadline")
     args = parser.parse_args(argv)
     conn = _open(args.database, key_file=args.key_file)
+    if _nothing_indexed(conn, out):
+        return 2
     try:
         if args.name == "deadlines":
             expected: dict[str, list[str]] = {}
@@ -96,7 +128,7 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter search")
     parser.add_argument("query")
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=25)
     parser.add_argument("--rebuild-fts", action="store_true")
@@ -111,6 +143,8 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
             conn.commit()
         except Exception:
             pass
+        if _nothing_indexed(conn, out):
+            return 2
         if args.rebuild_fts:
             n = rebuild_fts(conn)
             conn.commit()
@@ -167,12 +201,14 @@ def preview_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter preview-plan")
     parser.add_argument("plan_id")
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--full-list-viewed", action="store_true")
     args = parser.parse_args(argv)
     from assistant.place_preview import place_preview, preview_as_dict
     conn = _open(args.database, key_file=args.key_file)
+    if _nothing_indexed(conn, out):
+        return 2
     try:
         prev = place_preview(
             conn, args.plan_id, full_list_viewed=args.full_list_viewed)
@@ -198,13 +234,17 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
     parser = argparse.ArgumentParser(prog="filesorter plan")
     parser.add_argument(
         "action", choices=("show", "approve", "apply", "undo", "create"))
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--plan-id", default=None)
     parser.add_argument("--full-list-viewed", action="store_true")
     parser.add_argument("--item-id", default=None)
     parser.add_argument("--dst", default=None, help="destination path for create")
     args = parser.parse_args(argv)
+    if args.action == "create" and not (args.item_id and args.dst):
+        parser.error("create requires --item-id and --dst")
+    if args.action != "create" and not args.plan_id:
+        parser.error(f"{args.action} requires --plan-id")
 
     from assistant.apply import apply_enabled, apply_plan
     from assistant.place_preview import place_preview, preview_as_dict
@@ -212,11 +252,10 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
     from assistant.undo import undo_plan
 
     conn = _open(args.database, key_file=args.key_file)
+    if _nothing_indexed(conn, out):
+        return 2
     try:
         if args.action == "create":
-            if not args.item_id or not args.dst:
-                print("create requires --item-id and --dst", file=out)
-                return 2
             row = conn.execute(
                 "SELECT item_id, open_target, file_id FROM items "
                 "WHERE item_id=?", (args.item_id,),
@@ -224,12 +263,30 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
             if row is None or not row["open_target"]:
                 print("item not found or has no open_target", file=out)
                 return 2
+            import hashlib
+            from items.refresh import discover_roots
+            src = Path(row["open_target"])
+            if not src.is_file():
+                print(f"{src} is not on disk; nothing was planned.", file=out)
+                return 2
+            dst = Path(args.dst).expanduser().resolve()
+            # The plan may only touch what the person chose: the recorded folder
+            # that holds both the file and where it is going.
+            scope = next((r for r in discover_roots(conn)
+                          if src.resolve().is_relative_to(r.resolve())
+                          and dst.is_relative_to(r.resolve())), None)
+            if scope is None:
+                print("That destination is outside the folders you chose; "
+                      "nothing was planned.", file=out)
+                return 2
             # CLI --item-id is an explicit user pick → grounded.
             plan = create_draft_plan(
                 conn,
                 ops=[PlanOp(
                     item_id=row["item_id"], src=row["open_target"],
-                    dst=args.dst, file_id=row["file_id"],
+                    dst=str(dst), file_id=row["file_id"],
+                    content_hash=hashlib.sha256(src.read_bytes()).hexdigest(),
+                    root_scope=str(scope.resolve()),
                 )],
                 require_grounded=True,
                 user_picked_ids=[row["item_id"]],
@@ -237,10 +294,6 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
             conn.commit()
             print(f"created draft plan {plan.plan_id}", file=out)
             return 0
-
-        if not args.plan_id:
-            print("--plan-id required", file=out)
-            return 2
 
         if args.action == "show":
             prev = place_preview(
@@ -328,8 +381,8 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
             print(line, file=out)
         if not args.question:
             return 0
-    if not args.question or args.database is None:
-        parser.error("question and --database are required "
+    if not args.question:
+        parser.error("a question is required "
                      "(unless --show-local-capability / --show-trust alone)")
     conn = _open(args.database, key_file=args.key_file)
     try:
@@ -339,6 +392,8 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
             conn.commit()
         except Exception:
             pass
+        if _nothing_indexed(conn, out):
+            return 2
         if args.rebuild_fts:
             n = rebuild_fts(conn)
             conn.commit()
@@ -362,7 +417,7 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
 def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter suggest")
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
@@ -372,6 +427,8 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     from items.nudge import render
     from items.suggest import proposals
     conn = _open(args.database, key_file=args.key_file)
+    if _nothing_indexed(conn, out):
+        return 2
     try:
         rows = proposals(conn)
         text = render(rows)
@@ -385,7 +442,7 @@ def watch_main(argv: list[str] | None = None, *, out=None) -> int:
     """Background watcher: FSEvents/polling → reconcile → FTS. Never moves."""
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter watch")
-    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument(
         "--root", type=Path, action="append", default=None,
@@ -402,9 +459,12 @@ def watch_main(argv: list[str] | None = None, *, out=None) -> int:
     from items.refresh import discover_roots
 
     conn = _open(args.database, key_file=args.key_file)
-    roots = list(args.root) if args.root else discover_roots(conn)
+    try:
+        roots = list(args.root) if args.root else discover_roots(conn)
+    except sqlite3.OperationalError:
+        roots = []
     if not roots:
-        print("No watch roots found.", file=out)
+        print(NOTHING_INDEXED, file=out)
         conn.close()
         return 2
     watchers = [PathWatcher(r) for r in roots]
