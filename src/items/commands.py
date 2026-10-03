@@ -117,6 +117,8 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
             print(f"Rebuilt item_fts: {n} rows.", file=out)
         result = meaning_search(conn, args.query, limit=args.limit)
         conn.commit()
+        from items.identity import excluded_areas
+        skipped = excluded_areas(conn)
     finally:
         conn.close()
     print(
@@ -125,6 +127,23 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
         f"latency fts={result.fts_ms:.1f}ms vec={result.vector_ms:.1f}ms "
         f"total={result.total_ms:.1f}ms",
         file=out)
+    if skipped:
+        from scan_agent.exclusion import (
+            RULE_CATEGORY, RULE_LITERAL_DIRECTORY_NAME,
+            RULE_PROJECT_ROOT_DESCENDANT, RULE_PROTECTED_CONTAINER,
+        )
+        why = {
+            RULE_PROJECT_ROOT_DESCENDANT: "software projects",
+            RULE_PROTECTED_CONTAINER: "apps and system items",
+            RULE_LITERAL_DIRECTORY_NAME: "build, cache or dependency folders",
+            RULE_CATEGORY: "build, cache or dependency folders",
+        }
+        names = ", ".join(
+            "/".join(Path(a["folder"]).parts[-2:]) for a in skipped[:5])
+        more = f" and {len(skipped) - 5} more" if len(skipped) > 5 else ""
+        reasons = ", ".join(sorted({why.get(a["rule"], a["rule"]) for a in skipped}))
+        print(f"Not read: {len(skipped)} folder(s) — {reasons}: {names}{more}.",
+              file=out)
     for hit in result.hits:
         target = "(protected)" if hit.protected else (hit.open_target or "")
         print(

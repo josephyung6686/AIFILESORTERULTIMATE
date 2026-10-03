@@ -42,7 +42,7 @@ from scan_agent.access import require_access
 from scan_agent.basic_record import record_basic_record
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.disappearance import _is_absent, reconcile_disappearances
-from scan_agent.exclusion import APPLIES_TO_SCANNED_SOURCE
+from scan_agent.exclusion import APPLIES_TO_SCANNED_SOURCE, ExclusionVerdict
 from scan_agent.traversal import ObservedFile, walk
 
 ITEM_TYPE_FILE = "file"
@@ -60,9 +60,23 @@ def reconcile_tree(conn: sqlite3.Connection, root: Path) -> None:
     create_items_schema(conn)
     root = Path(root)
     require_access([root])
+    prefix = str(root.resolve())
+    conn.execute(
+        "DELETE FROM excluded_areas WHERE path = ? OR substr(path, 1, ?) = ?",
+        (prefix, len(prefix) + 1, prefix + "/"))
+    now = datetime.now(timezone.utc).isoformat()
     for item in walk(
             FilesystemCorpusSource(), sources=[root], candidate_roots=[],
             budget_exhausted=lambda: False):
+        if isinstance(item, ExclusionVerdict):
+            # Marked and counted, never silently omitted.
+            if item.applies_to == APPLIES_TO_SCANNED_SOURCE:
+                conn.execute(
+                    "INSERT OR REPLACE INTO excluded_areas "
+                    "(path, rule, rule_subject, seen_at) VALUES (?, ?, ?, ?)",
+                    (str(Path(item.path).resolve()), item.rule,
+                     item.rule_subject, now))
+            continue
         if not isinstance(item, ObservedFile):
             continue
         if item.applies_to != APPLIES_TO_SCANNED_SOURCE or item.dataless:
@@ -75,6 +89,25 @@ def reconcile_tree(conn: sqlite3.Connection, root: Path) -> None:
         conn, str(uuid.uuid4()), sources=[root],
         scan_state=P1_INCLUDED_SCAN_STATE)
     _mark_missing_under(conn, [root])
+
+
+def excluded_areas(conn: sqlite3.Connection) -> list[dict]:
+    """Skipped folders, one per excluded parent, with the rule that skipped them.
+
+    The scan does not descend into an excluded area, so each verdict names a
+    child of the folder that was refused; its parent is what the person knows.
+    """
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='excluded_areas'").fetchone() is None:
+        return []
+    folders: dict[tuple[str, str], dict] = {}
+    for row in conn.execute(
+            "SELECT path, rule, rule_subject FROM excluded_areas ORDER BY path"):
+        folder = str(Path(row[0]).parent)
+        entry = folders.setdefault((folder, row[1]), {
+            "folder": folder, "rule": row[1], "rule_subject": row[2], "paths": 0})
+        entry["paths"] += 1
+    return list(folders.values())
 
 
 def project_after_scan(conn: sqlite3.Connection, sources, scan_state: str) -> None:

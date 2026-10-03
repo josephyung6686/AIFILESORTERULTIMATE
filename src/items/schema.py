@@ -200,6 +200,14 @@ def create_items_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS item_identity_events_by_item
             ON item_identity_events(item_id, observed_at);
+        -- Paths the scan refused to read (software projects, system areas).
+        -- Rewritten on every reconcile of their root so they stay current.
+        CREATE TABLE IF NOT EXISTS excluded_areas (
+            path          TEXT PRIMARY KEY,
+            rule          TEXT NOT NULL,
+            rule_subject  TEXT NOT NULL,
+            seen_at       TEXT NOT NULL
+        );
         CREATE INDEX IF NOT EXISTS items_by_freshness ON items(freshness_state);
         CREATE INDEX IF NOT EXISTS relationship_decisions_by_rel
             ON relationship_decisions(relationship_id, created_at);

@@ -70,9 +70,11 @@ def list_gaps(conn: sqlite3.Connection, *, limit: int = 30) -> dict[str, Any]:
                 "detail": "no live relationships",
             })
 
+    from items.identity import excluded_areas
     return {
         "ok": True,
         "gaps": gaps[:limit],
+        "excluded_areas": excluded_areas(conn),
         "moved": False,
         "note": "file/profile gaps only",
     }
