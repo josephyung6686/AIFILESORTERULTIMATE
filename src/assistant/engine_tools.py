@@ -456,9 +456,15 @@ def _question_files(conn, q, count: int | None = None) -> list[str]:
                 (rest, rest + ".%")).fetchall()
         else:
             rows = []
+        if not rows and kind == "branch" and rest and not rest.startswith(
+                "default:"):
+            # A folder the person already has: the files in it on disk.
+            rows = conn.execute(
+                base + "AND open_target LIKE ? ORDER BY display_label "
+                "LIMIT 40", (f"%/{rest.strip('/')}/%",)).fetchall()
     except sqlite3.Error:
         return []
-    ordinary = [r for r in rows if not path_is_protected(r["open_target"])
+    ordinary =[r for r in rows if not path_is_protected(r["open_target"])
                 and not item_is_sensitive(conn, r["item_id"])]
     # A folder question is about SOME of the folder's files (those nothing
     # could read); its examples are shown only when they are all of them.

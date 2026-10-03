@@ -82,14 +82,9 @@ class TerminalRenderer:
                                   if c.matched_by == "name" else "")
                                + (f"   — {c.note}" if c.note else ""))
         elif isinstance(event, ev.Question):
-            head = f"Question {event.index} of {event.of}: " if event.of > 1 \
-                else ""
-            self._line(head + event.text)
-            if event.why:
-                self._line(self._dim("  " + event.why))
-            for i, option in enumerate(event.options, start=1):
-                self._line(f"  {i}) {option.label}")
-            self._line("  or type your own · s) skip")
+            for line in ev.question_lines(event):
+                self._line(self._dim(line) if event.why
+                           and line == "  " + event.why else line)
         elif isinstance(event, ev.Confirm):
             self._line(event.summary)
             for move in event.moves[:MOVES_SHOWN]:

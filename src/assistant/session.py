@@ -753,17 +753,17 @@ class Session:
                     f"“{summary}”. Their newest message did not answer it, "
                     "so it stays; they answer it by saying yes or no.")
         if self.asking is not None:
-            q = self.asking
-            options = "; ".join(f"{i}) {o.label}"
-                                for i, o in enumerate(q.options, start=1))
             from assistant.registry import ENGINE_TOOLS
             record = ("call answer_question with their words"
                       if "answer_question" in ENGINE_TOOLS else
                       "tell them to pick a number or type s to skip")
-            return ("On the person's screen right now: the question "
-                    f"“{q.text}” (options: {options}). If their newest "
-                    f"message answers it, {record}; if they ask about it, "
-                    "explain and leave it open.")
+            printed = "\n".join(ev.question_lines(self.asking))
+            return ("On the person's screen right now is this question, "
+                    "exactly as printed (nothing else about it is shown; "
+                    "a file not named here is not on the screen):\n"
+                    f"{printed}\nIf their newest message answers it, "
+                    f"{record}; if they ask about it, explain and leave it "
+                    "open.")
         return ("Nothing is waiting on the person's screen right now: no "
                 "yes/no prompt and no question. Never say something is "
                 "waiting for them. A prompt earlier in the conversation that "
@@ -841,6 +841,11 @@ class Session:
         else:
             self.emit(ev.Error(text=result["text"],
                                changed=bool(result["moved"])))
+        if self.ask_questions_after_turn and self.on_screen not in (
+                self.pending):
+            # "I have N questions" is followed by question 1, now.
+            self.ask_questions_after_turn = False
+            self.start_questions()
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
         self._confirm(confirm_id, yes)

@@ -97,6 +97,22 @@ class Error:
     changed: bool = False
 
 
+def question_lines(q: Question) -> list[str]:
+    """A question exactly as the person reads it: the terminal prints these
+    lines and the model is told them, so neither says more than the other.
+    Its example files are inside the question's own text."""
+    head = f"Question {q.index} of {q.of}: " if q.of > 1 else ""
+    text = q.text
+    if q.files_preview and not any(n in text for n in q.files_preview):
+        text += f" (e.g. {', '.join(q.files_preview)})"
+    lines = [head + text]
+    if q.why:
+        lines.append("  " + q.why)
+    lines += [f"  {i}) {o.label}" for i, o in enumerate(q.options, start=1)]
+    lines.append("  or type your own · s) skip")
+    return lines
+
+
 _TYPES = {
     Message: "message", Progress: "progress", Question: "question",
     Confirm: "confirm", Counts: "counts", Suggestions: "suggestions",

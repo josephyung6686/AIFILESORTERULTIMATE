@@ -299,3 +299,60 @@ def test_suggestions_skip_junk_and_archive_folders(lib):
     assert [f["display_label"] for f in files_for(conn, "copies")] == [
         "essay copy.txt"]
     assert files_for(conn, "installers") == []
+
+
+# -- 4. say only what is on the screen ----------------------------------------
+
+def test_the_model_is_told_the_question_exactly_as_printed(lib):
+    import io
+    from assistant.terminal import TerminalRenderer
+    conn, _ = lib
+    q = ev.Question(question_id="q1", text="Where should the 4 files in "
+                    "Education (e.g. a.pdf, b.pdf, c.pdf) go?",
+                    why="They share a course name.", changes="",
+                    options=(ev.Option("o1", "Education/Fall"),
+                             ev.Option("o2", "Education/Spring")),
+                    files_preview=("a.pdf", "b.pdf", "c.pdf"), count=4,
+                    index=1, of=3)
+    screen = io.StringIO()
+    TerminalRenderer(screen)(q)
+    s = Session(conn, provider_turn=turns(), emit=lambda e: None)
+    s.asking = q
+    told = s.screen_state()
+    for line in screen.getvalue().splitlines():
+        assert line.strip() in told
+
+
+def test_a_branch_question_names_files_from_the_folder_on_disk(lib):
+    from types import SimpleNamespace
+    from assistant.engine_tools import _question_files
+    conn, root = lib
+    (root / "Education").mkdir()
+    for name in ("syllabus.pdf", "notes.txt"):
+        (root / "Education" / name).write_text(name, encoding="utf-8")
+    reconcile_tree(conn, root)
+    conn.commit()
+    names = _question_files(conn, SimpleNamespace(scope="branch:Education"))
+    assert sorted(names) == ["notes.txt", "syllabus.pdf"]
+
+
+def test_organise_after_a_yes_shows_question_one_now(lib, monkeypatch):
+    import assistant.engine_tools as engine
+    from questions.schema import create_questions_schema
+    from questions.store import record_question
+    conn, root = lib
+    create_questions_schema(conn)
+    record_question(conn, a_question("q.askable"), asked_at=CLOCK)
+    conn.commit()
+
+    def organised(conn, kind, ref, context=None):
+        context.ask_questions_after_turn = True
+        return {"ok": True, "moved": False, "undo_token": None,
+                "text": "I've looked through the folder. Nothing moved. "
+                        "I have 1 question first."}
+    monkeypatch.setattr(engine, "execute_confirmed", organised)
+    out = []
+    s = Session(conn, provider_turn=turns(), emit=out.append)
+    s._propose({"kind": "cloud", "ref": str(root), "moves": []})
+    s.confirm(s.on_screen, True)
+    assert isinstance(out[-1], ev.Question)
