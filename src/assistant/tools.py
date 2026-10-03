@@ -685,8 +685,10 @@ class ToolRuntime:
                 allow_held=self.allow_held_body)
         elif name == "propose_groups":
             payload = ot.propose_groups(self.conn)
+        elif name == "show_tree":
+            payload = ot.show_tree(self.conn)
         elif name == "propose_tree":
-            payload = ot.propose_tree(self.conn)
+            payload = ot.propose_tree(self.conn, args.get("item_ids"))
         elif name == "propose_links":
             payload = ot.propose_links(self.conn)
         elif name == "accept_link":
