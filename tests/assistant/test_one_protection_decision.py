@@ -226,3 +226,22 @@ def test_an_ambiguous_store_answer_fails_closed(tmp_path):
     _classify(conn, item["file_id"], protected=False, reliability=USER_CONFIRMED)
     assert item_is_sensitive(conn, item["item_id"]) is True
     conn.close()
+
+
+def test_a_database_error_while_scrubbing_withholds_every_path(tmp_path):
+    import sqlite3
+
+    from assistant.policy import finalize_payload
+
+    conn = _seed(tmp_path)
+    ordinary = _item(conn, "notes.txt")
+
+    def broken(*_args, **_kwargs):
+        raise sqlite3.OperationalError("disk I/O error")
+
+    with patch("assistant.policy.item_is_sensitive", side_effect=broken):
+        result = finalize_payload(
+            "find_files", {"hits": [{"open_target": ordinary["open_target"]}]},
+            conn=conn)
+    assert result.sanitized_payload["hits"][0]["open_target"] is None
+    conn.close()

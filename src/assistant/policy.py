@@ -570,7 +570,8 @@ def finalize_payload(
                 if path and item_is_sensitive(conn, row["item_id"]):
                     blocked_paths.append(path)
         except sqlite3.Error:
-            pass
+            # Could not tell which paths are sensitive: withhold every path.
+            force = True
 
     sanitized = strip_protected_paths(
         payload,
