@@ -1,0 +1,169 @@
+{
+  "version": "2026-10-03-search-golden-real-v1",
+  "note": "Labeled golden for honest search evaluation. Query text must not reuse filename stems as labels.",
+  "corpus_items": [
+    {
+      "key": "doc-joint-pmf",
+      "filename": "week03_handout.txt",
+      "body": "This handout covers the discrete joint probability mass function for two random variables. Students compute marginals from the table and check independence.",
+      "lang": "en"
+    },
+    {
+      "key": "doc-resume-alias",
+      "filename": "profile_export_2024.txt",
+      "body": "Curriculum vitae summary: software engineer with experience in local-first search systems, Python, and SQLite. Seeking full-time roles.",
+      "lang": "en"
+    },
+    {
+      "key": "doc-ocr-noise",
+      "filename": "scan_batch_17.txt",
+      "body": "lnvoice total due: HKD 1,280. Vendor: Acme Supplies. Please remlt payment within 14 days. Tax ID noted on the attached receipt image.",
+      "lang": "en"
+    },
+    {
+      "key": "doc-late-marker",
+      "filename": "long_briefing.txt",
+      "body_prefix": "Corporate briefing filler paragraph. ",
+      "body_prefix_repeat": 140,
+      "body_suffix": " UNIQUE_LATE_MARKER_zeta9 finds the buried clause about escrow release conditions.",
+      "lang": "en"
+    },
+    {
+      "key": "doc-zh-tax",
+      "filename": "finance_memo_08.txt",
+      "body": "本備忘錄說明香港利得稅申報期限與可扣除開支。請於截止日期前完成報稅文件整理。",
+      "lang": "zh-Hant"
+    },
+    {
+      "key": "doc-zh-homework",
+      "filename": "course_packet_b.txt",
+      "body": "本週課程包含機率習題與小組討論。請提交作業至教學平台，並閱讀講義第三章。",
+      "lang": "zh-Hant"
+    },
+    {
+      "key": "doc-mixed",
+      "filename": "lab_notes_mixed.txt",
+      "body": "Experiment log: measured latency for 中文查詢 and English paraphrases on the same index. CJK bigrams must not regress when hybrid retrieval is enabled.",
+      "lang": "mixed"
+    },
+    {
+      "key": "doc-decoy-a",
+      "filename": "shopping_list.txt",
+      "body": "milk eggs bread coffee beans paper towels",
+      "lang": "en"
+    },
+    {
+      "key": "doc-decoy-b",
+      "filename": "travel_itin.txt",
+      "body": "Flight to Taipei on Friday. Hotel near the train station. Bring adapters.",
+      "lang": "en"
+    },
+    {
+      "key": "doc-filename-only",
+      "filename": "PHYS1401_syllabus.txt",
+      "body": "Office hours and grading policy only. No buried search marker here.",
+      "lang": "en"
+    }
+  ],
+  "queries": [
+    {
+      "id": "para-joint",
+      "lang": "en",
+      "kind": "paraphrase",
+      "text": "two-variable discrete distribution table worksheet",
+      "relevant_keys": ["doc-joint-pmf"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "para-resume",
+      "lang": "en",
+      "kind": "paraphrase",
+      "text": "CV for engineer who built local search",
+      "relevant_keys": ["doc-resume-alias"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "alias-cv",
+      "lang": "en",
+      "kind": "alias",
+      "text": "curriculum vitae software roles",
+      "relevant_keys": ["doc-resume-alias"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "ocr-invoice",
+      "lang": "en",
+      "kind": "ocr_noise",
+      "text": "invoice remittance Acme",
+      "relevant_keys": ["doc-ocr-noise"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "late-evidence",
+      "lang": "en",
+      "kind": "late_evidence",
+      "text": "UNIQUE_LATE_MARKER_zeta9 escrow",
+      "relevant_keys": ["doc-late-marker"],
+      "expect_citation": "chunk",
+      "marker": "UNIQUE_LATE_MARKER_zeta9",
+      "min_char_start": 4000,
+      "negative": false
+    },
+    {
+      "id": "zh-tax",
+      "lang": "zh-Hant",
+      "kind": "zh",
+      "text": "利得稅申報",
+      "relevant_keys": ["doc-zh-tax"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "zh-hw",
+      "lang": "zh-Hant",
+      "kind": "zh",
+      "text": "作業",
+      "relevant_keys": ["doc-zh-homework"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "mixed-cjk",
+      "lang": "mixed",
+      "kind": "mixed",
+      "text": "中文查詢 latency",
+      "relevant_keys": ["doc-mixed"],
+      "expect_citation": "chunk",
+      "negative": false
+    },
+    {
+      "id": "neg-quantum",
+      "lang": "en",
+      "kind": "negative",
+      "text": "quantum chromodynamics lattice QCD",
+      "relevant_keys": [],
+      "negative": true
+    },
+    {
+      "id": "neg-zh",
+      "lang": "zh-Hant",
+      "kind": "negative",
+      "text": "量子色動力學",
+      "relevant_keys": [],
+      "negative": true
+    },
+    {
+      "id": "filename-only",
+      "lang": "en",
+      "kind": "filename",
+      "text": "PHYS1401 syllabus",
+      "relevant_keys": ["doc-filename-only"],
+      "expect_citation": "filename",
+      "negative": false
+    }
+  ]
+}

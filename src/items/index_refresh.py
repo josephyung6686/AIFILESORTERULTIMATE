@@ -43,7 +43,8 @@ QUEUE_FAILED = "failed"
 
 DEFAULT_PROCESS_LIMIT = 64
 DEFAULT_RECONCILE_BUDGET = 500
-BODY_FILE_CHARS = 4000
+# Keep in sync with hot_index.MAX_BODY_CHARS so late markers remain findable.
+BODY_FILE_CHARS = 32000
 _TEXT_SUFFIXES = frozenset({
     ".txt", ".md", ".markdown", ".rst", ".csv", ".tsv", ".json", ".yaml",
     ".yml", ".py", ".js", ".ts", ".html", ".htm", ".css", ".xml", ".log",
@@ -376,12 +377,36 @@ def _body_for_item(conn: sqlite3.Connection, row, *, evidence_chars: int) -> str
     return body
 
 
+def _evidence_source_ids(conn: sqlite3.Connection, file_id: str | None) -> list[str]:
+    if not file_id:
+        return []
+    from items.hot_index import _table_exists
+
+    if not _table_exists(conn, "evidence"):
+        return []
+    ids: list[str] = []
+    for row in conn.execute(
+        "SELECT * FROM evidence WHERE file_id = ? "
+        "AND superseded_by IS NULL LIMIT 8",
+        (file_id,),
+    ):
+        keys = row.keys()
+        eid = None
+        if "evidence_id" in keys:
+            eid = row["evidence_id"]
+        elif "observation_id" in keys:
+            eid = row["observation_id"]
+        if eid:
+            ids.append(eid)
+    return ids
+
+
 def delete_item_from_index(conn: sqlite3.Connection, item_id: str) -> None:
-    from items.hot_index import ensure_fts
+    from items.hot_index import delete_chunks_for_item, ensure_fts
 
     ensure_fts(conn)
     conn.execute("DELETE FROM item_fts WHERE item_id = ?", (item_id,))
-    conn.execute("DELETE FROM item_chunks WHERE item_id = ?", (item_id,))
+    delete_chunks_for_item(conn, item_id)
 
 
 def upsert_item_index(
@@ -391,7 +416,7 @@ def upsert_item_index(
         evidence_chars: int = BODY_FILE_CHARS,
 ) -> str:
     """Index one item incrementally. Returns new freshness state."""
-    from items.hot_index import _chunk_text, cjk_bigrams, ensure_fts
+    from items.hot_index import cjk_bigrams, ensure_fts, write_chunks_for_item
 
     ensure_fts(conn)
     row = conn.execute(
@@ -413,6 +438,7 @@ def upsert_item_index(
     body = _body_for_item(conn, row, evidence_chars=evidence_chars)
     label = row["display_label"] or ""
     path = row["open_target"] or ""
+    source_ids = _evidence_source_ids(conn, row["file_id"])
     cjk_extra = cjk_bigrams(f"{label} {path} {body}")
     indexed_body = body
     if cjk_extra:
@@ -426,14 +452,8 @@ def upsert_item_index(
             indexed_body,
         ),
     )
-    for ordinal, (start, end, piece) in enumerate(_chunk_text(body or label)):
-        chunk_id = f"{item_id}:{ordinal}"
-        conn.execute(
-            "INSERT INTO item_chunks ("
-            "chunk_id, item_id, ordinal, text, char_start, char_end) "
-            "VALUES (?,?,?,?,?,?)",
-            (chunk_id, item_id, ordinal, piece, start, end),
-        )
+    write_chunks_for_item(
+        conn, item_id, body, label=label, source_ids=source_ids)
 
     digest = row["content_hash"]
     if not digest:

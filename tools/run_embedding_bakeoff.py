@@ -38,7 +38,7 @@ def main(argv=None) -> int:
 
     from items.bakeoff import paired_bootstrap_ci, validate_golden
     from database_agent.db import open_database
-    from items.hot_index import find_files, rebuild_fts, _fts_search, ensure_fts
+    from items.hot_index import find_files, rebuild_fts
     from items.identity import reconcile_tree
     from items.schema import create_items_schema
 
@@ -77,28 +77,11 @@ def main(argv=None) -> int:
             text = q["text"]
             relevant = q.get("relevant_labels") or []
             hybrid = find_files(
-                conn, text, limit=10, model_dir=args.model_dir)
-            # FTS-only ranks → fake hits via items table order
-            ensure_fts(conn)
-            fts_ranks = _fts_search(conn, text, limit=10)
-            fts_hits = []
-            for item_id, _rank in sorted(fts_ranks.items(), key=lambda kv: kv[1]):
-                row = conn.execute(
-                    "SELECT display_label, open_target, typing_state "
-                    "FROM items WHERE item_id=?", (item_id,)
-                ).fetchone()
-                if row:
-                    from items.hot_index import FindHit
-                    fts_hits.append(FindHit(
-                        item_id=item_id,
-                        display_label=row["display_label"],
-                        open_target=row["open_target"],
-                        typing_state=row["typing_state"],
-                        score=0.0, channels=("fts",), protected=False,
-                        citations=(item_id,),
-                    ))
+                conn, text, limit=10, model_dir=args.model_dir, mode="hybrid")
+            fts_only = find_files(
+                conn, text, limit=10, model_dir=args.model_dir, mode="fts")
             rh = recall_at_k(hybrid.hits, relevant)
-            rf = recall_at_k(fts_hits, relevant)
+            rf = recall_at_k(fts_only.hits, relevant)
             lang = q.get("lang") or "en"
             if str(lang).startswith("zh"):
                 zh_h.append(rh)

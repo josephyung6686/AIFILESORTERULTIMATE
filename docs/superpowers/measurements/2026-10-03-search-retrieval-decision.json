@@ -1,0 +1,136 @@
+{
+  "golden": "tests/fixtures/search_golden_real.json",
+  "decision": {
+    "winner": "fts",
+    "reason": "ship FTS-only: paraphrase hybrid=1.000 fts=1.000 lift_ci=[0.000,0.000]; CJK hybrid=1.000 fts=1.000",
+    "paraphrase_lift_mean": 0.0,
+    "paraphrase_lift_ci95": [
+      0.0,
+      0.0
+    ],
+    "zh_hybrid": 1.0,
+    "zh_fts": 1.0
+  },
+  "winner": "fts",
+  "reason": "ship FTS-only: paraphrase hybrid=1.000 fts=1.000 lift_ci=[0.000,0.000]; CJK hybrid=1.000 fts=1.000",
+  "hybrid": {
+    "recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "mrr": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "ndcg_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "abstention": {
+      "mean": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "n": 2
+    },
+    "citation_correctness": {
+      "mean": 0.7272727272727273,
+      "ci95": [
+        0.45454545454545453,
+        1.0
+      ],
+      "n": 11
+    },
+    "paraphrase_recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 2
+    },
+    "zh_recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 2
+    }
+  },
+  "fts": {
+    "recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "mrr": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "ndcg_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 9
+    },
+    "abstention": {
+      "mean": 0.5,
+      "ci95": [
+        0.0,
+        1.0
+      ],
+      "n": 2
+    },
+    "citation_correctness": {
+      "mean": 0.9090909090909091,
+      "ci95": [
+        0.7272727272727273,
+        1.0
+      ],
+      "n": 11
+    },
+    "paraphrase_recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 2
+    },
+    "zh_recall_at_10": {
+      "mean": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "n": 2
+    }
+  },
+  "quality_gate_failures": [],
+  "quality_gate_pass": true,
+  "model_dir": "/Users/jy/.graph-agent/models/minilm",
+  "embedded_chunks": true
+}
