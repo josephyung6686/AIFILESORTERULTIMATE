@@ -63,9 +63,13 @@ We are building a **laptop-resident file assistant**: chat + tool calling, power
 | Memory L0/v1 + L1 atoms (dark + gate) | Built |
 | `tests/items/` + `tests/assistant/` | **161+ passed** (2026-10-02) |
 
-### Explicitly deferred (not blocking “everything else”)
+### Explicitly deferred / scratched
 
-Mac UI · full sorter pipeline polish · live Gmail/Calendar · L2/L3 Markdown rollups · index encryption · Touch ID for held opens · 250k cold SLO 
+Mac UI · full sorter pipeline polish · **live Gmail/Calendar (scratched)** · index encryption · Touch ID for held opens · Apple FM gen on macOS 15 (Ollama local stand-in) · 250k cold SLO on real library  
+
+### Full product cut (2026-10-02) — shipped mechanisms
+
+See [`2026-10-02-full-product-cut-design.md`](./2026-10-02-full-product-cut-design.md): apply/undo identity commit · ask/search refresh + `watch` · held body local-only · grounded plans · `list_gaps` · connectors hard-disabled · reject→L0.
 
 ---
 

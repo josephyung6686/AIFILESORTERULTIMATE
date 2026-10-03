@@ -4,12 +4,12 @@
   "n_live_items": 504,
   "fts_rows": 504,
   "chunks": 2581,
-  "find_p50_ms": 5.98095849272795,
-  "find_p95_ms": 9.999583009630442,
+  "find_p50_ms": 6.432708018110134,
+  "find_p95_ms": 11.574583011679351,
   "n_samples": 30,
   "per_query": {
     "Joint PMFs": {
-      "p50_ms": 5.999124987283722,
+      "p50_ms": 11.574583011679351,
       "top": [
         "03-11-Conditioning with random variables.pdf",
         "03-09-Joint PMFs.pdf",
@@ -17,7 +17,7 @@
       ]
     },
     "resume": {
-      "p50_ms": 5.4463749984279275,
+      "p50_ms": 6.936374993529171,
       "top": [
         "AKPsi Resume Template Spring 2024.docx",
         "2025 Resume Submission Guideline (Eng)_wmn.pdf",
@@ -25,7 +25,7 @@
       ]
     },
     "作業": {
-      "p50_ms": 5.012791982153431,
+      "p50_ms": 5.65883400849998,
       "top": [
         "202505_jpmf-emerg_markets_local_currency_debt_c.pdf",
         "83d863317f2f44edb605348e4de40993.pdf",
@@ -33,7 +33,7 @@
       ]
     },
     "Conditioning": {
-      "p50_ms": 6.419541983632371,
+      "p50_ms": 6.041375017957762,
       "top": [
         "03-11-Conditioning with random variables.pdf",
         "1 Review of Conditional Probability.pdf",
@@ -41,7 +41,7 @@
       ]
     },
     "Columbia": {
-      "p50_ms": 6.820000009611249,
+      "p50_ms": 6.045957998139784,
       "top": [
         "1956668089929-13718720623-ticket.pdf",
         "Columbia GRC Our Impact Highlights.pdf",
@@ -49,7 +49,7 @@
       ]
     },
     "稅務": {
-      "p50_ms": 5.146957992110401,
+      "p50_ms": 6.60816699382849,
       "top": [
         "202505_jpmf-emerg_markets_local_currency_debt_c.pdf",
         "Joseph Jan-Mar CX_ET.pdf",

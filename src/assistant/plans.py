@@ -148,13 +148,31 @@ def create_draft_plan(
         ops: Sequence[PlanOp],
         risk_tier: str = "T1",
         reversible: bool = True,
+        require_grounded: bool = False,
+        session_key: str = "default",
+        user_picked_ids: Sequence[str] | None = None,
 ) -> Plan:
-    """Create a draft plan from code-built ops. Never from free-form file text."""
+    """Create a draft plan from code-built ops. Never from free-form file text.
+
+    When require_grounded=True, every op.item_id must be session-surfaced
+    (find_files) or in user_picked_ids (explicit CLI/user pick).
+    """
     ensure_plans_schema(conn)
     if risk_tier not in RISK_TIERS:
         raise ValueError(f"unknown risk_tier: {risk_tier}")
     if not ops:
         raise ValueError("plan requires at least one op")
+    if require_grounded:
+        from assistant.session_surface import assert_ops_grounded
+        bad = assert_ops_grounded(
+            conn, [op.item_id for op in ops],
+            session_key=session_key,
+            extra_allowed=set(user_picked_ids or ()),
+        )
+        if bad:
+            raise PermissionError(
+                f"ungrounded_item: {bad} — find or user-pick first"
+            )
     plan_id = str(uuid.uuid4())
     summary = {
         "count": len(ops),

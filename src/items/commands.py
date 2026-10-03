@@ -152,9 +152,15 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument("--rebuild-fts", action="store_true")
     args = parser.parse_args(argv)
     from items.hot_index import rebuild_fts
+    from items.refresh import refresh_index
     from items.search import meaning_search
     conn = _open(args.database)
     try:
+        try:
+            refresh_index(conn, prefer_fsevents=False)
+            conn.commit()
+        except Exception:
+            pass
         if args.rebuild_fts:
             n = rebuild_fts(conn)
             conn.commit()
@@ -237,10 +243,16 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
             if row is None or not row["open_target"]:
                 print("item not found or has no open_target", file=out)
                 return 2
-            plan = create_draft_plan(conn, ops=[PlanOp(
-                item_id=row["item_id"], src=row["open_target"],
-                dst=args.dst, file_id=row["file_id"],
-            )])
+            # CLI --item-id is an explicit user pick → grounded.
+            plan = create_draft_plan(
+                conn,
+                ops=[PlanOp(
+                    item_id=row["item_id"], src=row["open_target"],
+                    dst=args.dst, file_id=row["file_id"],
+                )],
+                require_grounded=True,
+                user_picked_ids=[row["item_id"]],
+            )
             conn.commit()
             print(f"created draft plan {plan.plan_id}", file=out)
             return 0
@@ -339,6 +351,12 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
                      "(unless --show-local-capability / --show-trust alone)")
     conn = _open(args.database)
     try:
+        try:
+            from items.refresh import refresh_index
+            refresh_index(conn, prefer_fsevents=False)
+            conn.commit()
+        except Exception:
+            pass
         if args.rebuild_fts:
             n = rebuild_fts(conn)
             conn.commit()
@@ -377,4 +395,63 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     finally:
         conn.close()
     print(text, file=out)
+    return 0
+
+
+def watch_main(argv: list[str] | None = None, *, out=None) -> int:
+    """Background watcher: FSEvents/polling → reconcile → FTS. Never moves."""
+    out = out if out is not None else sys.stdout
+    parser = argparse.ArgumentParser(prog="filesorter watch")
+    parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument(
+        "--root", type=Path, action="append", default=None,
+        help="Root to watch (repeatable). Default: infer from DB paths.")
+    parser.add_argument(
+        "--seconds", type=float, default=0.0,
+        help="Run this many seconds then exit (0 = until Ctrl-C).")
+    parser.add_argument(
+        "--interval", type=float, default=1.0,
+        help="Polling tick interval seconds.")
+    args = parser.parse_args(argv)
+    import time
+    from items.path_watch import PathWatcher
+    from items.refresh import discover_roots
+
+    conn = _open(args.database)
+    roots = list(args.root) if args.root else discover_roots(conn)
+    if not roots:
+        print("No watch roots found.", file=out)
+        conn.close()
+        return 2
+    watchers = [PathWatcher(r) for r in roots]
+    for w in watchers:
+        w.ensure_best_backend()
+        w.scan_events()
+    print(
+        f"watching {len(watchers)} root(s) backend={watchers[0].backend} "
+        f"moved=no",
+        file=out,
+    )
+    started = time.monotonic()
+    try:
+        while True:
+            for w in watchers:
+                result = w.tick(conn)
+                if result.reindexed:
+                    conn.commit()
+                    print(
+                        f"tick accepted={result.accepted} "
+                        f"renames={result.renames_followed} "
+                        f"backend={result.backend}",
+                        file=out,
+                    )
+            if args.seconds and (time.monotonic() - started) >= args.seconds:
+                break
+            time.sleep(max(0.1, args.interval))
+    except KeyboardInterrupt:
+        print("watch stopped.", file=out)
+    finally:
+        for w in watchers:
+            w.stop_live()
+        conn.close()
     return 0

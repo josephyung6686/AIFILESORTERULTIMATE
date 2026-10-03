@@ -131,6 +131,25 @@ def reject_link(
     from items.decisions import reject_link as _reject
     try:
         _reject(conn, relationship_id, user_id=user_id)
+        # L0 correction capture — memory learning signal (atoms stay dark).
+        try:
+            from assistant.memory_l0 import capture_diff_event
+            capture_diff_event(
+                conn,
+                ai_proposal={
+                    "action": "accept_link",
+                    "relationship_id": relationship_id,
+                },
+                expert_fix={
+                    "action": "reject_link",
+                    "relationship_id": relationship_id,
+                    "user_id": user_id,
+                },
+                item_ids=[relationship_id],
+                session_read_untrusted=False,
+            )
+        except Exception:
+            pass
         return {"ok": True, "relationship_id": relationship_id,
                 "state": "rejected", "moved": False}
     except Exception as e:

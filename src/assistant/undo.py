@@ -52,9 +52,16 @@ def undo_plan(conn: sqlite3.Connection, plan_id: str) -> UndoResult:
             "WHERE journal_id=?",
             (ts, e.journal_id),
         )
+        from assistant.identity_commit import commit_item_path
+        commit_item_path(conn, e.item_id, dst)
         undone.append(e.item_id)
     conn.execute(
         "UPDATE assistant_plans SET state='undone' WHERE plan_id=?",
         (plan_id,),
     )
+    try:
+        from items.hot_index import rebuild_fts
+        rebuild_fts(conn)
+    except Exception:
+        pass
     return UndoResult(ok=True, moved=True, undone=tuple(undone))

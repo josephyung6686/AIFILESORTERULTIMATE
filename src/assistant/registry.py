@@ -11,6 +11,7 @@ ALWAYS_TOOLS: tuple[str, ...] = (
     "read_item",
     "list_related",
     "list_deadlines",
+    "list_gaps",
     "explain_file",
     "ask_user",
     "request_tools",
@@ -23,6 +24,7 @@ DEFERRED_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "organize_apply": ("freeze", "apply_moves", "undo_moves"),
     "graph_links": ("propose_links", "accept_link", "reject_link"),
+    # Live mail/calendar scratched — group kept only to return a hard refuse.
     "connectors": ("sync_mail", "sync_calendar"),
 }
 
@@ -87,11 +89,30 @@ _ALWAYS_SCHEMAS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "list_deadlines",
-            "description": "List deadline-linked items if any.",
+            "description": (
+                "List deadline-linked items plus weak filename date hints. "
+                "No live mail/calendar — file/profile signals only."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "limit": {"type": "integer", "default": 10},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_gaps",
+            "description": (
+                "Nudge: unplaced/held files, missing-on-disk paths, "
+                "files with no relationships. No mail/calendar."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "default": 20},
                 },
             },
         },
@@ -137,8 +158,8 @@ _ALWAYS_SCHEMAS: list[dict[str, Any]] = [
         "function": {
             "name": "request_tools",
             "description": (
-                "Request a deferred tool group. In this build organize/apply "
-                "groups are acknowledged but write tools stay refused."
+                "Request a deferred tool group. organize_apply still needs "
+                "ASSISTANT_ENABLE_APPLY=1. connectors are disabled (no mail/cal)."
             ),
             "parameters": {
                 "type": "object",

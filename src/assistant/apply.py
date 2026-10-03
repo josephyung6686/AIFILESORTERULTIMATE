@@ -97,9 +97,17 @@ def apply_plan(
             "WHERE plan_id=? AND item_id=?",
             (ts, plan_id, op.item_id),
         )
+        # Truth loop: DB working memory follows disk immediately.
+        from assistant.identity_commit import commit_item_path
+        commit_item_path(conn, op.item_id, dst)
     conn.execute(
         "UPDATE assistant_plans SET state='applied' WHERE plan_id=?",
         (plan_id,),
     )
+    try:
+        from items.hot_index import rebuild_fts
+        rebuild_fts(conn)
+    except Exception:
+        pass
     return ApplyResult(
         ok=True, moved=True, applied=tuple(applied), blockers=())
