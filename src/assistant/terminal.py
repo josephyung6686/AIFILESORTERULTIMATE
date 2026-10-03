@@ -133,10 +133,18 @@ def run_terminal(conn, *, folder: Path | None = None, stdin=None, stdout=None,
     stdout = stdout if stdout is not None else sys.stdout
     renderer = TerminalRenderer(stdout)
     session = Session(conn, provider_turn=provider_turn, emit=renderer)
-    if folder is not None:
-        session.choose_folder(str(folder))
-    else:
-        session.open()
+    try:
+        if folder is not None:
+            session.choose_folder(str(folder))
+        else:
+            session.open()
+        return _loop(session, renderer, stdin, stdout)
+    except (KeyboardInterrupt, EOFError):
+        stdout.write("\n")
+        return 0
+
+
+def _loop(session: Session, renderer: TerminalRenderer, stdin, stdout) -> int:
     while True:
         interactive = getattr(stdin, "isatty", lambda: False)()
         if session.awaiting_key and interactive:

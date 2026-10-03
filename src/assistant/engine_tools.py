@@ -161,14 +161,16 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
     target = parent / folder
     in_tree, not_placed = ({}, []) if destination else _tree_places(
         conn, found, parent)
+    pairs = [(row, src, in_tree.get(row["item_id"], target) / src.name)
+             for row, src in zip(found, paths)]
+    pairs = [p for p in pairs if p[1].parent != p[2].parent]
+    scope = os.path.commonpath([str(parent)] + [str(d.parent)
+                                                for _, _, d in pairs])
     ops, moves = [], []
-    for row, src in zip(found, paths):
-        dst = in_tree.get(row["item_id"], target) / src.name
-        if src.parent == dst.parent:
-            continue
+    for row, src, dst in pairs:
         ops.append(PlanOp(item_id=row["item_id"], src=str(src), dst=str(dst),
                           file_id=row["file_id"], content_hash=_sha256(src),
-                          root_scope=str(parent)))
+                          root_scope=scope))
         moves.append((str(src), str(dst)))
     if not ops:
         return {"ok": False, "error": f"Those files are already in {folder}."}
@@ -190,6 +192,23 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
             "not_found": missing}
 
 
+def _selection_root(conn: sqlite3.Connection, folder: Path) -> Path | None:
+    """The deepest recorded selection source containing `folder`."""
+    import json
+    try:
+        rows = conn.execute("SELECT sources FROM corpus_selections").fetchall()
+    except sqlite3.Error:
+        return None
+    best = None
+    for row in rows:
+        for source in json.loads(row[0] or "[]"):
+            s = Path(source)
+            if (s == folder or s in folder.parents) and (
+                    best is None or len(s.parts) > len(best.parts)):
+                best = s
+    return best
+
+
 def _tree_places(conn: sqlite3.Connection, found: list,
                  parent: Path) -> tuple[dict[str, Path], list[str]]:
     """Where the sorter's tree puts each file, as folders beside them, and a
@@ -202,14 +221,16 @@ def _tree_places(conn: sqlite3.Connection, found: list,
         return {}, []
     if result.get("source") != "sorter_tree":
         return {}, []
+    # The tree's paths are relative to the folder the sorter organised: the
+    # recorded selection that holds these files.
+    root = _selection_root(conn, parent)
+    if root is None:
+        return {}, []
     places, notes = {}, []
     for entry in result.get("files") or []:
         dest = entry.get("destination")
         if dest:
-            parts = Path(dest).parts
-            if parts and parts[0] == parent.name:
-                parts = parts[1:]
-            places[entry["item_id"]] = parent.joinpath(*parts)
+            places[entry["item_id"]] = root / dest
         elif entry.get("display_label"):
             why = entry.get("question") or entry.get("why") or (
                 "the sorter has not placed it yet")

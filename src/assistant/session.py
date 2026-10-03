@@ -494,7 +494,8 @@ class Session:
         cfg = None
         provider, model = "deepseek", "deepseek-chat"
         if self.provider_turn is None:
-            from assistant.provider import resolve_provider
+            from assistant.provider import load_dotenv, resolve_provider
+            load_dotenv(_key_file())
             cfg = resolve_provider()
             provider, model = _provider_name(cfg), cfg.model
         try:

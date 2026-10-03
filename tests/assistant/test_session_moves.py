@@ -157,6 +157,30 @@ def test_model_never_sees_the_move_paths_and_cannot_confirm(lib):
     assert rt.pending_confirmations and not (root / "Images").exists()
 
 
+def test_quick_sort_follows_the_sorters_tree_and_says_why_not(lib,
+                                                              monkeypatch):
+    import assistant.organize_tools as ot
+    from assistant.engine_tools import quick_sort
+    conn, root = lib
+    a, b = (conn.execute("SELECT item_id FROM items WHERE display_label=?",
+                         (n,)).fetchone()[0] for n in ("a.png", "b.png"))
+    monkeypatch.setattr(ot, "propose_tree", lambda c, ids: {
+        "ok": True, "source": "sorter_tree", "files": [
+            {"item_id": a, "display_label": "a.png",
+             "destination": "Academic/PHYS1401/lecture"},
+            {"item_id": b, "display_label": "b.png", "destination": None,
+             "outcome": "abstain", "reason": "privacy_blocked",
+             "why": "not classified, no model asked"}]})
+    out = quick_sort(conn, ["a.png", "b.png"])
+    moves = {Path(m["from"]).name: Path(m["to"])
+             for m in out["needs_confirmation"]["moves"]}
+    assert moves["a.png"] == root / "Academic/PHYS1401/lecture/a.png"
+    assert moves["b.png"].parent == root / "Images"
+    summary = out["needs_confirmation"]["summary"]
+    assert "not classified, no model asked" in summary
+    assert "privacy_blocked" not in summary
+
+
 def test_destination_must_be_a_folder_name(lib):
     conn, _ = lib
     rt = ToolRuntime(conn, engine=True)
