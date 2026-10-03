@@ -16,7 +16,7 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
         "release",
         help="Print gate evidence; --enable deliberately opens atom steering",
     )
-    p_rel.add_argument("--database", type=Path, required=True)
+    p_rel.add_argument("--database", type=Path, default=None)
     p_rel.add_argument("--key-file", type=Path, default=None)
     p_rel.add_argument(
         "--fixture", type=Path, default=None,
@@ -33,12 +33,11 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
     )
 
     p_status = sub.add_parser("status")
-    p_status.add_argument("--database", type=Path, required=True)
+    p_status.add_argument("--database", type=Path, default=None)
     p_status.add_argument("--key-file", type=Path, default=None)
     p_status.add_argument("--json", action="store_true", dest="as_json")
 
     args = parser.parse_args(argv)
-    from database_agent.db import open_database
     from assistant.memory_release import (
         enable_release,
         format_gate_evidence,
@@ -47,7 +46,14 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
         run_gate_from_fixture,
     )
 
-    conn = open_database(args.database, scan_roots=[],
+    from database_agent.db import open_database, shared_database_path
+    from items.commands import NOTHING_INDEXED
+
+    path = args.database or shared_database_path()
+    if not path.expanduser().exists():
+        print(NOTHING_INDEXED, file=out)
+        return 2
+    conn = open_database(path, scan_roots=[],
                          encryption_key_file=args.key_file,
                          encryption=args.key_file is not None)
     try:
