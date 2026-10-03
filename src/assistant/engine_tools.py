@@ -237,6 +237,27 @@ def undo_proposal(conn: sqlite3.Connection, token: str) -> dict[str, Any]:
                      [(r["dst"], r["src"]) for r in rows])
 
 
+def recent_batches(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
+    """The last moved batches that can still be put back, in plain words:
+    `{token, text}` each."""
+    from assistant.plans import ensure_plans_schema
+    ensure_plans_schema(conn)
+    out = []
+    for row in conn.execute(
+            "SELECT plan_id, created_ts FROM assistant_plans "
+            "WHERE state = 'applied' ORDER BY created_ts DESC LIMIT ?",
+            (limit,)).fetchall():
+        dsts = [Path(r[0]) for r in conn.execute(
+            "SELECT dst FROM assistant_plan_ops WHERE plan_id = ?",
+            (row["plan_id"],))]
+        folders = sorted({d.parent.name for d in dsts})
+        when = row["created_ts"][:16].replace("T", " ")
+        out.append({"token": f"plan:{row['plan_id']}",
+                    "text": f"{_plural(len(dsts), 'file')} into "
+                            f"{', '.join(folders)} ({when} UTC)"})
+    return out
+
+
 def undo_last(conn: sqlite3.Connection) -> dict[str, Any]:
     from assistant.plans import ensure_plans_schema
     ensure_plans_schema(conn)
@@ -451,14 +472,23 @@ def run_organise(conn: sqlite3.Connection, path: Path,
     import cli
     conn.commit()
     stream = _ProgressStream(context)
+    emit = getattr(context, "emit", None)
     if context is not None:
         context.cancel_requested = False
+    if emit is not None:
+        from assistant.events import Message
+        emit(Message(text="Organising reads every file, so this can take "
+                          "several minutes. Type cancel (or press Ctrl-C) "
+                          "to stop — nothing moves either way."))
     try:
         cli.main([str(path), "--database", database_path(conn),
                   "--stop-after", "tree"], out=stream)
-    except Cancelled:
+    except (Cancelled, KeyboardInterrupt):
+        if emit is not None:
+            from assistant.events import Message
+            emit(Message(text="Stopped. Nothing moved."))
         return {"ok": False, "cancelled": True,
-                "error": "Stopped. Nothing moved."}
+                "error": "The person stopped organising. Nothing moved."}
     except SystemExit:
         pass
     except Exception:
@@ -482,18 +512,52 @@ def run_organise(conn: sqlite3.Connection, path: Path,
 def counts_sentence(c) -> str:
     """The totals in the person's words, one protection word."""
     parts = [f"I've indexed {_plural(c.indexed, 'file')}."]
-    if getattr(c, "set_aside_folders", 0) or c.set_aside:
+    if c.set_aside:
+        folders = getattr(c, "set_aside_folders", 0) or 1
         parts.append(
-            f"{_plural(c.set_aside, 'file')} are inside "
-            f"{_plural(getattr(c, 'set_aside_folders', 0) or 1, 'folder')} "
-            "I keep as one item each (like coding projects) — nothing "
-            "inside is moved.")
+            f"{_plural(c.set_aside, 'file')} "
+            f"{'are' if c.set_aside != 1 else 'is'} inside "
+            f"{folders} coding project{'s' if folders != 1 else ''} — each "
+            "is kept as one item and nothing inside is moved.")
     protected = c.protected + c.held
     if protected:
         parts.append(f"{_plural(protected, 'file')} "
-                     f"{'look' if protected != 1 else 'looks'} personal — "
-                     "they're protected and I'll show them only to you.")
+                     f"{'look' if protected != 1 else 'looks'} personal "
+                     "(ID, health) and "
+                     f"{'are' if protected != 1 else 'is'} protected — I'll "
+                     "show them only to you.")
     return " ".join(parts)
+
+
+def set_level(conn: sqlite3.Connection, level: int) -> dict[str, Any]:
+    if level not in LEVELS:
+        return {"ok": False, "error": "The levels are 1, 2 and 3."}
+    words = {1: "ask before every move",
+             2: "move up to 20 ordinary files without asking",
+             3: "move ordinary files without asking"}[level]
+    return _proposal("settings", f"level:{level}",
+                     f"Change to level {level}: {words}? Protected files and "
+                     "whole-folder changes always ask.")
+
+
+def what_was_sent(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Today's requests to the AI model, in plain words. No ids."""
+    from datetime import datetime, timezone
+    from assistant.egress import ensure_egress_schema
+    ensure_egress_schema(conn)
+    today = datetime.now(timezone.utc).date().isoformat()
+    rows = conn.execute(
+        "SELECT provider, bytes, question FROM egress_ledger "
+        "WHERE ts >= ? ORDER BY ts", (today,)).fetchall()
+    names = {"deepseek": "DeepSeek", "openai": "OpenAI",
+             "anthropic": "Anthropic"}
+    providers = sorted({names.get(r[0], r[0]) for r in rows})
+    total = sum(int(r[1]) for r in rows)
+    return {"ok": True, "today": {
+        "requests": len(rows), "bytes": total,
+        "sent_to": providers or ["nobody"],
+        "your_questions": [r[2] for r in rows if r[2]][-10:],
+        "never_sent": "protected files' names, folders and text"}}
 
 
 def run_index(conn: sqlite3.Connection, path: Path,
@@ -750,6 +814,11 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
         return _protection(conn, ref)
     if kind == "rule":
         return _rule(conn, ref)
+    if kind == "settings":
+        level = int(ref.partition(":")[2])
+        put_setting(conn, "permission_level", str(level))
+        return {"ok": True, "moved": False, "undo_token": None,
+                "text": f"Level {level} is on."}
     if kind == "branch":
         return _branch(conn, ref, undo=False)
     if kind == "undo" and ref.startswith("branch:"):
@@ -820,6 +889,17 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return index_folder(conn, str(args.get("folder") or ""), context)
     if name == "organise_folder":
         return organise_folder(conn, str(args.get("folder") or ""), context)
+    if name == "set_level":
+        return set_level(conn, int(args.get("level") or 0))
+    if name == "what_was_sent":
+        return what_was_sent(conn)
+    if name == "status":
+        from assistant.session import _counts
+        c = _counts(conn)
+        return {"ok": True, "text": counts_sentence(c) if c else
+                "Nothing is indexed yet.",
+                "level": get_level(conn),
+                "open_questions": len(open_questions(conn))}
     if name == "apply_branch":
         return apply_branch(conn, str(args.get("branch") or ""),
                             str(args.get("folder") or ""), context)

@@ -255,6 +255,17 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         {"folder": {"type": "string"}},
         ["folder"],
     ),
+    _fn("status", "What is indexed, set aside and protected; the "
+        "permission level; how many questions are open.", {}),
+    _fn(
+        "set_level",
+        "Propose a permission level (1 ask every time, 2 small sorts "
+        "automatic, 3 hands-off). Only when the person asks; they confirm.",
+        {"level": {"type": "integer"}},
+        ["level"],
+    ),
+    _fn("what_was_sent", "Today's requests to the AI model, in plain words: "
+        "how many, how many bytes, which questions.", {}),
     _fn(
         "apply_branch",
         "Propose moving the files the sorter planned for one folder of its "

@@ -20,7 +20,22 @@ from assistant import events as ev
 HISTORY_BUDGET = 60_000
 DROPPED = "[earlier result dropped]"
 
-FOLDER_QUESTION = "Which folder should I look after?"
+FOLDER_QUESTION = (
+    "I'll read file names and text here to build a private index on this "
+    "Mac. Nothing moves unless you say yes. macOS may ask to allow access — "
+    "choose Allow.\n"
+    "Which folder should I look after?\n"
+    "  1) Desktop\n  2) Documents\n  3) Downloads\n  or type a path")
+FOLDER_CHOICES = {"1": "~/Desktop", "2": "~/Documents", "3": "~/Downloads",
+                  "desktop": "~/Desktop", "documents": "~/Documents",
+                  "downloads": "~/Downloads"}
+
+KEY_PROMPT = ("Paste a DeepSeek key to chat, or press Enter to keep going "
+              "without one — I can still find files and undo.")
+NO_MODEL_LINE = ("No AI model is set up, so I can find files, show what "
+                 "I've got and undo — paste a DeepSeek key any time to chat.")
+PROVIDER_NAMES = {"deepseek": "DeepSeek", "openai": "OpenAI",
+                  "anthropic": "Anthropic"}
 
 YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
              "1", "yes please", "sure thing", "go"}
@@ -60,6 +75,10 @@ def _short_reason(exc: BaseException) -> str:
     return "it returned an error"
 
 
+def _key_file() -> Path:
+    return Path.home() / ".graph-agent" / ".env"
+
+
 def _folder_of(path: str | None) -> str:
     if not path:
         return ""
@@ -77,7 +96,9 @@ class Session:
                  session_id: str | None = None) -> None:
         self.conn = conn
         self.provider_turn = provider_turn
-        self.emit = emit
+        self._emit = emit
+        #: The last files shown, for `open N` / `show N`.
+        self.last_citations: tuple[ev.Citation, ...] = ()
         self.session_id = session_id or str(uuid.uuid4())
         from assistant.conversation_store import recent
         try:
@@ -85,6 +106,9 @@ class Session:
         except sqlite3.Error:
             self.history = []
         self.no_model = False
+        self.awaiting_key = False
+        #: Undo choices offered by a bare `undo`: number -> token.
+        self.undo_choices: dict[str, str] = {}
         self.offering_questions = False
         self.awaiting_folder = False
         self.ask_questions_after_turn = False
@@ -98,9 +122,66 @@ class Session:
         #: confirm_id -> proposal awaiting the person's yes or no.
         self.pending: dict[str, dict] = {}
         self._proposals: list[dict] = []
+        self._protected_hits: tuple[str, ...] = ()
+
+    def emit(self, event) -> None:
+        if isinstance(event, ev.Message) and event.citations:
+            self.last_citations = event.citations
+        self._emit(event)
+
+    def _provider_name(self) -> str | None:
+        """Who answers, or None when no model is set up."""
+        if self.provider_turn is not None:
+            return "DeepSeek"
+        try:
+            from assistant.provider import load_dotenv, resolve_provider
+            load_dotenv(_key_file())
+            cfg = resolve_provider()
+        except Exception:
+            return None
+        return PROVIDER_NAMES.get(cfg.provider, cfg.provider)
 
     # -- opening ---------------------------------------------------------
     def open(self) -> None:
+        if self._provider_name() is None:
+            self.awaiting_key = True
+            self.emit(ev.Message(text=KEY_PROMPT))
+            return
+        self._open_rest()
+
+    def _take_key(self, text: str) -> None:
+        """A pasted key goes to ~/.graph-agent/.env (0600), never into the
+        database, the history or any event."""
+        import os
+        self.awaiting_key = False
+        key = text.strip()
+        if not key:
+            self.no_model = True
+            self.emit(ev.Message(text=NO_MODEL_LINE))
+            self._open_rest()
+            return
+        if " " in key or len(key) < 20:
+            self.awaiting_key = True
+            self.emit(ev.Message(text="That doesn't look like a key. " +
+                                      KEY_PROMPT))
+            return
+        path = _key_file()
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        lines = []
+        if path.exists():
+            lines = [line for line in path.read_text().splitlines()
+                     if not line.startswith("DEEPSEEK_API_KEY=")]
+        lines.append(f"DEEPSEEK_API_KEY={key}")
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write("\n".join(lines) + "\n")
+        os.chmod(path, 0o600)
+        os.environ["DEEPSEEK_API_KEY"] = key
+        self.no_model = False
+        self.emit(ev.Message(text="Key saved on this Mac only."))
+        self._open_rest()
+
+    def _open_rest(self) -> None:
         c = _counts(self.conn)
         if c is not None:
             self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
@@ -110,8 +191,7 @@ class Session:
             self.awaiting_folder = True
             self.emit(ev.Message(text=FOLDER_QUESTION))
             return
-        self.emit(ev.Message(text=f"I'm looking after {c.indexed} files. "
-                                  "What would you like to find or tidy?"))
+        self._greet(c)
         from assistant.engine_tools import open_questions
         n = len(open_questions(self.conn))
         if n:
@@ -121,10 +201,30 @@ class Session:
                      f"question{'s' if n != 1 else ''} — want to go "
                      f"through {'them' if n != 1 else 'it'}?"))
 
+    def _greet(self, c) -> None:
+        from assistant.engine_tools import counts_sentence
+        lines = [counts_sentence(c)]
+        name = None if self.no_model else self._provider_name()
+        if name:
+            lines.append(f"Questions and file snippets go to {name} to answer "
+                         f"you. Protected files ({c.protected + c.held}) "
+                         "never leave this Mac.")
+        lines.append("What would you like to find or tidy?")
+        self.emit(ev.Message(text="\n".join(lines)))
+        try:
+            from items.suggest import suggestions
+            items = suggestions(self.conn)
+        except Exception:
+            items = []
+        if items:
+            self.emit(ev.Suggestions(items=tuple(items)))
+
     def choose_folder(self, text: str) -> None:
         """The person's answer to the folder question: index it now."""
         from assistant.engine_tools import check_folder, run_index
-        path = Path(text.strip().strip("'\"")).expanduser()
+        typed = text.strip().strip("'\"")
+        typed = FOLDER_CHOICES.get(typed.lower(), typed)
+        path = Path(typed).expanduser()
         try:
             self.chosen_folders.add(path.resolve())
         except OSError:
@@ -140,8 +240,11 @@ class Session:
             self.awaiting_folder = True
             self.emit(ev.Error(text=result["error"], changed=False))
             return
-        self.emit(ev.Message(text=result["text"] + " What would you like "
-                                                   "to find or tidy?"))
+        c = _counts(self.conn)
+        if c is not None:
+            self._greet(c)
+        else:
+            self.emit(ev.Message(text=result["text"]))
 
     def after_index(self, c) -> None:
         self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
@@ -185,6 +288,47 @@ class Session:
                                if q.question_id != question_id]
         self._ask_next()
 
+    # -- deterministic commands -------------------------------------------
+    def _local_command(self, text: str) -> bool:
+        """`open N`, `show N` and the undo history: code, never the model."""
+        words = text.strip().lower()
+        match = re.fullmatch(r"(open|show)\s+(\d+)", words)
+        if match and self.last_citations:
+            n = int(match.group(2))
+            if not 1 <= n <= len(self.last_citations):
+                self.emit(ev.Message(text=f"Pick a number from 1 to "
+                                          f"{len(self.last_citations)}."))
+                return True
+            target = self.last_citations[n - 1].open_target
+            if not target:
+                self.emit(ev.Message(text="I can't open that one."))
+                return True
+            import subprocess
+            subprocess.run(["open", target] if match.group(1) == "open"
+                           else ["open", "-R", target], check=False)
+            return True
+        if words in self.undo_choices:
+            token = self.undo_choices[words]
+            self.undo_choices = {}
+            self.undo(token)
+            return True
+        self.undo_choices = {}
+        if words in ("undo", "undo something", "put it back"):
+            from assistant.engine_tools import recent_batches
+            batches = recent_batches(self.conn)
+            if not batches:
+                self.emit(ev.Message(text="There's nothing I moved to put "
+                                          "back."))
+                return True
+            self.undo_choices = {str(i): b["token"]
+                                 for i, b in enumerate(batches, start=1)}
+            listing = "\n".join(f"  {i}) {b['text']}"
+                                for i, b in enumerate(batches, start=1))
+            self.emit(ev.Message(text="Which batch should I put back?\n"
+                                      + listing))
+            return True
+        return False
+
     # -- memory and the no-model mode -------------------------------------
     def _remember(self, role: str, text: str) -> None:
         from assistant.conversation_store import save_turn
@@ -212,6 +356,11 @@ class Session:
 
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
+        if self.awaiting_key:
+            self._take_key(text)
+            return
+        if self._local_command(text):
+            return
         if self.awaiting_folder:
             self.choose_folder(text)
             return
@@ -224,6 +373,7 @@ class Session:
         self.history.append({"role": "user", "content": text})
         self._remember("user", text)
         self._proposals = []
+        self._protected_hits = ()
         if self.no_model:
             self._without_model(text)
             return
@@ -241,6 +391,12 @@ class Session:
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
                              citations=self._citations(answer.citations)))
+        if self._protected_hits:
+            # Protected matches are shown here, from the database, and never
+            # through the model's reply.
+            self.emit(ev.Message(
+                text="Protected — shown only to you, never sent anywhere:",
+                citations=self._citations(self._protected_hits)))
         for proposal in self._proposals:
             self._propose(proposal)
         if self.ask_questions_after_turn:
@@ -369,6 +525,7 @@ class Session:
                 "tool_calls"):
             new = new[:-1]
         self.history.extend(new)
+        self._protected_hits = _protected_hits(self.conn, new)
         return answer
 
     def _trim(self) -> None:
@@ -392,6 +549,26 @@ class Session:
                                    folder=_folder_of(row["open_target"]),
                                    open_target=row["open_target"]))
         return tuple(out)
+
+
+def _protected_hits(conn: sqlite3.Connection, messages) -> tuple[str, ...]:
+    """Items a find matched this turn that are protected."""
+    import json
+    from items.file_identity import item_is_sensitive
+    found: list[str] = []
+    for m in messages:
+        if m.get("role") != "tool":
+            continue
+        try:
+            payload = json.loads(m.get("content") or "{}")
+        except (TypeError, ValueError):
+            continue
+        for hit in payload.get("hits") or ():
+            item_id = hit.get("item_id") if isinstance(hit, dict) else None
+            if item_id and item_id not in found and item_is_sensitive(
+                    conn, item_id):
+                found.append(item_id)
+    return tuple(found)
 
 
 NO_MODEL_HELP = ("Without the AI model I can: find <name>, where is <name>, "

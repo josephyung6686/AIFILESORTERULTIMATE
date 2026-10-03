@@ -138,15 +138,24 @@ def run_terminal(conn, *, folder: Path | None = None, stdin=None, stdout=None,
     else:
         session.open()
     while True:
-        if getattr(stdout, "isatty", lambda: False)():
-            stdout.write("› ")
-            stdout.flush()
-        line = stdin.readline()
+        interactive = getattr(stdin, "isatty", lambda: False)()
+        if session.awaiting_key and interactive:
+            # A pasted key is never echoed to the screen.
+            import getpass
+            try:
+                line = getpass.getpass("key › ") + "\n"
+            except EOFError:
+                return 0
+        else:
+            if getattr(stdout, "isatty", lambda: False)():
+                stdout.write("› ")
+                stdout.flush()
+            line = stdin.readline()
         if not line:
             return 0
         if line.strip().lower() in QUIT:
             return 0
-        if not line.strip():
+        if not line.strip() and not session.awaiting_key:
             continue
         try:
             _handle(session, renderer, line)
