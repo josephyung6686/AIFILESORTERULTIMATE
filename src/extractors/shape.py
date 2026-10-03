@@ -297,9 +297,15 @@ def context_for(text: str, start: int, end: int, *,
     (context_before, context_after, context_truncated); the flag is set whenever the
     window cut anything, because section 8.6 forbids truncating silently.
     """
-    before_available, after_available = text[:start], text[end:]
-    before = before_available[-window:] if window else ""
-    after = after_available[:window] if window else ""
-    truncated = (len(before) < len(before_available)
-                 or len(after) < len(after_available))
+    # Only the window is sliced. `text[:start]` and `text[end:]` copied the whole
+    # text once per reading, which on a multi-megabyte machine-generated file with
+    # half a million identifier readings was most of a ten-minute extraction. These
+    # are the same characters and the same flag: `before_length` and `after_length`
+    # are the lengths those two copies had.
+    before_length = slice(None, start).indices(len(text))[1]
+    after_start = slice(end, None).indices(len(text))[0]
+    after_length = len(text) - after_start
+    before = text[max(0, before_length - window):before_length] if window else ""
+    after = text[after_start:after_start + window] if window else ""
+    truncated = len(before) < before_length or len(after) < after_length
     return before, after, truncated
