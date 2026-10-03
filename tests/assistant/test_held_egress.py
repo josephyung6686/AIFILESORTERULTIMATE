@@ -59,11 +59,12 @@ def test_held_read_refused_and_find_withholds_path(tmp_path: Path):
     ).fetchone()["item_id"]
 
     found = rt.execute("find_files", {"query": "tax", "limit": 5})
-    held_cards = [h for h in found.payload["hits"] if h["item_id"] == held["item_id"]]
-    assert held_cards
-    assert held_cards[0]["open_target"] is None
-    # Held id may appear as present-but-unopened but path withheld
-    assert held["open_target"] not in json.dumps(found.payload)
+    # Spec §3: the model gets a count line; no name, path or id.
+    blob = json.dumps(found.payload)
+    assert held["item_id"] not in blob and "tax.pdf" not in blob
+    assert held["open_target"] not in blob
+    assert "protected file" in found.payload["protected"]
+    assert held["item_id"] in rt.protected_hits
 
     assert rt.execute("read_item", {"item_id": held["item_id"]}).ok is False
     assert rt.execute("read_item", {"item_id": pem}).ok is False

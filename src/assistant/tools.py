@@ -101,6 +101,8 @@ class ToolRuntime:
         #: turn into confirmations; the model sees only a summary.
         self.engine_context = engine_context
         self.pending_confirmations: list[dict[str, Any]] = []
+        #: Protected items a find matched, kept here and never in a payload.
+        self.protected_hits: list[str] = []
         self.model_dir = model_dir
         self.byte_budget = byte_budget
         self.bytes_spent = 0
@@ -313,7 +315,14 @@ class ToolRuntime:
         citation_objs: list[Citation] = []
         for hit in found.hits:
             card_trust = "UNTRUSTED_LABEL"
-            if hit.typing_state == "held" or hit.protected:
+            sensitive = (hit.typing_state == "held" or hit.protected
+                         or item_is_sensitive(self.conn, hit.item_id))
+            if sensitive and self.egress_class != "none":
+                # Spec §3: a model is told only how many protected files
+                # matched. The Session shows them to the person from here.
+                if hit.item_id not in self.protected_hits:
+                    self.protected_hits.append(hit.item_id)
+            elif sensitive:
                 cards.append({
                     "item_id": hit.item_id,
                     "display_label": hit.display_label,
@@ -346,9 +355,13 @@ class ToolRuntime:
             )
         except Exception:
             pass
+        hidden = sum(1 for h in found.hits if h.item_id in self.protected_hits)
         payload = {
             "hits": cards,
             "protected_count": found.protected_count,
+            **({"protected": f"{hidden} protected file"
+                f"{'s' if hidden != 1 else ''} matched — shown to the person "
+                "locally"} if hidden else {}),
             "latency_ms": {
                 "fts": round(found.fts_ms, 2),
                 "vector": round(found.vector_ms, 2),

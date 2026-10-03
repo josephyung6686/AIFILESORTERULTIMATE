@@ -98,3 +98,60 @@ def test_an_extra_open_action_is_harmless(conn):
     asked = [e for e in events if "which folder" in e.get("text", "").lower()]
     assert len(asked) == 1
     assert not [e for e in events if e["type"] == "error"]
+
+
+# -- protected names never reach the model (spec §3) -------------------------
+
+def _scripted(*replies):
+    seen = []
+    it = iter(replies)
+
+    def turn(messages, tools, config=None, **_):
+        seen.append(json.dumps(messages))
+        return next(it)
+    turn.seen = seen
+    return turn
+
+
+def _tool(name, args):
+    return {"role": "assistant", "content": None, "tool_calls": [
+        {"id": "c1", "type": "function",
+         "function": {"name": name, "arguments": json.dumps(args)}}]}
+
+
+@pytest.fixture()
+def lib(tmp_path):
+    from items.hot_index import rebuild_fts
+    from items.identity import reconcile_tree
+    from items.schema import create_items_schema
+    root = tmp_path / "lib"
+    root.mkdir()
+    (root / "bank statement.pem").write_text("-----BEGIN", encoding="utf-8")
+    (root / "bank essay.txt").write_text("essay on banks", encoding="utf-8")
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    reconcile_tree(conn, root)
+    rebuild_fts(conn)
+    conn.commit()
+    yield conn
+    conn.close()
+
+
+def test_a_protected_name_is_absent_from_every_model_request(lib):
+    out = []
+    turn = _scripted(_tool("find_files", {"query": "bank"}),
+                     {"role": "assistant", "content": "Found them."},
+                     _tool("find_files", {"query": "bank statement"}),
+                     {"role": "assistant", "content": "Still there."})
+    s = Session(lib, provider_turn=turn, emit=out.append)
+    s.say("where are my bank files?")
+    s.say("and the other one?")
+    item = lib.execute("SELECT item_id FROM items WHERE display_label = "
+                       "'bank statement.pem'").fetchone()[0]
+    for request in turn.seen:
+        assert "statement.pem" not in request
+        assert item not in request
+    assert "1 protected file matched" in turn.seen[1]
+    shown = [c.name for e in out if isinstance(e, ev.Message)
+             for c in e.citations]
+    assert "bank statement.pem" in shown

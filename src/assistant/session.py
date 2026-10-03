@@ -532,7 +532,7 @@ class Session:
                 "tool_calls"):
             new = new[:-1]
         self.history.extend(new)
-        self._protected_hits = _protected_hits(self.conn, new)
+        self._protected_hits = tuple(runtime.protected_hits)
         return answer
 
     def _trim(self) -> None:
@@ -558,24 +558,6 @@ class Session:
         return tuple(out)
 
 
-def _protected_hits(conn: sqlite3.Connection, messages) -> tuple[str, ...]:
-    """Items a find matched this turn that are protected."""
-    import json
-    from items.file_identity import item_is_sensitive
-    found: list[str] = []
-    for m in messages:
-        if m.get("role") != "tool":
-            continue
-        try:
-            payload = json.loads(m.get("content") or "{}")
-        except (TypeError, ValueError):
-            continue
-        for hit in payload.get("hits") or ():
-            item_id = hit.get("item_id") if isinstance(hit, dict) else None
-            if item_id and item_id not in found and item_is_sensitive(
-                    conn, item_id):
-                found.append(item_id)
-    return tuple(found)
 
 
 NO_MODEL_HELP = ("Without the AI model I can: find <name>, where is <name>, "
