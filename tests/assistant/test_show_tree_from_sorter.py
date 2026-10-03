@@ -196,6 +196,33 @@ def test_a_frozen_plan_cites_the_move_plan(tmp_path):
     assert one["move_plan_id"]
 
 
+def test_the_persons_own_empty_folders_are_counted_not_listed(tmp_path):
+    """A real Desktop mirrors hundreds of existing folders: 57 KB, over the
+    assistant's 24 KB turn budget. Folders a file goes to, and folders the
+    sorter proposes, are listed; the person's own folders that receive
+    nothing are counted."""
+    corpus = tmp_path / "holder" / "corpus"
+    (corpus / "Research" / "old").mkdir(parents=True)
+    (corpus / "Research" / "old" / "survey2.txt").write_text("Survey 2\nQ1 40%\n")
+    for name, body in TWO_LIVES.items():
+        (corpus / name).write_text(body)
+    database = tmp_path / "plan.sqlite"
+    assert cli.main([str(corpus), "--user", "t", "--database", str(database),
+                     "--situation", "academic.coursework", "--accept-groups"],
+                    out=io.StringIO()) == 0
+    conn = open_database(database)
+    shown = ot.show_tree(conn)
+    listed = {f["path"] for f in shown["folders"]}
+    assert "Academic/PHYS1401/lecture" in listed
+    assert not any(f["kind"] == "existing" and f["files"] == 0
+                   for f in shown["folders"])
+    existing = conn.execute(
+        "SELECT count(*) FROM tree_nodes WHERE plan_version_id = ? "
+        "AND node_type = 'existing'", (shown["plan_version"],)).fetchone()[0]
+    assert existing >= 2
+    assert shown["your_folders_receiving_nothing"] == existing
+
+
 def test_registry_offers_show_tree_and_quick_sort_takes_item_ids():
     schemas = {s["function"]["name"]: s["function"]
                for s in deferred_schemas_for("organize_propose")}

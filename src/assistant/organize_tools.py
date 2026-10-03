@@ -134,6 +134,10 @@ def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
         held = conn.execute(
             "SELECT count(DISTINCT file_id) FROM items WHERE presence = 'live' "
             "AND superseded_by IS NULL AND typing_state = 'held'").fetchone()[0]
+    # The person's own folders that receive nothing are counted, not listed:
+    # a real Desktop mirrors hundreds and would overrun the turn's byte budget.
+    quiet = {n.node_id for n in tree["nodes"].values()
+             if n.node_type == "existing" and not placed.get(n.node_id)}
     out = {
         "ok": True,
         "moved": False,
@@ -142,8 +146,9 @@ def show_tree(conn: sqlite3.Connection) -> dict[str, Any]:
             {"node_id": n.node_id, "path": tree["path"](n.node_id),
              "kind": n.node_type, "role": n.node_role,
              "files": placed.get(n.node_id, 0)}
-            for n in tree["nodes"].values()
+            for n in tree["nodes"].values() if n.node_id not in quiet
         ],
+        "your_folders_receiving_nothing": len(quiet),
         "files": {"decided": len(tree["by_file"]), "by_outcome": outcomes,
                   "held": held},
         "frozen_moves": len(tree["moves"]),
