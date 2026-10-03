@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sqlite3
 from dataclasses import dataclass
@@ -78,9 +79,12 @@ def check_database(path: Path) -> CheckReport:
 
         journal_n = 0
         try:
+            # `planned` is an in-flight operation, not a terminal outcome.  A
+            # process can die after recording a plan and before applying it;
+            # check must surface that state so recovery can reconcile it.
             journal_n = conn.execute(
                 "SELECT COUNT(*) FROM assistant_journal "
-                "WHERE state NOT IN ('applied','undone','planned')"
+                "WHERE state NOT IN ('applied','undone')"
             ).fetchone()[0]
         except sqlite3.OperationalError:
             pass
@@ -148,9 +152,16 @@ def restore_database(
     if tmp.exists():
         tmp.unlink()
     shutil.copy2(backup, tmp)
-    if target.exists():
-        target.unlink()
-    tmp.rename(target)
+    # Replace atomically.  Removing the previous target first creates a window
+    # in which an interrupted restore destroys the only known-good database.
+    # `os.replace` leaves the old target untouched if the replacement fails.
+    try:
+        os.replace(tmp, target)
+    except BaseException:
+        # A failed copy/rename is recoverable; do not leave a misleading
+        # restore-tmp database that a later run could mistake for a backup.
+        tmp.unlink(missing_ok=True)
+        raise
     after = check_database(target)
     return {"ok": after.ok, "target": str(target), "check": after.as_dict()}
 
