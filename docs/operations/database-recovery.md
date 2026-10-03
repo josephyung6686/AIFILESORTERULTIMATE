@@ -24,7 +24,17 @@ again.
 
 ```bash
 database-agent db backup --database /path/to/agent.sqlite \
-  --dest /path/to/backups/agent.sqlite
+  /path/to/backups/agent.sqlite
+```
+
+For an encrypted SQLCipher database, pass an owner-only key file. The command
+reads the key without putting secret bytes in shell history or the process
+listing:
+
+```bash
+database-agent db backup --database /path/to/agent.sqlite \
+  --key-file ~/Library/Application\ Support/GraphAgent/db.key \
+  /path/to/backups/agent.sqlite
 ```
 
 The destination must not already exist. A JSON sidecar records creation time,
@@ -39,6 +49,9 @@ Restore to a new path first:
 database-agent db restore --database /path/to/new.sqlite \
   /path/to/backups/agent.sqlite
 ```
+
+Use the same `--key-file` for an encrypted backup. A wrong key fails before a
+target is created.
 
 Restoration refuses a corrupt backup and refuses to overwrite an existing target
 unless `--replace` is supplied. Replacement is an atomic operation: a failed

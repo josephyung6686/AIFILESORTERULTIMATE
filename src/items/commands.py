@@ -22,9 +22,10 @@ APPLY_REFUSED = (
 )
 
 
-def _open(path: Path):
+def _open(path: Path, *, key_file: Path | None = None):
     from database_agent.db import open_database
-    return open_database(path, scan_roots=[])
+    return open_database(path, scan_roots=[], encryption=key_file is not None,
+                         encryption_key_file=key_file)
 
 
 def sync_main(argv: list[str] | None = None, *, out=None) -> int:
@@ -33,6 +34,7 @@ def sync_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument("kind", choices=("gmail", "calendar"))
     parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--fixture", type=Path, default=None)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.fixture is None:
@@ -55,7 +57,7 @@ def sync_main(argv: list[str] | None = None, *, out=None) -> int:
     if args.database is None:
         print("sync needs --database. Nothing was stored.", file=out)
         return 2
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         result = ingest_fixture(conn, data, kind=args.kind)
     except MailboxRefused as refusal:
@@ -80,13 +82,14 @@ def view_main(argv: list[str] | None = None, *, out=None) -> int:
         choices=("deadlines", "folder", "table", "board", "timeline", "graph"),
     )
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--html", type=Path, default=None)
     parser.add_argument("--center", default=None, help="item_id for graph focus")
     parser.add_argument(
         "--expect", action="append", default=[], metavar="EVENT=FILE",
         help="an event item id and a file item id expected on that deadline")
     args = parser.parse_args(argv)
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         if args.name == "deadlines":
             expected: dict[str, list[str]] = {}
@@ -148,13 +151,14 @@ def search_main(argv: list[str] | None = None, *, out=None) -> int:
     parser = argparse.ArgumentParser(prog="filesorter search")
     parser.add_argument("query")
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=25)
     parser.add_argument("--rebuild-fts", action="store_true")
     args = parser.parse_args(argv)
     from items.hot_index import rebuild_fts
     from items.refresh import refresh_index
     from items.search import meaning_search
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         try:
             refresh_index(conn, prefer_fsevents=False)
@@ -189,10 +193,11 @@ def preview_main(argv: list[str] | None = None, *, out=None) -> int:
     parser = argparse.ArgumentParser(prog="filesorter preview-plan")
     parser.add_argument("plan_id")
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--full-list-viewed", action="store_true")
     args = parser.parse_args(argv)
     from assistant.place_preview import place_preview, preview_as_dict
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         prev = place_preview(
             conn, args.plan_id, full_list_viewed=args.full_list_viewed)
@@ -219,6 +224,7 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
     parser.add_argument(
         "action", choices=("show", "approve", "apply", "undo", "create"))
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--plan-id", default=None)
     parser.add_argument("--full-list-viewed", action="store_true")
     parser.add_argument("--item-id", default=None)
@@ -230,7 +236,7 @@ def plan_main(argv: list[str] | None = None, *, out=None) -> int:
     from assistant.plans import PlanOp, approve_plan, create_draft_plan, plan_hash
     from assistant.undo import undo_plan
 
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         if args.action == "create":
             if not args.item_id or not args.dst:
@@ -321,6 +327,7 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     parser = argparse.ArgumentParser(prog="filesorter ask")
     parser.add_argument("question", nargs="?", default=None)
     parser.add_argument("--database", type=Path, default=None)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--rebuild-fts", action="store_true")
     parser.add_argument(
         "--show-trust", action="store_true",
@@ -349,7 +356,7 @@ def ask_main(argv: list[str] | None = None, *, out=None) -> int:
     if not args.question or args.database is None:
         parser.error("question and --database are required "
                      "(unless --show-local-capability / --show-trust alone)")
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         try:
             from items.refresh import refresh_index
@@ -381,6 +388,7 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter suggest")
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.apply:
@@ -388,7 +396,7 @@ def suggest_main(argv: list[str] | None = None, *, out=None) -> int:
         return 2
     from items.nudge import render
     from items.suggest import proposals
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     try:
         rows = proposals(conn)
         text = render(rows)
@@ -403,6 +411,7 @@ def watch_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(prog="filesorter watch")
     parser.add_argument("--database", type=Path, required=True)
+    parser.add_argument("--key-file", type=Path, default=None)
     parser.add_argument(
         "--root", type=Path, action="append", default=None,
         help="Root to watch (repeatable). Default: infer from DB paths.")
@@ -417,7 +426,7 @@ def watch_main(argv: list[str] | None = None, *, out=None) -> int:
     from items.path_watch import PathWatcher
     from items.refresh import discover_roots
 
-    conn = _open(args.database)
+    conn = _open(args.database, key_file=args.key_file)
     roots = list(args.root) if args.root else discover_roots(conn)
     if not roots:
         print("No watch roots found.", file=out)

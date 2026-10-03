@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import PurePath
 
 from items.profile_loader import ProfilePackage
+from items.mailbox import path_is_protected
 from items.relationship_service import (
     project_relationships,
     projection_hidden_count,
@@ -38,6 +39,8 @@ def folder_view(conn: sqlite3.Connection) -> list[dict]:
     out = []
     for row in rows:
         target = row["open_target"] or ""
+        if row["typing_state"] == "held" or path_is_protected(target):
+            target = ""
         parent = str(PurePath(target).parent) if target else ""
         out.append({
             "item_id": row["item_id"],
@@ -68,7 +71,11 @@ def table_view(conn: sqlite3.Connection) -> list[dict]:
             "item_type": row["item_type"],
             "display_label": row["display_label"],
             "typing_state": row["typing_state"],
-            "open_target": row["open_target"],
+            "open_target": (
+                None if row["typing_state"] == "held"
+                or path_is_protected(row["open_target"] or "")
+                else row["open_target"]
+            ),
             "approved_links": approved,
         })
     return out
@@ -169,8 +176,11 @@ def graph_view(conn: sqlite3.Connection, *,
                     "state": rel["state"],
                     "confidence": rel["confidence"],
                 })
+        # Inferred-only neighbors are absent from node_ids, but their links
+        # still count as hidden in the centered neighborhood.
         hidden = projection_hidden_count(
-            conn, surface="graph", among=node_ids)
+            conn, surface="graph", item_id=center_item_id,
+            among=None if center_item_id else node_ids)
     else:
         hidden = 0
     # Semantic edges live only in group_edges — never counted here as drawn.

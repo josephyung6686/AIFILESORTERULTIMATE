@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import os
 import time
 import uuid
 from collections.abc import Iterable
@@ -55,7 +56,9 @@ def default_database_path(bundle_id: str) -> Path:
     return Path.home() / "Library" / "Application Support" / bundle_id / "agent.sqlite"
 
 
-def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Connection:
+def open_database(path: Path, *, scan_roots: Iterable[Path] = (),
+                  encryption: bool = False, encryption_key: bytes | None = None,
+                  encryption_key_file: Path | None = None) -> sqlite3.Connection:
     """Open (creating if absent) the single local database (§0).
 
     `scan_roots` are the roots the caller has selected (P3 owns them, §1.1). The
@@ -79,9 +82,29 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     # database can see, and a setting nobody can read back is one that exists only
     # in the source. `tests/test_database_contention.py` asks SQLite rather than
     # this file.
-    conn = sqlite3.connect(path, isolation_level=None,
-                           timeout=BUSY_TIMEOUT_MS / 1000)
-    conn.row_factory = sqlite3.Row
+    env_key_file = os.environ.get("DATABASE_AGENT_KEY_FILE")
+    if not encryption and env_key_file:
+        encryption = True
+        encryption_key_file = Path(env_key_file)
+    if encryption:
+        from database_agent.encryption import key_from_file, read_key_file, open_encrypted
+        if encryption_key is None:
+            if encryption_key_file is None:
+                raise ValueError(
+                    "encryption requires encryption_key or encryption_key_file"
+                )
+            encryption_key = (read_key_file(encryption_key_file) if path.exists()
+                              else key_from_file(encryption_key_file))
+        conn = open_encrypted(path, encryption_key,
+                              isolation_level=None,
+                              timeout=BUSY_TIMEOUT_MS / 1000)
+    else:
+        conn = sqlite3.connect(path, isolation_level=None,
+                               timeout=BUSY_TIMEOUT_MS / 1000)
+    # SQLCipher connections use database_agent.encryption.CipherRow because
+    # sqlite3.Row is tied to the stdlib cursor implementation.
+    if not encryption:
+        conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     conn.execute("PRAGMA foreign_keys = ON")
     # R6 is "INSERT only ... no row rewrite". SQLite's REPLACE conflict resolution

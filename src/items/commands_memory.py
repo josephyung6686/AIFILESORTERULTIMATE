@@ -17,6 +17,7 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
         help="Print gate evidence; --enable deliberately opens atom steering",
     )
     p_rel.add_argument("--database", type=Path, required=True)
+    p_rel.add_argument("--key-file", type=Path, default=None)
     p_rel.add_argument(
         "--fixture", type=Path, default=None,
         help="Optional gate fixture to evaluate and record",
@@ -33,6 +34,7 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
 
     p_status = sub.add_parser("status")
     p_status.add_argument("--database", type=Path, required=True)
+    p_status.add_argument("--key-file", type=Path, default=None)
     p_status.add_argument("--json", action="store_true", dest="as_json")
 
     args = parser.parse_args(argv)
@@ -45,7 +47,9 @@ def memory_main(argv: list[str] | None = None, *, out=None) -> int:
         run_gate_from_fixture,
     )
 
-    conn = open_database(args.database, scan_roots=[])
+    conn = open_database(args.database, scan_roots=[],
+                         encryption_key_file=args.key_file,
+                         encryption=args.key_file is not None)
     try:
         if args.action == "status":
             status = release_status(conn)

@@ -7,6 +7,10 @@ and deletion are audited.  It never stores credentials or message bodies.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
+import shutil
+from contextlib import contextmanager
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -33,8 +37,14 @@ def encryption_capability(conn: sqlite3.Connection) -> EncryptionCapability:
         version = row[0] if row else None
     except sqlite3.DatabaseError:
         version = None
-    if version:
+    if version and getattr(conn, "_graph_agent_encrypted", False):
         return EncryptionCapability(True, f"sqlcipher-{version}", "")
+    if version:
+        return EncryptionCapability(
+            False, "unverified-sqlcipher",
+            "SQLCipher is loaded, but keyed encryption has not been verified "
+            "for this connection.",
+        )
     return EncryptionCapability(
         False,
         "plain-sqlite",
@@ -82,63 +92,152 @@ def _authenticate(authenticate: Callable[[], bool] | None) -> None:
 def held_item_fields(conn: sqlite3.Connection, item_id: str, *,
                      authenticate: Callable[[], bool] | None = None) -> dict[str, Any]:
     """Return item metadata, requiring local auth for held items."""
-    row = conn.execute("SELECT * FROM items WHERE item_id = ?", (item_id,)).fetchone()
+    cursor = conn.execute("SELECT * FROM items WHERE item_id = ?", (item_id,))
+    row = cursor.fetchone()
     if row is None:
         return {}
-    state = row["typing_state"] if isinstance(row, sqlite3.Row) else row[5]
-    if state == "held":
+    fields = {column[0]: row[index] for index, column in enumerate(cursor.description)}
+    from items.mailbox import path_is_protected
+    if (fields.get("typing_state") == "held"
+            or path_is_protected(fields.get("open_target") or "")):
         _authenticate(authenticate)
-    return dict(row) if isinstance(row, sqlite3.Row) else {
-        key[0]: value for key, value in zip(conn.execute("PRAGMA table_info(items)"), row)
-    }
+    return fields
 
 
-_SECRET_NAMES = frozenset({
-    "body", "description", "raw", "rfc822", "token", "tokens",
-    "access_token", "refresh_token", "oauth", "authorization",
-})
+# Explicit metadata allowlist: unknown tables, nested payloads, evidence, audit
+# history, embeddings, and FTS shadow storage cannot enter a sanitized export.
+_EXPORT_COLUMNS = {
+    "items": ("item_id", "item_type", "display_label", "file_id", "open_target",
+              "presence", "typing_state", "type_schema", "profile_id", "created_at",
+              "content_hash", "freshness_state"),
+    "item_versions": ("item_id", "file_id", "content_hash", "became_live_at"),
+    "item_headers": ("item_id", "kind", "happened_at", "ended_at", "status"),
+    "relationships": ("relationship_id", "rel_type", "from_item_id", "to_item_id",
+                      "confidence", "source", "state", "created_at"),
+    "files": ("file_id", "current_path", "filename", "extension", "content_hash",
+              "observed_size", "mime_type", "scan_state"),
+}
 
 
-def _table_names(conn: sqlite3.Connection) -> list[str]:
-    return [row[0] for row in conn.execute(
-        "SELECT name FROM sqlite_master WHERE type IN ('table','view') "
-        "AND name NOT LIKE 'sqlite_%' ORDER BY name"
-    )]
+def _columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    # All callers supply internal table names, never user-provided SQL.
+    return {row[1] for row in conn.execute(f'PRAGMA table_info("{table}")')}
+
+
+@contextmanager
+def _privacy_transaction(conn: sqlite3.Connection):
+    nested = conn.in_transaction
+    name = "privacy_" + uuid.uuid4().hex
+    conn.execute(f"SAVEPOINT {name}" if nested else "BEGIN IMMEDIATE")
+    try:
+        yield
+        conn.execute(f"RELEASE SAVEPOINT {name}" if nested else "COMMIT")
+    except BaseException:
+        if nested:
+            conn.execute(f"ROLLBACK TO SAVEPOINT {name}")
+            conn.execute(f"RELEASE SAVEPOINT {name}")
+        else:
+            conn.rollback()
+        raise
+
+
+def _export_metadata(conn: sqlite3.Connection) -> dict[str, list[dict[str, Any]]]:
+    tables: dict[str, list[dict[str, Any]]] = {}
+    if not _has_table(conn, "items"):
+        return tables
+    from items.mailbox import path_is_protected
+    item_rows = conn.execute(
+        "SELECT item_id, typing_state, open_target FROM items").fetchall()
+    held = {r[0] for r in item_rows if r[1] == "held" or path_is_protected(r[2] or "")}
+    allowed = {r[0] for r in item_rows if r[0] not in held}
+    allowed_files: set[str] = set()
+    held_files: set[str] = set()
+    for table in ("items", "item_versions"):
+        if {"item_id", "file_id"} <= _columns(conn, table):
+            for item_id, file_id in conn.execute(f'SELECT item_id, file_id FROM "{table}"'):
+                if file_id:
+                    if item_id in allowed:
+                        allowed_files.add(file_id)
+                    if item_id in held:
+                        held_files.add(file_id)
+    allowed_files -= held_files
+    for table, permitted in _EXPORT_COLUMNS.items():
+        columns = _columns(conn, table)
+        keep = [c for c in permitted if c in columns]
+        if not keep:
+            continue
+        quoted = ", ".join(f'"{c}"' for c in keep)
+        rows = []
+        for values in conn.execute(f'SELECT {quoted} FROM "{table}"'):
+            row = dict(zip(keep, values))
+            if table == "relationships":
+                eligible = (row["from_item_id"] in allowed
+                            and row["to_item_id"] in allowed)
+            elif table == "files":
+                eligible = row["file_id"] in allowed_files
+            else:
+                eligible = row["item_id"] in allowed
+                # A shared held file must not leak through a second item/version.
+                if row.get("file_id") in held_files:
+                    eligible = False
+            if eligible:
+                rows.append(row)
+        tables[table] = rows
+    return tables
 
 
 def export_database(conn: sqlite3.Connection, destination: Path, *,
                     user_id: str = "local") -> dict[str, Any]:
-    """Write a sanitized, auditable JSON export of local records."""
-    create_privacy_schema(conn)
-    tables: dict[str, list[dict[str, Any]]] = {}
-    excluded: dict[str, list[str]] = {}
-    for table in _table_names(conn):
-        if table == "privacy_audit_events":
-            continue
-        columns = [row[1] for row in conn.execute(f'PRAGMA table_info("{table}")')]
-        keep = [c for c in columns if c.casefold() not in _SECRET_NAMES and
-                not any(secret in c.casefold() for secret in _SECRET_NAMES)]
-        excluded[table] = [c for c in columns if c not in keep]
-        if not keep:
-            continue
-        quoted = ", ".join(f'"{c}"' for c in keep)
-        rows = conn.execute(f'SELECT {quoted} FROM "{table}"').fetchall()
-        tables[table] = [dict(zip(keep, row)) for row in rows]
-    payload = {
-        "format": "graph-agent-sanitized-export-v1",
-        "encrypted_at_rest": encryption_capability(conn).encrypted,
-        "tables": tables,
-        # Do not echo secret field names into an export either: even schema
-        # metadata can disclose that a credential-bearing source was present.
-        "excluded_field_counts": {table: len(fields) for table, fields in excluded.items()},
-    }
+    """Export non-held metadata only; this is not a database backup.
+
+    Audit and reads share a transaction. Nested callers retain ownership of
+    their transaction; filesystem publication cannot be undone by their later
+    rollback. The output is atomically replaced with an owner-only file.
+    """
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(payload, indent=2, default=str) + "\n", encoding="utf-8")
-    _audit(conn, "export", str(destination), user_id,
-           {"table_count": len(tables),
-            "excluded_field_counts": {table: len(fields) for table, fields in excluded.items()}})
-    conn.commit()
+    temporary = None
+    backup = None
+    published = False
+    try:
+        with _privacy_transaction(conn):
+            tables = _export_metadata(conn)
+            payload = {
+                "format": "graph-agent-sanitized-export-v1",
+                "encrypted_at_rest": encryption_capability(conn).encrypted,
+                "scope": "non-held metadata only; excludes content and audit history",
+                "tables": tables,
+            }
+            fd, temporary = tempfile.mkstemp(prefix=".privacy-export-", dir=destination.parent)
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                json.dump(payload, stream, indent=2)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            _audit(conn, "export", "metadata", user_id, {"table_count": len(tables)})
+            if destination.exists():
+                backup_fd, backup = tempfile.mkstemp(
+                    prefix=".privacy-export-previous-", dir=destination.parent)
+                os.close(backup_fd)
+                shutil.copyfile(destination, backup)
+            os.replace(temporary, destination)
+            temporary = None
+            published = True
+    except BaseException:
+        # A failed COMMIT must not leave an unaudited output or destroy the
+        # previous export. Cross-filesystem/DB crash atomicity is not promised.
+        if published:
+            if backup is not None:
+                os.replace(backup, destination)
+                backup = None
+            else:
+                destination.unlink(missing_ok=True)
+        raise
+    finally:
+        if temporary is not None:
+            Path(temporary).unlink(missing_ok=True)
+        if backup is not None:
+            Path(backup).unlink(missing_ok=True)
     return {"destination": str(destination), "tables": len(tables), "audited": True}
 
 
@@ -150,42 +249,52 @@ def _has_table(conn: sqlite3.Connection, name: str) -> bool:
 
 def delete_item(conn: sqlite3.Connection, item_id: str, *, user_id: str = "local",
                 authenticate: Callable[[], bool] | None = None) -> dict[str, Any]:
-    """Delete one item and all searchable/projection rows, with an audit event."""
-    row = conn.execute("SELECT typing_state FROM items WHERE item_id = ?", (item_id,)).fetchone()
-    if row is None:
-        return {"deleted": False, "item_id": item_id, "audited": False}
-    state = row[0]
-    if state == "held":
-        _authenticate(authenticate)
-    nested = conn.in_transaction
-    if nested:
-        conn.execute("SAVEPOINT privacy_delete")
-    else:
-        conn.execute("BEGIN IMMEDIATE")
-    try:
+    """Remove active item projections, preserving immutable history and sources.
+
+    This is not physical erasure: file inventory, original files, immutable
+    evidence, identity events and relationship decisions remain. A later scan
+    can rediscover an original file still on disk.
+    """
+    with _privacy_transaction(conn):
+        columns = _columns(conn, "items")
+        selected = "typing_state, file_id" if "file_id" in columns else "typing_state, NULL"
+        row = conn.execute(f"SELECT {selected} FROM items WHERE item_id = ?", (item_id,)).fetchone()
+        if row is None:
+            return {"deleted": False, "item_id": item_id, "audited": False}
+        state, file_id = row
+        if state == "held":
+            _authenticate(authenticate)
+        file_ids = {file_id} if file_id else set()
+        if _has_table(conn, "item_versions"):
+            file_ids.update(r[0] for r in conn.execute(
+                "SELECT file_id FROM item_versions WHERE item_id = ?", (item_id,)))
+        # Shared file versions remain usable by other items.
+        for candidate in tuple(file_ids):
+            shared = conn.execute(
+                "SELECT 1 FROM items WHERE file_id = ? AND item_id != ?",
+                (candidate, item_id)).fetchone()
+            if not shared and _has_table(conn, "item_versions"):
+                shared = conn.execute(
+                    "SELECT 1 FROM item_versions WHERE file_id = ? AND item_id != ?",
+                    (candidate, item_id)).fetchone()
+            if shared:
+                file_ids.remove(candidate)
+        if _has_table(conn, "vector_embeddings"):
+            for candidate in file_ids:
+                conn.execute("DELETE FROM vector_embeddings WHERE file_id = ?", (candidate,))
+        if _has_table(conn, "vector_arrays"):
+            for subject in file_ids | {item_id}:
+                conn.execute("DELETE FROM vector_arrays WHERE subject_key = ?", (subject,))
+        # Immutable audit/evidence tables are deliberately absent.
         for table, column in (
             ("relationships", "from_item_id"), ("relationships", "to_item_id"),
-            ("relationship_decisions", "relationship_id"),
             ("item_headers", "item_id"), ("item_versions", "item_id"),
-            ("item_identity_events", "item_id"), ("item_chunks", "item_id"),
-            ("item_chunk_embeddings", "item_id"), ("vector_embeddings", "item_id"),
+            ("item_fts", "item_id"), ("item_chunk_fts", "item_id"),
+            ("item_chunk_embeddings", "item_id"), ("item_chunks", "item_id"),
             ("items", "item_id"),
         ):
             if _has_table(conn, table):
                 conn.execute(f'DELETE FROM "{table}" WHERE "{column}" = ?', (item_id,))
-        for table in ("item_fts", "item_chunk_fts"):
-            if _has_table(conn, table):
-                conn.execute(f'DELETE FROM "{table}" WHERE item_id = ?', (item_id,))
-        _audit(conn, "delete", item_id, user_id, {"typing_state": state})
-        if nested:
-            conn.execute("RELEASE SAVEPOINT privacy_delete")
-        else:
-            conn.commit()
-    except Exception:
-        if nested:
-            conn.execute("ROLLBACK TO SAVEPOINT privacy_delete")
-            conn.execute("RELEASE SAVEPOINT privacy_delete")
-        else:
-            conn.rollback()
-        raise
-    return {"deleted": True, "item_id": item_id, "audited": True}
+        _audit(conn, "delete", item_id, user_id, {"retained_history": True})
+    return {"deleted": True, "item_id": item_id, "audited": True,
+            "retained_history": True, "source_files_retained": True}

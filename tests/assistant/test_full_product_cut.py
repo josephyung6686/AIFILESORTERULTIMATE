@@ -116,7 +116,10 @@ def test_held_body_cloud_vs_local(conn, tmp_path: Path):
     refused = cloud.execute("read_item", {"item_id": item_id})
     assert refused.ok is False
     assert refused.payload.get("refused")
-    local = ToolRuntime(conn, allow_held_body=True)
+    # Local transport also requires the trusted local-authentication seam.
+    local = ToolRuntime(
+        conn, allow_held_body=True, egress_class="local",
+        authenticate_held=lambda: True)
     # May still have empty snippet without evidence — but must not refuse held.
     allowed = local.execute("read_item", {"item_id": item_id})
     assert allowed.payload.get("refused") is not True

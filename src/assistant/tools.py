@@ -16,7 +16,6 @@ from typing import Any, Callable
 from assistant.policy import (
     finalize_payload,
     gate_tool_call,
-    local_held_body_allowed,
     schemas_for_session,
 )
 from assistant.registry import (
@@ -89,6 +88,7 @@ class ToolRuntime:
                  ask_user_handler: Callable[[str, list[str] | None], str]
                  | None = None,
                  allow_held_body: bool = False,
+                 authenticate_held: Callable[[], bool] | None = None,
                  session_key: str = "default",
                  egress_class: str = "cloud") -> None:
         self.conn = conn
@@ -98,14 +98,14 @@ class ToolRuntime:
         self.loaded_groups: set[str] = set()
         self._ask_user = ask_user_handler
         self.pending_user_question: str | None = None
-        # True only for explicit local loopback transport — never cloud BYOK.
-        if allow_held_body and not local_held_body_allowed():
-            # Callers may pass True for tests; honor when local transport set
-            # OR when explicitly forced (unit tests without env).
-            self.allow_held_body = bool(allow_held_body)
-        else:
-            self.allow_held_body = bool(
-                allow_held_body or local_held_body_allowed())
+        # Local egress is necessary but is not local authentication. Neither
+        # environment configuration nor an explicit True can unlock cloud reads.
+        self.allow_held_body = False
+        if allow_held_body and egress_class == "local" and authenticate_held is not None:
+            try:
+                self.allow_held_body = bool(authenticate_held())
+            except Exception:
+                self.allow_held_body = False
         self.session_key = session_key
         self.egress_class = egress_class
         self.last_policy_reason: str = ""
@@ -163,6 +163,11 @@ class ToolRuntime:
         if not policy.allowed:
             extra: dict[str, Any] = {}
             if name == "read_item" and policy.protected:
+                reason = (
+                    "Held/protected reads require explicit local transport "
+                    "and successful local authentication."
+                )
+                self.last_policy_reason = reason
                 item_id = ""
                 if isinstance(arguments, dict):
                     item_id = str(arguments.get("item_id") or "")
@@ -175,7 +180,7 @@ class ToolRuntime:
                         row["display_label"] if row is not None else None
                     ),
                     "refused": True,
-                    "reason": policy.reason,
+                    "reason": reason,
                     "metadata_ok": True,
                 }
                 return ToolResult(
@@ -184,7 +189,7 @@ class ToolRuntime:
                     bytes_out=len(json.dumps({**extra, "moved": False})),
                     citation_objs=tuple(
                         Citation(item_id=c) for c in policy.citations),
-                    policy_reason=policy.reason,
+                    policy_reason=reason,
                     egress_class=policy.egress_class,
                 )
             if name == "extract_one" and policy.protected:
