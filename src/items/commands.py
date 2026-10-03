@@ -65,6 +65,9 @@ def counts_line(conn) -> str:
     """One plain line of totals. Switch to items.indexing.counts() when it lands."""
     from items.file_identity import item_is_sensitive
     from items.identity import excluded_areas
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='items'").fetchone() is None:
+        return "Nothing indexed yet."
     live = conn.execute(
         "SELECT item_id FROM items WHERE presence = 'live' "
         "AND item_type = 'file' AND superseded_by IS NULL").fetchall()
