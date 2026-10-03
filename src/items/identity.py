@@ -84,7 +84,7 @@ def reconcile_tree(conn: sqlite3.Connection, root: Path) -> None:
         file_id = record_basic_record(
             conn, item, mime_type_for=lambda _path: None,
             scan_state=P1_INCLUDED_SCAN_STATE)
-        _attach_live_file(conn, file_id)
+        follow_move(conn, file_id)
     reconcile_disappearances(
         conn, str(uuid.uuid4()), sources=[root],
         scan_state=P1_INCLUDED_SCAN_STATE)
@@ -127,7 +127,7 @@ def project_after_scan(conn: sqlite3.Connection, sources, scan_state: str) -> No
     ).fetchall()
     for row in rows:
         if _under_any(row["current_path"], roots):
-            _attach_live_file(conn, row["file_id"])
+            follow_move(conn, row["file_id"])
     # `observe_path` re-finds a retired row and does not clear
     # `path_no_longer_exists`. The bytes are back; the item is live. The
     # corpus flag stays retired, which is the sorter's rule.
@@ -138,7 +138,7 @@ def project_after_scan(conn: sqlite3.Connection, sources, scan_state: str) -> No
     for row in retired:
         path = row["current_path"]
         if _under_any(path, roots) and not _is_absent(path):
-            _attach_live_file(conn, row["file_id"])
+            follow_move(conn, row["file_id"])
     _mark_missing_under(conn, roots)
     # Witnessed duplicates from live hashes. Semantic edges are never projected.
     from items.relationships import project_witnessed_links
@@ -152,7 +152,14 @@ def _items_installed(conn: sqlite3.Connection) -> bool:
     return found is not None
 
 
-def _attach_live_file(conn: sqlite3.Connection, file_id: str) -> None:
+def follow_move(conn: sqlite3.Connection, file_id: str) -> None:
+    """Point the item at the file row's current path, minting one if none.
+
+    Called after anything that moved a file through `observe_path`, so the
+    item a person searches follows the move. No item tables, no work.
+    """
+    if not _items_installed(conn):
+        return
     row = get_file(conn, file_id)
     path = row["current_path"]
     content_hash = row["content_hash"]

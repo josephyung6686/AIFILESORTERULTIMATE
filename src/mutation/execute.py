@@ -58,6 +58,7 @@ from types import MappingProxyType
 from database_agent.files_table import get_file, observe_path
 from database_agent.verify import VerificationPoint, verify_content
 from evidence_shape.canonical import canonical_json
+from items.identity import follow_move
 from scan_agent.basic_record import parent_folder_context
 
 from mutation.approval import ReviewApproval, approval_verdict, protection_verdict
@@ -313,7 +314,7 @@ def _observe_at(conn: sqlite3.Connection, plan: MovePlan, destination: Path, *,
       exists to catch.
     """
     row = get_file(conn, plan.file_id)
-    observe_path(
+    file_id = observe_path(
         conn, destination, author=SUBSYSTEM, component_version=component_version,
         filename=destination.name,
         normalized_filename=normalize_filename(destination.name),
@@ -322,6 +323,8 @@ def _observe_at(conn: sqlite3.Connection, plan: MovePlan, destination: Path, *,
         parent_folder_context=parent_folder_context(destination),
         mime_type=row["mime_type"], detected_format=row["detected_format"],
         scan_state=scan_state, materialized=materialized)
+    # The person's item follows the file, so search cites where it is now.
+    follow_move(conn, file_id)
 
 
 def _inside(candidate: Path, root: Path) -> bool:

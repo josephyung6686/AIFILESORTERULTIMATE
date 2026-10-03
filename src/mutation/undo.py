@@ -61,6 +61,7 @@ from database_agent.files_table import get_file, observe_path
 from database_agent.identity import hash_file
 from database_agent.verify import VerificationPoint, verify_content
 from evidence_shape.canonical import canonical_json
+from items.identity import follow_move
 from scan_agent.basic_record import parent_folder_context
 
 from mutation.collision import find_collision
@@ -413,7 +414,7 @@ def _observe_back(conn: sqlite3.Connection, entry: JournalEntry, source: Path, *
     folding, and P12 may not choose differently from P3.
     """
     row = get_file(conn, entry.file_id)
-    observe_path(
+    file_id = observe_path(
         conn, source, author=SUBSYSTEM, component_version=component_version,
         filename=source.name,
         normalized_filename=normalize_filename(source.name),
@@ -422,6 +423,8 @@ def _observe_back(conn: sqlite3.Connection, entry: JournalEntry, source: Path, *
         parent_folder_context=parent_folder_context(source),
         mime_type=row["mime_type"], detected_format=row["detected_format"],
         scan_state=scan_state, materialized=materialized)
+    # The person's item follows the file, so search cites where it is now.
+    follow_move(conn, file_id)
 
 
 def _record_attempt(conn: sqlite3.Connection, entry: JournalEntry,
