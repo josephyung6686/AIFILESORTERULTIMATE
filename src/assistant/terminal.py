@@ -57,7 +57,8 @@ class TerminalRenderer:
                 for i, c in enumerate(event.citations, start=1):
                     self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}"
                                + ("   (matched by name)"
-                                  if c.matched_by == "name" else ""))
+                                  if c.matched_by == "name" else "")
+                               + (f"   — {c.note}" if c.note else ""))
         elif isinstance(event, ev.Question):
             head = f"Question {event.index} of {event.of}: " if event.of > 1 \
                 else ""

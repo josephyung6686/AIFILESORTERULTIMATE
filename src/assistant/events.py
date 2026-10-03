@@ -17,6 +17,8 @@ class Citation:
     #: "name" while the file's text has not been read yet: it was found by
     #: its name alone.
     matched_by: str = ""
+    #: A short plain reason shown beside the file ("you protected it").
+    note: str = ""
 
 
 @dataclass(frozen=True)

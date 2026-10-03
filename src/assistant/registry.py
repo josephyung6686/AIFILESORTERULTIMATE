@@ -267,8 +267,14 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         {"level": {"type": "integer"}},
         ["level"],
     ),
-    _fn("what_was_sent", "Today's requests to the AI model, in plain words: "
-        "how many, how many bytes, which questions.", {}),
+    _fn("what_was_sent", "Show the person what went to the AI model today: "
+        "requests, size and the files whose names or text were included. "
+        "Listed on their screen by the app.", {}),
+    _fn("show_protected", "Show the person their protected files and "
+        "folders, with why each is protected. Listed on their screen by "
+        "this Mac; you are told only how many.", {}),
+    _fn("show_copies", "Show the person which files are copies: files with "
+        "exactly the same content, found by comparing contents.", {}),
     _fn(
         "freeze_plan",
         "After organise_folder: propose accepting the proposed folders and "

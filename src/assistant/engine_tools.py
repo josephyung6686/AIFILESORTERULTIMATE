@@ -593,24 +593,149 @@ def set_level(conn: sqlite3.Connection, level: int) -> dict[str, Any]:
                      "whole-folder changes always ask.")
 
 
-def what_was_sent(conn: sqlite3.Connection) -> dict[str, Any]:
-    """Today's requests to the AI model, in plain words. No ids."""
+def _citation(path: str, name: str | None = None, note: str = ""):
+    from assistant.events import Citation
+    from assistant.session import _folder_of
+    return Citation(name=name or Path(path).name, folder=_folder_of(path),
+                    open_target=path, note=note)
+
+
+def _size_words(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f} MB"
+    return f"{max(1, round(n / 1000))} KB" if n else "0 KB"
+
+
+def what_was_sent(conn: sqlite3.Connection,
+                  context: Any = None) -> dict[str, Any]:
+    """Today's requests to the AI model, from the egress ledger: how many,
+    how big, and the files whose names or text went. Shown to the person
+    by code; protected files are never listed (they were never sent)."""
+    import json
     from datetime import datetime, timezone
     from assistant.egress import ensure_egress_schema
+    from assistant.events import Message
     ensure_egress_schema(conn)
     today = datetime.now(timezone.utc).date().isoformat()
     rows = conn.execute(
-        "SELECT provider, bytes, question FROM egress_ledger "
+        "SELECT provider, bytes, question, item_ids_json FROM egress_ledger "
         "WHERE ts >= ? ORDER BY ts", (today,)).fetchall()
     names = {"deepseek": "DeepSeek", "openai": "OpenAI",
              "anthropic": "Anthropic"}
     providers = sorted({names.get(r[0], r[0]) for r in rows})
     total = sum(int(r[1]) for r in rows)
-    return {"ok": True, "today": {
-        "requests": len(rows), "bytes": total,
-        "sent_to": providers or ["nobody"],
-        "your_questions": [r[2] for r in rows if r[2]][-10:],
-        "never_sent": "protected files' names, folders and text"}}
+    item_ids = list(dict.fromkeys(
+        i for r in rows for i in json.loads(r[3] or "[]")))
+    files = []
+    for item_id in item_ids:
+        row = conn.execute("SELECT display_label, open_target FROM items "
+                           "WHERE item_id = ?", (item_id,)).fetchone()
+        if row is None or not row[1] or item_is_sensitive(conn, item_id):
+            continue
+        files.append(_citation(row[1], row[0]))
+    to = " and ".join(providers) or "the AI model"
+    text = (f"Today: {_plural(len(rows), 'request')} to {to}, about "
+            f"{_size_words(total)} in all — your messages, my replies and "
+            "what I looked up.")
+    text += (f" These {_plural(len(files), 'file')} had their names (and "
+             "for some, a short piece of text) included:" if files else
+             " No file names or text were included.")
+    if context is not None and hasattr(context, "show_locally"):
+        context.show_locally(Message(text=text, citations=tuple(files)))
+    return {"ok": True, "shown_to_person": True, "requests": len(rows),
+            "bytes": total, "sent_to": providers or ["nobody"],
+            "files": [c.name for c in files],
+            "note": "This list is on the person's screen. Do not add to it "
+                    "or say what else was or wasn't sent."}
+
+
+def _why_protected(conn: sqlite3.Connection, row) -> str:
+    """One plain reason, from the classification record's basis."""
+    from items.file_identity import path_is_protected
+    if row["open_target"] and path_is_protected(row["open_target"]):
+        return "a key or password file"
+    basis = ""
+    try:
+        from privacy.classification_store import ClassificationStore
+        record = ClassificationStore(conn).current(row["file_id"],
+                                                   row["content_hash"])
+        basis = getattr(record, "basis", "") or ""
+    except Exception:
+        pass
+    if basis == "user":
+        return "you protected it"
+    if basis == "safety_domain":
+        return "looks like an ID, health, money or legal document"
+    if basis.startswith("detector"):
+        return "its name or text looks personal"
+    return "protected"
+
+
+def show_protected(conn: sqlite3.Connection,
+                   context: Any = None) -> dict[str, Any]:
+    """The protected files and folders, listed on this Mac with a reason.
+    The model is told only how many."""
+    from assistant.events import Message
+    from items.identity import excluded_areas
+    shown = []
+    for row in conn.execute(
+            "SELECT item_id, display_label, open_target, file_id, "
+            "content_hash FROM items WHERE presence = 'live' AND "
+            "superseded_by IS NULL AND item_type = 'file' "
+            "ORDER BY display_label").fetchall():
+        if row["open_target"] and item_is_sensitive(conn, row["item_id"]):
+            shown.append(_citation(row["open_target"], row["display_label"],
+                                   _why_protected(conn, row)))
+    try:
+        areas = [a for a in excluded_areas(conn) if a["protected"]]
+    except Exception:
+        areas = []
+    for area in areas:
+        shown.append(_citation(area["folder"],
+                               note="a protected folder; nothing inside is "
+                                    "opened"))
+    if context is not None and hasattr(context, "show_locally"):
+        context.show_locally(Message(
+            text=("Protected — shown only to you, never sent anywhere:"
+                  if shown else "Nothing is protected."),
+            citations=tuple(shown)))
+    return {"ok": True, "shown_to_person": len(shown),
+            "note": "The list is on the person's screen, from this Mac. You "
+                    "are not told the names; never guess them."}
+
+
+def show_copies(conn: sqlite3.Connection,
+                context: Any = None) -> dict[str, Any]:
+    """Files with exactly the same content (by content hash), each copy
+    beside the file it duplicates. Shown to the person by code."""
+    from assistant.events import Message
+    from items.suggest import _live_files, files_for
+    copies = files_for(conn, "copies")
+    hashes = list(dict.fromkeys(c["content_hash"] for c in copies))
+    groups = {h: [] for h in hashes}
+    for row in _live_files(conn):
+        if row["content_hash"] in groups:
+            groups[row["content_hash"]].append(row)
+    shown, hidden = [], 0
+    for h in hashes:
+        group = groups[h]
+        if any(item_is_sensitive(conn, r["item_id"]) for r in group):
+            hidden += 1
+            continue
+        for row in group:
+            others = [r["display_label"] for r in group if r is not row]
+            shown.append(_citation(row["open_target"], row["display_label"],
+                                   "same content as " + ", ".join(others)))
+    text = ("Files with exactly the same content (I compared the files "
+            "themselves, not their names):" if shown else
+            "I found no files with exactly the same content.")
+    if hidden:
+        text += f" {_plural(hidden, 'set')} involving protected files not shown."
+    if context is not None and hasattr(context, "show_locally"):
+        context.show_locally(Message(text=text, citations=tuple(shown)))
+    return {"ok": True, "shown_to_person": len(shown),
+            "files": [c.name for c in shown],
+            "note": "The pairs are on the person's screen, found by content."}
 
 
 def run_index(conn: sqlite3.Connection, path: Path,
@@ -1042,7 +1167,11 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
     if name == "set_level":
         return set_level(conn, int(args.get("level") or 0))
     if name == "what_was_sent":
-        return what_was_sent(conn)
+        return what_was_sent(conn, context)
+    if name == "show_protected":
+        return show_protected(conn, context)
+    if name == "show_copies":
+        return show_copies(conn, context)
     if name == "status":
         from assistant.session import _counts
         c = _counts(conn)

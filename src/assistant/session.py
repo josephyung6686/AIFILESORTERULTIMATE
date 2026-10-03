@@ -175,6 +175,9 @@ class Session:
         self.asking: ev.Question | None = None
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
+        #: Lists a tool built for the person's eyes only, shown after the
+        #: reply and never part of a model request.
+        self._shown_locally: list = []
         self._opened = False
         #: Document text is read once per session, after the first index.
         self._reading_started = False
@@ -186,6 +189,9 @@ class Session:
         if isinstance(event, ev.Message) and event.citations:
             self.last_citations = event.citations
         self._emit(event)
+
+    def show_locally(self, event) -> None:
+        self._shown_locally.append(event)
 
     def _provider_name(self) -> str | None:
         """Who answers, or None when no model is set up."""
@@ -474,6 +480,7 @@ class Session:
         self._remember("user", text)
         self._proposals = []
         self._protected_hits = ()
+        self._shown_locally = []
         if self.no_model:
             self._without_model(text)
             return
@@ -499,6 +506,8 @@ class Session:
             self.emit(ev.Message(
                 text="Protected — shown only to you, never sent anywhere:",
                 citations=self._citations(self._protected_hits)))
+        for event in self._shown_locally:
+            self.emit(event)
         shown_before = self.on_screen
         for proposal in self._proposals:
             self._propose(proposal)
@@ -1019,8 +1028,14 @@ def route_without_model(conn: sqlite3.Connection, text: str) -> list:
         c = _counts(conn)
         return [ev.Message(text=counts_sentence(c) if c is not None else
                            "Nothing is indexed yet. " + FOLDER_QUESTION)]
-    if lower in ("show skipped", "show protected"):
-        return [_excluded_list(conn, protected=lower.endswith("protected"))]
+    if lower == "show protected":
+        from types import SimpleNamespace
+        from assistant.engine_tools import show_protected
+        shown: list = []
+        show_protected(conn, SimpleNamespace(show_locally=shown.append))
+        return shown
+    if lower == "show skipped":
+        return [_excluded_list(conn, protected=False)]
     return [ev.Message(text=NO_MODEL_HELP)]
 
 
