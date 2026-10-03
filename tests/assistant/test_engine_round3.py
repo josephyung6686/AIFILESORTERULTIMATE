@@ -216,7 +216,12 @@ def test_the_model_is_told_to_speak_plainly(conn):
     assert "not sorted yet" in turn.seen[0] and "unplaced" in turn.seen[0]
 
 
-def test_internal_words_the_model_emits_are_replaced(conn):
+def test_internal_words_the_model_emits_are_replaced(conn, monkeypatch):
+    from types import SimpleNamespace
+    from assistant import session as session_mod
+    monkeypatch.setattr(session_mod, "_counts", lambda _c: SimpleNamespace(
+        indexed=5, set_aside=0, protected=2, held=0, open_questions=0,
+        unread_documents=0))
     out = []
     turn = _scripted({"role": "assistant", "content": (
         "3 files are unplaced and 2 are held under academic.coursework "
