@@ -63,10 +63,33 @@ EXCLUSION_CATEGORIES: tuple[str, ...] = (
 #: `filename_duplicate.zip` lives -- the adversarial archive that unwound an entire
 #: 5,760-file run before `446d7f3` -- so this exclusion removes a whole class of
 #: hostile input along with the noise.
+#:
+#: The common build manifests of the other mainstream languages, added 4 Oct
+#: 2026 after a first-time user's Desktop showed Xcode, Gradle and git projects
+#: whose asset catalogues and build files were offered folders as if they were
+#: the person's own documents: Swift (`Package.swift`), Gradle/Kotlin/Android,
+#: Maven, and `pyvenv.cfg`, the file every Python virtual environment carries
+#: at its root. General, not this corpus: each is the file its own tool writes
+#: at the root of every project of that kind.
 PROJECT_ROOT_MARKERS: tuple[str, ...] = (
     "package.json", "requirements.txt", "Cargo.toml", "go.mod",
     "library.properties", "pyproject.toml", "setup.py", "CMakeLists.txt",
+    "Package.swift", "build.gradle", "build.gradle.kts", "settings.gradle",
+    "settings.gradle.kts", "pom.xml", "pyvenv.cfg",
 )
+
+#: Markers whose NAME varies and whose ending does not: an Xcode project or
+#: workspace is a folder called `<Name>.xcodeproj` / `<Name>.xcworkspace`, a
+#: .NET solution or project a file `<Name>.sln` / `<Name>.csproj`. Matched on
+#: either kind of entry; reported as `*<suffix>`.
+PROJECT_ROOT_SUFFIXES: tuple[str, ...] = (
+    ".xcodeproj", ".xcworkspace", ".sln", ".csproj",
+)
+
+#: A git repository's root carries `.git` -- a folder, or a file in a worktree
+#: or submodule. OWNER-VISIBLE: a folder of ordinary documents the person keeps
+#: under git is set aside as one project by this, like any other repository.
+PROJECT_ROOT_ENTRIES: tuple[str, ...] = (".git",)
 
 #: THE FIVE CATEGORIES, AUTHORED. Each member below was measured on a real disk
 #: rather than recalled from what package managers generally produce, which is what
@@ -218,8 +241,15 @@ def project_root_markers_in(entry_names) -> tuple[str, ...]:
     `entry_names` is an iterable of (name, is_dir) pairs: §1.1 says the markers are
     FILES, so a directory called `package.json` is not one.
     """
-    files = {name for name, is_dir in entry_names if not is_dir}
-    return tuple(marker for marker in PROJECT_ROOT_MARKERS if marker in files)
+    entries = list(entry_names)
+    files = {name for name, is_dir in entries if not is_dir}
+    names = {name for name, _ in entries}
+    found = [marker for marker in PROJECT_ROOT_MARKERS if marker in files]
+    found += [f"*{suffix}" for suffix in PROJECT_ROOT_SUFFIXES
+              if any(len(name) > len(suffix) and name.endswith(suffix)
+                     for name in names)]
+    found += [entry for entry in PROJECT_ROOT_ENTRIES if entry in names]
+    return tuple(found)
 
 
 EXCLUSION_DDL = """
