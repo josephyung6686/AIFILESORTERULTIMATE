@@ -1,6 +1,7 @@
 """Index freshness: tick PathWatcher roots so ask/search see disk truth."""
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,7 +16,16 @@ class RefreshResult:
 
 
 def discover_roots(conn: sqlite3.Connection, *, limit: int = 8) -> list[Path]:
-    """Infer watch roots from live file open_targets (parent dirs)."""
+    """The folders the person chose to scan; inferred from items only if none.
+
+    Recorded selection sources, newest first, are the folders a scan reads, so
+    a new file at the top of one is found and its top-level exclusions are
+    recorded again. Item parents are a guess, used only before any selection.
+    """
+    chosen = _selected_sources(conn)
+    if chosen:
+        # Parents first, so a chosen folder inside another is not walked twice.
+        return _collapse(sorted(chosen, key=lambda p: len(p.parts)), limit)
     rows = conn.execute(
         "SELECT open_target FROM items "
         "WHERE presence='live' AND open_target IS NOT NULL "
@@ -34,10 +44,29 @@ def discover_roots(conn: sqlite3.Connection, *, limit: int = 8) -> list[Path]:
         parents[key] = parents.get(key, 0) + 1
     # Collapse to unique top-level parents by frequency
     ranked = sorted(parents.items(), key=lambda kv: -kv[1])
+    return _collapse([Path(key) for key, _ in ranked], limit)
+
+
+def _selected_sources(conn: sqlite3.Connection) -> list[Path]:
+    """Every recorded selection source that is still a folder, newest first."""
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='corpus_selections'").fetchone() is None:
+        return []
+    out: list[Path] = []
+    for row in conn.execute(
+            "SELECT sources FROM corpus_selections ORDER BY selected_at DESC"):
+        for source in json.loads(row["sources"]):
+            path = Path(source)
+            if path.is_dir() and path not in out:
+                out.append(path)
+    return out
+
+
+def _collapse(paths: list[Path], limit: int) -> list[Path]:
+    """Drop folders already covered by an earlier one, up to `limit`."""
     out: list[Path] = []
     seen: set[str] = set()
-    for key, _ in ranked:
-        path = Path(key)
+    for path in paths:
         # Skip if already covered by a parent we chose
         if any(str(path).startswith(s + "/") or str(path) == s for s in seen):
             continue
