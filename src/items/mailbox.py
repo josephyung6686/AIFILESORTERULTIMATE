@@ -99,14 +99,31 @@ def dry_run_plan(data: dict, *, kind: str) -> dict:
 def ingest_fixture(conn: sqlite3.Connection, data: dict, *, kind: str,
                    recorded_at: str | None = None) -> dict:
     """Write header items. Returns counts. Does not approve a link."""
+    # Validate the complete input before opening a write transaction.  A fixture
+    # is one sync unit: a malformed later row must not leave earlier rows behind.
+    rows = _messages(data) if kind == "gmail" else _events(data) if kind == "calendar" else None
+    if rows is None:
+        raise MailboxRefused(f"{kind!r} is not gmail or calendar.")
+    if any(not isinstance(row, dict) for row in rows):
+        raise MailboxRefused("fixture rows must be JSON objects. Nothing was stored.")
+    for row in rows:
+        required = "message_id" if kind == "gmail" else "event_id"
+        if not _text(row, required):
+            raise MailboxRefused(f"a {required.removesuffix('_id')} needs a {required}. Nothing else was stored.")
     create_items_schema(conn)
     now = recorded_at or datetime.now(timezone.utc).isoformat()
-    if kind == "gmail":
-        written = [_upsert_email(conn, message, now) for message in _messages(data)]
-    elif kind == "calendar":
-        written = [_upsert_event(conn, event, now) for event in _events(data)]
-    else:
-        raise MailboxRefused(f"{kind!r} is not gmail or calendar.")
+    conn.execute("SAVEPOINT fixture_ingest")
+    try:
+        if kind == "gmail":
+            written = [_upsert_email(conn, message, now) for message in rows]
+        else:
+            written = [_upsert_event(conn, event, now) for event in rows]
+        conn.execute("RELEASE SAVEPOINT fixture_ingest")
+        conn.commit()
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT fixture_ingest")
+        conn.execute("RELEASE SAVEPOINT fixture_ingest")
+        raise
     held = sum(1 for item in written if item["typing_state"] == HELD)
     unplaced = sum(1 for item in written if item["typing_state"] == UNPLACED)
     return {
@@ -142,14 +159,14 @@ def _messages(data: dict) -> list[dict]:
     rows = data.get("messages") or []
     if not isinstance(rows, list):
         raise MailboxRefused("messages must be a list. Nothing was stored.")
-    return [row for row in rows if isinstance(row, dict)]
+    return rows
 
 
 def _events(data: dict) -> list[dict]:
     rows = data.get("events") or []
     if not isinstance(rows, list):
         raise MailboxRefused("events must be a list. Nothing was stored.")
-    return [row for row in rows if isinstance(row, dict)]
+    return rows
 
 
 def _text(row: dict, key: str) -> str:
