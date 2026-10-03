@@ -64,8 +64,8 @@ def test_a_shape_question_drops_engine_sentences_and_duplicate_options():
     text = _text(event)
     assert not any(w in text for w in ENGINE_WORDS), text
     labels = [o.label for o in event.options]
-    assert labels == ["Education/Fall2024, Education/Spring2020",
-                      "Education/APMA E2000, Education/Python-1006"]
+    assert labels == ["Fall2024, Spring2020",
+                      "APMA E2000, Python-1006"]
     assert event.options[1].id == "subject"        # the first id is kept
     assert "Education" in event.text and "5 files" in event.text
 
@@ -147,7 +147,7 @@ def test_a_question_inside_a_set_aside_project_is_skipped(lib, monkeypatch):
 
 
 @pytest.mark.parametrize("said", [
-    "Education/APMA E2000, Education/Python-1006", "2", "option 2"])
+    "APMA E2000, Python-1006", "2", "option 2"])
 def test_an_answer_in_the_words_shown_selects_that_option(lib, said):
     # Judge 2's model answered with the label it had been shown; it matched
     # no raw label, was saved as free text, and the shape was never built.

@@ -477,6 +477,22 @@ def _person_sentences(text: str, options) -> str:
         if s and not _ENGINE_SENTENCE.search(s))
 
 
+def _folders_inside(branch: str, paths: list[str]) -> str:
+    """The folders a shape builds inside `branch`, named from inside it:
+    its first level, or the level under a single first folder."""
+    rel = [p[len(branch) + 1:] if p.startswith(branch + "/") else p
+           for p in paths]
+    first = list(dict.fromkeys(p.split("/")[0] for p in rel))
+    prefix = ""
+    if len(first) == 1:
+        second = list(dict.fromkeys(p.split("/")[1] for p in rel
+                                    if p.count("/") >= 1))
+        if second:
+            prefix, first = first[0] + ": ", second
+    more = f" and {len(first) - 5} more" if len(first) > 5 else ""
+    return prefix + ", ".join(first[:5]) + more
+
+
 def _option_label(o, options, branch: str) -> str:
     """An option as a folder path, or a short plain sentence."""
     if getattr(o, "chooses_destination", None):
@@ -484,8 +500,9 @@ def _option_label(o, options, branch: str) -> str:
     if getattr(o, "gates_template", None) is not None:
         built = re.search(r"builds (.*?)(?: -- |$)", o.label)
         if built:
-            return ", ".join(display_name(re.sub(r" \(\d+\)$", "", c))
-                             for c in built.group(1).split(", "))
+            return _folders_inside(branch, [
+                display_name(re.sub(r" \(\d+\)$", "", c))
+                for c in built.group(1).split(", ")])
         said = _person_sentences(o.label, options)
         return said or ("No subfolders: all of them go straight into "
                         f"{display_name(branch)}")
@@ -526,7 +543,8 @@ def question_event(q, index: int, of: int, conn=None):
                  f"These {count} files" if count else "Some of your files")
         text = f"{these}{e_g} — {asks}"
     elif names and not any(n in text for n in names):
-        text = f"{text.rstrip('?')} — {files}{e_g}?"
+        text = (f"{text} ({_plural(count, 'file')}"
+                f"{', e.g. ' + ', '.join(names) if count > 1 else ': ' + names[0]})")
     options: list = []
     for o in q.options:
         label = _option_label(o, q.options, where or "this folder")
@@ -612,6 +630,11 @@ def record_person_answer(conn: sqlite3.Connection, question_id: str,
     q = _question_of(row)
     typed = (value or "").strip()
     user = getpass.getuser()
+    # An answer can change the plan, so a lock-in the last run could not
+    # offer is worth trying again.
+    conn.execute(SETTINGS_DDL)
+    conn.execute("UPDATE session_settings SET value = '' "
+                 "WHERE key LIKE 'lock_in_blocked:%'")
     now = datetime.now(timezone.utc).isoformat()
     option = next((o.option_id for o in q.options
                    if typed == o.option_id
@@ -852,20 +875,27 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         # groups (`--accept-groups --freeze`), so what is shown here is what
         # locking in would approve. Without `--freeze` nothing is approved
         # for moving and nothing moves.
-        cli.main([str(path), "--database", database_path(conn),
-                  "--accept-groups",
-                  *(["--enable-cloud"] if cloud else [])], out=stream)
+        code = cli.main([str(path), "--database", database_path(conn),
+                         "--accept-groups",
+                         *(["--enable-cloud"] if cloud else [])], out=stream)
     except (Cancelled, KeyboardInterrupt):
         if emit is not None:
             from assistant.events import Message
             emit(Message(text="Stopped. Nothing moved."))
         return {"ok": False, "cancelled": True,
                 "error": "The person stopped organising. Nothing moved."}
-    except SystemExit:
-        pass
+    except SystemExit as exc:
+        code = exc.code
     except Exception:
         return {"ok": False, "error": "Organising stopped with a problem. "
                                       "Nothing moved."}
+    # The sorter refuses a plan by name; lock-in reruns the same design and
+    # would refuse it again, so it is not offered until a run succeeds.
+    refused = (_refusal_text(stream.lines)
+               if code not in (0, None) else "")
+    put_setting(conn, f"lock_in_blocked:{path}", refused)
+    if refused:
+        return {"ok": False, "moved": False, "error": refused}
     _stage(context, "Designing folders… done.")
     asked, skipped = askable_questions(conn)
     n = len(asked)
@@ -876,6 +906,14 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         summary = organise_summary(conn, path)
     except Exception:
         summary = None
+    if summary is not None and not summary.get("files_to_move"):
+        # Locking in would freeze nothing: say so now, not after a rerun.
+        put_setting(conn, f"lock_in_blocked:{path}", (
+            "There's nothing to lock in yet: the plan doesn't move any file "
+            f"({_plural(summary.get('files_already_in_place') or 0, 'file')} "
+            "it places are already where it puts them). "
+            + ("Answering the questions may change that. " if n else "")
+            + "Nothing moved."))
     text = ((ROUGH + " " if cloud is False else "")
             + "I've looked through the folder. Nothing moved. "
             + (f"I have {_plural(n, 'question')} first. " if n else "")
@@ -1106,6 +1144,10 @@ def freeze_plan(conn: sqlite3.Connection, folder: str,
     path, refusal = check_folder(conn, folder, context, "organise")
     if refusal is not None:
         return refusal
+    # Never a yes/no the sorter can already be seen to refuse.
+    blocked = get_setting(conn, f"lock_in_blocked:{path}", "")
+    if blocked:
+        return {"ok": False, "error": blocked}
     if _selection_root(conn, path) is None:
         return {"ok": False, "error": "I haven't looked through that folder "
                                       "yet. Organise it first."}
@@ -1135,6 +1177,27 @@ def _branches_printed(lines: list[str]) -> list[str]:
     return found
 
 
+def _refusal_text(lines: list[str]) -> str:
+    """Why the sorter made no plan, or froze nothing, in the person's words.
+    A refused folder's name is theirs to read; the code around it is not."""
+    empty = next((m.group(1) for m in (
+        re.search(r"accepting 'branch:([^']+)' produced no node", line)
+        for line in lines) if m), None)
+    if empty:
+        return (f"I can't lock in this plan: the proposed folder "
+                f"“{display_name(empty)}” has no file the sorter can put in "
+                "it, so it refuses the whole plan. Nothing changed and "
+                "nothing moved.")
+    if any(line.startswith("Nothing was frozen") for line in lines):
+        return ("Nothing could be locked in: every file is still waiting on "
+                "a question or held for review. Nothing moved.")
+    if any(line.startswith("No plan was made") for line in lines):
+        return ("The sorter couldn't make a plan for this folder, so there "
+                "is nothing to lock in. Nothing moved.")
+    return ("There was nothing ready to lock in, so nothing changed. "
+            "Nothing moved.")
+
+
 def _freeze(conn: sqlite3.Connection, folder: str,
             context: Any) -> dict[str, Any]:
     """The sorter's own `--accept-groups --freeze`. Never moves a file."""
@@ -1153,30 +1216,30 @@ def _freeze(conn: sqlite3.Connection, folder: str,
         code = 1
     try:
         from assistant.organize_tools import show_tree
-        frozen = int(show_tree(conn).get("frozen_moves") or 0)
+        tree = show_tree(conn)
     except Exception:
-        frozen = 0
+        tree = {}
+    frozen = int(tree.get("frozen_moves") or 0)
     branches = _branches_printed(stream.lines)
     if code not in (0, None) or not frozen or not branches:
-        # The sorter's refusal names the proposed folder it could not
-        # build; that name is the person's to read, the code around it not.
-        empty = next((m.group(1) for m in (
-            re.search(r"accepting 'branch:([^']+)' produced no node", line)
-            for line in stream.lines) if m), None)
         return {"ok": False, "moved": False, "undo_token": None,
-                "text": (f"I couldn't lock in the plan: the proposed folder "
-                         f"“{empty}” has no file the sorter can put in it, "
-                         "so it refused the whole plan. Nothing changed and "
-                         "nothing moved." if empty else
-                         "There was nothing ready to lock in, so nothing "
-                         "changed. Nothing moved.")}
-    shown = "\n".join(f"  {display_name(b)}" for b in branches[:12])
-    more = (f"\n  and {len(branches) - 12} more" if len(branches) > 12
-            else "")
+                "text": _refusal_text(stream.lines)}
+    shown = [display_name(b) for b in branches]
+    waiting = [f["path"] for f in tree.get("folders") or ()
+               if f["kind"] != "existing" and "/" not in f["path"]
+               and not any(b == f["path"] or b.startswith(f["path"] + "/")
+                           for b in shown)]
+    listed = "\n".join(f"  {b}" for b in shown[:12])
+    more = (f"\n  and {len(shown) - 12} more" if len(shown) > 12 else "")
+    rest = (f" {_plural(len(waiting), 'proposed folder')} "
+            f"({', '.join(waiting[:5])}) "
+            f"{'has' if len(waiting) == 1 else 'have'} nothing ready to "
+            "move yet — still waiting on questions or a closer look."
+            if waiting else "")
     return {"ok": True, "moved": False, "undo_token": None,
-            "text": f"Locked in: {_plural(frozen, 'file')} ready to move. "
-                    "Nothing moved yet. Tell me which folder to move:\n"
-                    + shown + more}
+            "text": f"Locked in {_plural(len(shown), 'folder')} "
+                    f"({_plural(frozen, 'file')}).{rest} Nothing moved yet. "
+                    "Tell me which folder to move:\n" + listed + more}
 
 
 def _real_branch(conn: sqlite3.Connection, branch: str) -> str:
