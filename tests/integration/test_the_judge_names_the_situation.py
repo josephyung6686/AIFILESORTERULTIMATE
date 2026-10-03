@@ -487,18 +487,19 @@ def test_the_answer_is_recorded_and_the_run_is_the_run_it_was(observing):
 
 def test_a_level_call_that_comes_back_refused_leaves_the_file_open(tmp_path, monkeypatch):
     """Run 15 (15 Sep 2026), the stage's first live run on the owner's corpus:
-    `run_call` handed back a `Refusal` and the stage read `.outcome` off it. The
+    `run_call` handed back a `Refusal` and the stage read `.outcome` off it
+    (the stage now drives `run_call_steps`, so that is what is patched). The
     kind stage above it reads an answer only off a `P8Verdict`; so does this one
     now. A refused level call is a file still open -- the run ends, the society's
     files are not placed, and the branch question is still the person's.
 
-    SABOTAGE: read `situation_named_by_verdict` on whatever `run_call` returned
+    SABOTAGE: read `situation_named_by_verdict` on whatever the call returned
     and this run dies with AttributeError.
     """
     from llm_harness.records import Refusal
     from privacy.denial import RemedyOption
     from privacy.release import Denied
-    real = cli.run_call
+    real = cli.run_call_steps
 
     def refusing(conn, request, **kw):
         prompt = kw.get("prompt")
@@ -508,9 +509,10 @@ def test_a_level_call_that_comes_back_refused_leaves_the_file_open(tmp_path, mon
                               remedy_options=(RemedyOption(action="classify", detail="classify first"),),
                               evidence_refs=("obs-key-1",)),
                 validator_version="P8/0.1.0", policy_version="policy-1")
-        return real(conn, request, **kw)
+            yield  # pragma: no cover -- a generator, as `run_call_steps` is
+        return (yield from real(conn, request, **kw))
 
-    monkeypatch.setattr(cli, "run_call", refusing)
+    monkeypatch.setattr(cli, "run_call_steps", refusing)
     state = _run(tmp_path, ratify=True)
     placed, abstained = _decisions(state)
     for name in CLUB_FILES:
