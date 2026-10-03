@@ -320,24 +320,126 @@ def wording_problems(text: str) -> list[str]:
 def _plain(text: str, options) -> str:
     """The text with any code replaced by the label of the option it names,
     or dropped when no option does."""
+    return _plain_and_holes(text, options)[0]
+
+
+def _plain_and_holes(text: str, options) -> tuple[str, bool]:
+    """`_plain`, and whether a code was dropped with nothing in its place --
+    which leaves a sentence with a hole in it ("Which of these is?")."""
+    holes = False
     for token in wording_problems(text):
         label = next((o.label for o in options
                       if token in {getattr(o, f.name) for f in fields(o)
                                    if f.name != "label"}), None)
+        holes = holes or not label
         text = text.replace(token, label) if label else text.replace(token, "")
-    return re.sub(r"\s{2,}", " ", re.sub(r"\s+([?.,!])", r"\1", text)).strip()
+    text = re.sub(r"\s{2,}", " ", re.sub(r"\s+([?.,!])", r"\1", text)).strip()
+    return text, holes
 
 
-def question_event(q, index: int, of: int):
+def _whole_sentences(text: str, options) -> str:
+    """Only the sentences that read whole once codes are taken out."""
+    kept = []
+    for sentence in re.split(r"(?<=[.!?])\s+", text or ""):
+        plain, holes = _plain_and_holes(sentence, options)
+        if plain and not holes:
+            kept.append(plain)
+    return " ".join(kept)
+
+
+def _question_files(conn, q, count: int | None = None) -> list[str]:
+    """Up to three ordinary files a question is about, by name. Never a
+    protected or held one. Read from the index by the question's scope:
+    a folder's own files, a kind's files, or the files nothing judged."""
+    if conn is None:
+        return []
+    from items.file_identity import path_is_protected
+    kind, _, rest = q.scope.partition(":")
+    base = ("SELECT item_id, display_label, open_target FROM items "
+            "WHERE presence = 'live' AND superseded_by IS NULL "
+            "AND open_target IS NOT NULL AND coalesce(typing_state, '') "
+            "!= 'held' ")
+    try:
+        if kind == "folder":
+            rel = rest.strip("/")
+            if rel in ("", "."):
+                import json
+                roots = {s for (sources,) in conn.execute(
+                    "SELECT sources FROM corpus_selections")
+                    for s in json.loads(sources or "[]")}
+                rows = [r for r in conn.execute(
+                    base + "ORDER BY display_label")
+                    if str(Path(r["open_target"]).parent) in roots]
+            else:
+                rows = [r for r in conn.execute(
+                    base + "AND open_target LIKE ? ORDER BY display_label",
+                    (f"%/{rel}/%",))
+                    if Path(r["open_target"]).parent.as_posix().endswith(
+                        "/" + rel)]
+        elif kind == "branch" and rest.startswith("default:"):
+            rows = conn.execute(
+                base + "AND type_schema IS NULL ORDER BY display_label "
+                "LIMIT 40").fetchall()
+        elif kind == "branch" and rest and "." not in rest:
+            rows = conn.execute(
+                base + "AND (type_schema = ? OR type_schema LIKE ?) "
+                "ORDER BY display_label LIMIT 40",
+                (rest, rest + ".%")).fetchall()
+        else:
+            rows = []
+    except sqlite3.Error:
+        return []
+    ordinary = [r for r in rows if not path_is_protected(r["open_target"])
+                and not item_is_sensitive(conn, r["item_id"])]
+    # A folder question is about SOME of the folder's files (those nothing
+    # could read); its examples are shown only when they are all of them.
+    if kind == "folder" and count is not None and len(ordinary) != count:
+        return []
+    names: list[str] = []
+    for r in ordinary:
+        if r["display_label"] not in names and not wording_problems(
+                r["display_label"]):
+            names.append(r["display_label"])
+        if len(names) == 3:
+            break
+    return names
+
+
+def question_event(q, index: int, of: int, conn=None):
+    """A sorter question in the person's words, naming the files it is
+    about. A prompt whose subject was an internal code (and so would read
+    "Which of these is?") is replaced by the files themselves; the sorter's
+    options are kept exactly."""
     from assistant.events import Option, Question
+    m = re.match(r"\s*(\d[\d,]*) files?\b", q.evidence_context or "")
+    stated = int(m.group(1).replace(",", "")) if m else None
+    names = _question_files(conn, q, stated)
+    count = stated if stated is not None else len(names)
+    text, holes = _plain_and_holes(q.prompt, q.options)
+    e_g = f" (e.g. {', '.join(names)})" if names else ""
+    if holes or not text:
+        they = "it" if count == 1 else "they"
+        asks = (f"what {'is' if count == 1 else 'are'} {they}?"
+                if any(getattr(o, "selects_situation", None)
+                       for o in q.options)
+                else f"where should {they} live?")
+        these = ("This file" if count == 1 else
+                 f"These {count} files" if count else "Some of your files")
+        text = f"{these}{e_g} — {asks}"
+        why = _whole_sentences(q.evidence_context, q.options)
+    else:
+        why = _whole_sentences(q.evidence_context, q.options)
+        if names and not any(n in text for n in names):
+            why = (f"For example: {', '.join(names)}. " + why).strip()
     return Question(
         question_id=q.question_id,
-        text=_plain(q.prompt, q.options),
-        why=_plain(q.evidence_context, q.options),
-        changes=_plain(q.unlocks, q.options),
+        text=text,
+        why=why,
+        changes=_whole_sentences(q.unlocks, q.options),
         options=tuple(Option(id=o.option_id, label=_plain(o.label, q.options))
                       for o in q.options),
-        allow_text=True, allow_skip=True, index=index, of=of)
+        allow_text=True, allow_skip=True,
+        files_preview=tuple(names), count=count, index=index, of=of)
 
 
 def open_questions(conn: sqlite3.Connection) -> tuple:
