@@ -64,6 +64,7 @@ def main(argv=None) -> int:
     from items.decisions import reject_link
     from items.hot_index import find_files
     from items.profile_loader import load_profile
+    from items.indexing import read_document_text
     from items.refresh import refresh_index
     from items.relationships import project_witnessed_links
     from items.schema import create_items_schema
@@ -105,6 +106,7 @@ def main(argv=None) -> int:
         conn = open_database(db, scan_roots=[])
         create_items_schema(conn)
         refresh_index(conn, roots=roots, prefer_fsevents=False)
+        read_document_text(conn)
         conn.commit()
         count = conn.execute("SELECT count(*) FROM items").fetchone()[0]
         step("initial_scan", count >= 5 and "pilot-note.txt" in hits(conn, "pilotnote"),
@@ -123,6 +125,7 @@ def main(argv=None) -> int:
         note.rename(lab / "pilot-note-renamed.txt")
         (lab / "pilot-delete.txt").unlink()
         refresh_index(conn, roots=roots, prefer_fsevents=False)
+        read_document_text(conn)
         conn.commit()
         step("edit", "pilot-note-renamed.txt" in hits(conn, "pilotedited"))
         step("rename", "pilot-note.txt" not in hits(conn, "pilotedited"))

@@ -97,3 +97,39 @@ def test_an_id_card_is_protected_before_its_text_is_searchable(tmp_path):
         ask(conn, "what is my id number?", session_id="id-sess")
     assert len(sent) == 2 and "find_files" not in sent[0] and sent[1] != "[]"
     assert not any("A123456" in envelope for envelope in sent)
+
+
+def test_an_edited_file_is_owed_a_reading_and_its_old_text_stops_matching(
+        tmp_path):
+    import os
+    import time
+
+    from items.refresh import refresh_index
+
+    root = tmp_path / "home"
+    root.mkdir()
+    note = root / "essay.txt"
+    note.write_text("alpha alpha alpha", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    index_folder(conn, root)
+    read_document_text(conn)
+    assert [h.matched_by for h in find_files(conn, "alpha", limit=5).hits] \
+        == ["content"]
+    assert counts(conn).unread_documents == 0
+
+    note.write_text("beta beta beta", encoding="utf-8")
+    later = time.time() + 5
+    os.utime(note, (later, later))
+    assert refresh_index(conn, roots=[root]).reindexed
+    conn.commit()
+
+    assert counts(conn).unread_documents == 1
+    assert not find_files(conn, "alpha", limit=5).hits
+    assert not [h for h in find_files(conn, "beta", limit=5).hits
+                if h.matched_by == "content"]
+
+    assert read_document_text(conn) == 1
+    assert counts(conn).unread_documents == 0
+    assert not find_files(conn, "alpha", limit=5).hits
+    hits = find_files(conn, "beta", limit=5).hits
+    assert [h.matched_by for h in hits] == ["content"]

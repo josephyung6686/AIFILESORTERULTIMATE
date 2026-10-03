@@ -246,7 +246,8 @@ def rebuild_fts(
         label = row["display_label"] or ""
         path = row["open_target"] or ""
         source_ids = (
-            _evidence_source_ids(conn, row["file_id"]) if row["file_id"] else []
+            _evidence_source_ids(conn, row["file_id"], row["content_hash"])
+            if row["file_id"] else []
         )
         cjk_extra = cjk_bigrams(f"{label} {path} {body}")
         indexed_body = body
@@ -499,16 +500,24 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     return row is not None
 
 
-def _evidence_snippet(conn, file_id: str, n: int) -> str:
+def _evidence_has_hash(conn) -> bool:
+    return any(c[1] == "content_hash"
+               for c in conn.execute("PRAGMA table_info(evidence)"))
+
+
+def _evidence_snippet(conn, file_id: str, n: int,
+                      content_hash: str | None = None) -> str:
     if not file_id or not _table_exists(conn, "evidence"):
         return ""
     parts = []
     size = 0
+    by_hash = bool(content_hash) and _evidence_has_hash(conn)
     for row in conn.execute(
         "SELECT raw_value FROM evidence WHERE file_id = ? "
         "AND superseded_by IS NULL AND raw_value IS NOT NULL "
-        "ORDER BY rowid LIMIT 40",
-        (file_id,),
+        + ("AND content_hash = ? " if by_hash else "")
+        + "ORDER BY rowid LIMIT 40",
+        (file_id, content_hash) if by_hash else (file_id,),
     ):
         text = (row["raw_value"] or "").strip()
         if len(text) < 8:
