@@ -221,6 +221,34 @@ def test_terminal_other_words_do_not_cancel(lib):
     assert "Got it — I'll remember that." in shown
 
 
+def test_a_result_that_needs_another_yes_shows_that_prompt(lib, monkeypatch):
+    import assistant.engine_tools as et
+    conn, _ = lib
+    ran = []
+
+    def fake(conn, kind, ref, context=None):
+        ran.append((kind, ref))
+        if kind == "folder":
+            return {"ok": True, "needs_confirmation": {
+                "kind": "cloud", "ref": "here", "summary": "Use the cloud?",
+                "moves": [], "sensitive": False,
+                "on_no": {"kind": "organise_offline", "ref": "here"}}}
+        return {"ok": True, "moved": False, "undo_token": None,
+                "text": f"Ran {kind}."}
+    monkeypatch.setattr(et, "execute_confirmed", fake)
+    out = []
+    s = Session(conn, provider_turn=recording(), emit=out.append)
+    s._propose({"kind": "folder", "ref": "x", "summary": "Organise?",
+                "moves": [], "sensitive": False})
+    s.say("yes")
+    assert confirms(out)[-1].summary == "Use the cloud?"
+    assert not [e for e in out if isinstance(e, ev.Done)]
+    s.say("no")
+    assert ran[-1] == ("organise_offline", "here")
+    assert messages(out)[-1] == "Ran organise_offline."
+    assert et.level_allows(3, "cloud", 0, False) is False
+
+
 # -- the sorter's questions ---------------------------------------------------
 
 @dataclass(frozen=True)

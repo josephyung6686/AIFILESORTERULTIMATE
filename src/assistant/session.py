@@ -624,6 +624,12 @@ class Session:
             result = {"ok": False, "moved": False, "undo_token": None,
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
+        if result.get("needs_confirmation"):
+            # The step needs one more yes (organise asking about the cloud).
+            if said_yes:
+                self._note("The person said yes.")
+            self._propose(result["needs_confirmation"])
+            return
         if _forgets_conversations(proposal) and result["ok"]:
             # Forgotten means forgotten now, not from the next session.
             self.history = []
@@ -650,6 +656,12 @@ class Session:
         if proposal is None:
             self.emit(ev.Message(text="That question has already been "
                                       "answered. Nothing changed."))
+            return
+        if not yes and proposal.get("on_no"):
+            # A no that has its own next step (organise without the cloud).
+            self._capture_no(proposal)
+            self._note("The person said no.")
+            self._execute(proposal["on_no"])
             return
         if not yes:
             self._capture_no(proposal)
