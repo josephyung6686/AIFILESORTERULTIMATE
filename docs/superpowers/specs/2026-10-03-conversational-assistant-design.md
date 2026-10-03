@@ -54,6 +54,13 @@ A tool that moves files or changes a hold returns `needs_confirmation` with a on
 
 The session says once: "No AI model is set up, so I can find files, show what I've got, and undo — not chat. To chat, set DEEPSEEK_API_KEY." A small deterministic router then handles: find/where is X → `find`; status; show skipped; undo; help.
 
+## 5a. Memory (owner: rules, decisions and recent conversations)
+
+- **Decisions** — answers, holds/releases, rejected links, frozen plans — stay in the database as today.
+- **Rules** — "always put screenshots in Screenshots" becomes a `memory_rules` row after a confirm (`add_rule` finally has a caller, as a `remember_rule` tool); "what are my rules" lists them; "forget that rule" deactivates it. Rules are already injected into every prompt (`memory_v1.retrieve_for_proposal`).
+- **Corrections** — every reject, edit and correction made in chat goes to `diff_events` (wire the unused `capture_reject` / `capture_edit` / `capture_accept_correction`). Learned atoms stay dark until their release gate passes, as now.
+- **Recent conversations** — the person's words and the assistant's replies (never tool payloads, never anything about a protected or held file) of the last 5 sessions are kept in a local `conversation_turns` table. A new session starts with the last ~20 exchanges as context. "Forget our conversations" deletes them.
+
 ## 6. Safety
 
 Unchanged rules, enforced in one place: sensitivity is read live from the database plus both protection lists (Lane B); sensitive files never enter a cloud request; every provider request is a ledger row; nothing moves without a typed yes; every move is undoable.
