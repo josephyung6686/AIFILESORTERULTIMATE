@@ -311,9 +311,11 @@ class Session:
             if not target:
                 self.emit(ev.Message(text="I can't open that one."))
                 return True
-            import subprocess
-            subprocess.run(["open", target] if match.group(1) == "open"
-                           else ["open", "-R", target], check=False)
+            if not open_in_finder(target, reveal=match.group(1) == "show"):
+                self.emit(ev.Message(
+                    text="I can't open files on this Mac from here — the "
+                         f"file is at {_folder_of(target)}/"
+                         f"{Path(target).name}"))
             return True
         if words in self.undo_choices:
             token = self.undo_choices[words]
@@ -570,6 +572,22 @@ class Session:
                                    folder=_folder_of(row["open_target"]),
                                    open_target=row["open_target"]))
         return tuple(out)
+
+
+def open_in_finder(path: str, *, reveal: bool) -> bool:
+    """Open a file, or show it in Finder, through macOS itself (no child
+    process). False when this Mac's workspace API is not available."""
+    try:
+        from AppKit import NSWorkspace
+        from Foundation import NSURL
+    except ImportError:
+        return False
+    url = NSURL.fileURLWithPath_(path)
+    workspace = NSWorkspace.sharedWorkspace()
+    if reveal:
+        workspace.activateFileViewerSelectingURLs_([url])
+        return True
+    return bool(workspace.openURL_(url))
 
 
 

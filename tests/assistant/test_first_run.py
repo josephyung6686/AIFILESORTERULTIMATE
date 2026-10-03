@@ -147,10 +147,10 @@ def test_counts_in_peoples_words():
 
 
 def test_open_and_show_a_found_file(db, monkeypatch):
-    import subprocess
+    import assistant.session as session_mod
     ran = []
-    monkeypatch.setattr(subprocess, "run",
-                        lambda args, **kw: ran.append(args))
+    monkeypatch.setattr(session_mod, "open_in_finder",
+                        lambda path, reveal: ran.append((path, reveal)) or True)
     out = []
     s = Session(db, provider_turn=turns(), emit=out.append)
     s.no_model = True
@@ -158,8 +158,25 @@ def test_open_and_show_a_found_file(db, monkeypatch):
     s.say("open 1")
     s.say("show 1")
     target = out[0].citations[0].open_target if out[0].citations else None
-    assert ran[0] == ["open", target]
-    assert ran[1] == ["open", "-R", target]
+    assert ran == [(target, False), (target, True)]
+
+
+def test_without_the_mac_api_open_says_where_the_file_is(db, monkeypatch):
+    import builtins
+    real = builtins.__import__
+
+    def no_appkit(name, *a, **k):
+        if name in ("AppKit", "Foundation"):
+            raise ImportError(name)
+        return real(name, *a, **k)
+    monkeypatch.setattr(builtins, "__import__", no_appkit)
+    out = []
+    s = Session(db, provider_turn=turns(), emit=out.append)
+    s.no_model = True
+    s.say("find essay")
+    s.say("open 1")
+    assert out[-1].text.startswith("I can't open files on this Mac from here")
+    assert out[-1].text.endswith(".txt")
 
 
 def test_cancel_stops_organising_and_moves_nothing(db, tmp_path, monkeypatch):
