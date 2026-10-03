@@ -6,6 +6,7 @@ or protected (counted); `counts` reads those totals back from the database.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 from collections import deque
 from collections.abc import Callable
@@ -416,7 +417,13 @@ class _CountingSource:
 
 
 def counts(conn: sqlite3.Connection) -> IndexCounts:
-    """Indexed, set aside, protected, held and open questions, from the DB."""
+    """Indexed, set aside, protected, held and open questions, from the DB.
+
+    Every number is FILES, and indexed + set aside + protected is every file
+    under the chosen folders: indexed never includes a protected file, set
+    aside counts the files inside each set-aside folder (listed, never read),
+    and a protected container counts as one thing because it is never opened.
+    """
     from items.file_identity import item_is_sensitive
     from items.identity import excluded_areas
 
@@ -430,8 +437,8 @@ def counts(conn: sqlite3.Connection) -> IndexCounts:
     set_aside = [a for a in areas if not a["protected"]]
     protected_areas = [a for a in areas if a["protected"]]
     return IndexCounts(
-        indexed=len(live),
-        set_aside=sum(a["paths"] for a in set_aside),
+        indexed=len(live) - len(sensitive),
+        set_aside=sum(_files_under(Path(a["folder"])) for a in set_aside),
         set_aside_folders=len(set_aside),
         protected=len(protected_areas) + len(sensitive),
         held=sum(1 for row in live if row["typing_state"] == "held"),
@@ -439,6 +446,108 @@ def counts(conn: sqlite3.Connection) -> IndexCounts:
         unread_documents=len(_unread(conn)),
         unreadable_documents=_unreadable(conn),
     )
+
+
+def _files_under(path: Path) -> int:
+    """Files at or under `path`, listed with scandir and never opened.
+    Symlinks are not followed; a folder that cannot be listed counts 0."""
+    try:
+        if not path.is_dir() or path.is_symlink():
+            return 1 if path.is_file() else 0
+    except OSError:
+        return 0
+    total, folders = 0, [path]
+    while folders:
+        try:
+            with os.scandir(folders.pop()) as entries:
+                for entry in entries:
+                    if entry.is_dir(follow_symlinks=False):
+                        folders.append(Path(entry.path))
+                    elif entry.is_file(follow_symlinks=False):
+                        total += 1
+        except OSError:
+            continue
+    return total
+
+
+#: The detector's safety domain, in a person's words.
+_DOMAIN_REASONS = {
+    "identity": "looks like an ID document",
+    "medical": "health record",
+    "finance": "money or bank record",
+    "legal": "legal document",
+}
+
+
+def protected_reasons(conn: sqlite3.Connection) -> list[dict]:
+    """Each protected thing counted in `counts().protected`, and why, in
+    plain words: name, folder, reason. Nothing is opened to answer."""
+    from datetime import datetime, timezone
+
+    from cli import _RECOGNITION_MANIFEST, build_detector
+    from items.file_identity import _PROTECTED_EXTENSIONS, _PROTECTED_PARTS
+    from items.file_identity import item_is_sensitive
+    from items.identity import excluded_areas
+    from privacy.classification_store import ClassificationStore
+    from recognition.rules import load_rules
+    from scan_agent.exclusion import is_protected_container
+
+    if not _has_table(conn, "items"):
+        return []
+    out = [{"name": Path(a["folder"]).name,
+            "folder": str(Path(a["folder"]).parent),
+            "reason": "app or system item"}
+           for a in excluded_areas(conn) if a["protected"]]
+    detector = None
+    store = ClassificationStore(conn) if _has_table(
+        conn, "classifications") else None
+    rows = conn.execute(
+        "SELECT i.item_id, i.display_label, i.open_target, i.file_id, "
+        "f.content_hash FROM items i LEFT JOIN files f ON f.file_id = i.file_id "
+        "WHERE i.presence = 'live' AND i.superseded_by IS NULL "
+        "AND i.item_type = 'file'").fetchall()
+    for row in rows:
+        if not item_is_sensitive(conn, row["item_id"]):
+            continue
+        target = row["open_target"] or ""
+        lower = target.casefold()
+        parts = {part.casefold() for part in Path(target).parts}
+        try:
+            record = (store.current(row["file_id"], row["content_hash"])
+                      if store is not None and row["content_hash"] else None)
+        except Exception:                            # noqa: BLE001
+            record = None
+        if record is not None and record.basis == "user":
+            reason = "you protected it"
+        elif target and is_protected_container(target):
+            reason = "app or system item"
+        elif parts & _PROTECTED_PARTS or any(
+                lower.endswith(ext) for ext in _PROTECTED_EXTENSIONS):
+            reason = "key or password file"
+        else:
+            if detector is None:
+                detector = build_detector(
+                    conn, load_rules(_RECOGNITION_MANIFEST.read_text),
+                    now=lambda: datetime.now(timezone.utc).isoformat())
+            reason = _domain_reason(conn, detector, row["file_id"],
+                                    row["content_hash"])
+        out.append({"name": row["display_label"],
+                    "folder": str(Path(target).parent) if target else "",
+                    "reason": reason})
+    return sorted(out, key=lambda r: (r["folder"], r["name"]))
+
+
+def _domain_reason(conn, detector, file_id: str, content_hash: str) -> str:
+    """Which safety domain the rules held the file under, in plain words."""
+    try:
+        report = detector.precaution_report(
+            conn, detector.explain(conn, file_id, content_hash),
+            file_id=file_id, content_hash=content_hash)
+    except Exception:                                # noqa: BLE001
+        report = None
+    if report is None:
+        return "looks personal"
+    return _DOMAIN_REASONS.get(report.schema_id, "looks personal")
 
 
 def _unreadable(conn: sqlite3.Connection) -> int:
