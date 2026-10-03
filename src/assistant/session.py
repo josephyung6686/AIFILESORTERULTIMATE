@@ -624,7 +624,10 @@ class Session:
             result = {"ok": False, "moved": False, "undo_token": None,
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
-        if not _forgets_conversations(proposal):
+        if _forgets_conversations(proposal) and result["ok"]:
+            # Forgotten means forgotten now, not from the next session.
+            self.history = []
+        elif not _forgets_conversations(proposal):
             self._note(("The person said yes. " if said_yes else "")
                        + result["text"])
         if result["ok"] and result.get("undo_token"):

@@ -73,6 +73,23 @@ def test_forget_conversations_empties_memory(db):
     assert recent(db) == []
 
 
+def test_forget_clears_this_sessions_history_at_once(db):
+    turn = recording(text("We talked about your essay."),
+                     tool("forget_conversations", {}), text("Asked."),
+                     text("Nothing yet."))
+    s = Session(db, provider_turn=turn, emit=lambda e: None)
+    s.say("my essay is late")
+    s.say("forget our conversations")
+    s.say("yes")
+    s.say("what were we talking about?")
+    sent = [m for m in turn.seen[-1] if m["role"] != "system"]
+    assert sent[0] == {"role": "user",
+                       "content": "what were we talking about?"}
+    assert recent(db) == [
+        {"role": "user", "content": "what were we talking about?"},
+        {"role": "assistant", "content": "Nothing yet."}]
+
+
 def test_a_line_naming_a_protected_file_is_not_stored(db):
     assert save_turn(db, "s1", "assistant", "Your key is id.pem in lib") is False
     assert save_turn(db, "s1", "assistant", "Your essay is essay.txt") is True
