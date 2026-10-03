@@ -45,8 +45,6 @@ NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
 #: At most this many search matches are listed when the reply names none.
 FIND_SHOWN = 5
-#: What a dropped yes/no says: one line for every kind of prompt.
-STALE_PROMPT_LINE = "Not done — ask again if you still want it."
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
 _YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
 _NO_FIRST = {"n", "no", "nope", "nah"}
@@ -632,8 +630,12 @@ class Session:
                 len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
-        self.emit(ev.Message(text=reply, citations=self._citations(
-            self._shown_citations(answer, reply))))
+        if reply != "OK." or not (self._shown_locally or
+                                  self._protected_hits):
+            # A reply emptied by the checks above, with a list of its own
+            # on screen: the list is the answer, not a bare "OK.".
+            self.emit(ev.Message(text=reply, citations=self._citations(
+                self._shown_citations(answer, reply))))
         if self._protected_hits:
             # Protected matches are shown here, from the database, and never
             # through the model's reply.
@@ -668,7 +670,8 @@ class Session:
             return
         self.pending.pop(self.on_screen)
         self.on_screen = None
-        line = STALE_PROMPT_LINE
+        line = (f"Not done: {proposal['summary'].rstrip('?.')}. "
+                f"{_nothing(proposal)} Ask again if you still want it.")
         self._note(line)
         self.emit(ev.Message(text=line))
 
