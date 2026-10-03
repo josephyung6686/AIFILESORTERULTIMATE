@@ -99,6 +99,36 @@ def test_an_id_card_is_protected_before_its_text_is_searchable(tmp_path):
     assert not any("A123456" in envelope for envelope in sent)
 
 
+def _stored_text(conn) -> str:
+    rows = [r[0] for r in conn.execute("SELECT body FROM item_fts")]
+    rows += [r[0] for r in conn.execute("SELECT text FROM item_chunks")]
+    return " ".join(rows)
+
+
+def test_a_protected_container_and_a_key_are_never_opened(tmp_path):
+    from items.hot_index import rebuild_fts
+    from items.refresh import refresh_index
+
+    root = tmp_path / "home"
+    (root / "Foo.app" / "Contents").mkdir(parents=True)
+    (root / "Foo.app" / "Contents" / "note.txt").write_text(
+        "zebrafruit inside a bundle", encoding="utf-8")
+    (root / "server.pem").write_text("quokkaword private key", encoding="utf-8")
+    (root / "essay.txt").write_text("plain essay text", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    index_folder(conn, root)
+    rebuild_fts(conn)
+    refresh_index(conn, roots=[root])
+    read_document_text(conn)
+    refresh_index(conn, roots=[root])
+    rebuild_fts(conn)
+
+    stored = _stored_text(conn)
+    assert "zebrafruit" not in stored and "quokkaword" not in stored
+    assert not find_files(conn, "zebrafruit", limit=5).hits
+    assert not find_files(conn, "quokkaword", limit=5).hits
+
+
 def test_an_edited_file_is_owed_a_reading_and_its_old_text_stops_matching(
         tmp_path):
     import os
@@ -108,10 +138,12 @@ def test_an_edited_file_is_owed_a_reading_and_its_old_text_stops_matching(
 
     root = tmp_path / "home"
     root.mkdir()
-    note = root / "essay.txt"
+    note = root / "n.txt"
     note.write_text("alpha alpha alpha", encoding="utf-8")
     conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
     index_folder(conn, root)
+    # Seen by name only: its text is not in search until it has been read.
+    assert "alpha" not in _stored_text(conn)
     read_document_text(conn)
     assert [h.matched_by for h in find_files(conn, "alpha", limit=5).hits] \
         == ["content"]
@@ -127,9 +159,58 @@ def test_an_edited_file_is_owed_a_reading_and_its_old_text_stops_matching(
     assert not find_files(conn, "alpha", limit=5).hits
     assert not [h for h in find_files(conn, "beta", limit=5).hits
                 if h.matched_by == "content"]
+    # The stored text itself: neither the old words nor the unread new ones.
+    assert "alpha" not in _stored_text(conn)
+    assert "beta" not in _stored_text(conn)
 
     assert read_document_text(conn) == 1
     assert counts(conn).unread_documents == 0
+    assert "beta" in _stored_text(conn) and "alpha" not in _stored_text(conn)
     assert not find_files(conn, "alpha", limit=5).hits
     hits = find_files(conn, "beta", limit=5).hits
     assert [h.matched_by for h in hits] == ["content"]
+
+
+def test_the_disk_fallback_never_opens_a_protected_path(tmp_path):
+    from items.hot_index import rebuild_fts
+    from items.identity import reconcile_tree
+    from items.index_refresh import ensure_search_ready
+    from items.schema import create_items_schema
+
+    root = tmp_path / "home"
+    (root / ".ssh").mkdir(parents=True)
+    (root / ".ssh" / "notes.txt").write_text("quokkaword secret", encoding="utf-8")
+    (root / "Foo.app" / "Contents").mkdir(parents=True)
+    (root / "Foo.app" / "Contents" / "note.txt").write_text(
+        "zebrafruit bundle", encoding="utf-8")
+    (root / "essay.txt").write_text("plain essay text", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    reconcile_tree(conn, root)
+    ensure_search_ready(conn)
+    rebuild_fts(conn)
+
+    stored = _stored_text(conn)
+    assert "plain essay" in stored
+    assert "zebrafruit" not in stored and "quokkaword" not in stored
+    assert not find_files(conn, "quokkaword", limit=5).hits
+
+
+def test_old_evidence_under_a_changed_hash_is_not_the_body(tmp_path):
+    """Same file row, new content hash: the old reading is not its text."""
+    from items.index_refresh import upsert_item_index
+
+    root = tmp_path / "home"
+    root.mkdir()
+    (root / "n.txt").write_text("alpha alpha alpha", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    index_folder(conn, root)
+    read_document_text(conn)
+    item = conn.execute("SELECT item_id FROM items").fetchone()["item_id"]
+    upsert_item_index(conn, item)
+    assert "alpha" in _stored_text(conn)
+
+    conn.execute("UPDATE items SET content_hash = 'edited-hash'")
+    upsert_item_index(conn, item)
+
+    assert "alpha" not in _stored_text(conn)

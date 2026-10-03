@@ -379,15 +379,20 @@ def _read_file_body(path: str | None, *, limit: int = BODY_FILE_CHARS) -> str:
 
 
 def _body_for_item(conn: sqlite3.Connection, row, *, evidence_chars: int) -> str:
+    from items.file_identity import item_is_sensitive, path_is_protected
     from items.hot_index import _evidence_snippet
 
+    # Protected and sensitive items are marked and counted, never opened.
+    if path_is_protected(row["open_target"] or "") or (
+            "item_id" in row.keys() and item_is_sensitive(conn, row["item_id"])):
+        return ""
     if row["file_id"]:
         # Only the version on disk now: an edited file's old text is not its
         # body. A file the sorter has recorded by name has no body to cite
         # until `read_document_text` has judged and read it.
         body = _evidence_snippet(
             conn, row["file_id"], evidence_chars, row["content_hash"])
-        if body or _recorded_by_name(conn, row["content_hash"]):
+        if body or _recorded_by_name(conn, row["file_id"]):
             return body
     from items.project import project_body
     target = Path(row["open_target"] or "")
@@ -396,12 +401,12 @@ def _body_for_item(conn: sqlite3.Connection, row, *, evidence_chars: int) -> str
     return _read_file_body(row["open_target"], limit=evidence_chars)
 
 
-def _recorded_by_name(conn: sqlite3.Connection, content_hash: str | None) -> bool:
+def _recorded_by_name(conn: sqlite3.Connection, file_id: str | None) -> bool:
     from items.hot_index import _table_exists
 
-    return bool(content_hash) and _table_exists(conn, "extraction_runs") and (
-        conn.execute("SELECT 1 FROM extraction_runs WHERE content_hash = ? "
-                     "LIMIT 1", (content_hash,)).fetchone() is not None)
+    return bool(file_id) and _table_exists(conn, "extraction_runs") and (
+        conn.execute("SELECT 1 FROM extraction_runs WHERE file_id = ? "
+                     "LIMIT 1", (file_id,)).fetchone() is not None)
 
 
 def _evidence_source_ids(conn: sqlite3.Connection, file_id: str | None,
