@@ -1612,3 +1612,43 @@ def test_an_observation_that_is_only_the_identifier_still_cannot_second_itself(
     assert isinstance(outcome, Abstention), (
         f"a term that is the whole observation seconded itself: {outcome}")
     assert outcome.reason == "no_corroboration"
+
+
+def test_the_matches_are_read_once_until_the_files_readings_change(db, tmp_path):
+    """One recognition asks `_matches` about fifteen times for one file. It is read
+    once while the readings stand, and read again the moment one is written."""
+    file_id, content_hash = a_file(db, tmp_path, "notes.pdf",
+                                   body="Problem set 3 is due.")
+    engine = detector(rule_set(ACADEMIC))
+    reads = []
+    real = engine._read_matches
+
+    def counted(*args):
+        reads.append(args)
+        return real(*args)
+
+    engine._read_matches = counted
+    first, _ = engine._matches(db, file_id, content_hash)
+    again, _ = engine._matches(db, file_id, content_hash)
+    assert again == first and len(reads) == 1
+    again.clear()
+    assert engine._matches(db, file_id, content_hash)[0] == first
+
+    RunWriter(db, author="P5").write(ExtractionResult(
+        run=run(file_id=file_id, content_hash=content_hash,
+                extractor_name="pdf.text", extractor_version="0.2.0",
+                source_type="text_document", analysis_tier="native", config={},
+                completeness="complete", coverage=coverage("files", 1, 1),
+                observation_count=1, started_at=CLOCK, finished_at=CLOCK),
+        observations=(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="pdf.text", extractor_version="0.2.0",
+            source_type="text_document", raw_value="See the syllabus.",
+            location=location(zone="body"), observed_at=CLOCK,
+            reliability="possible"),)))
+    after, _ = engine._matches(db, file_id, content_hash)
+    assert len(reads) == 2
+    assert {match.term for match in after} == (
+        {match.term for match in first} | {"syllabus"})
+    assert after == detector(rule_set(ACADEMIC))._matches(
+        db, file_id, content_hash)[0]

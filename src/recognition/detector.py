@@ -844,6 +844,14 @@ class Detector:
             for schema_id, schema in rules.schemas.items()}
         self._prefixes = {tokens[:length] for tokens in self._index
                           for length in range(1, len(tokens))}
+        #: `_matches`' last answer, and what it was an answer to. One file's
+        #: recognition asks the same question about fifteen times in a row, and each
+        #: asking re-tokenised every reading the file has. The answer stands for as
+        #: long as the version's live readings do, so the key carries the readings'
+        #: own shape -- how many, the newest, how many superseded -- and a row
+        #: written or superseded since is a different key. One entry: the asking is
+        #: consecutive, and a long run must not hold every file's matches.
+        self._last_matches: tuple[object, tuple[list[TermMatch], set[str]]] | None = None
 
     # --- reading -------------------------------------------------------------
 
@@ -879,6 +887,20 @@ class Detector:
         evidence and says nothing about the machine's directory chain, so the
         file's own name is untouched.
         """
+        shape = conn.execute(
+            "SELECT count(*), max(rowid), count(superseded_by) FROM evidence "
+            "WHERE file_id = ? AND content_hash = ?",
+            (file_id, content_hash)).fetchone()
+        key = (conn, file_id, content_hash, tuple(shape))
+        if self._last_matches is None or self._last_matches[0] != key:
+            self._last_matches = (key, self._read_matches(conn, file_id, content_hash))
+        found, source_types = self._last_matches[1]
+        # Copies, so a caller that edits its answer cannot edit the next caller's.
+        return list(found), set(source_types)
+
+    def _read_matches(self, conn: sqlite3.Connection, file_id: str,
+                      content_hash: str) -> tuple[list[TermMatch], set[str]]:
+        """`_matches`' reading, done once per version of the file's readings."""
         found: list[TermMatch] = []
         source_types: set[str] = set()
         #: (schema, term) -> where its ONE match sits in `found`. An index rather
@@ -983,7 +1005,7 @@ class Detector:
                 if not text:
                     continue
                 observation_tokens = _tokens(text)
-                for term, owners in self._terms_in(text):
+                for term, owners in self._terms_in(text, observation_tokens):
                     # Is the term the WHOLE observation? `_terms_in` yields the
                     # tokeniser's own spelling, so this is a tuple comparison and
                     # never a second parse of the text.
@@ -1013,7 +1035,8 @@ class Detector:
                             found[at] = match
         return found, source_types
 
-    def _terms_in(self, text: str) -> Iterable[tuple[str, tuple[str, ...]]]:
+    def _terms_in(self, text: str, tokens: tuple[str, ...] | None = None
+                  ) -> Iterable[tuple[str, tuple[str, ...]]]:
         """Authored terms present in this text as whole-word phrases.
 
         A SHORTER TERM INSIDE A LONGER ONE IS STILL YIELDED, and the attempt to
@@ -1037,8 +1060,11 @@ class Detector:
         passport, visa and driver-licence rows cover all three `identity` work
         types. An over-release is worse than an over-protection, so the covered
         term stays evidence and the cure belongs to the vocabulary.
+
+        `tokens`, when given, is `_tokens(text)` already computed by the caller.
         """
-        tokens = _tokens(text)
+        if tokens is None:
+            tokens = _tokens(text)
         for start in range(len(tokens)):
             for end in range(start + 1, len(tokens) + 1):
                 candidate = tokens[start:end]
