@@ -874,8 +874,9 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         return _proposal(
             "cloud", str(path),
             "Organising works much better if the AI reads short excerpts of "
-            "your ordinary files (never protected ones). Allow for "
-            f"{_home_words(path)}?",
+            "your ordinary files — never protected ones. Allow for "
+            f"{_home_words(path)}? No: I'll organise without the AI; the "
+            "result will be rougher.",
             on_no={"kind": "organise_offline", "ref": str(path)})
     conn.commit()
     stream = _ProgressStream(context)
