@@ -40,6 +40,7 @@ def test_apply_updates_items_open_target(conn, tmp_path: Path, monkeypatch):
             item_id=row["item_id"], src=row["open_target"],
             dst=str(dst), file_id=row["file_id"],
             content_hash=_hash(src),
+            root_scope=str(tmp_path.resolve()),
         ),
     ))
     approve_plan(

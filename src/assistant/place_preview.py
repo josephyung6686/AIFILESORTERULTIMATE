@@ -42,7 +42,7 @@ class PlacePreview:
 
 
 def _file_hash(path: Path) -> str | None:
-    if not path.is_file() or path.is_symlink():
+    if path.is_symlink() or not path.is_file():
         return None
     h = hashlib.sha256()
     with path.open("rb") as fh:
