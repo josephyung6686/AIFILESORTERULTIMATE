@@ -158,6 +158,39 @@ def test_question_counts_agree_everywhere(lib, monkeypatch):
     assert waiting == ["1 question is waiting for an answer."]
 
 
+# -- 2. no id leak, no junk tail ------------------------------------------------
+
+def test_an_id_fragment_line_never_reaches_the_screen(lib):
+    conn, _ = lib
+    out = []
+    s = Session(conn, provider_turn=turns(
+        text("Your resume is on the Desktop.\nCite: -56b1-4793-9f82-")),
+        emit=out.append)
+    s.say("where is my resume?")
+    assert said(out) == ["Your resume is on the Desktop."]
+
+
+def test_a_find_answer_shows_the_named_file_not_the_junk_tail(lib):
+    conn, root = lib
+    for folder in ("cache", "Old page_files", "notes"):
+        (root / folder).mkdir()
+        for i in range(3):
+            (root / folder / f"resume part {i}.txt").write_text(
+                "resume words", encoding="utf-8")
+    reconcile_tree(conn, root)
+    rebuild_fts(conn)
+    conn.commit()
+    out = []
+    s = Session(conn, provider_turn=turns(
+        tool("find_files", {"query": "resume"}),
+        text("Your resume is Resume 2026.docx on the Desktop.")),
+        emit=out.append)
+    s.say("where is my resume?")
+    shown = [c.name for e in out if isinstance(e, ev.Message)
+             for c in e.citations]
+    assert shown == ["Resume 2026.docx"]
+
+
 # -- 7. rendering ------------------------------------------------------------
 
 @pytest.mark.parametrize("raw, want", [

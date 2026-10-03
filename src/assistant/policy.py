@@ -313,7 +313,8 @@ def parse_answer_citations(text: str) -> list[str]:
     """Extract item_id-like tokens from a Citations: line."""
     if not text:
         return []
-    m = re.search(r"(?im)^citations:\s*(.+)$", text)
+    m = re.search(r"(?im)^\W*(?:citations?|cite[sd]?|sources?)\s*:\s*(.+)$",
+                  text)
     if not m:
         return []
     body = m.group(1).strip()

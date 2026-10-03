@@ -43,6 +43,8 @@ YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
 NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 #: Commands, never answers: they cancel what is on the screen.
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
+#: At most this many search matches are listed when the reply names none.
+FIND_SHOWN = 5
 #: What a dropped yes/no says: one line for every kind of prompt.
 STALE_PROMPT_LINE = "Not done — ask again if you still want it."
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
@@ -616,8 +618,8 @@ class Session:
         # nothing waits on the screen for it.
         said = re.sub(r"^Need your answer:\s*", "", answer.text)
         reply = agree_protected_count(plain_reply(
-            self.conn, scrub_developer_text(
-                _strip_citation_line(said))),
+            self.conn, scrub_developer_text(strip_id_fragments(
+                self.conn, _strip_citation_line(said)))),
             _counts(self.conn)) or "OK."
         if self._shown_locally:
             # The Session put the list on screen; the reply never disowns it.
@@ -630,8 +632,8 @@ class Session:
                 len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
-        self.emit(ev.Message(text=reply,
-                             citations=self._citations(answer.citations)))
+        self.emit(ev.Message(text=reply, citations=self._citations(
+            self._shown_citations(answer, reply))))
         if self._protected_hits:
             # Protected matches are shown here, from the database, and never
             # through the model's reply.
@@ -965,6 +967,31 @@ class Session:
             if m["role"] == "tool" and m.get("content") != DROPPED:
                 m["content"] = DROPPED
 
+    def _shown_citations(self, answer, reply: str) -> list[str]:
+        """The files listed under a reply: the ones the model cited, then
+        the ones it named. When it did neither, the search's own top
+        matches, without cache or saved-page folders, at most a few."""
+        from assistant.policy import parse_answer_citations
+        from items.hot_index import _is_junk_path
+        ids = list(answer.citations)
+        claimed = [i for i in parse_answer_citations(answer.text)
+                   if i in ids]
+        said = reply.casefold()
+        rows = {}
+        for item_id in ids:
+            row = self.conn.execute(
+                "SELECT display_label, open_target FROM items "
+                "WHERE item_id = ?", (item_id,)).fetchone()
+            if row is not None:
+                rows[item_id] = row
+        named = [i for i in ids if i in rows and rows[i][0]
+                 and rows[i][0].casefold() in said]
+        chosen = list(dict.fromkeys(claimed + named))
+        if chosen:
+            return chosen
+        return [i for i in ids if i in rows
+                and not _is_junk_path(rows[i][1] or "")][:FIND_SHOWN]
+
     def _citations(self, item_ids) -> tuple[ev.Citation, ...]:
         out = []
         for item_id in item_ids:
@@ -1293,7 +1320,35 @@ def _strip_citation_line(text: str) -> str:
                      if not _CITATIONS_LINE.match(line)).strip()
 
 
-_CITATIONS_LINE = re.compile(r"^\W*citations?\b", re.IGNORECASE)
+_CITATIONS_LINE = re.compile(
+    r"^\W*(citations?|cite[sd]?|sources?|refs?|references?)\b\W*(:|$)",
+    re.IGNORECASE)
+#: A piece of an internal id ("-56b1-4793-9f82-"): hex groups joined by
+#: dashes. Kept only when it is part of one of the person's file names.
+_ID_FRAGMENT = re.compile(r"-?\b[0-9a-f]{4,}(?:-[0-9a-f]{4,})+\b-?",
+                          re.IGNORECASE)
+
+
+def strip_id_fragments(conn: sqlite3.Connection, text: str) -> str:
+    """The text without id pieces; a line left with nothing but a label
+    ("Cite:") goes with them."""
+    def keep(m: re.Match) -> str:
+        token = m.group(0).strip("-")
+        try:
+            named = conn.execute(
+                "SELECT 1 FROM items WHERE instr(lower(display_label), ?) "
+                "LIMIT 1", (token.lower(),)).fetchone()
+        except sqlite3.Error:
+            named = None
+        return m.group(0) if named else ""
+    out = []
+    for line in text.splitlines():
+        cleaned = _ID_FRAGMENT.sub(keep, line)
+        if cleaned != line and not re.search(
+                r"\w{2,}", re.sub(r"^\W*\w+\s*:", "", cleaned)):
+            continue
+        out.append(cleaned.rstrip())
+    return "\n".join(out).strip()
 
 #: Sentences no person should read: database files, command-line flags,
 #: model ids, sums the model worked out loud, internal snake_case codes.
