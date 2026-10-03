@@ -128,3 +128,23 @@ def test_quick_sort_leaving_a_protected_file_alone_says_so(lib):
         sensitive=proposal["sensitive"], undo_available=True))
     assert "1 protected file is left alone." in screen.getvalue()
     assert "touches protected" not in screen.getvalue()
+
+
+# -- 3. a folder this product already indexed counts as chosen ---------------
+
+def test_organise_on_an_indexed_folder_does_not_ask_to_read_it(lib):
+    from assistant.engine_tools import check_folder
+    conn, root = lib
+    s = Session(conn, provider_turn=recording(), emit=lambda e: None)
+    path, refusal = check_folder(conn, str(root), s, "organise")
+    assert refusal is None and path == root.resolve()
+
+
+def test_an_unindexed_folder_still_asks(lib, tmp_path):
+    from assistant.engine_tools import check_folder
+    conn, _ = lib
+    new = tmp_path / "new"
+    new.mkdir()
+    s = Session(conn, provider_turn=recording(), emit=lambda e: None)
+    path, refusal = check_folder(conn, str(new), s, "organise")
+    assert path is None and refusal["needs_confirmation"]["kind"] == "folder"

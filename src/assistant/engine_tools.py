@@ -584,19 +584,17 @@ def database_path(conn: sqlite3.Connection) -> str:
 
 def _chosen_by_person(conn: sqlite3.Connection, folder: Path,
                       context: Any) -> bool:
-    """A folder the person picked: in this conversation, or recorded as
-    their selection by an earlier run."""
-    if context is not None and folder in getattr(context, "chosen_folders",
-                                                 set()):
-        return True
+    """A folder the person picked: in this conversation, or one this product
+    already indexed (a recorded selection, the index's own included), or a
+    folder inside either. A folder above them was never chosen."""
+    chosen = set(getattr(context, "chosen_folders", ()) or ())
     try:
-        rows = conn.execute(
-            "SELECT sources FROM corpus_selections "
-            "WHERE selected_by IS NOT NULL").fetchall()
+        import json
+        for row in conn.execute("SELECT sources FROM corpus_selections"):
+            chosen.update(Path(s) for s in json.loads(row[0] or "[]"))
     except sqlite3.Error:
-        return False
-    import json
-    return any(str(folder) in json.loads(r[0] or "[]") for r in rows)
+        pass
+    return any(c == folder or c in folder.parents for c in chosen)
 
 
 def _chosen_by_name(conn: sqlite3.Connection, folder: str,
