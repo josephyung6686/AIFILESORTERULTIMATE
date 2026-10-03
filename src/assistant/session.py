@@ -848,9 +848,12 @@ class Session:
             self.start_questions()
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
+        hidden = self.asking
         self._confirm(confirm_id, yes)
-        if self.asking is not None and self.on_screen not in self.pending:
-            # The question the yes/no had hidden comes back.
+        if hidden is not None and self.asking is hidden and (
+                self.on_screen not in self.pending):
+            # The question the yes/no had hidden comes back (a question
+            # asked during the step was already shown).
             self.emit(self.asking)
 
     def _confirm(self, confirm_id: str, yes: bool) -> None:
@@ -978,7 +981,10 @@ class Session:
         matches, without cache or saved-page folders, at most a few."""
         from assistant.policy import parse_answer_citations
         from items.hot_index import _is_junk_path
-        ids = list(answer.citations)
+        # A citation line the model garbled leaves no valid ids; the
+        # search's own matches are still the pool to choose from.
+        ids = list(answer.citations) or list(dict.fromkeys(
+            o.item_id for o in answer.citation_objs))
         claimed = [i for i in parse_answer_citations(answer.text)
                    if i in ids]
         said = reply.casefold()
@@ -1330,7 +1336,9 @@ _CITATIONS_LINE = re.compile(
     re.IGNORECASE)
 #: A piece of an internal id ("-56b1-4793-9f82-"): hex groups joined by
 #: dashes. Kept only when it is part of one of the person's file names.
-_ID_FRAGMENT = re.compile(r"-?\b[0-9a-f]{4,}(?:-[0-9a-f]{4,})+\b-?",
+#: At least one letter a-f, so a year range such as 2024-2025 stays.
+_ID_FRAGMENT = re.compile(r"-?\b(?=[0-9a-f-]*[a-f])[0-9a-f]{4,}"
+                          r"(?:-[0-9a-f]{4,})+\b-?",
                           re.IGNORECASE)
 
 
@@ -1436,10 +1444,11 @@ def plain_reply(conn: sqlite3.Connection, text: str) -> str:
         if named is None:
             text = text.replace(token, "")
             dropped = True
+    # "inside ****" lost its name: the word goes with it, and only there.
+    text, inside = re.subn(r"\s*\binside\s+(\*\*\s*\*\*|__\s*__)(\s*,)?", "",
+                           text)
     text, emptied = _EMPTY_EMPHASIS.subn("", text)
-    if emptied:
-        # "inside ****" lost its name: the word goes with it.
-        text = re.sub(r"\s*\binside\b\s*(,|(?=\s|[.;!?]))", "", text)
+    emptied += inside
     if not dropped and not emptied:
         return text.strip()
     return re.sub(r"(?<=\S)[ \t]{2,}", " ",

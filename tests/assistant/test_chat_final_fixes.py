@@ -191,6 +191,29 @@ def test_a_find_answer_shows_the_named_file_not_the_junk_tail(lib):
     assert shown == ["Resume 2026.docx"]
 
 
+def test_a_broken_cite_line_still_lists_the_named_file(lib):
+    conn, _ = lib
+    out = []
+    s = Session(conn, provider_turn=turns(
+        tool("find_files", {"query": "resume"}),
+        text("Your resume is Resume 2026.docx.\nCite: -56b1-4793-9f82-")),
+        emit=out.append)
+    s.say("where is my resume?")
+    shown = [c.name for e in out if isinstance(e, ev.Message)
+             for c in e.citations]
+    assert shown == ["Resume 2026.docx"]
+    assert said(out) == ["Your resume is Resume 2026.docx."]
+
+
+def test_years_and_the_word_inside_survive(conn):
+    from assistant.session import plain_reply, strip_id_fragments
+    assert strip_id_fragments(conn, "Your 2024-2025 notes.") == (
+        "Your 2024-2025 notes.")
+    assert plain_reply(conn, "It sits inside **** here. The files inside "
+                             "the folder are code.") == (
+        "It sits here. The files inside the folder are code.")
+
+
 # -- 7. rendering ------------------------------------------------------------
 
 @pytest.mark.parametrize("raw, want", [
@@ -356,6 +379,7 @@ def test_organise_after_a_yes_shows_question_one_now(lib, monkeypatch):
     s._propose({"kind": "cloud", "ref": str(root), "moves": []})
     s.confirm(s.on_screen, True)
     assert isinstance(out[-1], ev.Question)
+    assert sum(isinstance(e, ev.Question) for e in out) == 1
 
 
 # -- 6. folders by name ---------------------------------------------------------
