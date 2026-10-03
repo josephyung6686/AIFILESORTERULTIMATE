@@ -142,6 +142,31 @@ def test_a_refused_lock_in_says_which_folder_and_why(tmp_path, monkeypatch):
     conn.close()
 
 
+def test_a_lock_in_that_froze_nothing_is_not_offered_again(tmp_path,
+                                                           monkeypatch):
+    # Live run, 3 Oct: lock-in reran the sorter (and its model calls),
+    # froze nothing, and the next "move AP world" offered the same yes/no.
+    import cli
+    from types import SimpleNamespace
+    from assistant.engine_tools import _freeze, freeze_plan
+    from assistant.engine_tools import put_setting
+
+    def freezes_nothing(args, out=None, **_):
+        out.write("Nothing was frozen: no file is ready to move.\n")
+        return 0
+    monkeypatch.setattr(cli, "main", freezes_nothing)
+    corpus = _course(tmp_path).resolve()
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    put_setting(conn, f"lock_in_blocked:{corpus}", "")
+    result = _freeze(conn, str(corpus), None)
+    assert not result["ok"]
+    ctx = SimpleNamespace(chosen_folders={corpus}, emit=None)
+    again = freeze_plan(conn, str(corpus), ctx)
+    assert "needs_confirmation" not in again
+    assert again["ok"] is False and again["error"] == result["text"]
+    conn.close()
+
+
 def test_a_refused_organise_says_so_and_offers_no_lock_in(tmp_path,
                                                           monkeypatch):
     # Judge 2: the organise run's refusal was thrown away, and the lock-in
