@@ -302,3 +302,32 @@ def test_a_new_confirm_hides_the_old_question_until_it_is_answered(lib):
     out.clear()
     s.say("yes")
     assert isinstance(out[-1], ev.Question)
+
+
+# -- 5. less is sent per question ----------------------------------------------
+
+def test_a_find_turn_stays_small_however_long_the_chat(lib):
+    conn, root = lib
+    for i in range(40):
+        (root / f"essay draft {i}.txt").write_text("my essay " * 100)
+    reconcile_tree(conn, root)
+    rebuild_fts(conn)
+    conn.commit()
+    sizes, tool_sizes = [], []
+
+    def turn(messages, tools, config=None, **_):
+        sizes.append(len(json.dumps({"messages": messages, "tools": tools},
+                                    default=str).encode()))
+        tool_sizes.extend(len(m["content"].encode()) for m in messages
+                          if m["role"] == "tool"
+                          and m["content"] != "[earlier result dropped]")
+        if messages[-1]["role"] == "user":
+            return tool_call("find_files", {"query": "essay", "limit": 20})
+        return text("Found your essays.")
+    s = Session(conn, provider_turn=turn, emit=lambda e: None)
+    for q in range(6):
+        s.say(f"where is my essay {q}")
+    assert max(tool_sizes) <= 6_000
+    assert max(sizes) < 25_000, sizes
+    # Earlier results are not resent: a turn adds only its own words.
+    assert (sizes[-1] - sizes[1]) / 5 < 500, sizes

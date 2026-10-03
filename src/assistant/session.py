@@ -908,6 +908,13 @@ class Session:
         return answer
 
     def _trim(self) -> None:
+        """Before each turn: earlier turns' tool results are dropped (the
+        replies built from them stay), then the oldest words if still over
+        budget. Each request then carries one turn's results, not all."""
+        for m in self.history:
+            if m["role"] == "tool":
+                m["content"] = DROPPED
+
         def total() -> int:
             return sum(len(str(m.get("content") or "")) for m in self.history)
         for m in self.history:
