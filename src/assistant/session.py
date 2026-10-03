@@ -110,6 +110,23 @@ def _counts(conn: sqlite3.Connection):
         return None
 
 
+_NUM = r"\d[\d,]*(?:\s*[–-]\s*\d[\d,]*)?"
+_PROTECTED_BEFORE = re.compile(
+    rf"\b{_NUM}(?=\s+(?:\w+\s+){{0,2}}(?:protected|held)\b)", re.IGNORECASE)
+_PROTECTED_AFTER = re.compile(
+    rf"(\bprotected(?: files)?\s*(?:\(|:\s*)){_NUM}", re.IGNORECASE)
+
+
+def agree_protected_count(text: str, c) -> str:
+    """The model's protected number, made the index's number. The Session's
+    counts line is the one authority for what the person reads."""
+    if c is None:
+        return text
+    now = str(c.protected)  # held files are already inside it
+    text = _PROTECTED_BEFORE.sub(now, text)
+    return _PROTECTED_AFTER.sub(lambda m: m.group(1) + now, text)
+
+
 def _short_reason(exc: BaseException) -> str:
     text = str(exc).lower()
     if "402" in text or "balance" in text or "credit" in text:
@@ -501,8 +518,10 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
-        reply = plain_reply(self.conn, scrub_developer_text(
-            _strip_citation_line(answer.text))) or "OK."
+        reply = agree_protected_count(plain_reply(
+            self.conn, scrub_developer_text(
+                _strip_citation_line(answer.text))),
+            _counts(self.conn)) or "OK."
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
         self.history.append({"role": "assistant", "content": reply})

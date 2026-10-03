@@ -942,7 +942,7 @@ def run_index(conn: sqlite3.Connection, path: Path,
     if context is not None:
         context.after_index(c)
     return {"ok": True, "indexed": c.indexed, "set_aside": c.set_aside,
-            "protected": c.protected + c.held, "moved": False,
+            "protected": c.protected, "moved": False,
             "text": counts_sentence(c)}
 
 
