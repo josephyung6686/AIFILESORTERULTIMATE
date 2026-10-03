@@ -43,8 +43,6 @@ YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
 NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
 #: Commands, never answers: they cancel what is on the screen.
 CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
-#: At most this many search matches are listed when the reply names none.
-FIND_SHOWN = 5
 SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
 _YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
 _NO_FIRST = {"n", "no", "nope", "nah"}
@@ -980,16 +978,16 @@ class Session:
 
     def _shown_citations(self, answer, reply: str) -> list[str]:
         """The files listed under a reply: the ones the model cited, then
-        the ones it named. When it did neither, the search's own top
-        matches, without cache or saved-page folders, at most a few."""
+        the ones it named -- nothing else, so a list never pads a reply
+        that names no file. A reply saying nothing was found lists only
+        files it names."""
         from assistant.policy import parse_answer_citations
-        from items.hot_index import _is_junk_path
         # A citation line the model garbled leaves no valid ids; the
         # search's own matches are still the pool to choose from.
         ids = list(answer.citations) or list(dict.fromkeys(
             o.item_id for o in answer.citation_objs))
-        claimed = [i for i in parse_answer_citations(answer.text)
-                   if i in ids]
+        claimed = [] if _NOT_FOUND.search(reply) else [
+            i for i in parse_answer_citations(answer.text) if i in ids]
         said = reply.casefold()
         rows = {}
         for item_id in ids:
@@ -1000,11 +998,7 @@ class Session:
                 rows[item_id] = row
         named = [i for i in ids if i in rows and rows[i][0]
                  and rows[i][0].casefold() in said]
-        chosen = list(dict.fromkeys(claimed + named))
-        if chosen:
-            return chosen
-        return [i for i in ids if i in rows
-                and not _is_junk_path(rows[i][1] or "")][:FIND_SHOWN]
+        return list(dict.fromkeys(claimed + named))
 
     def _citations(self, item_ids) -> tuple[ev.Citation, ...]:
         out = []
