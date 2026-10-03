@@ -70,3 +70,10 @@ env HOME=/tmp/x PYTHONPATH=src python3 -m database_agent.entrypoint   # isolated
 RELEASE_DEP_WHEELHOUSE=/private/tmp/graph-agent-release-deps bash tools/run_release_gates.sh
 ```
 Tests: one pytest at a time (`/tmp/graph-agent-pytest.lock` convention); tests never touch the real `~/.graph-agent` (autouse guard in `tests/conftest.py`).
+
+## Session of 4 Oct (afternoon) — progress
+
+- **Everyday chat:** user-judge round 4 (live, 33-file sample) = Intuitive 7, Works 8. Five defects fixed and merged (K4, merge 247000ad): dropped yes/no names what was dropped; protected files shown only when they match as well as an ordinary hit; the list under a reply is only what the reply names; background reading never splices into a reply and newly protected files are named; "undo that" asks once. tests/assistant + tests/items 605 passed. Not re-judged yet. **Owner:** a school attendance record is *ordinary* by the design (`00`:333, `privacy/vocabulary.py:664`), so its content may be sent; protecting school records would be a new protected kind.
+- **Sorter:** model-named situations now open top-level life branches (O1, merges 9c67693e + f3125f01): `cli.draft_for_review` drafts a branch's judge-named files where P9 formed no group (`104`:2081 gap); default kind voted judge > facts > readings; a one-kind branch of two situations asks its open files. Live 33-file run: 8 placed, 15 waiting on a question, 9 no destination (≈6 protected). Borrowed P9 words (`strongly-identified-file`, `compatible-document-type`) kept — an honest new word is a contract revision (owner).
+- **User-judge round 5 (organise via chat):** Intuitive 3, Works 2 — chat claimed 7 moves, 1 happened; one prompt per folder; undo one step only; plan places ~8/33; answers don't change the tree; jargon/duplicate questions. Fix agents running: **K5** (chat side, src/assistant) and **O2** (sorter side). Then re-judge both halves.
+- Disk: 167 merged/clean worktrees removed (branches kept); 17 with uncommitted work kept.
