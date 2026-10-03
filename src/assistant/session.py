@@ -614,10 +614,14 @@ class Session:
             q = self.asking
             options = "; ".join(f"{i}) {o.label}"
                                 for i, o in enumerate(q.options, start=1))
+            from assistant.registry import ENGINE_TOOLS
+            record = ("call answer_question with their words"
+                      if "answer_question" in ENGINE_TOOLS else
+                      "tell them to pick a number or type s to skip")
             return ("On the person's screen right now: the question "
                     f"“{q.text}” (options: {options}). If their newest "
-                    "message answers it, call answer_question with their "
-                    "words; if they ask about it, explain and leave it open.")
+                    f"message answers it, {record}; if they ask about it, "
+                    "explain and leave it open.")
         return ("Nothing is waiting on the person's screen right now: no "
                 "yes/no prompt and no question. Never say something is "
                 "waiting for them. A prompt earlier in the conversation that "
@@ -1127,7 +1131,8 @@ _CITATIONS_LINE = re.compile(r"^\W*citations?\b", re.IGNORECASE)
 _DEVELOPER = (
     re.compile(r"\S*\.sqlite\w*\b"),
     re.compile(r"(?<![\w-])--[a-z][\w-]*"),
-    re.compile(r"\bcitations?\b", re.IGNORECASE),
+    re.compile(r"\bno citations?\b|\bcitations? (needed|line)\b"
+               r"|\bnothing to cite\b", re.IGNORECASE),
     re.compile(r"\b(deepseek-(chat|reasoner|v[\w.]+)|gpt-[\w.-]+|"
                r"claude-[\w.-]+|o[134]-mini)\b", re.IGNORECASE),
     # Two or more of + × * = between numbers; never - or /, so dates stay.

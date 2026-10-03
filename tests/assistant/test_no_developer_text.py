@@ -29,6 +29,12 @@ def test_a_model_reply_is_scrubbed(conn):
     assert "Your essay is in Documents." in said
 
 
+def test_a_students_sentence_about_citations_stays():
+    line = "Your essay's citation list is on page 4, with 12 citations."
+    assert scrub_developer_text(line) == line
+    assert scrub_developer_text("No citations needed here.") == ""
+
+
 def test_a_file_name_with_underscores_and_dates_stay():
     assert "my_cv_2024.pdf" in scrub_developer_text("Open my_cv_2024.pdf now.")
     line = "Screenshot 2024-05-10 at 11.08.35 PM.png is on 5/10/2024."
