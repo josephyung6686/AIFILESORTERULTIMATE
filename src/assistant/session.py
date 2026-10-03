@@ -392,7 +392,7 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
-        reply = _strip_citation_line(answer.text)
+        reply = plain_reply(self.conn, _strip_citation_line(answer.text))
         self.history.append({"role": "assistant", "content": answer.text})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
@@ -515,7 +515,8 @@ class Session:
                               engine_context=self)
         self._proposals = runtime.pending_confirmations
         messages = [{"role": "system",
-                     "content": build_system_prompt(self.conn, text)},
+                     "content": build_system_prompt(self.conn, text)
+                     + "\n" + PLAIN_WORDS},
                     *self.history]
         # `converse` appends the model turns and tool replies; the history
         # keeps the tool messages (between the last user line and the answer)
@@ -635,3 +636,53 @@ def _strip_citation_line(text: str) -> str:
     the citations as names instead."""
     return "\n".join(line for line in text.splitlines()
                      if not line.lower().startswith("citations:")).strip()
+
+
+PLAIN_WORDS = (
+    "Speak in plain words a student or a job-seeker uses. Never say internal "
+    "state names or codes: not unplaced, typed, held, schema ids, situation "
+    "codes, branch ids or item ids. Say \"not sorted yet\", not "
+    "\"unplaced\"; say \"protected\", not \"held\"; name a folder the way "
+    "the plan shows it.")
+
+#: State words a person should never read, and what to say instead. "typed"
+#: is ordinary English after you/I, so only the state use is replaced.
+_STATE_WORDS = (
+    (re.compile(r"\bunplaced\b"), "not sorted yet"),
+    (re.compile(r"\bUnplaced\b"), "Not sorted yet"),
+    (re.compile(r"\b(?:held|typing_state)\b(?! (?:off|on|up|back)\b)"),
+     "protected"),
+    (re.compile(r"\bHeld\b(?! (?:off|on|up|back)\b)"), "Protected"),
+    (re.compile(r"(?<!\byou )(?<!\bI )(?<!\bwe )\buntyped\b"),
+     "not recognised yet"),
+    (re.compile(r"(?<!\byou )(?<!\bI )(?<!\bwe )(?<!\bYou )\btyped\b"),
+     "recognised"),
+)
+
+
+def plain_reply(conn: sqlite3.Connection, text: str) -> str:
+    """The model's reply with internal words replaced, whatever it emitted.
+
+    Codes (`wording_problems`) are dropped unless they are part of a file
+    name in the reply or of a name this database holds -- a person's file
+    called `my_cv.pdf` keeps its name."""
+    from assistant.engine_tools import wording_problems
+    for pattern, words in _STATE_WORDS:
+        text = pattern.sub(words, text)
+    dropped = False
+    for token in wording_problems(text):
+        if re.search(re.escape(token) + r"[\w-]*\.[A-Za-z0-9]{1,5}\b", text):
+            continue
+        try:
+            named = conn.execute(
+                "SELECT 1 FROM items WHERE instr(lower(display_label), ?) "
+                "LIMIT 1", (token,)).fetchone()
+        except sqlite3.Error:
+            named = None
+        if named is None:
+            text = text.replace(token, "")
+            dropped = True
+    if not dropped:
+        return text.strip()
+    return re.sub(r"(?<=\S)[ \t]{2,}", " ",
+                  re.sub(r"[ \t]+([?.,!:;])", r"\1", text)).strip()

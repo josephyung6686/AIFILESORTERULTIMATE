@@ -100,6 +100,29 @@ def test_an_extra_open_action_is_harmless(conn):
     assert not [e for e in events if e["type"] == "error"]
 
 
+# -- plain words --------------------------------------------------------------
+
+def test_the_model_is_told_to_speak_plainly(conn):
+    turn = _scripted({"role": "assistant", "content": "Hello."})
+    Session(conn, provider_turn=turn, emit=lambda e: None).say("hi")
+    assert "not sorted yet" in turn.seen[0] and "unplaced" in turn.seen[0]
+
+
+def test_internal_words_the_model_emits_are_replaced(conn):
+    out = []
+    turn = _scripted({"role": "assistant", "content": (
+        "3 files are unplaced and 2 are held under academic.coursework "
+        "(version_e496ca34_12). You typed my_resume.pdf, which I held off "
+        "moving.")})
+    Session(conn, provider_turn=turn, emit=out.append).say("what's left?")
+    said = [e.text for e in out if isinstance(e, ev.Message)][-1]
+    assert "not sorted yet" in said and "2 are protected" in said
+    for code in ("unplaced", "academic.coursework", "version_e496ca34_12"):
+        assert code not in said
+    # Ordinary English and a person's own file name are left alone.
+    assert "You typed my_resume.pdf, which I held off moving." in said
+
+
 # -- protected names never reach the model (spec §3) -------------------------
 
 def _scripted(*replies):
