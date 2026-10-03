@@ -101,10 +101,10 @@ def _held(row) -> bool:
 
 def _set_aside_by_rule(conn: sqlite3.Connection) -> dict[str, int]:
     """Paths the latest scan set aside, per rule: marked and counted."""
-    if _table(conn, "exclusion_verdicts"):
+    if _table(conn, "scan_runs"):
         last = conn.execute(
-            "SELECT scan_run_id FROM exclusion_verdicts "
-            "ORDER BY verdict_id DESC LIMIT 1").fetchone()
+            "SELECT scan_run_id FROM scan_runs "
+            "ORDER BY started_at DESC, rowid DESC LIMIT 1").fetchone()
         if last is not None:
             from scan_agent.summary import scan_run_summary
             return dict(scan_run_summary(

@@ -152,6 +152,13 @@ def test_folders_the_sorter_set_aside_are_counted(tmp_path):
         "SELECT count(DISTINCT path) FROM exclusion_verdicts").fetchone()[0]
     assert aside > 0
     assert sum(ot.show_tree(conn)["set_aside_by_rule"].values()) == aside
+    # The count is the LATEST scan's: the project gone, nothing is set aside.
+    for child in project.iterdir():
+        child.unlink()
+    project.rmdir()
+    assert cli.main([str(corpus), "--user", "t", "--database", str(database),
+                     "--stop-after", "tree"], out=io.StringIO()) == 0
+    assert ot.show_tree(conn)["set_aside_by_rule"] == {}
 
 
 def test_a_tree_with_no_placements_yet_says_so(tmp_path):
