@@ -12318,10 +12318,13 @@ def draft_for_review(conn: sqlite3.Connection,
             on_accepted(merged_id, branch)
         drafted.append(merged_id)
     if branches and situation_evidence_of is not None:
-        covered = {membership.file_id for group_id in drafted
-                   for membership in memberships_for_group(conn, group_id)}
+        # A (branch, kind) P9 already drafted has its folder; the files of it
+        # no P9 group carries are placed into that branch as they always were.
+        opened = {(branch.label, category)
+                  for branch, category, _label, _bucket in buckets
+                  if branch is not None}
         for branch, merged_id in _drafts_of_the_files_the_judge_named(
-                conn, branches, covered=covered,
+                conn, branches, opened=opened,
                 evidence_of=situation_evidence_of, domain_of=domain_of,
                 created_at=created_at):
             if on_accepted is not None:
@@ -12332,12 +12335,12 @@ def draft_for_review(conn: sqlite3.Connection,
 
 def _drafts_of_the_files_the_judge_named(
         conn: sqlite3.Connection, branches: Sequence[Branch], *,
-        covered: set[str],
+        opened: set[tuple[str, str]],
         evidence_of: Callable[[str], tuple[str, str] | None],
         domain_of: Callable[[str], str | None] | None,
         created_at: str) -> list[tuple[Branch, str]]:
-    """One draft per (branch, kind) for the files the JUDGE put there and no P9
-    group already carries.
+    """One draft per (branch, kind) for the files the JUDGE put there, where P9
+    drafted nothing for that (branch, kind).
 
     **WHY THIS EXISTS.** `partition_by_branch` opens a life branch for every
     life the judge's named situations reach (`00` amendment 12, planning/00:352,
@@ -12371,8 +12374,6 @@ def _drafts_of_the_files_the_judge_named(
     for branch in branches:
         by_domain: dict[str, list[tuple[str, str, str]]] = {}
         for file_id in branch.file_ids:
-            if file_id in covered:
-                continue
             named = evidence_of(file_id)
             kind = branch.kind_of(file_id)
             if named is None or kind is None:
@@ -12383,6 +12384,8 @@ def _drafts_of_the_files_the_judge_named(
                 continue
             by_domain.setdefault(domain, []).append((file_id, *named))
         for domain, members in sorted(by_domain.items()):
+            if (branch.label, domain) in opened:
+                continue
             out.append((branch, _draft_the_named(
                 conn, members, group_category=domain,
                 label=branch.folder_name, created_at=created_at)))
