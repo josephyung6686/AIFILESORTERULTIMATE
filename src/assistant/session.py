@@ -617,6 +617,7 @@ class Session:
 
     def _execute(self, proposal: dict, said_yes: bool = False) -> None:
         from assistant.engine_tools import execute_confirmed
+        before = _before_moving(self.conn, proposal)
         try:
             result = execute_confirmed(self.conn, proposal["kind"],
                                        proposal["ref"], context=self)
@@ -624,6 +625,9 @@ class Session:
             result = {"ok": False, "moved": False, "undo_token": None,
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
+        if result.get("ok") and proposal["kind"] in ("plan", "undo",
+                                                     "branch"):
+            result = _as_moved(self.conn, proposal, before, result)
         if result.get("needs_confirmation"):
             # The step needs one more yes (organise asking about the cloud).
             if said_yes:
@@ -773,6 +777,115 @@ class Session:
                                    matched_by=_matched_by(
                                        self.conn, row["content_hash"])))
         return tuple(out)
+
+
+# -- what really moved ---------------------------------------------------------
+
+CREATED_DDL = """
+CREATE TABLE IF NOT EXISTS assistant_created_folders (
+    plan_id TEXT NOT NULL,
+    folder TEXT NOT NULL,
+    PRIMARY KEY (plan_id, folder)
+);
+"""
+
+
+def _journal_mark(conn: sqlite3.Connection) -> int:
+    try:
+        return conn.execute("SELECT COALESCE(MAX(rowid), 0) "
+                            "FROM move_journal").fetchone()[0]
+    except sqlite3.Error:
+        return 0
+
+
+def _before_moving(conn: sqlite3.Connection, proposal: dict) -> dict:
+    """What to compare against after a move: the folders a sort will create,
+    and where the sorter's journal ends."""
+    created: list[Path] = []
+    if proposal.get("kind") == "plan":
+        for move in proposal.get("moves") or ():
+            folder = Path(move["to"]).parent
+            while not folder.exists() and folder not in created and (
+                    folder != folder.parent):
+                created.append(folder)
+                folder = folder.parent
+    return {"created": created, "journal": _journal_mark(conn)}
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def _as_moved(conn: sqlite3.Connection, proposal: dict, before: dict,
+              result: dict) -> dict:
+    """The result's words rebuilt from the disk and the journals: a count of
+    files that really moved, or "Nothing moved" with the reason."""
+    kind, ref = proposal["kind"], str(proposal["ref"])
+    is_plan = kind == "plan" or ref.startswith("plan:")
+    undoing = kind == "undo"
+    if is_plan:
+        plan_id = ref.partition(":")[2] if undoing else ref
+        try:
+            rows = conn.execute("SELECT src, dst FROM assistant_plan_ops "
+                                "WHERE plan_id = ?", (plan_id,)).fetchall()
+        except sqlite3.Error:
+            rows = []
+        here, gone = (0, 1) if undoing else (1, 0)
+        n = sum(1 for r in rows
+                if Path(r[here]).exists() and not Path(r[gone]).exists())
+        where = ", ".join(sorted({Path(r[1]).parent.name for r in rows}))
+    else:
+        where = ref.rpartition("|")[2]
+        try:
+            rows = conn.execute(
+                "SELECT destination_path FROM move_journal WHERE rowid > ?",
+                (before["journal"],)).fetchall()
+        except sqlite3.Error:
+            rows = []
+        n = sum(1 for r in rows if Path(r[0]).exists())
+    if n == 0:
+        why = ("the files weren't where I left them, so nothing was put "
+               "back" if undoing else
+               "the files weren't where I expected, so I left everything "
+               "as it was" if is_plan else
+               f"the plan had no files ready to move into {where}")
+        return {"ok": True, "moved": False, "undo_token": None,
+                "text": f"Nothing moved — {why}."}
+    them = "it" if n == 1 else "them"
+    if undoing:
+        text = (f"Put {_plural(n, 'file')} back where "
+                f"{'it was' if n == 1 else 'they were'}." if is_plan else
+                f"Put {_plural(n, 'file')} from {where} back.")
+    else:
+        text = (f"Moved {_plural(n, 'file')} into {where}. Say undo to put "
+                f"{them} back.")
+    if is_plan:
+        _created_folders(conn, plan_id, before["created"], undoing)
+    return {**result, "moved": True, "text": text}
+
+
+def _created_folders(conn: sqlite3.Connection, plan_id: str,
+                     created: list[Path], undoing: bool) -> None:
+    """Remember the folders a sort created; after its undo, remove each one
+    that is empty. A folder that existed before, or holds anything, stays."""
+    conn.execute(CREATED_DDL)
+    if not undoing:
+        conn.executemany(
+            "INSERT OR IGNORE INTO assistant_created_folders VALUES (?, ?)",
+            [(plan_id, str(f)) for f in created if f.is_dir()])
+        conn.commit()
+        return
+    folders = [Path(r[0]) for r in conn.execute(
+        "SELECT folder FROM assistant_created_folders WHERE plan_id = ?",
+        (plan_id,))]
+    for folder in sorted(folders, key=lambda f: len(f.parts), reverse=True):
+        try:
+            folder.rmdir()  # only ever succeeds on an empty folder
+        except OSError:
+            pass
+    conn.execute("DELETE FROM assistant_created_folders WHERE plan_id = ?",
+                 (plan_id,))
+    conn.commit()
 
 
 def _forgets_conversations(proposal: dict) -> bool:
