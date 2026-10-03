@@ -210,6 +210,77 @@ _DEFERRED_SCHEMAS: dict[str, list[dict[str, Any]]] = {
 }
 
 
+#: The conversation's own tools. Loaded only by a `Session` (marker group
+#: ENGINE_GROUP in `loaded_groups`); never requestable by the model and never
+#: on the one-shot `ask` path. Anything that would move a file or change
+#: protection returns a proposal the person confirms; nothing moves here.
+ENGINE_GROUP = "engine"
+
+_ENGINE_SCHEMAS: list[dict[str, Any]] = [
+    _fn(
+        "quick_sort",
+        "Propose moving a few named files into one folder. Moves nothing: "
+        "the person is shown the moves and says yes or no. `destination` is "
+        "a single folder NAME (no slashes) created beside the files; omit it "
+        "to group them by type.",
+        {
+            "files": {"type": "array", "items": {"type": "string"}},
+            "destination": {"type": "string"},
+        },
+        ["files"],
+    ),
+    _fn(
+        "index_folder",
+        "Build the private index of a folder on this Mac: names and local "
+        "text only, no AI call, nothing moves. A folder the person has not "
+        "chosen is asked about first.",
+        {"folder": {"type": "string"}},
+        ["folder"],
+    ),
+    _fn(
+        "organise_folder",
+        "Look through a whole folder and propose a folder structure. Takes "
+        "a while; nothing moves. Any questions it raises are shown to the "
+        "person afterwards.",
+        {"folder": {"type": "string"}},
+        ["folder"],
+    ),
+    _fn(
+        "mark_sensitive",
+        "Propose protecting one file by its name: never sent to the AI, "
+        "never moved automatically. The person confirms.",
+        {"file": {"type": "string"}},
+        ["file"],
+    ),
+    _fn(
+        "release",
+        "Propose treating one protected file as ordinary. The person "
+        "confirms.",
+        {"file": {"type": "string"}},
+        ["file"],
+    ),
+    _fn(
+        "next_questions",
+        "Show the person the sorter's open questions, one at a time. The "
+        "app renders them; never answer them for the person.",
+        {},
+    ),
+    _fn(
+        "undo_last",
+        "Propose putting back the most recent batch of moved files. Moves "
+        "nothing until the person says yes.",
+        {},
+    ),
+]
+
+ENGINE_TOOLS: tuple[str, ...] = tuple(
+    s["function"]["name"] for s in _ENGINE_SCHEMAS)
+
+
+def engine_schemas() -> list[dict[str, Any]]:
+    return list(_ENGINE_SCHEMAS)
+
+
 def always_schemas() -> list[dict[str, Any]]:
     return list(_ALWAYS_SCHEMAS)
 
@@ -222,7 +293,7 @@ def schema_for_tool(name: str) -> dict[str, Any] | None:
     for schema in _ALWAYS_SCHEMAS:
         if schema["function"]["name"] == name:
             return schema
-    for schemas in _DEFERRED_SCHEMAS.values():
+    for schemas in (*_DEFERRED_SCHEMAS.values(), _ENGINE_SCHEMAS):
         for schema in schemas:
             if schema["function"]["name"] == name:
                 return schema

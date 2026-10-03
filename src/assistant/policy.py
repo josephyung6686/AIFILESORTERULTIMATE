@@ -15,6 +15,8 @@ from urllib.parse import urlparse
 from assistant.registry import (
     ALWAYS_TOOLS,
     DEFERRED_GROUPS,
+    ENGINE_GROUP,
+    ENGINE_TOOLS,
     WRITE_SHAPED,
     is_write_shaped,
     schema_for_tool,
@@ -215,6 +217,13 @@ def validate_tool_arguments(
     for key, value in arguments.items():
         if key not in allowed_keys:
             return False, f"unknown field: {key}", {}
+        # quick_sort's destination is one folder NAME, never a path: it is
+        # created beside the files the person named (lead ruling, 3 Oct).
+        if name == "quick_sort" and key == "destination":
+            if not _is_plain_folder_name(value):
+                return False, "destination must be one folder name", {}
+            cleaned[key] = value
+            continue
         # Free-form destinations never accepted except scan_refresh.root.
         if key in _DESTINATION_KEYS and not (
                 name == "scan_refresh" and key == "root"):
@@ -244,6 +253,12 @@ def validate_tool_arguments(
     if missing:
         return False, f"missing required: {sorted(missing)}", {}
     return True, "", cleaned
+
+
+def _is_plain_folder_name(value: Any) -> bool:
+    return (isinstance(value, str) and bool(value.strip())
+            and "/" not in value and "\\" not in value
+            and ".." not in value and not value.startswith("."))
 
 
 def validate_citations(
@@ -534,6 +549,19 @@ def gate_tool_call(
         _record(name, result)
         return result
 
+    # The conversation's own tools: only where a Session loaded them.
+    if name in ENGINE_TOOLS and ENGINE_GROUP in loaded:
+        result = PolicyResult(
+            allowed=True,
+            reason="ok",
+            untrusted=True,
+            bytes_in=bytes_in,
+            egress_class=egress_class,
+            arguments=cleaned,
+        )
+        _record(name, result)
+        return result
+
     result = PolicyResult(
         allowed=False,
         reason=f"unknown or deferred tool: {name}",
@@ -608,9 +636,13 @@ def schemas_for_session(loaded_groups: set[str]) -> list[dict[str, Any]]:
     """Always schemas + exact deferred schemas for requested groups only."""
     from assistant.registry import always_schemas, deferred_schemas_for
 
+    from assistant.registry import engine_schemas
+
     out = always_schemas()
     for group in sorted(loaded_groups):
         out.extend(deferred_schemas_for(group))
+    if ENGINE_GROUP in loaded_groups:
+        out.extend(engine_schemas())
     return out
 
 

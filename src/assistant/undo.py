@@ -37,9 +37,10 @@ def _file_hash(path: Path) -> str | None:
     return h.hexdigest()
 
 
-def undo_plan(conn: sqlite3.Connection, plan_id: str) -> UndoResult:
+def undo_plan(conn: sqlite3.Connection, plan_id: str, *,
+              confirmed_by_person: bool = False) -> UndoResult:
     ensure_journal_schema(conn)
-    if not apply_enabled():
+    if not apply_enabled(confirmed_by_person=confirmed_by_person):
         return UndoResult(
             ok=False, moved=False, undone=(),
             error="ASSISTANT_ENABLE_APPLY not set — undo refused")

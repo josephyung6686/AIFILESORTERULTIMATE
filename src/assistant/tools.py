@@ -20,6 +20,8 @@ from assistant.policy import (
 )
 from assistant.registry import (
     DEFERRED_GROUPS,
+    ENGINE_GROUP,
+    ENGINE_TOOLS,
     WRITE_SHAPED,
     always_schemas,
     deferred_tools,
@@ -90,12 +92,19 @@ class ToolRuntime:
                  allow_held_body: bool = False,
                  authenticate_held: Callable[[], bool] | None = None,
                  session_key: str = "default",
-                 egress_class: str = "cloud") -> None:
+                 egress_class: str = "cloud",
+                 engine: bool = False,
+                 engine_context: Any = None) -> None:
         self.conn = conn
+        #: A Session's runtime also carries the conversation's own tools.
+        #: Their proposals are kept here, unscrubbed, for the Session to
+        #: turn into confirmations; the model sees only a summary.
+        self.engine_context = engine_context
+        self.pending_confirmations: list[dict[str, Any]] = []
         self.model_dir = model_dir
         self.byte_budget = byte_budget
         self.bytes_spent = 0
-        self.loaded_groups: set[str] = set()
+        self.loaded_groups: set[str] = {ENGINE_GROUP} if engine else set()
         self._ask_user = ask_user_handler
         self.pending_user_question: str | None = None
         # Local egress is necessary but is not local authentication. Neither
@@ -218,6 +227,8 @@ class ToolRuntime:
             result = self._undo_moves(args)
         elif name in self._handlers:
             result = self._handlers[name](args)
+        elif name in ENGINE_TOOLS:
+            result = self._engine_tool(name, args)
         else:
             deferred = self._run_deferred(name, args)
             if deferred is None:
@@ -688,6 +699,29 @@ class ToolRuntime:
             name="undo_moves", ok=result.ok, payload=payload,
             citations=tuple(result.undone),
             bytes_out=len(json.dumps(payload).encode()))
+
+    def _engine_tool(self, name: str, args: dict) -> ToolResult:
+        from assistant import engine_tools
+        payload = engine_tools.run(self.conn, name, args,
+                                   context=self.engine_context)
+        proposal = payload.get("needs_confirmation")
+        if proposal:
+            self.pending_confirmations.append(proposal)
+            payload = {
+                **{k: v for k, v in payload.items()
+                   if k != "needs_confirmation"},
+                "waiting_for_person": True,
+                "summary": proposal["summary"],
+                "moves": len(proposal.get("moves") or ()),
+                "note": ("The person is being shown this and will answer "
+                         "yes or no. Nothing has changed yet; do not say "
+                         "it is done."),
+            }
+        payload.setdefault("moved", False)
+        blob = json.dumps(payload, ensure_ascii=False, default=str)
+        return ToolResult(
+            name=name, ok=bool(payload.get("ok")), payload=payload,
+            citations=(), bytes_out=len(blob.encode()), untrusted=True)
 
     def _run_deferred(self, name: str, args: dict) -> ToolResult | None:
         """Run deferred tools after policy already unlocked the group."""

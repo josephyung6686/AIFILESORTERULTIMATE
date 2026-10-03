@@ -41,7 +41,8 @@ PYTHONPATH=src python3 -m cli ask --database "$DB" --local-only "Where is X?"
 # Memory steering stays dark unless deliberately released
 unset ASSISTANT_ATOMS_STEER   # or ASSISTANT_ATOMS_STEER=0
 
-# Apply stays locked
+# Model-driven apply stays locked; moves the person confirms in the chat
+# still work. ASSISTANT_ENABLE_APPLY=0 switches every move off.
 unset ASSISTANT_ENABLE_APPLY
 ```
 
@@ -66,7 +67,7 @@ python3 -m cli db rebuild-index --database "$DB"
 
 ## Disable risky features after an incident
 
-1. Unset `ASSISTANT_ENABLE_APPLY`  
+1. Set `ASSISTANT_ENABLE_APPLY=0` (refuses every move, even one the person confirmed)  
 2. Set `ASSISTANT_ATOMS_STEER=0`  
 3. Prefer `--local-only` or unset API keys  
 4. `db check` then `db restore` from last good backup  

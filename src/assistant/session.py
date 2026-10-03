@@ -21,6 +21,17 @@ DROPPED = "[earlier result dropped]"
 
 FOLDER_QUESTION = "Which folder should I look after?"
 
+YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
+             "1", "yes please", "sure thing", "go"}
+
+LEVEL_WORDS = {
+    1: "OK — I'll ask before moving anything.",
+    2: "OK — I'll move up to 20 ordinary files at once without asking, "
+       "always with undo. Protected files and bigger changes still ask.",
+    3: "OK — I'll move ordinary files you ask for without asking, always "
+       "with undo. Protected files and whole-folder changes still ask.",
+}
+
 
 def _counts(conn: sqlite3.Connection):
     """The index totals, or None when nothing could be read.
@@ -69,6 +80,18 @@ class Session:
         self.session_id = session_id or str(uuid.uuid4())
         self.history: list[dict[str, Any]] = []
         self.no_model = False
+        self.offering_questions = False
+        self.ask_questions_after_turn = False
+        #: Folders the person picked in this conversation; tools may read
+        #: these without asking again.
+        self.chosen_folders: set[Path] = set()
+        #: Set by `cancel()`; the sorter's progress stream checks it.
+        self.cancel_requested = False
+        self.question_queue: list = []
+        self.question_total = 0
+        #: confirm_id -> proposal awaiting the person's yes or no.
+        self.pending: dict[str, dict] = {}
+        self._proposals: list[dict] = []
 
     # -- opening ---------------------------------------------------------
     def open(self) -> None:
@@ -82,10 +105,67 @@ class Session:
             return
         self.emit(ev.Message(text=f"I'm looking after {c.indexed} files. "
                                   "What would you like to find or tidy?"))
+        from assistant.engine_tools import open_questions
+        n = len(open_questions(self.conn))
+        if n:
+            self.offering_questions = True
+            self.emit(ev.Message(
+                text=f"While you were away I have {n} "
+                     f"question{'s' if n != 1 else ''} — want to go "
+                     f"through {'them' if n != 1 else 'it'}?"))
+
+    def after_index(self, c) -> None:
+        self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
+                            protected=c.protected, held=c.held,
+                            open_questions=c.open_questions))
+
+    def cancel(self) -> None:
+        self.cancel_requested = True
+
+    # -- the sorter's questions ------------------------------------------
+    def start_questions(self) -> None:
+        from assistant.engine_tools import open_questions
+        self.offering_questions = False
+        self.question_queue = list(open_questions(self.conn))
+        self.question_total = len(self.question_queue)
+        self._ask_next()
+
+    def _ask_next(self) -> None:
+        from assistant.engine_tools import question_event
+        if not self.question_queue:
+            self.emit(ev.Message(text="That's all the questions for now. "
+                                      "Thanks — I'll use your answers when "
+                                      "I organise."))
+            return
+        q = self.question_queue[0]
+        index = self.question_total - len(self.question_queue) + 1
+        self.emit(question_event(q, index, self.question_total))
+
+    def answer(self, question_id: str, value: str) -> None:
+        from assistant.engine_tools import record_person_answer
+        try:
+            kind = record_person_answer(self.conn, question_id, value)
+        except Exception:
+            self.emit(ev.Error(text="I couldn't save that answer. Nothing "
+                                    "changed.", changed=False))
+            return
+        self.history.append({"role": "assistant", "content": (
+            "The person skipped a question." if kind == "skipped" else
+            "The person answered one of the sorter's questions.")})
+        self.question_queue = [q for q in self.question_queue
+                               if q.question_id != question_id]
+        self._ask_next()
 
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
+        if self.offering_questions:
+            self.offering_questions = False
+            if text.strip().lower().rstrip("!.") in YES_WORDS:
+                self.history.append({"role": "user", "content": text})
+                self.start_questions()
+                return
         self.history.append({"role": "user", "content": text})
+        self._proposals = []
         if self.no_model:
             self.emit(ev.Message(text="No AI model is answering right now, "
                                       "so I can find files, show what I've "
@@ -103,6 +183,74 @@ class Session:
         self.history.append({"role": "assistant", "content": answer.text})
         self.emit(ev.Message(text=_strip_citation_line(answer.text),
                              citations=self._citations(answer.citations)))
+        for proposal in self._proposals:
+            self._propose(proposal)
+        if self.ask_questions_after_turn:
+            self.ask_questions_after_turn = False
+            self.start_questions()
+
+    # -- decisions the person makes ---------------------------------------
+    def _propose(self, proposal: dict) -> None:
+        from assistant.engine_tools import get_level, level_allows
+        moves = proposal.get("moves") or []
+        if level_allows(get_level(self.conn), proposal["kind"], len(moves),
+                        bool(proposal.get("sensitive"))):
+            self._execute(proposal)
+            return
+        confirm_id = uuid.uuid4().hex
+        self.pending[confirm_id] = proposal
+        self.emit(ev.Confirm(
+            confirm_id=confirm_id, summary=proposal["summary"],
+            moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
+            sensitive=bool(proposal.get("sensitive")),
+            undo_available=proposal["kind"] in ("plan", "branch")))
+
+    def _execute(self, proposal: dict) -> None:
+        from assistant.engine_tools import execute_confirmed
+        try:
+            result = execute_confirmed(self.conn, proposal["kind"],
+                                       proposal["ref"], context=self)
+        except Exception:
+            result = {"ok": False, "moved": False, "undo_token": None,
+                      "text": "Something went wrong, so I stopped. "
+                              "Nothing changed."}
+        self.history.append({"role": "assistant", "content": result["text"]})
+        if result["ok"]:
+            self.emit(ev.Done(moved=bool(result["moved"]),
+                              undo_token=result.get("undo_token")))
+            self.emit(ev.Message(text=result["text"]))
+        else:
+            self.emit(ev.Error(text=result["text"],
+                               changed=bool(result["moved"])))
+
+    def confirm(self, confirm_id: str, yes: bool) -> None:
+        proposal = self.pending.pop(confirm_id, None)
+        if proposal is None:
+            self.emit(ev.Message(text="That question has already been "
+                                      "answered. Nothing changed."))
+            return
+        if not yes:
+            self.history.append({"role": "assistant",
+                                 "content": "Cancelled. Nothing moved."})
+            self.emit(ev.Message(text="Cancelled. Nothing moved."))
+            return
+        self._execute(proposal)
+
+    def undo(self, undo_token: str) -> None:
+        from assistant.engine_tools import undo_proposal
+        proposal = undo_proposal(self.conn, undo_token)
+        if not proposal.get("ok"):
+            self.emit(ev.Message(text=proposal["error"]))
+            return
+        self._propose(proposal["needs_confirmation"])
+
+    def set_level(self, n: int) -> None:
+        from assistant.engine_tools import LEVELS, put_setting
+        if n not in LEVELS:
+            self.emit(ev.Message(text="The levels are 1, 2 and 3."))
+            return
+        put_setting(self.conn, "permission_level", str(n))
+        self.emit(ev.Message(text=LEVEL_WORDS[n]))
 
     def _converse(self, text: str):
         from assistant.chat import (
@@ -123,7 +271,9 @@ class Session:
             pass
         self._trim()
         runtime = ToolRuntime(self.conn, session_key=self.session_id,
-                              egress_class="cloud")
+                              egress_class="cloud", engine=True,
+                              engine_context=self)
+        self._proposals = runtime.pending_confirmations
         messages = [{"role": "system",
                      "content": build_system_prompt(self.conn, text)},
                     *self.history]

@@ -35,8 +35,16 @@ class ApplyResult:
     blockers: tuple[str, ...] = ()
 
 
-def apply_enabled() -> bool:
-    return os.environ.get("ASSISTANT_ENABLE_APPLY", "").strip() == "1"
+#: What a refused move says when moving is switched off on this Mac.
+SWITCHED_OFF = "Moving files is switched off on this Mac. Nothing moved."
+
+
+def apply_enabled(*, confirmed_by_person: bool = False) -> bool:
+    """`ASSISTANT_ENABLE_APPLY=1` unlocks model-driven apply. A move the
+    person confirmed in the conversation needs no flag, but an explicit
+    `ASSISTANT_ENABLE_APPLY=0` (the runbook's kill switch) refuses it too."""
+    flag = os.environ.get("ASSISTANT_ENABLE_APPLY", "").strip()
+    return flag == "1" or (confirmed_by_person and flag != "0")
 
 
 def _crash_at(point: str) -> None:
@@ -122,10 +130,11 @@ def apply_plan(
         plan_id: str,
         *,
         full_list_viewed: bool = False,
+        confirmed_by_person: bool = False,
 ) -> ApplyResult:
     ensure_plans_schema(conn)
     ensure_journal_schema(conn)
-    if not apply_enabled():
+    if not apply_enabled(confirmed_by_person=confirmed_by_person):
         return ApplyResult(
             ok=False, moved=False, applied=(),
             error="ASSISTANT_ENABLE_APPLY not set — apply refused",
