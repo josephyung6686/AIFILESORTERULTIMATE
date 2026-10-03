@@ -278,7 +278,15 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         "out). Use it for a question about a folder by its name or "
         "language, e.g. 'the Chinese-named folder'; a folder that matches "
         "comes before any file deep inside it.", {}),
-    _fn("show_copies","Show the person which files are copies: files with "
+    _fn(
+        "proposal_files",
+        "Read-only, after organise_folder: which files the current proposal "
+        "puts into one of its folders (`folder`, named as the plan shows "
+        "it), with counts; or, with `file`, where that one file goes, or "
+        "the sorter's own reason it stays. Moves nothing.",
+        {"folder": {"type": "string"}, "file": {"type": "string"}},
+    ),
+    _fn("show_copies", "Show the person which files are copies: files with "
         "exactly the same content, found by comparing contents.", {}),
     _fn(
         "freeze_plan",

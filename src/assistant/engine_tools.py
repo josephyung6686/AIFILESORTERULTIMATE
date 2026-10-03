@@ -1209,6 +1209,113 @@ def list_folders(conn: sqlite3.Connection,
     return out
 
 
+#: How many files proposal_files names for one folder; the rest are counted.
+PROPOSAL_LISTED = 40
+
+
+def _sentences(text: str | None, limit: int = 300) -> str:
+    """Whole sentences of `text`, never one cut in the middle: a trailing
+    fragment ("a loose likeness, ") is dropped, and sentences stop being
+    added at about `limit` characters."""
+    kept: list[str] = []
+    for part in re.split(r"(?<=[.!?])\s+", (text or "").strip()):
+        part = part.strip()
+        if not re.search(r"[.!?]$", part) or wording_problems(part):
+            continue
+        if kept and len(" ".join(kept + [part])) > limit:
+            break
+        kept.append(part)
+    return " ".join(kept)
+
+
+def _item_row(conn: sqlite3.Connection, file_id: str):
+    return conn.execute(
+        "SELECT item_id, display_label, open_target FROM items WHERE "
+        "file_id = ? AND presence = 'live' AND superseded_by IS NULL",
+        (file_id,)).fetchone()
+
+
+def proposal_files(conn: sqlite3.Connection, folder: str, file: str,
+                   context: Any = None) -> dict[str, Any]:
+    """What the sorter's current proposal puts into a folder (by the name
+    the person was shown), or where one named file goes and, when it stays,
+    the sorter's own reason. Protected files are counted for the model and
+    named only on the person's screen."""
+    from assistant.events import Message
+    from assistant.organize_tools import _sorter_tree
+    tree = _sorter_tree(conn)
+    if tree is None or not tree["by_file"]:
+        return {"ok": False, "error": "There's no proposal yet: organise "
+                                      "the folder first. Nothing moved."}
+    show = getattr(context, "show_locally", None)
+    if file.strip():
+        row = _resolve(conn, file.strip())
+        file_id = row["file_id"] if row is not None else None
+        d = tree["by_file"].get(file_id) if file_id else None
+        if row is None or d is None:
+            return {"ok": False, "error": "The proposal doesn't include a "
+                                          "file by that name."}
+        goes = (display_name(tree["path"](d.destination.node_id))
+                if d.outcome == "place" and d.destination is not None
+                else None)
+        why = (_sentences(d.explanation) or
+               ("" if goes else "The sorter wasn't sure enough to move it."))
+        if item_is_sensitive(conn, row["item_id"]):
+            if show is not None:
+                show(Message(text=(f"Protected — shown only to you: the "
+                                   f"proposal puts it in {goes}." if goes
+                                   else "Protected — shown only to you: it "
+                                   "stays where it is. " + why),
+                             citations=(_citation(row["open_target"],
+                                                  row["display_label"]),)))
+            return {"ok": True, "moved": False, "protected": True,
+                    "note": "A protected file: its name and place are on "
+                            "the person's screen only. Never guess them."}
+        return {"ok": True, "moved": False, "file": row["display_label"],
+                "destination": goes, "stays": goes is None, "why": why}
+    shown = display_name(folder.strip().strip("/")).casefold()
+    paths = {n: display_name(tree["path"](n)) for n in tree["nodes"]}
+    matches = [p for p in paths.values() if p.casefold() == shown] or [
+        p for p in paths.values() if p.rsplit("/", 1)[-1].casefold() == shown]
+    if not matches:
+        return {"ok": False, "error": "The proposal has no folder called "
+                                      f"{folder.strip()}.",
+                "folders": sorted({p.split("/")[0] for p in paths.values()})}
+    base = matches[0]
+    ordinary, protected, by_sub = [], [], {}
+    for file_id, d in tree["by_file"].items():
+        if d.outcome != "place" or d.destination is None:
+            continue
+        where = paths.get(d.destination.node_id, "")
+        if where != base and not where.startswith(base + "/"):
+            continue
+        row = _item_row(conn, file_id)
+        if row is None:
+            continue
+        if item_is_sensitive(conn, row["item_id"]):
+            protected.append(row)
+            continue
+        ordinary.append({"name": row["display_label"], "into": where})
+        by_sub[where] = by_sub.get(where, 0) + 1
+    ordinary.sort(key=lambda f: (f["into"], f["name"]))
+    if protected and show is not None:
+        show(Message(text=f"Protected files the proposal puts in {base} — "
+                          "shown only to you:",
+                     citations=tuple(_citation(r["open_target"],
+                                               r["display_label"])
+                                     for r in protected)))
+    out = {"ok": True, "moved": False, "folder": base,
+           "files": len(ordinary) + len(protected),
+           "protected": len(protected), "by_subfolder": by_sub,
+           "listed": ordinary[:PROPOSAL_LISTED]}
+    if len(ordinary) > PROPOSAL_LISTED:
+        out["more"] = len(ordinary) - PROPOSAL_LISTED
+    if protected:
+        out["note"] = ("Protected files are counted only; their names are "
+                       "on the person's screen. Never guess them.")
+    return out
+
+
 def run_index(conn: sqlite3.Connection, path: Path,
               context: Any) -> dict[str, Any]:
     from assistant.events import Progress
@@ -1764,6 +1871,9 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return show_copies(conn, context)
     if name == "list_folders":
         return list_folders(conn, context)
+    if name == "proposal_files":
+        return proposal_files(conn, str(args.get("folder") or ""),
+                              str(args.get("file") or ""), context)
     if name == "status":
         from assistant.session import _counts
         c = _counts(conn)

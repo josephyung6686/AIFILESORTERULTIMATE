@@ -387,3 +387,88 @@ def test_list_folders_shows_two_levels_and_hides_what_it_must(lib,
 def test_list_folders_is_a_tool_the_model_has():
     from assistant.registry import ENGINE_TOOLS
     assert "list_folders" in ENGINE_TOOLS
+
+
+# -- 5. what goes where ----------------------------------------------------------
+
+@pytest.fixture()
+def proposal(lib, monkeypatch):
+    """A sorter proposal, stubbed: essay and a protected scan go into
+    Career and recruiting/Resumes; the resume stays where it is."""
+    from types import SimpleNamespace as NS
+    import assistant.engine_tools as engine
+    import assistant.organize_tools as organize
+    conn, root = lib
+    (root / "ID scan.pdf").write_text("id", encoding="utf-8")
+    reconcile_tree(conn, root)
+    conn.commit()
+    ids = {r[0]: r[1] for r in conn.execute(
+        "SELECT display_label, file_id FROM items WHERE item_type = 'file'")}
+    nodes = {"n1": NS(display_label="02 Career and recruiting",
+                      parent_node_id=None, node_type="new"),
+             "n2": NS(display_label="Resumes", parent_node_id="n1",
+                      node_type="new")}
+
+    def path(node_id):
+        parts = []
+        while node_id in nodes:
+            parts.append(nodes[node_id].display_label)
+            node_id = nodes[node_id].parent_node_id
+        return "/".join(reversed(parts))
+    placed = NS(outcome="place", destination=NS(node_id="n2"),
+                explanation="It reads like career material.",
+                abstention_reason=None)
+    stays = NS(outcome="abstain", destination=None,
+               explanation="It is about your work history. The only thing "
+                           "pointing to Career is a loose likeness, ",
+               abstention_reason="weak_evidence")
+    tree = {"version": "v1", "nodes": nodes, "path": path, "moves": {},
+            "by_file": {ids["essay.txt"]: placed,
+                        ids["ID scan.pdf"]: placed,
+                        ids["Resume 2026.docx"]: stays}}
+    monkeypatch.setattr(organize, "_sorter_tree", lambda c: tree)
+    real = engine.item_is_sensitive
+
+    def sensitive(c, item_id):
+        row = c.execute("SELECT display_label FROM items WHERE item_id = ?",
+                        (item_id,)).fetchone()
+        return bool(row and row[0] == "ID scan.pdf") or real(c, item_id)
+    monkeypatch.setattr(engine, "item_is_sensitive", sensitive)
+    return conn
+
+
+class Shown:
+    def __init__(self):
+        self.events = []
+
+    def show_locally(self, event):
+        self.events.append(event)
+
+
+def test_proposal_files_lists_a_folder_without_protected_names(proposal):
+    from assistant.engine_tools import run
+    shown = Shown()
+    result = run(proposal, "proposal_files",
+                 {"folder": "Career and recruiting"}, context=shown)
+    blob = json.dumps(result, ensure_ascii=False)
+    assert result["files"] == 2 and result["protected"] == 1
+    assert [f["name"] for f in result["listed"]] == ["essay.txt"]
+    assert "ID scan" not in blob
+    assert [c.name for e in shown.events for c in e.citations] == [
+        "ID scan.pdf"]
+
+
+def test_proposal_files_says_where_a_file_goes_or_why_it_stays(proposal):
+    from assistant.engine_tools import run
+    goes = run(proposal, "proposal_files", {"file": "essay.txt"},
+               context=Shown())
+    assert goes["destination"] == "Career and recruiting/Resumes"
+    stays = run(proposal, "proposal_files", {"file": "Resume 2026.docx"},
+                context=Shown())
+    assert stays["destination"] is None
+    assert stays["why"] == "It is about your work history."
+
+
+def test_proposal_files_is_a_tool_the_model_has():
+    from assistant.registry import ENGINE_TOOLS
+    assert "proposal_files" in ENGINE_TOOLS
