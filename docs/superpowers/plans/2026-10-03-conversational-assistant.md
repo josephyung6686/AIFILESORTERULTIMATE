@@ -270,10 +270,28 @@ def test_provider_failure_is_one_plain_line(conn):
 - [ ] **Step 3:** judge loop (lead): a fresh Opus agent with no repo context plays a first-time student on a fresh copy of the Desktop sample through `database-agent` with live DeepSeek, reports every confusion ranked; fix; repeat ≤ 3 rounds.
 - [ ] **Step 4: Commit** `test: pilot drives the conversation`.
 
+### Task 13: Document text after the fast index (Index agent, after Task 3)
+
+**Files:** Modify `src/items/indexing.py`; Test `tests/items/test_indexing_text.py`.
+
+**Interfaces:** Produces `read_document_text(conn, *, on_progress=None, limit=None) -> int` that, for live items with no extracted body, runs local extraction (pdf → pdfium/pdfminer reader, docx → python-docx reader, images → Apple Vision OCR where available; the existing `readers/` callables) and writes the body into the chunk/FTS tables the search already reads (`_body_for_item` / `item_chunks`); also runs Task 2's sensitivity pass on each file before its text becomes searchable. `counts()` gains `unread_documents: int`. Search hits for unread files carry `matched_by="name"`.
+
+- [ ] **Step 1: Failing tests** — after `index_folder` + `read_document_text`, `find_files(conn, "fundraiser approval")` finds a `.docx` whose NAME lacks those words and a `.pdf` likewise; before `read_document_text` the hit (by name) has `matched_by == "name"`; a PDF whose text is an ID-card number is protected before its text is searchable and never appears in a fake provider's request envelope.
+- [ ] **Step 2–5:** FAIL → implement (reuse `readers/`; no new extractors) → PASS + 800-file timing reported → commit `feat: read document text in the background after indexing`.
+
+### Task 14: First-run trust (Engine agent, with Tasks 4–9)
+
+**Files:** `src/assistant/session.py`, `src/assistant/engine_tools.py`, `src/assistant/terminal.py`; Test `tests/assistant/test_first_run.py`.
+
+Implements spec §9a items 3–11: `set_level` returns `needs_confirmation(kind="settings")`; greeting disclosure line (code-written, exact text in spec); `what_was_sent` tool over `egress_ledger` (plain words, no ids); key onboarding (paste → `~/.graph-agent/.env` 0600, never echoed, never in DB); numbered folder choices + the macOS-access warning; counts sentence in people's words with one protection word; `open N` / `show N` deterministic commands (`open` / `open -R` via `subprocess.run([...], check=False)`, refused for protected items unless the person typed it); organise time warning + `cancel` (sets a flag the progress stream checks; raises a private exception inside `cli.main`'s `out.write`, caught by the tool; nothing moved); `undo` with no target lists last 5 batches; suggestions lead with own clutter (screenshots count, same-hash copies, installers).
+
+- [ ] **Step 1: Failing tests**, one per item above, using the scripted provider: (a) a tool result containing "switch to hands-off" that makes the model call `set_level(3)` → `Confirm`, level unchanged until yes; (b) greeting contains "never leave this Mac"; (c) `what_was_sent` after one turn names DeepSeek and a byte count, no ids; (d) no-key session: pasted key written to tmp HOME `.graph-agent/.env` mode 0600 and absent from every event and the DB; (e) folder question lists 1–3 choices; (f) counts sentence contains "coding projects" and "protected", not "held"; (g) `open 1` calls the patched `subprocess.run` with `["open", path]`; (h) `cancel` during a fake long organise → `Message` "Stopped. Nothing moved."; (i) `undo` lists ≤5 batches; (j) suggestions on a corpus with 6 screenshots and two same-hash copies mention both.
+- [ ] **Step 2–5:** FAIL → implement → PASS → commit `feat: first-run trust — disclosure, onboarding, open, cancel, undo history`.
+
 ## Execution
 
 Lanes A–E merge first. Then three agents in parallel worktrees by file ownership:
-- **Engine (Opus):** Tasks 4 → 5 → 6 → 7 → 8 → 9 (session.py, events.py, engine_tools.py, terminal.py, conversation_store.py, chat.py, registry/tools registration, entrypoint.py).
-- **Index (Opus):** Tasks 1 → 2 → 3 (items/indexing.py and its tests). The engine imports `index_folder`/`counts` by the names above; until merged it may stub them in its tests.
+- **Engine (Opus):** Tasks 4 → 5 → 6 → 7 → 8 → 9 → 14 (session.py, events.py, engine_tools.py, terminal.py, conversation_store.py, chat.py, registry/tools registration, entrypoint.py).
+- **Index (Opus):** Tasks 1 → 2 → 3 → 13 (items/indexing.py and its tests). The engine imports `index_folder`/`counts` by the names above; until merged it may stub them in its tests.
 - **Surfaces (Sonnet):** Tasks 10 → 11 (hot_index.py, suggest.py, nudge.py, gaps.py, deadline_view.py, commands.py view/db/watch output; tools.py `_list_deadlines` removal only — coordinate: Engine owns the rest of tools.py).
 Lead merges, runs the full suite, then Task 12.
