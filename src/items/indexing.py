@@ -7,6 +7,7 @@ or protected (counted); `counts` reads those totals back from the database.
 from __future__ import annotations
 
 import sqlite3
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +26,8 @@ class IndexCounts:
     protected: int
     held: int
     open_questions: int
+    #: Files whose text has not been read yet; they are found by name only.
+    unread_documents: int = 0
 
 
 def index_folder(conn: sqlite3.Connection, root: Path, *,
@@ -176,6 +179,131 @@ def _readme(folder: Path) -> str:
     return ""
 
 
+def read_document_text(conn: sqlite3.Connection, *,
+                       on_progress: Progress | None = None,
+                       limit: int | None = None) -> int:
+    """Read the text of indexed files that have only been seen by name.
+
+    The sorter's own reading, file by file: its readers in its extraction pool
+    (PDF, Word, text; Apple Vision OCR for images and scans), then its
+    classifier and `assign`, and only then the file's text goes into search.
+    So a file whose text says it is an identity document is protected before
+    anything can find it by that text. Files already protected are not opened.
+    Returns how many files were read.
+    """
+    from evidence_shape.store import RunWriter
+    from extraction_pool import CONTRACT, DATALESS, PROTECTED, ExtractionRequest
+    from extractors.authorship import SUBSYSTEM as P5
+    from extractors.dispatch import current_versions
+    from extractors.failure import ContractViolation
+    from extractors.long_tail import record_sensitivity_signals
+    from extractors.router import record_routing_decision, route
+    from extractors.runs import extraction_status_by_tier
+    from database_agent.files_table import set_extraction_status
+    from evidence_shape.store import observation_keys_for_run
+    from extractors.authorship import COMPONENT_VERSION as P5_VERSION
+    from items.index_refresh import upsert_item_index
+    from privacy.classification_store import ClassificationStore
+    from privacy.learning_seam import assign
+
+    report = on_progress or (lambda _stage, _done, _total: None)
+    owed = _unread(conn)
+    if limit is not None:
+        owed = owed[:limit]
+    total = len(owed)
+    report("read", 0, total)
+    if not owed:
+        return 0
+    authorities = _authorities(conn)
+    pool = authorities.pool
+    sink = RunWriter(conn, author=P5)
+    store = ClassificationStore(conn)
+    versions = current_versions()
+    done = 0
+
+    def submit(item_id: str, file_row: dict):
+        path = Path(file_row["current_path"])
+        decision = route(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            path=path, extension=file_row["extension"],
+            detect_format=authorities.detect_format)
+        stamp = authorities.now()
+        return item_id, file_row, decision, stamp, pool.submit(ExtractionRequest(
+            file_id=file_row["file_id"], file_row=file_row, decision=decision,
+            path=path, now=stamp, context_window=authorities.context_window,
+            versions=versions))
+
+    def consume(item_id: str, file_row: dict, decision, stamp: str, handle):
+        nonlocal done
+        file_id, content_hash = file_row["file_id"], file_row["content_hash"]
+        outcome = pool.result(handle)
+        if outcome.kind == CONTRACT:
+            raise ContractViolation(outcome.message)
+        record_routing_decision(conn, decision)
+        if outcome.kind not in (PROTECTED, DATALESS):
+            results = outcome.dispatched.results
+            signals = outcome.dispatched.sensitivity
+            target = (results[outcome.dispatched.sensitivity_target]
+                      if results else None)
+            for result in results:
+                run_id = sink.write(result)
+                if signals and result is target:
+                    record_sensitivity_signals(
+                        conn, run_id=run_id, signals=signals,
+                        observation_keys=observation_keys_for_run(conn, run_id),
+                        now=stamp)
+            set_extraction_status(
+                conn, file_id, status_by_tier=extraction_status_by_tier(
+                    [result.run for result in results]),
+                author=P5, component_version=P5_VERSION)
+        candidate = authorities.classify(conn, file_id, content_hash)
+        if candidate is not None:
+            assign(conn, candidate, store=store,
+                   component_version=authorities.p7_component_version)
+        # Judged first; searchable second.
+        upsert_item_index(conn, item_id)
+        conn.commit()
+        done += 1
+        report("read", done, total)
+
+    # Submitted ahead, written in order: the pool's workers read in parallel,
+    # and every database write stays on this thread.
+    window: deque = deque()
+    try:
+        for item_id, file_row in owed:
+            window.append(submit(item_id, file_row))
+            while len(window) >= pool.lookahead:
+                consume(*window.popleft())
+        while window:
+            consume(*window.popleft())
+    finally:
+        pool.close()
+    return done
+
+
+def _unread(conn: sqlite3.Connection) -> list[tuple[str, dict]]:
+    """Live, unprotected files whose bytes have no reading beyond their name."""
+    from items.file_identity import item_is_sensitive
+
+    if not _has_table(conn, "extraction_runs"):
+        return []
+    rows = conn.execute(
+        "SELECT i.item_id, f.* FROM items i JOIN files f ON f.file_id = i.file_id "
+        "WHERE i.presence = 'live' AND i.superseded_by IS NULL "
+        "AND i.item_type = 'file' AND f.scan_state = ? "
+        "AND NOT EXISTS (SELECT 1 FROM extraction_runs r "
+        "WHERE r.content_hash = f.content_hash "
+        "AND r.analysis_tier != 'filesystem') "
+        "ORDER BY f.current_path", (P1_INCLUDED_SCAN_STATE,)).fetchall()
+    out = []
+    for row in rows:
+        if item_is_sensitive(conn, row["item_id"]):
+            continue
+        file_row = dict(row)
+        out.append((file_row.pop("item_id"), file_row))
+    return out
+
+
 class _CountingSource:
     """The live filesystem, reporting each file the walk lists."""
 
@@ -216,6 +344,7 @@ def counts(conn: sqlite3.Connection) -> IndexCounts:
         protected=len(protected_areas) + len(sensitive),
         held=sum(1 for row in live if row["typing_state"] == "held"),
         open_questions=_open_questions(conn),
+        unread_documents=len(_unread(conn)),
     )
 
 
