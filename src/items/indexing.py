@@ -228,6 +228,7 @@ def read_document_text(conn: sqlite3.Connection, *,
     from evidence_shape.store import observation_keys_for_run
     from extractors.authorship import COMPONENT_VERSION as P5_VERSION
     from items.file_identity import item_is_sensitive
+    from items.hot_index import _text_was_read
     from items.index_refresh import upsert_item_index
     from privacy.classification_store import ClassificationStore
     from privacy.learning_seam import assign
@@ -362,15 +363,6 @@ def _note_unreadable(conn: sqlite3.Connection, content_hash: str,
         conn.rollback()
 
 
-def _text_was_read(conn: sqlite3.Connection, content_hash: str) -> bool:
-    """Did any reading of these bytes give text (not failed, not unsupported)?"""
-    return conn.execute(
-        "SELECT 1 FROM extraction_runs WHERE content_hash = ? "
-        "AND analysis_tier != 'filesystem' "
-        "AND completeness NOT IN ('failed', 'unsupported') LIMIT 1",
-        (content_hash,)).fetchone() is not None
-
-
 def _unread(conn: sqlite3.Connection) -> list[tuple[str, dict]]:
     """Live, unprotected files whose bytes have no reading beyond their name."""
     from items.file_identity import item_is_sensitive
@@ -450,19 +442,25 @@ def counts(conn: sqlite3.Connection) -> IndexCounts:
 
 def _files_under(path: Path) -> int:
     """Files at or under `path`, listed with scandir and never opened.
-    Symlinks are not followed; a folder that cannot be listed counts 0."""
+    Symlinks are not followed; a protected container (an app) inside counts
+    as one thing and is not listed; a folder that cannot be listed counts 0."""
     try:
         if not path.is_dir() or path.is_symlink():
             return 1 if path.is_file() else 0
     except OSError:
         return 0
+    from scan_agent.exclusion import is_protected_container
+
     total, folders = 0, [path]
     while folders:
         try:
             with os.scandir(folders.pop()) as entries:
                 for entry in entries:
                     if entry.is_dir(follow_symlinks=False):
-                        folders.append(Path(entry.path))
+                        if is_protected_container(entry.path):
+                            total += 1           # one thing, never listed
+                        else:
+                            folders.append(Path(entry.path))
                     elif entry.is_file(follow_symlinks=False):
                         total += 1
         except OSError:

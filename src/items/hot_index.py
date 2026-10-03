@@ -471,12 +471,14 @@ def _is_live_searchable(row) -> bool:
 
 
 def _text_was_read(conn: sqlite3.Connection, content_hash: str | None) -> bool:
-    """Has this content a reading beyond its name (the filesystem record)?"""
+    """Has a reading of this content beyond its name given text? A failed or
+    unsupported reading has not: that file is still found by name only."""
     if not content_hash or not _table_exists(conn, "extraction_runs"):
         return False
     return conn.execute(
         "SELECT 1 FROM extraction_runs WHERE content_hash = ? "
-        "AND analysis_tier != 'filesystem' LIMIT 1",
+        "AND analysis_tier != 'filesystem' "
+        "AND completeness NOT IN ('failed', 'unsupported') LIMIT 1",
         (content_hash,)).fetchone() is not None
 
 

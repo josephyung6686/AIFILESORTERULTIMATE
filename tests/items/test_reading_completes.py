@@ -98,3 +98,21 @@ def test_a_reading_that_protects_a_file_is_reported(tmp_path):
 
     assert read.protected_newly_found == 1
     assert counts(conn).protected == before + 1
+
+
+def test_a_file_whose_reading_failed_is_still_found_by_name_only(tmp_path):
+    from items.hot_index import _text_was_read
+
+    root = _corpus(tmp_path)
+    (root / "take_01.wav").write_bytes(b"not really a wave file")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    index_folder(conn, root)
+
+    read = read_document_text(conn)
+
+    content_hash = conn.execute(
+        "SELECT content_hash FROM files WHERE filename = 'take_01.wav'"
+    ).fetchone()[0]
+    assert not _text_was_read(conn, content_hash)
+    assert read.unreadable == 1
+    assert counts(conn).unreadable_documents == 1

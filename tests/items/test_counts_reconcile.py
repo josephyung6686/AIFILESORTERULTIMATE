@@ -24,6 +24,10 @@ def _tree(tmp_path: Path) -> Path:
     (project / "src" / "a.js").write_text("x", encoding="utf-8")
     (project / "src" / "b.js").write_text("x", encoding="utf-8")
     (project / "src" / "deep" / "c.js").write_text("x", encoding="utf-8")
+    vendored = project / "Vendor" / "Thing.app" / "Contents"
+    vendored.mkdir(parents=True)
+    (vendored / "Info.plist").write_text("<plist/>", encoding="utf-8")
+    (vendored / "Thing").write_text("bin", encoding="utf-8")
     app = root / "Tool.app" / "Contents"
     (app / "MacOS").mkdir(parents=True)
     (app / "Info.plist").write_text("<plist/>", encoding="utf-8")
@@ -49,7 +53,8 @@ def test_indexed_set_aside_and_protected_add_up_to_the_disk(tmp_path):
     conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
     c = index_folder(conn, root)
 
-    assert c.set_aside == 4                  # files inside proj/, not folders
+    # Files inside proj/, not its folders; the app vendored in it is one.
+    assert c.set_aside == 5
     assert c.set_aside_folders == 1
     # Tool.app (one thing) + the key + the two personal files.
     assert c.protected == 4
