@@ -93,6 +93,7 @@ def refresh_index(
     from items.identity import refresh_tree
     from items.index_refresh import catch_up
     from items.indexing import _classify_by_name
+    from items.project import retire_missing_projects
 
     use = roots if roots is not None else _collapse(
         sorted(_selected_sources(conn), key=lambda p: len(p.parts)), 8)
@@ -106,6 +107,7 @@ def refresh_index(
             # An edit is a new file version: decide its sensitivity again.
             _classify_by_name(conn, root)
             reindexed = True
+    retire_missing_projects(conn)
     catch_up(conn)
     return RefreshResult(
         roots=tuple(str(r) for r in use),
