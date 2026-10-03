@@ -44,3 +44,8 @@ def test_a_filename_match_outranks_a_body_only_match(conn, tmp_path):
     labels = _labels(conn, tmp_path)
     assert labels.index("Resume.txt") < labels.index("FOLDER_TREE.html")
     assert labels.index("Resume.txt") < labels.index("essay_draft.txt")
+
+
+def test_an_archived_copy_ranks_below_the_current_body_match(conn, tmp_path):
+    labels = _labels(conn, tmp_path)
+    assert labels.index("essay_draft.txt") < labels.index("FOLDER_TREE.html")

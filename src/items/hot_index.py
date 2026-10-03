@@ -815,8 +815,15 @@ def _is_junk_path(path: str) -> bool:
     return False
 
 
+_ARCHIVE_PARTS = ("_archive", "archive", "archives")
+
+
+def _is_archived(path: str) -> bool:
+    return any(part.casefold() in _ARCHIVE_PARTS for part in Path(path).parts[:-1])
+
+
 def _trusted_order(conn, query: str, fused: list[tuple[str, float]]):
-    """Filename matches first, junk folders last; fused score within a tier."""
+    """Filename matches first, archived copies after current files, junk last."""
     tokens = [t.casefold() for t in _query_tokens(query)] or [query.casefold()]
     needles = tokens
 
@@ -826,11 +833,12 @@ def _trusted_order(conn, query: str, fused: list[tuple[str, float]]):
             (item_id,),
         ).fetchone()
         if row is None:
-            return (1, 1, -score, item_id)
+            return (1, 1, 1, -score, item_id)
         label = (row["display_label"] or "").casefold()
         named = any(n and n in label for n in needles)
-        junk = _is_junk_path(row["open_target"] or "")
-        return (int(junk), int(not named), -score, item_id)
+        target = row["open_target"] or ""
+        junk = _is_junk_path(target)
+        return (int(junk), int(not named), int(_is_archived(target)), -score, item_id)
 
     ordered = sorted((tier(i, s), i, s) for i, s in fused)
     return [(i, s) for _, i, s in ordered]

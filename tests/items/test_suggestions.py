@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
 
 import pytest
@@ -72,7 +73,8 @@ def test_db_check_prints_counts(tmp_path):
     _conn, db, _root = _db(tmp_path, {"a.txt": b"a"})
     out = io.StringIO()
     assert main(["db", "check", "--database", str(db)], out=out) == 0
-    assert "Set aside" in out.getvalue() and "Protected" in out.getvalue()
+    report = json.loads(out.getvalue())
+    assert "Set aside" in report["summary"] and "Protected" in report["summary"]
 
 
 def test_view_and_suggest_see_a_file_added_since_the_last_index(tmp_path):
