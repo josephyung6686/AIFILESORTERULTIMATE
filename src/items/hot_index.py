@@ -86,6 +86,9 @@ class FindHit:
     best_chunk_id: str | None = None
     source_ids: tuple[str, ...] = ()
     claims_body_match: bool = False
+    #: "content" when the file's text was read and matched; "name" otherwise,
+    #: including every file whose text has not been read yet.
+    matched_by: str = "name"
 
 
 @dataclass(frozen=True)
@@ -406,6 +409,8 @@ def find_files(
             best_chunk_id=chunk_id if claims_body else None,
             source_ids=tuple(source_ids),
             claims_body_match=claims_body,
+            matched_by=("content" if claims_body and _text_was_read(
+                conn, row["content_hash"]) else "name"),
         ))
     total_ms = (time.perf_counter() - started) * 1000.0
     return FindResult(
@@ -441,6 +446,16 @@ def _is_live_searchable(row) -> bool:
     if content_hash and indexed and content_hash != indexed:
         return False
     return True
+
+
+def _text_was_read(conn: sqlite3.Connection, content_hash: str | None) -> bool:
+    """Has this content a reading beyond its name (the filesystem record)?"""
+    if not content_hash or not _table_exists(conn, "extraction_runs"):
+        return False
+    return conn.execute(
+        "SELECT 1 FROM extraction_runs WHERE content_hash = ? "
+        "AND analysis_tier != 'filesystem' LIMIT 1",
+        (content_hash,)).fetchone() is not None
 
 
 def _source_ids_for_hit(

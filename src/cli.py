@@ -11872,6 +11872,28 @@ def extraction_pool(*, workers: int):
         seconds_per_extraction=EXTRACTION_SECONDS_PER_FILE)
 
 
+def build_detector(conn: sqlite3.Connection, rules, *, now) -> Detector:
+    """The sorter's local recognition detector over `conn`. No model, no network.
+
+    One construction, shared by the sorter's run and the assistant's indexing
+    (`items.indexing`), so both decide sensitivity by the same rules.
+    """
+    return Detector(rules,
+                    handling_for=HANDLING_POLICY, now=now,
+                    is_protected=is_protected_container,
+                    corroborating_observations=_identifier_observations,
+                    topic_condition_mentions=TOPIC_CONDITION_MENTIONS,
+                    # P15. What the PERSON has confirmed about readings their
+                    # own files could not settle. Read fresh on every call
+                    # rather than captured, so an answer given by `--answer`
+                    # earlier in this same invocation is already in force.
+                    settled_by_user=lambda: activated_schemas(conn),
+                    # A confirmed profile is a closed allow-list. An empty
+                    # set — nobody has declared a life — leaves recognition
+                    # as it is. Read fresh, for the same reason as above.
+                    declared_lives=lambda: declared_lives(conn))
+
+
 def p1_p7_authorities(*, now, detector,
                       operation_mode: str = OPERATION_MODE,
                       source=None, bundle_content: bool = False) -> P1P7Authorities:
@@ -17767,20 +17789,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         conn, sources=sources, candidate_roots=list(candidate_roots),
         cross_folder_moves=cross_folder_moves, selected_by=user_id)
     rules = load_rules(_RECOGNITION_MANIFEST.read_text)
-    detector = Detector(rules,
-                        handling_for=HANDLING_POLICY, now=now,
-                        is_protected=is_protected_container,
-                        corroborating_observations=_identifier_observations,
-                        topic_condition_mentions=TOPIC_CONDITION_MENTIONS,
-                        # P15. What the PERSON has confirmed about readings their
-                        # own files could not settle. Read fresh on every call
-                        # rather than captured, so an answer given by `--answer`
-                        # earlier in this same invocation is already in force.
-                        settled_by_user=lambda: activated_schemas(conn),
-                        # A confirmed profile is a closed allow-list. An empty
-                        # set — nobody has declared a life — leaves recognition
-                        # as it is. Read fresh, for the same reason as above.
-                        declared_lives=lambda: declared_lives(conn))
+    detector = build_detector(conn, rules, now=now)
     # RECOGNITION BY MEANING, composed AROUND the term detector and never in front
     # of it: `SemanticRecogniser` calls it first and returns its answer untouched,
     # so a vector can add a classification where there was none and can never
@@ -22414,9 +22423,12 @@ def _nothing_could_be_read_report(
     `tests/p13/test_p13_progress_lines.py` says in a comment that it will be
     spelled "exactly as it will be spelled in `src/cli.py`".
     """
+    # The SORTER'S newest run: its selections carry the person (`--user`); the
+    # assistant's index and refresh runs record none, and are not this screen's.
     scan = conn.execute(
-        "SELECT scan_run_id FROM scan_runs ORDER BY started_at DESC, "
-        "scan_run_id DESC LIMIT 1").fetchone()
+        "SELECT r.scan_run_id FROM scan_runs r JOIN corpus_selections s "
+        "ON s.selection_id = r.selection_id WHERE s.selected_by IS NOT NULL "
+        "ORDER BY r.started_at DESC, r.scan_run_id DESC LIMIT 1").fetchone()
     if scan is None:
         return None
     roster = corpus_roster(conn, scan[0])

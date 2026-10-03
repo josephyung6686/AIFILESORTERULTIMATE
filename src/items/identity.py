@@ -72,6 +72,56 @@ def reconcile_tree(conn: sqlite3.Connection, root: Path) -> None:
     project_after_scan(conn, [root], P1_INCLUDED_SCAN_STATE)
 
 
+def refresh_tree(conn: sqlite3.Connection, root: Path) -> bool:
+    """Record only what changed under `root` since it was last scanned.
+
+    P3's own walk, compared with P3's stat cache, writes nothing. When no file
+    is new, changed or gone, nothing is written and this returns False. When
+    some are, one scan run records those files -- plus the walk's exclusion
+    verdicts, so the folders set aside stay counted -- and items follow.
+    """
+    from database_agent.db import batched_writes
+    from scan_agent.run import finish_scan_run, start_scan_run
+    # The scan's own per-item writer, so this records exactly as a scan does.
+    from scan_agent.scan import SCAN_COMMIT_BATCH, _record
+    from scan_agent.stat_cache import VERDICT_REUSE, cache_verdict, prior_observation
+    from scan_agent.traversal import ObservedDirectory, ObservedFile, walk
+    from scan_agent.disappearance import reconcile_disappearances
+
+    create_items_schema(conn)
+    root = Path(root)
+    kept: list = []
+    changed = False
+    for item in walk(FilesystemCorpusSource(), sources=[root],
+                     candidate_roots=[], budget_exhausted=lambda: False):
+        if isinstance(item, ObservedDirectory):
+            continue
+        if isinstance(item, ObservedFile):
+            prior = prior_observation(conn, item.path)
+            if (prior is not None
+                    and cache_verdict(item, prior).verdict == VERDICT_REUSE):
+                continue
+            changed = True
+        kept.append(item)
+    gone = any(
+        _under_any(row["current_path"], [root]) and _is_absent(row["current_path"])
+        for row in conn.execute("SELECT current_path FROM files WHERE scan_state = ?",
+                                (P1_INCLUDED_SCAN_STATE,)))
+    if not changed and not gone:
+        return False
+    scan_run_id = start_scan_run(conn, _selection_for(conn, root))
+    with batched_writes(conn, size=SCAN_COMMIT_BATCH) as item_recorded:
+        for item in kept:
+            _record(conn, scan_run_id, item, mime_type_for=lambda _path: None,
+                    scan_state=P1_INCLUDED_SCAN_STATE)
+            item_recorded()
+    reconcile_disappearances(conn, scan_run_id, sources=[root],
+                             scan_state=P1_INCLUDED_SCAN_STATE)
+    finish_scan_run(conn, scan_run_id)
+    project_after_scan(conn, [root], P1_INCLUDED_SCAN_STATE)
+    return True
+
+
 def _selection_for(conn: sqlite3.Connection, root: Path) -> str:
     """The selection already recorded for exactly this folder, or a new one."""
     row = conn.execute(
