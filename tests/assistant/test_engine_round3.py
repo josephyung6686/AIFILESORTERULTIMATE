@@ -286,3 +286,58 @@ def test_a_protected_name_is_absent_from_every_model_request(lib):
     shown = [c.name for e in out if isinstance(e, ev.Message)
              for c in e.citations]
     assert "bank statement.pem" in shown
+
+
+# -- document text is read in the background after the first index -----------
+
+def test_document_text_is_read_once_on_its_own_connection(lib, monkeypatch):
+    import threading
+    from dataclasses import dataclass
+    from items import indexing
+    from assistant.session import start_reading
+
+    gate = threading.Event()
+    calls = []
+
+    def read(conn, *, on_progress=None, limit=None):
+        calls.append(conn)
+        on_progress("read", 0, 3)
+        gate.wait(5)
+        on_progress("read", 2, 3)
+        return 2
+
+    @dataclass
+    class C:
+        unread_documents: int = 1
+    monkeypatch.setattr(indexing, "read_document_text", read)
+    monkeypatch.setattr(indexing, "counts", lambda conn: C())
+    out = []
+    s = Session(lib, provider_turn=lambda *a, **k: None, emit=out.append)
+    counts = type("Counts", (), {"indexed": 2, "set_aside": 0, "protected": 0,
+                                 "held": 0, "open_questions": 0})
+    s.after_index(counts)
+    s.after_index(counts)            # a second index starts nothing more
+    # One reader per database: another Session on it does not start one.
+    assert start_reading(lib, out.append) is None
+    gate.set()
+    s.reader.join(5)
+    assert len(calls) == 1 and calls[0] is not lib
+    lines = [e.line for e in out if isinstance(e, ev.Progress)]
+    assert lines == ["Reading document text… 3 left",
+                     "Reading document text… 1 left"]
+    said = [e.text for e in out if isinstance(e, ev.Message)][-1]
+    assert said == ("Finished reading document text (2 files). 1 file "
+                    "couldn't be read and is found by name only.")
+
+
+def test_a_file_found_by_name_only_says_so(capsys):
+    import io
+    from assistant.terminal import TerminalRenderer
+    out = io.StringIO()
+    TerminalRenderer(out)(ev.Message(text="Found 2:", citations=(
+        ev.Citation(name="cv.pdf", folder="~/Docs", open_target=None,
+                    matched_by="name"),
+        ev.Citation(name="essay.txt", folder="~/Docs", open_target=None))))
+    lines = out.getvalue().splitlines()
+    assert lines[1].endswith("(matched by name)")
+    assert "matched by name" not in lines[2]

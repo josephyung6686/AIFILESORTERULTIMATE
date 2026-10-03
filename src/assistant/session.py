@@ -8,6 +8,7 @@ here from database rows, never from model text.
 from __future__ import annotations
 
 import re
+import threading
 import sqlite3
 import uuid
 from pathlib import Path
@@ -124,6 +125,9 @@ class Session:
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
         self._opened = False
+        #: Document text is read once per session, after the first index.
+        self._reading_started = False
+        self.reader = None
         #: The last moved batch's undo token, for `undo_last` and `undo`.
         self.last_undo_token: str | None = None
 
@@ -258,6 +262,9 @@ class Session:
         self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
                             protected=c.protected, held=c.held,
                             open_questions=c.open_questions))
+        if not self._reading_started:
+            self._reading_started = True
+            self.reader = start_reading(self.conn, self.emit)
 
     def cancel(self) -> None:
         self.cancel_requested = True
@@ -564,13 +571,15 @@ class Session:
         out = []
         for item_id in item_ids:
             row = self.conn.execute(
-                "SELECT display_label, open_target FROM items "
+                "SELECT display_label, open_target, content_hash FROM items "
                 "WHERE item_id = ?", (item_id,)).fetchone()
             if row is None:
                 continue
             out.append(ev.Citation(name=row["display_label"],
                                    folder=_folder_of(row["open_target"]),
-                                   open_target=row["open_target"]))
+                                   open_target=row["open_target"],
+                                   matched_by=_matched_by(
+                                       self.conn, row["content_hash"])))
         return tuple(out)
 
 
@@ -590,6 +599,88 @@ def open_in_finder(path: str, *, reveal: bool) -> bool:
     return bool(workspace.openURL_(url))
 
 
+def _hash_of(conn: sqlite3.Connection, item_id: str) -> str | None:
+    row = conn.execute("SELECT content_hash FROM items WHERE item_id = ?",
+                       (item_id,)).fetchone()
+    return row[0] if row is not None else None
+
+
+def _matched_by(conn: sqlite3.Connection, content_hash: str | None) -> str:
+    """"name" while a file's text has not been read yet, else ""."""
+    try:
+        from items.hot_index import _text_was_read
+        return "" if _text_was_read(conn, content_hash) else "name"
+    except Exception:
+        return ""
+
+
+# -- reading document text in the background ---------------------------------
+
+#: One reader per database at a time, across every Session in this process.
+_READERS: dict[str, threading.Lock] = {}
+_READERS_GUARD = threading.Lock()
+
+
+def _reader_lock(path: str):
+    with _READERS_GUARD:
+        return _READERS.setdefault(path, threading.Lock())
+
+
+def start_reading(conn: sqlite3.Connection, emit):
+    """Read the text of the files indexed by name, once, on a background
+    thread with its own connection. Returns the thread, or None when there
+    is nothing to start (no reader in this build, or one already running on
+    this database). Each file has the extraction pool's own time ceiling, so
+    one file cannot stall the rest; a file it gives up on stays found by
+    name and is counted in what is said at the end."""
+    try:
+        from items.indexing import read_document_text  # noqa: F401
+    except ImportError:
+        return None
+    from assistant.engine_tools import database_path
+    path = database_path(conn)
+    if not path:
+        return None
+    lock = _reader_lock(path)
+    if not lock.acquire(blocking=False):
+        return None
+    thread = threading.Thread(target=_read_all, args=(path, emit, lock),
+                              name="read-document-text", daemon=True)
+    thread.start()
+    return thread
+
+
+def _read_all(path: str, emit, lock) -> None:
+    from database_agent.db import open_database
+    from items import indexing
+    own = None
+    try:
+        # `open_database` takes DATABASE_AGENT_KEY_FILE itself, as the
+        # Session's own connection did.
+        own = open_database(Path(path), scan_roots=[])
+
+        def progress(stage: str, done: int, total: int) -> None:
+            if total:
+                emit(ev.Progress(stage="read", done=done, total=total,
+                                 line=f"Reading document text… "
+                                      f"{total - done} left"))
+        read = indexing.read_document_text(own, on_progress=progress,
+                                           limit=None)
+        left = getattr(indexing.counts(own), "unread_documents", 0)
+        text = (f"Finished reading document text ({read} "
+                f"file{'s' if read != 1 else ''}).")
+        if left:
+            text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
+                     "read and "
+                     f"{'are' if left != 1 else 'is'} found by name only.")
+        emit(ev.Message(text=text))
+    except Exception:
+        emit(ev.Message(text="I stopped reading document text. Files not "
+                             "read yet are still found by their names."))
+    finally:
+        if own is not None:
+            own.close()
+        lock.release()
 
 
 NO_MODEL_HELP = ("Without the AI model I can: find <name>, where is <name>, "
@@ -635,9 +726,12 @@ def _find_locally(conn: sqlite3.Connection, query: str):
         target = row[0] if row is not None else None
         if hit.protected or item_is_sensitive(conn, hit.item_id):
             protected += 1
-        citations.append(ev.Citation(name=hit.display_label,
-                                     folder=_folder_of(target),
-                                     open_target=target))
+        citations.append(ev.Citation(
+            name=hit.display_label, folder=_folder_of(target),
+            open_target=target,
+            matched_by="" if getattr(hit, "matched_by", "") == "content"
+            else _matched_by(conn, getattr(hit, "content_hash", None)
+                             or _hash_of(conn, hit.item_id))))
     line = f"Found {len(citations)}:"
     if protected:
         line += (f" ({protected} protected — shown only to you, never "

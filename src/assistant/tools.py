@@ -341,6 +341,7 @@ class ToolRuntime:
                     "open_target": hit.open_target,
                     "score": round(hit.score, 5),
                     "channels": list(hit.channels),
+                    "matched_by": getattr(hit, "matched_by", "name"),
                     "trust": card_trust,
                 })
                 citations.append(hit.item_id)

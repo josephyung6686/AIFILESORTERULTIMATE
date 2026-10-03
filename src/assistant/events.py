@@ -14,6 +14,9 @@ class Citation:
     name: str
     folder: str
     open_target: str | None
+    #: "name" while the file's text has not been read yet: it was found by
+    #: its name alone.
+    matched_by: str = ""
 
 
 @dataclass(frozen=True)

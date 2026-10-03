@@ -59,7 +59,9 @@ class TerminalRenderer:
                 self.citations = event.citations
                 width = max(len(c.name) for c in event.citations)
                 for i, c in enumerate(event.citations, start=1):
-                    self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}")
+                    self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}"
+                               + ("   (matched by name)"
+                                  if c.matched_by == "name" else ""))
         elif isinstance(event, ev.Question):
             self.question = event
             head = f"Question {event.index} of {event.of}: " if event.of > 1 \
