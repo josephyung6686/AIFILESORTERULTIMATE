@@ -267,6 +267,14 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
     _fn("what_was_sent", "Today's requests to the AI model, in plain words: "
         "how many, how many bytes, which questions.", {}),
     _fn(
+        "freeze_plan",
+        "After organise_folder: propose accepting the proposed folders and "
+        "locking in the plan, so apply_branch can move them. Moves nothing; "
+        "the person confirms.",
+        {"folder": {"type": "string"}},
+        ["folder"],
+    ),
+    _fn(
         "apply_branch",
         "Propose moving the files the sorter planned for one folder of its "
         "plan (the branch name as the plan shows it). Always asks the "

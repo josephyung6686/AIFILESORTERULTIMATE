@@ -56,9 +56,22 @@ def _conversation(args: list[str], out=None) -> int | None:
             return None
         if Path(args[0]).expanduser().is_dir() and not _stdin_is_a_terminal():
             return None
+    import os
+    import sqlite3
     from assistant import terminal
     from database_agent.db import open_database, shared_database_path
-    conn = open_database(shared_database_path(), scan_roots=[])
+    # `open_database` reads DATABASE_AGENT_KEY_FILE itself, as the
+    # subcommands' `--key-file` does. Without it an encrypted file is not
+    # a database to plain SQLite, and the person gets one line.
+    try:
+        conn = open_database(shared_database_path(), scan_roots=[])
+    except sqlite3.DatabaseError:
+        if os.environ.get("DATABASE_AGENT_KEY_FILE"):
+            raise
+        print("This database is encrypted. Set DATABASE_AGENT_KEY_FILE to "
+              "your key file, then run database-agent again.",
+              file=out if out is not None else sys.stdout)
+        return 2
     try:
         if not args:
             return terminal.run_terminal(conn, folder=None, stdout=out)

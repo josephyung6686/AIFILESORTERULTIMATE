@@ -34,10 +34,10 @@ def test_find_and_read_edges(conn, tmp_path: Path):
     found = rt.execute("find_files", {"query": "notes", "limit": 5})
     assert found.ok is True
     assert found.payload["moved"] is False
-    # Held card withholds path.
-    held_cards = [h for h in found.payload["hits"] if h["item_id"] == held_id]
-    assert held_cards
-    assert held_cards[0]["open_target"] is None
+    # Spec §3: a held match reaches the model as a count, never a card.
+    assert held_id not in [h["item_id"] for h in found.payload["hits"]]
+    assert held_id in rt.protected_hits
+    assert "protected file" in found.payload["protected"]
 
     refused = rt.execute("read_item", {"item_id": held_id})
     assert refused.ok is False

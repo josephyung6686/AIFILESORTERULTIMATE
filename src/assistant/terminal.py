@@ -59,7 +59,9 @@ class TerminalRenderer:
                 self.citations = event.citations
                 width = max(len(c.name) for c in event.citations)
                 for i, c in enumerate(event.citations, start=1):
-                    self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}")
+                    self._line(f"  {i}) {c.name.ljust(width)}   {c.folder}"
+                               + ("   (matched by name)"
+                                  if c.matched_by == "name" else ""))
         elif isinstance(event, ev.Question):
             self.question = event
             head = f"Question {event.index} of {event.of}: " if event.of > 1 \
@@ -192,6 +194,8 @@ def run_events(conn, *, stdin=None, stdout=None, provider_turn=None) -> int:
         stdout.flush()
 
     session = Session(conn, provider_turn=provider_turn, emit=emit)
+    # The app gets the greeting and the counts without asking for them.
+    session.open()
     for line in stdin:
         if not line.strip():
             continue

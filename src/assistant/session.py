@@ -8,6 +8,7 @@ here from database rows, never from model text.
 from __future__ import annotations
 
 import re
+import threading
 import sqlite3
 import uuid
 from pathlib import Path
@@ -123,6 +124,12 @@ class Session:
         self.pending: dict[str, dict] = {}
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
+        self._opened = False
+        #: Document text is read once per session, after the first index.
+        self._reading_started = False
+        self.reader = None
+        #: The last moved batch's undo token, for `undo_last` and `undo`.
+        self.last_undo_token: str | None = None
 
     def emit(self, event) -> None:
         if isinstance(event, ev.Message) and event.citations:
@@ -143,6 +150,11 @@ class Session:
 
     # -- opening ---------------------------------------------------------
     def open(self) -> None:
+        """The greeting, once: a second call (the app's `open` action after
+        `--events` already opened) changes nothing."""
+        if self._opened:
+            return
+        self._opened = True
         if self._provider_name() is None:
             self.awaiting_key = True
             self.emit(ev.Message(text=KEY_PROMPT))
@@ -250,6 +262,9 @@ class Session:
         self.emit(ev.Counts(indexed=c.indexed, set_aside=c.set_aside,
                             protected=c.protected, held=c.held,
                             open_questions=c.open_questions))
+        if not self._reading_started:
+            self._reading_started = True
+            self.reader = start_reading(self.conn, self.emit)
 
     def cancel(self) -> None:
         self.cancel_requested = True
@@ -303,9 +318,11 @@ class Session:
             if not target:
                 self.emit(ev.Message(text="I can't open that one."))
                 return True
-            import subprocess
-            subprocess.run(["open", target] if match.group(1) == "open"
-                           else ["open", "-R", target], check=False)
+            if not open_in_finder(target, reveal=match.group(1) == "show"):
+                self.emit(ev.Message(
+                    text="I can't open files on this Mac from here — the "
+                         f"file is at {_folder_of(target)}/"
+                         f"{Path(target).name}"))
             return True
         if words in self.undo_choices:
             token = self.undo_choices[words]
@@ -316,6 +333,12 @@ class Session:
         if words in ("undo", "undo something", "put it back"):
             from assistant.engine_tools import recent_batches
             batches = recent_batches(self.conn)
+            token = self.last_undo_token or ""
+            if token.startswith("branch:"):
+                # A folder of the plan moved by the sorter: not in the
+                # assistant's own batches, so offered first from here.
+                batches.insert(0, {"token": token, "text": "the files moved "
+                                   "into " + token.rpartition("|")[2]})
             if not batches:
                 self.emit(ev.Message(text="There's nothing I moved to put "
                                           "back."))
@@ -345,7 +368,7 @@ class Session:
             self.start_questions()
             return
         if words.startswith("undo"):
-            proposal = undo_last(self.conn)
+            proposal = undo_last(self.conn, self)
             if proposal.get("ok"):
                 self._propose(proposal["needs_confirmation"])
             else:
@@ -386,7 +409,7 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
-        reply = _strip_citation_line(answer.text)
+        reply = plain_reply(self.conn, _strip_citation_line(answer.text))
         self.history.append({"role": "assistant", "content": answer.text})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
@@ -429,6 +452,11 @@ class Session:
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
         self.history.append({"role": "assistant", "content": result["text"]})
+        if result["ok"] and result.get("undo_token"):
+            self.last_undo_token = result["undo_token"]
+        elif result["ok"] and proposal["kind"] == "undo" and (
+                proposal["ref"] == self.last_undo_token):
+            self.last_undo_token = None
         if result["ok"]:
             self.emit(ev.Done(moved=bool(result["moved"]),
                               undo_token=result.get("undo_token")))
@@ -509,7 +537,8 @@ class Session:
                               engine_context=self)
         self._proposals = runtime.pending_confirmations
         messages = [{"role": "system",
-                     "content": build_system_prompt(self.conn, text)},
+                     "content": build_system_prompt(self.conn, text)
+                     + "\n" + PLAIN_WORDS},
                     *self.history]
         # `converse` appends the model turns and tool replies; the history
         # keeps the tool messages (between the last user line and the answer)
@@ -526,7 +555,7 @@ class Session:
                 "tool_calls"):
             new = new[:-1]
         self.history.extend(new)
-        self._protected_hits = _protected_hits(self.conn, new)
+        self._protected_hits = tuple(runtime.protected_hits)
         return answer
 
     def _trim(self) -> None:
@@ -542,34 +571,116 @@ class Session:
         out = []
         for item_id in item_ids:
             row = self.conn.execute(
-                "SELECT display_label, open_target FROM items "
+                "SELECT display_label, open_target, content_hash FROM items "
                 "WHERE item_id = ?", (item_id,)).fetchone()
             if row is None:
                 continue
             out.append(ev.Citation(name=row["display_label"],
                                    folder=_folder_of(row["open_target"]),
-                                   open_target=row["open_target"]))
+                                   open_target=row["open_target"],
+                                   matched_by=_matched_by(
+                                       self.conn, row["content_hash"])))
         return tuple(out)
 
 
-def _protected_hits(conn: sqlite3.Connection, messages) -> tuple[str, ...]:
-    """Items a find matched this turn that are protected."""
-    import json
-    from items.file_identity import item_is_sensitive
-    found: list[str] = []
-    for m in messages:
-        if m.get("role") != "tool":
-            continue
-        try:
-            payload = json.loads(m.get("content") or "{}")
-        except (TypeError, ValueError):
-            continue
-        for hit in payload.get("hits") or ():
-            item_id = hit.get("item_id") if isinstance(hit, dict) else None
-            if item_id and item_id not in found and item_is_sensitive(
-                    conn, item_id):
-                found.append(item_id)
-    return tuple(found)
+def open_in_finder(path: str, *, reveal: bool) -> bool:
+    """Open a file, or show it in Finder, through macOS itself (no child
+    process). False when this Mac's workspace API is not available."""
+    try:
+        from AppKit import NSWorkspace
+        from Foundation import NSURL
+    except ImportError:
+        return False
+    url = NSURL.fileURLWithPath_(path)
+    workspace = NSWorkspace.sharedWorkspace()
+    if reveal:
+        workspace.activateFileViewerSelectingURLs_([url])
+        return True
+    return bool(workspace.openURL_(url))
+
+
+def _hash_of(conn: sqlite3.Connection, item_id: str) -> str | None:
+    row = conn.execute("SELECT content_hash FROM items WHERE item_id = ?",
+                       (item_id,)).fetchone()
+    return row[0] if row is not None else None
+
+
+def _matched_by(conn: sqlite3.Connection, content_hash: str | None) -> str:
+    """"name" while a file's text has not been read yet, else ""."""
+    try:
+        from items.hot_index import _text_was_read
+        return "" if _text_was_read(conn, content_hash) else "name"
+    except Exception:
+        return ""
+
+
+# -- reading document text in the background ---------------------------------
+
+#: One reader per database at a time, across every Session in this process.
+_READERS: dict[str, threading.Lock] = {}
+_READERS_GUARD = threading.Lock()
+
+
+def _reader_lock(path: str):
+    with _READERS_GUARD:
+        return _READERS.setdefault(path, threading.Lock())
+
+
+def start_reading(conn: sqlite3.Connection, emit):
+    """Read the text of the files indexed by name, once, on a background
+    thread with its own connection. Returns the thread, or None when there
+    is nothing to start (no reader in this build, or one already running on
+    this database). Each file has the extraction pool's own time ceiling, so
+    one file cannot stall the rest; a file it gives up on stays found by
+    name and is counted in what is said at the end."""
+    try:
+        from items.indexing import read_document_text  # noqa: F401
+    except ImportError:
+        return None
+    from assistant.engine_tools import database_path
+    path = database_path(conn)
+    if not path:
+        return None
+    lock = _reader_lock(path)
+    if not lock.acquire(blocking=False):
+        return None
+    thread = threading.Thread(target=_read_all, args=(path, emit, lock),
+                              name="read-document-text", daemon=True)
+    thread.start()
+    return thread
+
+
+def _read_all(path: str, emit, lock) -> None:
+    from database_agent.db import open_database
+    from items import indexing
+    own = None
+    try:
+        # `open_database` takes DATABASE_AGENT_KEY_FILE itself, as the
+        # Session's own connection did.
+        own = open_database(Path(path), scan_roots=[])
+
+        def progress(stage: str, done: int, total: int) -> None:
+            if total:
+                emit(ev.Progress(stage="read", done=done, total=total,
+                                 line=f"Reading document text… "
+                                      f"{total - done} left"))
+        read = indexing.read_document_text(own, on_progress=progress,
+                                           limit=None)
+        left = getattr(indexing.counts(own), "unread_documents", 0)
+        text = (f"Finished reading document text ({read} "
+                f"file{'s' if read != 1 else ''}).")
+        if left:
+            text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
+                     "read and "
+                     f"{'are' if left != 1 else 'is'} found by name only.")
+        emit(ev.Message(text=text))
+    except Exception:
+        emit(ev.Message(text="I stopped reading document text. Files not "
+                             "read yet are still found by their names."))
+    finally:
+        if own is not None:
+            own.close()
+        lock.release()
 
 
 NO_MODEL_HELP = ("Without the AI model I can: find <name>, where is <name>, "
@@ -615,9 +726,12 @@ def _find_locally(conn: sqlite3.Connection, query: str):
         target = row[0] if row is not None else None
         if hit.protected or item_is_sensitive(conn, hit.item_id):
             protected += 1
-        citations.append(ev.Citation(name=hit.display_label,
-                                     folder=_folder_of(target),
-                                     open_target=target))
+        citations.append(ev.Citation(
+            name=hit.display_label, folder=_folder_of(target),
+            open_target=target,
+            matched_by="" if getattr(hit, "matched_by", "") == "content"
+            else _matched_by(conn, getattr(hit, "content_hash", None)
+                             or _hash_of(conn, hit.item_id))))
     line = f"Found {len(citations)}:"
     if protected:
         line += (f" ({protected} protected — shown only to you, never "
@@ -647,3 +761,53 @@ def _strip_citation_line(text: str) -> str:
     the citations as names instead."""
     return "\n".join(line for line in text.splitlines()
                      if not line.lower().startswith("citations:")).strip()
+
+
+PLAIN_WORDS = (
+    "Speak in plain words a student or a job-seeker uses. Never say internal "
+    "state names or codes: not unplaced, typed, held, schema ids, situation "
+    "codes, branch ids or item ids. Say \"not sorted yet\", not "
+    "\"unplaced\"; say \"protected\", not \"held\"; name a folder the way "
+    "the plan shows it.")
+
+#: State words a person should never read, and what to say instead. "typed"
+#: is ordinary English after you/I, so only the state use is replaced.
+_STATE_WORDS = (
+    (re.compile(r"\bunplaced\b"), "not sorted yet"),
+    (re.compile(r"\bUnplaced\b"), "Not sorted yet"),
+    (re.compile(r"\b(?:held|typing_state)\b(?! (?:off|on|up|back)\b)"),
+     "protected"),
+    (re.compile(r"\bHeld\b(?! (?:off|on|up|back)\b)"), "Protected"),
+    (re.compile(r"(?<!\byou )(?<!\bI )(?<!\bwe )\buntyped\b"),
+     "not recognised yet"),
+    (re.compile(r"(?<!\byou )(?<!\bI )(?<!\bwe )(?<!\bYou )\btyped\b"),
+     "recognised"),
+)
+
+
+def plain_reply(conn: sqlite3.Connection, text: str) -> str:
+    """The model's reply with internal words replaced, whatever it emitted.
+
+    Codes (`wording_problems`) are dropped unless they are part of a file
+    name in the reply or of a name this database holds -- a person's file
+    called `my_cv.pdf` keeps its name."""
+    from assistant.engine_tools import wording_problems
+    for pattern, words in _STATE_WORDS:
+        text = pattern.sub(words, text)
+    dropped = False
+    for token in wording_problems(text):
+        if re.search(re.escape(token) + r"[\w-]*\.[A-Za-z0-9]{1,5}\b", text):
+            continue
+        try:
+            named = conn.execute(
+                "SELECT 1 FROM items WHERE instr(lower(display_label), ?) "
+                "LIMIT 1", (token,)).fetchone()
+        except sqlite3.Error:
+            named = None
+        if named is None:
+            text = text.replace(token, "")
+            dropped = True
+    if not dropped:
+        return text.strip()
+    return re.sub(r"(?<=\S)[ \t]{2,}", " ",
+                  re.sub(r"[ \t]+([?.,!:;])", r"\1", text)).strip()

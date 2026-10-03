@@ -101,7 +101,10 @@ def test_a_first_run_in_the_terminal(conn, tmp_path, fake_indexing):
     assert not re.search(r"\b[0-9a-f]{8,}\b", shown)
 
 
-def test_events_round_trip(conn):
+def test_events_round_trip(conn, tmp_path, fake_indexing):
+    # Something is indexed, so the opening greets instead of asking for a
+    # folder, and the say is a turn.
+    sys.modules["items.indexing"].index_folder(conn, _desk(tmp_path))
     stdin = io.StringIO(json.dumps({"action": "say", "text": "hi"}) + "\n")
     stdout = io.StringIO()
     run_events(conn, stdin=stdin, stdout=stdout, provider_turn=scripted(
