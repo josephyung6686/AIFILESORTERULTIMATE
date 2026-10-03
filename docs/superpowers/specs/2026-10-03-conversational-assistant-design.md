@@ -113,6 +113,20 @@ If no key is configured or the provider fails: one line ("No AI model is set up,
 
 Actions in: `say(text)`, `answer(question_id, option_id | text | skip)`, `confirm(confirm_id, yes|no)`, `set_level(1|2|3)`, `undo(undo_token)`.
 
+## 9a. User-first review changes (3 Oct night; owner asleep — lead's calls under existing rulings, logged)
+
+1. **Document text after the fast index.** Counts arrive in seconds; then local extraction of PDF/DOCX/text (and OCR for images) runs in the background ("Reading document text… 212 left"), so find/ask work on content, not only names. Until a file is read, results say "matched by name". (Coverage is sacred.)
+2. **Sensitive before sent.** A file not yet read by the local sensitivity pass is treated as not-yet-cleared: its content never enters a cloud request until the pass has run on it.
+3. **`set_level` confirms** (kind `settings`) — a document cannot talk the model into hands-off mode.
+4. **Disclosure.** The greeting carries one fixed code-written line: "Questions and file snippets go to DeepSeek to answer you. Protected files (N) never leave this Mac." A read-only `what_was_sent` tool lists today's egress ledger rows in plain words.
+5. **Key onboarding without a terminal.** With no key, the chat says: "Paste a DeepSeek key to chat, or press Enter to keep going without one — I can still find files and undo." A pasted key is stored in `~/.graph-agent/.env` (mode 0600), never in the database, never echoed.
+6. **Folder question** offers numbered choices (1 Desktop, 2 Documents, 3 Downloads, or type a path) and says first: "I'll read file names and text here to build a private index on this Mac. Nothing moves unless you say yes. macOS may ask to allow access — choose Allow."
+7. **Counts in people's words.** "488 files are inside 14 coding projects — each is kept as one item and nothing inside is moved. 6 files look personal (ID, health) — I'll show them only to you." One protection word ("protected") for held + protected.
+8. **Open and reveal.** After a find, `open 1` and `show 1` (Finder) are deterministic commands.
+9. **Organise** states the time up front and is cancellable (`cancel` stops it; nothing moved). It never ends with no tree without saying why and which one answer unlocks it.
+10. **Undo history.** `undo` with no target lists the last 5 move batches in plain words and asks which.
+11. **Suggestions lead with the person's own clutter**: loose screenshots, same-content copies ("(1)", "copy"), installers; worded by the model from counted facts.
+
 ## 10. Errors
 
 No traceback reaches the person. Missing index → the folder question. Model or network failure → one line saying what failed and that nothing changed, then §8.
