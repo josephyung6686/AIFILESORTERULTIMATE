@@ -20,24 +20,32 @@ run_gate() {
 PYTHON="${PYTHON:-python3}"
 VENV="$WORK/venv"
 WHEELHOUSE="$WORK/wheelhouse"
-"$PYTHON" -m venv "$VENV"
-VENV_PY="$VENV/bin/python"
-VENV_PIP="$VENV/bin/pip"
 mkdir -p "$WHEELHOUSE"
-run_gate wheel_build "$VENV_PY" -m pip wheel --no-deps --no-build-isolation --wheel-dir "$WHEELHOUSE" "$ROOT"
+run_gate wheel_build "$PYTHON" -m pip wheel --no-deps --no-build-isolation --wheel-dir "$WHEELHOUSE" "$ROOT"
 WHEEL="$(find "$WHEELHOUSE" -maxdepth 1 -name '*.whl' -print -quit)"
-if [[ -n "$WHEEL" ]]; then
-  run_gate wheel_install "$VENV_PIP" install --no-deps --no-index "$WHEEL"
-else
+if [[ -z "$WHEEL" ]]; then
   printf 'wheel_artifact\t1\t-\t-\n' >>"$STATUS"
   FAILED=1
+else
+  # The base wheel intentionally has no reader/model runtime dependencies.  Use
+  # the provisioned interpreter's site packages for optional reader imports while
+  # still installing and exercising the project itself from the wheel only.
+  run_gate venv_create "$PYTHON" -m venv --system-site-packages "$VENV"
+  VENV_PY="$VENV/bin/python"
+  VENV_PIP="$VENV/bin/pip"
+  run_gate wheel_install "$VENV_PIP" install --no-deps --no-index "$WHEEL"
 fi
-run_gate installed_artifact "$VENV_PY" - <<'PY'
+if [[ -n "${VENV_PY:-}" ]]; then
+  run_gate installed_artifact "$VENV_PY" - <<'PY'
 from items.profile_loader import load_profile
 for name in ("student", "files_only", "job_seeker"):
     load_profile(name)
 PY
-run_gate installed_entrypoint "$VENV/bin/database-agent" --help
+  run_gate installed_entrypoint "$VENV/bin/database-agent" --help
+else
+  printf 'installed_artifact\t1\t-\t-\ninstalled_entrypoint\t1\t-\t-\n' >>"$STATUS"
+  FAILED=1
+fi
 export PYTHONPATH="$ROOT/src"
 run_gate provider_resolution "$PYTHON" -m pytest -q tests/assistant/test_provider_resolution.py --tb=line
 run_gate relationship_safety "$PYTHON" -m pytest -q tests/items/test_relationship_approval.py tests/items/test_relationship_projections.py tests/items/test_people_merge_migration.py --tb=line
