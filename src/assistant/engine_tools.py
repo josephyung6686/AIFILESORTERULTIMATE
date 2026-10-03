@@ -279,7 +279,12 @@ def recent_batches(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
     return out
 
 
-def undo_last(conn: sqlite3.Connection) -> dict[str, Any]:
+def undo_last(conn: sqlite3.Connection,
+              context: Any = None) -> dict[str, Any]:
+    token = getattr(context, "last_undo_token", None)
+    if token and token.startswith("branch:"):
+        # A branch move writes no assistant plan; the Session remembers it.
+        return undo_proposal(conn, token)
     from assistant.plans import ensure_plans_schema
     ensure_plans_schema(conn)
     row = conn.execute(
@@ -524,9 +529,13 @@ def run_organise(conn: sqlite3.Connection, path: Path,
     except Exception:
         tree = None
     text = ("I've looked through the folder. Nothing moved. "
-            + (f"I have {_plural(n, 'question')} first." if n else ""))
+            + (f"I have {_plural(n, 'question')} first. " if n else "")
+            + "When the folders look right, say “lock in the plan” and you "
+              "can then move them one folder at a time.")
     return {"ok": True, "open_questions": n, "tree": tree,
             "moved": False, "text": text.strip(),
+            "next_step": ("freeze_plan proposes locking in this plan; "
+                          "apply_branch needs it first."),
             "last_lines": stream.lines[-12:]}
 
 
@@ -614,6 +623,77 @@ def index_folder(conn: sqlite3.Connection, folder: str,
     return run_index(conn, path, context)
 
 
+def freeze_plan(conn: sqlite3.Connection, folder: str,
+                context: Any) -> dict[str, Any]:
+    """Propose accepting the proposed folders and locking in the plan, so
+    branches can be moved. Moves nothing; always asks."""
+    path, refusal = check_folder(conn, folder, context, "organise")
+    if refusal is not None:
+        return refusal
+    if _selection_root(conn, path) is None:
+        return {"ok": False, "error": "I haven't looked through that folder "
+                                      "yet. Organise it first."}
+    return _proposal("freeze", str(path),
+                     f"Accept the proposed folders for {_home_words(path)} "
+                     "and lock in the plan, so you can move them one folder "
+                     "at a time? Nothing moves yet.")
+
+
+def _branches_printed(lines: list[str]) -> list[str]:
+    """The branch names the freeze printed, exactly as the sorter's apply
+    flag takes them."""
+    import shlex
+    flag = "--" + "apply"
+    found = []
+    for line in lines:
+        if flag not in line:
+            continue
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            continue
+        if flag in parts and parts.index(flag) + 1 < len(parts):
+            name = parts[parts.index(flag) + 1]
+            if name not in found:
+                found.append(name)
+    return found
+
+
+def _freeze(conn: sqlite3.Connection, folder: str,
+            context: Any) -> dict[str, Any]:
+    """The sorter's own `--accept-groups --freeze`. Never moves a file."""
+    import cli
+    conn.commit()
+    stream = _ProgressStream(context)
+    try:
+        code = cli.main([folder, "--database", database_path(conn),
+                         "--accept-groups", "--freeze"], out=stream)
+    except (Cancelled, KeyboardInterrupt):
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": "Stopped. Nothing is locked in and nothing moved."}
+    except SystemExit as exc:
+        code = exc.code
+    except Exception:
+        code = 1
+    try:
+        from assistant.organize_tools import show_tree
+        frozen = int(show_tree(conn).get("frozen_moves") or 0)
+    except Exception:
+        frozen = 0
+    branches = _branches_printed(stream.lines)
+    if code not in (0, None) or not frozen or not branches:
+        return {"ok": False, "moved": False, "undo_token": None,
+                "text": "There was nothing ready to lock in, so nothing "
+                        "changed. Nothing moved."}
+    shown = "\n".join(f"  {b}" for b in branches[:12])
+    more = (f"\n  and {len(branches) - 12} more" if len(branches) > 12
+            else "")
+    return {"ok": True, "moved": False, "undo_token": None,
+            "text": f"Locked in: {_plural(frozen, 'file')} ready to move. "
+                    "Nothing moved yet. Tell me which folder to move:\n"
+                    + shown + more}
+
+
 def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
                  context: Any) -> dict[str, Any]:
     """Propose moving the files the sorter froze for one branch. Always
@@ -631,8 +711,9 @@ def apply_branch(conn: sqlite3.Connection, branch: str, folder: str,
     except Exception:
         frozen = 0
     if not frozen:
-        return {"ok": False, "error": "There is no approved plan to move "
-                                      "yet. Organise the folder first."}
+        return {"ok": False, "error": "There is no locked-in plan to move "
+                                      "yet. Organise the folder, then lock "
+                                      "in the plan (freeze_plan)."}
     return _proposal("branch", f"{path}|{branch}",
                      f"Move the files planned for {branch} in "
                      f"{_home_words(path)}? Every move can be undone.")
@@ -868,6 +949,8 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
         put_setting(conn, "permission_level", str(level))
         return {"ok": True, "moved": False, "undo_token": None,
                 "text": f"Level {level} is on."}
+    if kind == "freeze":
+        return _freeze(conn, ref, context)
     if kind == "branch":
         return _branch(conn, ref, undo=False)
     if kind == "undo" and ref.startswith("branch:"):
@@ -931,7 +1014,7 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return quick_sort(conn, list(args.get("files") or []),
                           args.get("destination"))
     if name == "undo_last":
-        return undo_last(conn)
+        return undo_last(conn, context)
     if name == "next_questions":
         return next_questions(conn, context)
     if name == "index_folder":
@@ -949,6 +1032,8 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
                 "Nothing is indexed yet.",
                 "level": get_level(conn),
                 "open_questions": len(open_questions(conn))}
+    if name == "freeze_plan":
+        return freeze_plan(conn, str(args.get("folder") or ""), context)
     if name == "apply_branch":
         return apply_branch(conn, str(args.get("branch") or ""),
                             str(args.get("folder") or ""), context)

@@ -124,6 +124,8 @@ class Session:
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
         self._opened = False
+        #: The last moved batch's undo token, for `undo_last` and `undo`.
+        self.last_undo_token: str | None = None
 
     def emit(self, event) -> None:
         if isinstance(event, ev.Message) and event.citations:
@@ -322,6 +324,12 @@ class Session:
         if words in ("undo", "undo something", "put it back"):
             from assistant.engine_tools import recent_batches
             batches = recent_batches(self.conn)
+            token = self.last_undo_token or ""
+            if token.startswith("branch:"):
+                # A folder of the plan moved by the sorter: not in the
+                # assistant's own batches, so offered first from here.
+                batches.insert(0, {"token": token, "text": "the files moved "
+                                   "into " + token.rpartition("|")[2]})
             if not batches:
                 self.emit(ev.Message(text="There's nothing I moved to put "
                                           "back."))
@@ -351,7 +359,7 @@ class Session:
             self.start_questions()
             return
         if words.startswith("undo"):
-            proposal = undo_last(self.conn)
+            proposal = undo_last(self.conn, self)
             if proposal.get("ok"):
                 self._propose(proposal["needs_confirmation"])
             else:
@@ -435,6 +443,11 @@ class Session:
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
         self.history.append({"role": "assistant", "content": result["text"]})
+        if result["ok"] and result.get("undo_token"):
+            self.last_undo_token = result["undo_token"]
+        elif result["ok"] and proposal["kind"] == "undo" and (
+                proposal["ref"] == self.last_undo_token):
+            self.last_undo_token = None
         if result["ok"]:
             self.emit(ev.Done(moved=bool(result["moved"]),
                               undo_token=result.get("undo_token")))

@@ -100,6 +100,93 @@ def test_an_extra_open_action_is_harmless(conn):
     assert not [e for e in events if e["type"] == "error"]
 
 
+# -- organise -> freeze -> apply -> undo, through the real sorter -------------
+
+def _course(tmp_path: Path) -> Path:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "PHYS 1403 homework 2.txt").write_text(
+        "PHYS 1403 Homework 2\n\nSpring 2026. Due 2026-03-01. "
+        "Solve the following.\n")
+    (corpus / "PHYS 1403 syllabus.txt").write_text(
+        "PHYS 1403 Syllabus\n\nSpring 2026. Instructor: A. Raymer.\n")
+    return corpus
+
+
+def _files(root: Path) -> dict[str, bytes]:
+    return {p.relative_to(root).as_posix(): p.read_bytes()
+            for p in root.rglob("*") if p.is_file()}
+
+
+class _Model:
+    """A provider that plays the next queued reply; the test queues the
+    next tool call once it has read what the person was shown."""
+
+    def __init__(self) -> None:
+        self.queue: list[dict] = []
+        self.seen: list[str] = []
+
+    def __call__(self, messages, tools, config=None, **_):
+        self.seen.append(json.dumps(messages))
+        return self.queue.pop(0)
+
+    def then(self, name, args, reply="OK."):
+        self.queue += [_tool(name, args), {"role": "assistant",
+                                           "content": reply}]
+
+
+def test_organise_freeze_apply_and_undo_in_the_conversation(tmp_path,
+                                                            monkeypatch):
+    from items.schema import create_items_schema
+    monkeypatch.delenv("ASSISTANT_ENABLE_APPLY", raising=False)
+    corpus = _course(tmp_path)
+    before = _files(corpus)
+    conn = open_database(tmp_path / "agent.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    out: list = []
+    model = _Model()
+    s = Session(conn, provider_turn=model, emit=out.append)
+    s.chosen_folders.add(corpus.resolve())
+
+    def confirm_last(yes=True):
+        confirm = [e for e in out if isinstance(e, ev.Confirm)][-1]
+        s.confirm(confirm.confirm_id, yes)
+        return confirm
+
+    # Apply before any freeze is refused plainly.
+    model.then("apply_branch", {"branch": "Education", "folder": str(corpus)})
+    s.say("move the Education folder")
+    assert "lock in" in model.seen[-1]
+
+    model.then("organise_folder", {"folder": str(corpus)})
+    s.say("organise my course folder")
+    assert _files(corpus) == before
+
+    model.then("freeze_plan", {"folder": str(corpus)})
+    s.say("lock in the plan")
+    asked = confirm_last()
+    assert "lock in the plan" in asked.summary and not asked.moves
+    assert _files(corpus) == before
+    locked = [e for e in out if isinstance(e, ev.Message)][-1].text
+    assert locked.startswith("Locked in: 2 files ready to move")
+    branches = [line.strip() for line in locked.splitlines()[1:]]
+    assert branches and all(b.startswith("Education/") for b in branches)
+
+    # Naming the parent moves every branch under it.
+    model.then("apply_branch", {"branch": "Education", "folder": str(corpus)})
+    s.say("move Education")
+    assert confirm_last().undo_available
+    moved = _files(corpus)
+    assert sorted(moved.values()) == sorted(before.values())
+    assert all(p.startswith("Education/") for p in moved), moved
+
+    model.then("undo_last", {})
+    s.say("undo that")
+    confirm_last()
+    assert _files(corpus) == before
+    conn.close()
+
+
 # -- protect / release before organising ---------------------------------------
 
 def test_protect_works_before_any_organise_and_release_says_why_not(lib):
