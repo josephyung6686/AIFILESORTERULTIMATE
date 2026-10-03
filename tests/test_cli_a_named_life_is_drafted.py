@@ -57,7 +57,7 @@ def test_a_life_the_judge_named_is_drafted_with_no_p9_group():
         branch_for=lambda f: education if f in education.file_ids else None,
         default_branch=default, on_accepted=lambda g, b: told.append((g, b.label)),
         schema_of_file=lambda f: None, branches=branches,
-        situation_evidence_of=named.get)
+        situation_evidence_of=lambda f, _k: named.get(f))
 
     assert len(drafted) == 1
     group = current_group(conn, drafted[0])
@@ -80,5 +80,58 @@ def test_a_file_with_no_kind_the_library_holds_is_not_drafted():
         conn, [_no_group()], group_category="career", label="career",
         created_at="2026-10-03T00:00:00Z", branch_for=lambda f: default,
         default_branch=default, schema_of_file=lambda f: None,
-        branches=(default,), situation_evidence_of={"f9": ("h", "sha256:o")}.get)
+        branches=(default,), situation_evidence_of=lambda f, _k: {"f9": ("h", "sha256:o")}.get(f))
     assert drafted == ()
+
+
+def test_the_situation_is_asked_under_the_kind_the_branch_put_the_file_under():
+    """The person answers a KIND's question (`branch:<kind>`), so whether a file
+    has a named situation is asked with the kind its branch holds it as."""
+    conn = _conn()
+    default = _branch("career", (), {}, default=True, schemas=("career",))
+    photos = _branch("Photos and Media", ("p1", "p2"),
+                     {"p1": "photos", "p2": "photos"}, schemas=("photos",))
+    asked = []
+
+    def evidence(file_id, kind):
+        asked.append((file_id, kind))
+        return ("h" + file_id, "sha256:" + file_id)
+
+    drafted = cli.draft_for_review(
+        conn, [_no_group()], group_category="career", label="career",
+        created_at="2026-10-03T00:00:00Z",
+        branch_for=lambda f: photos if f in photos.file_ids else None,
+        default_branch=default, schema_of_file=lambda f: None,
+        branches=(default, photos), situation_evidence_of=evidence)
+
+    assert asked == [("p1", "photos"), ("p2", "photos")]
+    assert len(drafted) == 1
+
+
+def test_a_file_already_in_a_p9_draft_is_not_drafted_a_second_time(monkeypatch):
+    """Measured: a person's `career` answer put a file under Career while its
+    P9 group was drafted under Education. Drafted twice, it was a member of two
+    accepted groups, §6.9 skipped it in both, and the Career plan was empty --
+    `GroupPlan` refused it and the run stopped."""
+    from types import SimpleNamespace
+    conn = _conn()
+    default = _branch("career", (), {}, default=True, schemas=("career",))
+    career = _branch("Career", ("f1",), {"f1": "career"}, schemas=("career",))
+    education = _branch("Education", (), {}, schemas=("research",))
+    p9 = SimpleNamespace(group=SimpleNamespace(group_id="g"), stop_rule_outcome=None)
+    monkeypatch.setattr(cli, "_grouped_by_branch",
+                        lambda *a, **k: [(education, "research", "Education", [p9])])
+    monkeypatch.setattr(cli, "_draft_as_one", lambda *a, **k: "p9-draft")
+    real = cli.memberships_for_group
+    monkeypatch.setattr(cli, "memberships_for_group",
+                        lambda c, gid: ((SimpleNamespace(file_id="f1"),)
+                                        if gid == "p9-draft" else real(c, gid)))
+
+    drafted = cli.draft_for_review(
+        conn, [p9], group_category="career", label="career",
+        created_at="2026-10-03T00:00:00Z",
+        branch_for=lambda f: career, default_branch=default,
+        schema_of_file=lambda f: None, branches=(default, career, education),
+        situation_evidence_of=lambda f, k: ("h", "sha256:o"))
+
+    assert drafted == ("p9-draft",)
