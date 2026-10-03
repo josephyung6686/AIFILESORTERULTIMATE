@@ -1436,8 +1436,12 @@ def _freeze(conn: sqlite3.Connection, folder: str,
     frozen = int(tree.get("frozen_moves") or 0)
     branches = _branches_printed(stream.lines)
     if code not in (0, None) or not frozen or not branches:
+        refused = _refusal_text(stream.lines)
+        # The same lock-in would fail the same way: not offered again until
+        # an answer or a new organise run changes the plan.
+        put_setting(conn, f"lock_in_blocked:{folder}", refused)
         return {"ok": False, "moved": False, "undo_token": None,
-                "text": _refusal_text(stream.lines)}
+                "text": refused}
     shown = [display_name(b) for b in branches]
     waiting = [f["path"] for f in tree.get("folders") or ()
                if f["kind"] != "existing" and "/" not in f["path"]
