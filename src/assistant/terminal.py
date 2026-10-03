@@ -75,7 +75,9 @@ class TerminalRenderer:
                            f"{_home(str(Path(move.dst).parent))}/")
             if len(event.moves) > MOVES_SHOWN:
                 self._line(f"  and {len(event.moves) - MOVES_SHOWN} more")
-            if event.sensitive:
+            if event.sensitive and "protected" not in event.summary:
+                # A summary that already says what happens to the protected
+                # files ("1 protected file is left alone") says it once.
                 self._line(self._dim("  This touches protected files."))
             self._line("Go ahead? 1) Yes  2) No")
         elif isinstance(event, ev.Counts):

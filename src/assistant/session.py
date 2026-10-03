@@ -88,6 +88,36 @@ def drop_prompt_claims(text: str) -> str:
         out.append(" ".join(kept))
     return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
+#: A sentence saying a search found nothing.
+_NOT_FOUND = re.compile(
+    r"\b(didn'?t|did not|couldn'?t|could not|can'?t|cannot|don'?t|do not)"
+    r" (find|see|have)\b|\bnot found\b|\bno (\w+ ){0,3}(exists?|found)\b"
+    r"|\bcame up empty\b|\bnothing (matched|came up)\b", re.IGNORECASE)
+
+
+def not_found_corrected(text: str, protected: int) -> str:
+    """When protected files matched this turn, a "not found" is false: the
+    sentence goes and the true one, from code state, leads the reply."""
+    kept = []
+    dropped = False
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        keep = [p for p in parts if not _NOT_FOUND.search(p)]
+        dropped = dropped or len(keep) != len(parts)
+        if line.strip() and not keep:
+            continue
+        kept.append(" ".join(keep))
+    if not dropped:
+        return text
+    files = ("1 protected file" if protected == 1 else
+             f"{protected} protected files")
+    open_n = "open 1" if protected == 1 else f"open 1 to open {protected}"
+    lead = (f"{files} matched — listed below, shown only to you. Say "
+            f"{open_n} to see {'it' if protected == 1 else 'them'}.")
+    rest = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
+    return lead + ("\n" + rest if rest else "")
+
+
 LEVEL_WORDS = {
     1: "OK — I'll ask before moving anything.",
     2: "OK — I'll move up to 20 ordinary files at once without asking, "
@@ -524,6 +554,8 @@ class Session:
             _counts(self.conn)) or "OK."
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
+        if self._protected_hits:
+            reply = not_found_corrected(reply, len(self._protected_hits))
         self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,

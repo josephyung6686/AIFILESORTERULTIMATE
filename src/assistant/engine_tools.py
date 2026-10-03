@@ -129,8 +129,10 @@ def _resolve(conn: sqlite3.Connection, name: str):
     if rows:
         return rows[0]
     from items.hot_index import find_files
+    def words(text: str) -> str:
+        return " ".join(re.split(r"[\W_]+", text.lower())).strip()
     for hit in find_files(conn, name, limit=5).hits:
-        if name.lower() in (hit.display_label or "").lower():
+        if words(name) in words(hit.display_label or ""):
             return conn.execute(
                 "SELECT item_id, display_label, open_target, file_id "
                 "FROM items WHERE item_id = ?", (hit.item_id,)).fetchone()
@@ -170,11 +172,18 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
             protected.append(row["display_label"])
         elif row not in found:
             found.append(row)
+    # Protected files are counted, never named: these words reach the model.
+    left_alone = (f"{_plural(len(protected), 'protected file')} "
+                  f"{'is' if len(protected) == 1 else 'are'} left alone")
     if not found:
+        if protected and not missing:
+            return {"ok": False, "not_found": [], "error": (
+                "That file is protected, so I won't move it."
+                if len(protected) == 1 else
+                "Those files are protected, so I won't move them.")}
         text = "I couldn't find " + ", ".join(missing) if missing else ""
         if protected:
-            text = (text + ". " if text else "") + (
-                ", ".join(protected) + " is protected and stays where it is")
+            text = (text + ". " if text else "") + left_alone
         return {"ok": False, "error": text or "No files named.",
                 "not_found": missing}
     paths = [Path(r["open_target"]) for r in found]
@@ -208,11 +217,12 @@ def quick_sort(conn: sqlite3.Connection, files: list[str],
                + (folders[0] if len(folders) == 1 else "the folders below"))
     if not_placed:
         summary += ". " + "; ".join(not_placed)
-    if protected:
-        summary += (". " + ", ".join(protected)
-                    + " is protected and stays where it is")
     if missing:
         summary += ". I couldn't find " + ", ".join(missing)
+    if protected:
+        summary += ". " + left_alone
+    # Nothing protected is among the moves, but a protected file named in
+    # the request still makes it ask, at every level.
     return {**_proposal("plan", plan.plan_id, summary + ".", moves,
                         sensitive=bool(protected)),
             "not_found": missing}
@@ -1268,7 +1278,7 @@ def _precheck(conn: sqlite3.Connection, plan_id: str) -> str | None:
             return (f"{name} has changed since I suggested this, so I didn't "
                     "move anything. Ask me again for a fresh plan.")
         if "held" in err or "protected" in err:
-            return f"{name} is protected, so I didn't move anything."
+            return "A file in it is protected, so I didn't move anything."
         if "missing src" in err:
             return (f"{name} isn't where it was any more, so I didn't move "
                     "anything.")
