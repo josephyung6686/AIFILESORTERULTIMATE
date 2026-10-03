@@ -14,23 +14,23 @@ def db_main(argv: list[str] | None = None, *, out=None) -> int:
     sub = parser.add_subparsers(dest="action", required=True)
 
     p_check = sub.add_parser("check")
-    p_check.add_argument("--database", type=Path, required=True)
+    p_check.add_argument("--database", type=Path, default=None)
     p_check.add_argument("--key-file", type=Path, help="owner-only SQLCipher key file")
 
     p_bak = sub.add_parser("backup")
-    p_bak.add_argument("--database", type=Path, required=True)
+    p_bak.add_argument("--database", type=Path, default=None)
     p_bak.add_argument("--key-file", type=Path, help="owner-only SQLCipher key file")
     p_bak.add_argument("dest", type=Path)
 
     p_res = sub.add_parser("restore")
     p_res.add_argument("backup", type=Path)
-    p_res.add_argument("--database", type=Path, required=True,
+    p_res.add_argument("--database", type=Path, default=None,
                        help="restore target path")
     p_res.add_argument("--replace", action="store_true")
     p_res.add_argument("--key-file", type=Path, help="owner-only SQLCipher key file")
 
     p_reb = sub.add_parser("rebuild-index")
-    p_reb.add_argument("--database", type=Path, required=True)
+    p_reb.add_argument("--database", type=Path, default=None)
     p_reb.add_argument("--key-file", type=Path, help="owner-only SQLCipher key file")
 
     p_enc = sub.add_parser("encrypt", help="copy plaintext DB to a new encrypted destination")
@@ -43,7 +43,15 @@ def db_main(argv: list[str] | None = None, *, out=None) -> int:
     if args.key_file is None and os.environ.get("DATABASE_AGENT_KEY_FILE"):
         args.key_file = Path(os.environ["DATABASE_AGENT_KEY_FILE"])
     from database_agent import maintenance as m
+    from database_agent.db import shared_database_path
     from database_agent.encryption import read_key_file
+    if args.action != "encrypt" and args.database is None:
+        args.database = shared_database_path()
+    if args.action in ("check", "backup", "rebuild-index"):
+        from items.commands import NOTHING_INDEXED
+        if not args.database.is_file():
+            print(NOTHING_INDEXED, file=out)
+            return 2
 
     if args.action == "check":
         report = m.check_database(
@@ -58,9 +66,17 @@ def db_main(argv: list[str] | None = None, *, out=None) -> int:
         print(json.dumps(manifest, indent=2), file=out)
         return 0
     if args.action == "restore":
-        result = m.restore_database(
-            args.backup, args.database, replace=args.replace,
-            encryption_key=read_key_file(args.key_file) if args.key_file else None)
+        try:
+            result = m.restore_database(
+                args.backup, args.database, replace=args.replace,
+                encryption_key=read_key_file(args.key_file) if args.key_file else None)
+        except FileExistsError:
+            print(f"{args.database} already exists; nothing was changed. "
+                  "Pass --replace to restore over it.", file=out)
+            return 2
+        except FileNotFoundError:
+            print(f"backup not found: {args.backup}; nothing was changed.", file=out)
+            return 2
         print(json.dumps(result, indent=2), file=out)
         return 0 if result.get("ok") else 2
     if args.action == "rebuild-index":

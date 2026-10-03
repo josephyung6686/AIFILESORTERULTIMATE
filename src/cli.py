@@ -58,7 +58,9 @@ from database_agent.budget import set_ceiling
 from database_agent.cloud_consent import (
     DISABLED, ENABLED, CloudConsent, cloud_consent_for, record_cloud_consent,
 )
-from database_agent.db import DatabaseInsideCorpus, open_database
+from database_agent.db import (
+    DEFAULT_DATABASE, DatabaseInsideCorpus, shared_database_path,
+    open_database)
 from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
@@ -27125,7 +27127,7 @@ def _record_cloud_decision(args, decision: str, *, out) -> int:
     folders = list(dict.fromkeys(
         [directory, *(Path(raw).expanduser().resolve()
                       for raw in args.also_read)]))
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     try:
         conn = open_database(database, scan_roots=folders)
     except DatabaseInsideCorpus as refusal:
@@ -27268,7 +27270,7 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
     from datetime import datetime, timezone
 
     directory = args.directory.expanduser().resolve()
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     try:
         conn = open_database(database, scan_roots=[directory])
     except DatabaseInsideCorpus as refusal:
@@ -27522,7 +27524,7 @@ def _replay_bundle(args, *, out) -> int:
     from eval_harness.driver import evaluate_bundle
     from extractors.stage_output import extractor_versions
 
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     # No `scan_roots`: nothing is scanned, so there is no root the database could
     # be inside of.
     conn = open_database(database)
@@ -27647,7 +27649,7 @@ def _print_trail(args, *, out) -> int:
     `no such table` at somebody asking why their file moved would be the same
     silence gap 25 is about.
     """
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     if not database.exists():
         print(f"\nThere is no plan database at {database}. A trail is what one "
               f"run recorded about one file, so there is nothing to read until "
@@ -27821,7 +27823,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                         help="who this plan belongs to (recorded, never sent)")
     parser.add_argument(
         "--database", type=Path, default=None,
-        help="where to keep the plan (default: ./database-agent-plan.sqlite). It "
+        help=f"where to keep the plan (default: {DEFAULT_DATABASE}). It "
              "may not live inside the folder being read.")
     parser.add_argument("--list-situations", action="store_true",
                         help="print every situation the shipped library carries")
@@ -28354,7 +28356,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # `wal_checkpoint`, which fails outright ("database table is locked") on a
     # connection in Python's implicit-transaction mode. It also refuses a database
     # inside the folder being scanned, which is why the roots are passed in.
-    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    database = args.database or shared_database_path()
     try:
         # Every folder this run touches, not only the first: the database may
         # not be created inside a folder being read, and `00`:20 lets a person
