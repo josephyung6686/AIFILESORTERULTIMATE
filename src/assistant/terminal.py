@@ -79,6 +79,8 @@ class TerminalRenderer:
                 self._line(self._dim("  This touches protected files."))
             self._line("Go ahead? 1) Yes  2) No")
         elif isinstance(event, ev.Counts):
+            if not event.indexed:
+                return  # nothing chosen yet: the folder question says so
             parts = [f"Indexed {event.indexed}"]
             if event.set_aside:
                 parts.append(f"Set aside {event.set_aside}")

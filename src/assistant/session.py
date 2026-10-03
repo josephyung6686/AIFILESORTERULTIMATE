@@ -186,6 +186,10 @@ class Session:
         self.last_undo_token: str | None = None
 
     def emit(self, event) -> None:
+        if isinstance(event, ev.Progress) and event.line:
+            line = scrub_developer_text(event.line) or "Working…"
+            event = ev.Progress(stage=event.stage, done=event.done,
+                                total=event.total, line=line)
         if isinstance(event, ev.Message) and event.citations:
             self.last_citations = event.citations
         self._emit(event)
@@ -493,7 +497,8 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
-        reply = plain_reply(self.conn, _strip_citation_line(answer.text))
+        reply = plain_reply(self.conn, scrub_developer_text(
+            _strip_citation_line(answer.text))) or "OK."
         if not self._prompt_will_show():
             reply = drop_prompt_claims(reply) or "OK."
         self.history.append({"role": "assistant", "content": reply})
@@ -1091,7 +1096,34 @@ def _strip_citation_line(text: str) -> str:
     """The model's `Citations:` line carries internal ids; the person gets
     the citations as names instead."""
     return "\n".join(line for line in text.splitlines()
-                     if not line.lower().startswith("citations:")).strip()
+                     if not _CITATIONS_LINE.match(line)).strip()
+
+
+_CITATIONS_LINE = re.compile(r"^\W*citations?\b", re.IGNORECASE)
+
+#: Sentences no person should read: database files, command-line flags,
+#: model ids, sums the model worked out loud, internal snake_case codes.
+_DEVELOPER = (
+    re.compile(r"\S*\.sqlite\w*\b"),
+    re.compile(r"(?<![\w-])--[a-z][\w-]*"),
+    re.compile(r"\b(deepseek-(chat|reasoner|v[\w.]+)|gpt-[\w.-]+|"
+               r"claude-[\w.-]+|o[134]-mini)\b", re.IGNORECASE),
+    # Two or more of + × * = between numbers; never - or /, so dates stay.
+    re.compile(r"\b\d[\d,.]*(?:\s*[+×*=]\s*\d[\d,.]*){2,}"),
+)
+def scrub_developer_text(text: str) -> str:
+    """The text without any sentence carrying developer text. (Internal
+    codes inside a sentence are replaced by `plain_reply`.)"""
+    def developer(sentence: str) -> bool:
+        return any(p.search(sentence) for p in _DEVELOPER)
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not developer(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
 
 PLAIN_WORDS = (
@@ -1103,7 +1135,10 @@ PLAIN_WORDS = (
     "\"Put / move my screenshots (or installers, copies) into a folder\" is "
     "a one-off: call quick_sort with kind, which takes every loose one. "
     "Only \"always / whenever / from now on …\" is a standing rule: call "
-    "remember_rule. Never both for one request.")
+    "remember_rule. Never both for one request.\n"
+    "Keep replies to a few short sentences. Never mention file paths of "
+    "databases, model names, command-line flags or internal codes, and "
+    "don't show arithmetic.")
 
 #: State words a person should never read, and what to say instead. "typed"
 #: is ordinary English after you/I, so only the state use is replaced.
