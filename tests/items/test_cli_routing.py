@@ -24,7 +24,7 @@ def _db(tmp_path: Path):
 
 def test_every_view_name_routes(tmp_path: Path):
     db = _db(tmp_path)
-    for name in ("deadlines", "folder", "table", "board", "timeline", "graph"):
+    for name in ("folder", "table", "board", "timeline", "graph"):
         out = io.StringIO()
         code = main(["view", name, "--database", str(db)], out=out)
         assert code == 0, (name, out.getvalue())
@@ -36,6 +36,8 @@ def test_search_routes(tmp_path: Path):
     code = main(["search", "a.txt", "--database", str(db)], out=out)
     assert code == 0, out.getvalue()
     assert "hit" in out.getvalue().lower()
+    line = [x for x in out.getvalue().splitlines() if x.startswith("a.txt")]
+    assert line and "\t" not in line[0] and "0." not in line[0]
 
 
 def test_suggest_refuses_apply(tmp_path: Path):

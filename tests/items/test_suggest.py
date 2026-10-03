@@ -4,10 +4,9 @@ from __future__ import annotations
 import http.client
 import io
 import uuid
-from datetime import datetime, timedelta, timezone
 
 from items.schema import create_items_schema
-from items.suggest import proposals
+from items.suggest import suggestions
 
 from database_agent.entrypoint import main
 
@@ -21,10 +20,9 @@ def _counts(conn):
     return items, links, approved
 
 
-def _course_and_event(conn):
+def _course(conn):
     create_items_schema(conn)
     course = str(uuid.uuid4())
-    event = str(uuid.uuid4())
     conn.execute(
         "INSERT INTO items ("
         "item_id, item_type, display_label, file_id, open_target, external_key, "
@@ -33,41 +31,20 @@ def _course_and_event(conn):
         "'academic', NULL, 't', NULL)",
         (course,),
     )
-    conn.execute(
-        "INSERT INTO items ("
-        "item_id, item_type, display_label, file_id, open_target, external_key, "
-        "presence, typing_state, type_schema, profile_id, created_at, superseded_by"
-        ") VALUES (?, 'event', 'Office hours', NULL, NULL, 'evt', 'live', "
-        "'unplaced', NULL, NULL, 't', NULL)",
-        (event,),
-    )
-    conn.execute(
-        "INSERT INTO item_headers ("
-        "item_id, kind, external_id, thread_id, account_label, happened_at, "
-        "ended_at, address_from, address_to, calendar_id, status, "
-        "attachment_names, attachment_hashes"
-        ") VALUES (?, 'event', 'evt-1', '', 'local', ?, "
-        "'', '', '', 'primary', 'confirmed', '[]', '[]')",
-        (event, (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()),
-    )
-    return course, event
+    return course
 
 
-def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monkeypatch):
+def test_a_course_with_no_file_is_one_warning(conn, tmp_path, monkeypatch):
     def boom(*_args, **_kwargs):
         raise AssertionError("network")
 
     monkeypatch.setattr(http.client.HTTPConnection, "request", boom)
-    course, event = _course_and_event(conn)
+    course = _course(conn)
     before = _counts(conn)
-    rows = proposals(conn, now="2026-10-01T00:00:00+00:00")
+    rows = suggestions(conn)
     assert len(rows) == 1
-    assert rows[0]["hub"] == "CHEM 101"
-    # Unrelated events arm a warning but must not be attributed to this hub.
-    assert "Office hours" not in rows[0]["message"]
-    assert rows[0]["event_item_id"] is None
-    assert "future_events:present_unrelated" in rows[0]["evidence_refs"]
     assert rows[0]["kind"] == "missing_member_of"
+    assert "CHEM 101" in rows[0]["text"]
     assert _counts(conn) == before
     out = io.StringIO()
     code = main([
@@ -77,7 +54,6 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
     assert code == 0, text
     assert "CHEM 101" in text
     assert "Nothing was moved" in text
-    assert "No network call was made" in text
     assert _counts(conn) == before
     refused = io.StringIO()
     assert main([
@@ -102,5 +78,4 @@ def test_a_course_with_an_event_and_no_file_is_one_warning(conn, tmp_path, monke
         "'member', 't', NULL, NULL)",
         (str(uuid.uuid4()), file_id, course),
     )
-    assert proposals(conn, now="2026-10-01T00:00:00+00:00") == []
-    assert event
+    assert suggestions(conn) == []

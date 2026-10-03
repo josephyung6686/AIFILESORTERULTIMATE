@@ -122,7 +122,6 @@ class ToolRuntime:
             "find_files": self._find_files,
             "read_item": self._read_item,
             "list_related": self._list_related,
-            "list_deadlines": self._list_deadlines,
             "list_gaps": self._list_gaps,
             "explain_file": self._explain_file,
             "ask_user": self._ask_user_tool,
@@ -488,28 +487,6 @@ class ToolRuntime:
             untrusted=True,
             source_ids=source_ids,
             citation_objs=(Citation(item_id=item_id, source_ids=source_ids),))
-
-    def _list_deadlines(self, args: dict) -> ToolResult:
-        limit = max(1, min(int(args["limit"] if "limit" in args else 10), 30))
-        from assistant.gaps import enriched_deadlines
-        pack = enriched_deadlines(self.conn, limit=limit)
-        rows = list(pack.get("deadlines") or [])
-        citations: list[str] = []
-        for event in rows:
-            for item in event.get("files") or event.get("on_deadline") or []:
-                if item.get("item_id"):
-                    citations.append(item["item_id"])
-        for h in pack.get("filename_date_hints") or []:
-            if h.get("item_id"):
-                citations.append(h["item_id"])
-        payload = {**pack, "moved": False, "trust": "UNTRUSTED_LABEL"}
-        return ToolResult(
-            name="list_deadlines", ok=True, payload=payload,
-            citations=tuple(dict.fromkeys(citations)),
-            bytes_out=len(json.dumps(payload, default=str).encode()),
-            untrusted=True,
-            citation_objs=tuple(
-                Citation(item_id=i) for i in dict.fromkeys(citations)))
 
     def _list_gaps(self, args: dict) -> ToolResult:
         limit = max(1, min(int(args["limit"] if "limit" in args else 20), 50))

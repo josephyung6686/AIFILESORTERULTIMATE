@@ -36,7 +36,7 @@ def test_a_new_file_at_the_top_of_the_chosen_folder_is_found(tmp_path: Path):
     (root / "budget.txt").write_text("quarterly budget")
     out = io.StringIO()
     search_main(["budget", "--database", str(db)], out=out)
-    assert str(root / "budget.txt") in out.getvalue()
+    assert f"budget.txt   {root}" in out.getvalue()
 
     conn = open_database(db, scan_roots=[])
     runs = conn.execute(
