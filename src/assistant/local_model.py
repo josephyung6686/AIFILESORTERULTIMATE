@@ -1,8 +1,12 @@
 """On-device / local-only model adapter.
 
+Local generation requires an *explicit* loopback transport via
+``ASSISTANT_LOCAL_BASE_URL``. Remote OpenAI-compatible endpoints are labeled
+cloud/provider egress — never as local-only.
+
 Order of preference for ``local_only`` generation:
 1. Apple Foundation Models (Swift probe) when available
-2. OpenAI-compatible local endpoint (Ollama / MLX) via ASSISTANT_LOCAL_BASE_URL
+2. Explicit ASSISTANT_LOCAL_BASE_URL on loopback (Ollama / MLX)
 3. Hybrid index find only (no cloud) — always available
 
 Never silently falls back to cloud BYOK when local_only=True.
@@ -19,6 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from assistant.policy import classify_egress, explicit_local_base_url, is_loopback_url
+
 
 @dataclass(frozen=True)
 class LocalModelStatus:
@@ -27,6 +33,7 @@ class LocalModelStatus:
     supports_tools: bool = False
     index_find: bool = True
     backend: str = "none"  # apple_fm | ollama_compat | none
+    egress_class: str = "none"  # local | cloud | none
 
 
 def _swift_probe() -> LocalModelStatus | None:
@@ -52,12 +59,14 @@ def _swift_probe() -> LocalModelStatus | None:
                 supports_tools=False,  # tool loop not wired through FM yet
                 index_find=True,
                 backend="apple_fm",
+                egress_class="local",
             )
         return LocalModelStatus(
             available=False,
             reason=f"Apple FM probe: {out or proc.stderr.strip() or 'unavailable'}",
             index_find=True,
             backend="none",
+            egress_class="none",
         )
     except Exception as exc:
         return LocalModelStatus(
@@ -65,22 +74,31 @@ def _swift_probe() -> LocalModelStatus | None:
             reason=f"Apple FM probe failed: {exc}",
             index_find=True,
             backend="none",
+            egress_class="none",
         )
 
 
-def _ollama_compat_probe() -> LocalModelStatus | None:
-    """OpenAI-compatible local server (Ollama default: :11434/v1)."""
-    base = (
-        os.environ.get("ASSISTANT_LOCAL_BASE_URL")
-        or os.environ.get("OLLAMA_HOST")
-        or ""
-    ).strip()
+def _explicit_local_probe() -> LocalModelStatus | None:
+    """OpenAI-compatible local server — only when ASSISTANT_LOCAL_BASE_URL set."""
+    base = explicit_local_base_url()
     if not base:
-        # Conventional Ollama OpenAI bridge
-        base = "http://127.0.0.1:11434/v1"
+        return None
     if base.endswith("/"):
         base = base[:-1]
-    # Health: /models or bare tags
+    egress = classify_egress(base_url=base, local_only=True)
+    # Remote local-compatible endpoints are cloud egress, not local-only.
+    if not is_loopback_url(base):
+        return LocalModelStatus(
+            available=True,
+            reason=(
+                f"remote OpenAI-compat at {base} — labeled cloud/provider "
+                f"egress (not local-only)"
+            ),
+            supports_tools=True,
+            index_find=True,
+            backend="ollama_compat",
+            egress_class="cloud",
+        )
     urls = [f"{base}/models"]
     if "11434" in base:
         urls.append("http://127.0.0.1:11434/api/tags")
@@ -100,10 +118,18 @@ def _ollama_compat_probe() -> LocalModelStatus | None:
                         supports_tools=True,
                         index_find=True,
                         backend="ollama_compat",
+                        egress_class=egress,
                     )
         except Exception:
             continue
-    return None
+    return LocalModelStatus(
+        available=False,
+        reason=f"ASSISTANT_LOCAL_BASE_URL set but unreachable: {base}",
+        supports_tools=False,
+        index_find=True,
+        backend="none",
+        egress_class="none",
+    )
 
 
 def probe_apple_foundation_models() -> LocalModelStatus:
@@ -131,16 +157,21 @@ def probe_apple_foundation_models() -> LocalModelStatus:
 
 
 def probe_local_generation() -> LocalModelStatus:
-    """Best available on-device/local generation backend."""
+    """Best available on-device/local generation backend.
+
+    Requires explicit ASSISTANT_LOCAL_BASE_URL for Ollama-compat; does not
+    auto-adopt an ambient :11434 server as local-only.
+    """
     apple = probe_apple_foundation_models()
+    local = _explicit_local_probe()
+    if local is not None and local.available and local.egress_class == "local":
+        return local
     if apple.available and apple.backend == "apple_fm":
-        # FM present but no tool-loop adapter yet — prefer ollama if up.
-        local = _ollama_compat_probe()
-        if local is not None:
-            return local
         return apple
-    local = _ollama_compat_probe()
-    if local is not None:
+    # Remote local-compatible still usable but labeled cloud.
+    if local is not None and local.available:
+        return local
+    if local is not None and not local.available:
         return local
     return LocalModelStatus(
         available=False,
@@ -148,6 +179,7 @@ def probe_local_generation() -> LocalModelStatus:
         supports_tools=False,
         index_find=True,
         backend="none",
+        egress_class="none",
     )
 
 
@@ -155,8 +187,21 @@ def require_local_or_refuse(*, local_only: bool) -> LocalModelStatus:
     status = probe_local_generation()
     if not local_only:
         return status
-    if status.available:
+    # Held-body / local-only generation only on true local egress.
+    if status.available and status.egress_class == "local":
         return status
+    if status.available and status.egress_class == "cloud":
+        return LocalModelStatus(
+            available=False,
+            reason=(
+                "local-only refused: ASSISTANT_LOCAL_BASE_URL is remote — "
+                "labeled cloud egress; using index-only find"
+            ),
+            supports_tools=False,
+            index_find=True,
+            backend="none",
+            egress_class="none",
+        )
     if status.index_find:
         return LocalModelStatus(
             available=False,
@@ -167,6 +212,7 @@ def require_local_or_refuse(*, local_only: bool) -> LocalModelStatus:
             supports_tools=False,
             index_find=True,
             backend="none",
+            egress_class="none",
         )
     return LocalModelStatus(
         available=False,
@@ -174,6 +220,7 @@ def require_local_or_refuse(*, local_only: bool) -> LocalModelStatus:
         supports_tools=False,
         index_find=False,
         backend="none",
+        egress_class="none",
     )
 
 
@@ -183,6 +230,7 @@ def capability_lines() -> list[str]:
     return [
         f"apple_foundation_models: {'yes' if apple.backend == 'apple_fm' and apple.available else 'no'}",
         f"local_generation: {'yes' if gen.available else 'no'} ({gen.backend})",
+        f"egress_class: {gen.egress_class}",
         f"index_find_local: yes",
         f"reason: {gen.reason}",
     ]
@@ -193,7 +241,7 @@ def local_chat_turn(
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """One chat completion against ASSISTANT_LOCAL_BASE_URL (OpenAI shape).
+    """One chat completion against explicit ASSISTANT_LOCAL_BASE_URL.
 
     Raises RuntimeError if local server unavailable.
     """
@@ -201,12 +249,11 @@ def local_chat_turn(
     if not status.available or status.backend != "ollama_compat":
         raise RuntimeError(
             f"local generation unavailable ({status.reason}). "
-            "Start Ollama or set ASSISTANT_LOCAL_BASE_URL."
+            "Set ASSISTANT_LOCAL_BASE_URL to a loopback OpenAI-compat server."
         )
-    base = (
-        os.environ.get("ASSISTANT_LOCAL_BASE_URL")
-        or "http://127.0.0.1:11434/v1"
-    ).rstrip("/")
+    base = (explicit_local_base_url() or "").rstrip("/")
+    if not base:
+        raise RuntimeError("ASSISTANT_LOCAL_BASE_URL required for local chat")
     model = (
         os.environ.get("ASSISTANT_LOCAL_MODEL")
         or os.environ.get("OLLAMA_MODEL")

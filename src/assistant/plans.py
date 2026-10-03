@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS assistant_plan_ops (
     src TEXT NOT NULL,
     dst TEXT NOT NULL,
     op_state TEXT NOT NULL,
+    root_scope TEXT,
+    protected_snapshot TEXT,
     PRIMARY KEY (plan_id, item_id)
 );
 CREATE TABLE IF NOT EXISTS assistant_approvals (
@@ -55,6 +57,8 @@ class PlanOp:
     dst: str
     file_id: str | None = None
     content_hash: str | None = None
+    root_scope: str | None = None
+    protected_snapshot: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +97,24 @@ def ensure_plans_schema(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "ALTER TABLE assistant_approvals ADD COLUMN "
                 "full_list_viewed INTEGER NOT NULL DEFAULT 0"
+            )
+        except sqlite3.OperationalError:
+            pass
+    op_cols = {
+        r[1] for r in conn.execute("PRAGMA table_info(assistant_plan_ops)")
+    }
+    if "root_scope" not in op_cols:
+        try:
+            conn.execute(
+                "ALTER TABLE assistant_plan_ops ADD COLUMN root_scope TEXT"
+            )
+        except sqlite3.OperationalError:
+            pass
+    if "protected_snapshot" not in op_cols:
+        try:
+            conn.execute(
+                "ALTER TABLE assistant_plan_ops ADD COLUMN "
+                "protected_snapshot TEXT"
             )
         except sqlite3.OperationalError:
             pass
@@ -187,6 +209,8 @@ def create_draft_plan(
                 "dst": op.dst,
                 "file_id": op.file_id,
                 "content_hash": op.content_hash,
+                "root_scope": op.root_scope,
+                "protected_snapshot": op.protected_snapshot,
             }
             for op in ops
         ],
@@ -201,10 +225,11 @@ def create_draft_plan(
     for op in ops:
         conn.execute(
             "INSERT INTO assistant_plan_ops ("
-            "plan_id, item_id, file_id, content_hash, src, dst, op_state) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "plan_id, item_id, file_id, content_hash, src, dst, op_state, "
+            "root_scope, protected_snapshot) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (plan_id, op.item_id, op.file_id, op.content_hash,
-             op.src, op.dst, "pending"),
+             op.src, op.dst, "pending", op.root_scope, op.protected_snapshot),
         )
     return Plan(
         plan_id=plan_id,
@@ -241,6 +266,8 @@ def edit_plan_ops(
                 "dst": op.dst,
                 "file_id": op.file_id,
                 "content_hash": op.content_hash,
+                "root_scope": op.root_scope,
+                "protected_snapshot": op.protected_snapshot,
             }
             for op in ops
         ],
@@ -253,10 +280,11 @@ def edit_plan_ops(
     for op in ops:
         conn.execute(
             "INSERT INTO assistant_plan_ops ("
-            "plan_id, item_id, file_id, content_hash, src, dst, op_state) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "plan_id, item_id, file_id, content_hash, src, dst, op_state, "
+            "root_scope, protected_snapshot) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (plan_id, op.item_id, op.file_id, op.content_hash,
-             op.src, op.dst, "pending"),
+             op.src, op.dst, "pending", op.root_scope, op.protected_snapshot),
         )
 
 
@@ -280,6 +308,18 @@ def approve_plan(
     ).fetchone()
     if row is None:
         return ApproveResult(ok=False, error="plan not found")
+    if row["state"] == "undone":
+        return ApproveResult(
+            ok=False,
+            error=(
+                "plan was undone — edit ops (new plan_hash) before re-approve"
+            ),
+        )
+    if row["state"] == "applied":
+        return ApproveResult(
+            ok=False,
+            error="plan already applied — undo or edit before re-approve",
+        )
     if not require_full_list_viewed(full_list_viewed):
         return ApproveResult(
             ok=False,
@@ -297,6 +337,32 @@ def approve_plan(
                 ),
             )
     h = plan_hash(conn, plan_id)
+    # After undo+edit, prior applied journal must not share this hash.
+    from assistant.journal import entries_for_plan
+    prior = entries_for_plan(conn, plan_id)
+    if any(e.state == "undone" for e in prior):
+        # Require that current ops differ from the undone journal paths/hash.
+        undone_ops = [
+            (e.item_id, e.src, e.dst, e.content_hash or "")
+            for e in prior if e.state == "undone"
+        ]
+        cur = conn.execute(
+            "SELECT item_id, src, dst, content_hash FROM assistant_plan_ops "
+            "WHERE plan_id=? ORDER BY item_id",
+            (plan_id,),
+        ).fetchall()
+        cur_ops = [
+            (r["item_id"], r["src"], r["dst"], r["content_hash"] or "")
+            for r in cur
+        ]
+        if cur_ops == undone_ops:
+            return ApproveResult(
+                ok=False,
+                error=(
+                    "plan was undone — edit ops (new plan_hash) before "
+                    "re-approve"
+                ),
+            )
     ts = datetime.now(timezone.utc).isoformat()
     conn.execute(
         "INSERT OR REPLACE INTO assistant_approvals ("

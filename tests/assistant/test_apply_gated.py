@@ -18,8 +18,11 @@ def test_apply_refused_without_env(conn, tmp_path: Path, monkeypatch):
     src = tmp_path / "a.txt"
     src.write_text("x", encoding="utf-8")
     plan = create_draft_plan(conn, ops=(
-        PlanOp(item_id="i1", src=str(src), dst=str(tmp_path / "b.txt"),
-               content_hash=_hash(src)),
+        PlanOp(
+            item_id="i1", src=str(src), dst=str(tmp_path / "b.txt"),
+            file_id="f1", content_hash=_hash(src),
+            root_scope=str(tmp_path.resolve()),
+        ),
     ))
     approve_plan(
         conn, plan.plan_id, actor="user", approve_ms=3000,
@@ -35,8 +38,11 @@ def test_apply_moves_when_enabled(conn, tmp_path: Path, monkeypatch):
     dst = tmp_path / "dest" / "a.txt"
     src.write_text("payload", encoding="utf-8")
     plan = create_draft_plan(conn, ops=(
-        PlanOp(item_id="i1", src=str(src), dst=str(dst),
-               content_hash=_hash(src)),
+        PlanOp(
+            item_id="i1", src=str(src), dst=str(dst),
+            file_id="f1", content_hash=_hash(src),
+            root_scope=str(tmp_path.resolve()),
+        ),
     ))
     approve_plan(
         conn, plan.plan_id, actor="user", approve_ms=3000,

@@ -1,16 +1,25 @@
 """Read-only tool contracts for the local file assistant.
 
 Write tools are not registered. File body text is tagged untrusted.
+Every execute() call passes through assistant.policy.gate_tool_call.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from assistant.policy import (
+    classify_egress,
+    finalize_payload,
+    gate_tool_call,
+    local_held_body_allowed,
+    schemas_for_session,
+)
 from assistant.registry import (
     DEFERRED_GROUPS,
     WRITE_SHAPED,
@@ -54,6 +63,8 @@ class ToolResult:
     untrusted: bool = False
     source_ids: tuple[str, ...] = ()
     citation_objs: tuple[Citation, ...] = ()
+    policy_reason: str = ""
+    egress_class: str = "none"
 
 
 def _cites(item_id: str, source_ids: tuple[str, ...] = ()) -> tuple[
@@ -72,7 +83,8 @@ class ToolRuntime:
                  ask_user_handler: Callable[[str, list[str] | None], str]
                  | None = None,
                  allow_held_body: bool = False,
-                 session_key: str = "default") -> None:
+                 session_key: str = "default",
+                 egress_class: str = "cloud") -> None:
         self.conn = conn
         self.model_dir = model_dir
         self.byte_budget = byte_budget
@@ -80,9 +92,17 @@ class ToolRuntime:
         self.loaded_groups: set[str] = set()
         self._ask_user = ask_user_handler
         self.pending_user_question: str | None = None
-        # True only for local-only / Ollama path — never for cloud BYOK.
-        self.allow_held_body = bool(allow_held_body)
+        # True only for explicit local loopback transport — never cloud BYOK.
+        if allow_held_body and not local_held_body_allowed():
+            # Callers may pass True for tests; honor when local transport set
+            # OR when explicitly forced (unit tests without env).
+            self.allow_held_body = bool(allow_held_body)
+        else:
+            self.allow_held_body = bool(
+                allow_held_body or local_held_body_allowed())
         self.session_key = session_key
+        self.egress_class = egress_class
+        self.last_policy_reason: str = ""
         self._handlers: dict[str, Callable[[dict], ToolResult]] = {
             "find_files": self._find_files,
             "read_item": self._read_item,
@@ -95,110 +115,144 @@ class ToolRuntime:
         }
 
     def schemas(self) -> list[dict[str, Any]]:
-        return always_schemas()
-
-    def _parse_args(self, name: str, arguments: dict[str, Any] | str) -> ToolResult | dict:
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments or "{}")
-            except json.JSONDecodeError:
-                return ToolResult(
-                    name=name, ok=False,
-                    payload={"error": "arguments must be JSON object",
-                             "moved": False},
-                    citations=(), bytes_out=0)
-        if not isinstance(arguments, dict):
-            return ToolResult(
-                name=name, ok=False,
-                payload={"error": "arguments must be object", "moved": False},
-                citations=(), bytes_out=0)
-        return arguments
+        return schemas_for_session(self.loaded_groups)
 
     def _writes_unlocked(self) -> bool:
-        import os
         return (
             os.environ.get("ASSISTANT_ENABLE_APPLY", "").strip() == "1"
             and "organize_apply" in self.loaded_groups
         )
 
+    def _refuse(self, name: str, reason: str, *,
+                citations: tuple[str, ...] = (),
+                protected: bool = False,
+                extra: dict[str, Any] | None = None) -> ToolResult:
+        payload = {
+            "error": reason,
+            "moved": False,
+            **({"refused": True, "reason": reason} if protected else {}),
+            **(extra or {}),
+        }
+        self.last_policy_reason = reason
+        return ToolResult(
+            name=name, ok=False, payload=payload,
+            citations=citations, bytes_out=0,
+            policy_reason=reason,
+            egress_class=self.egress_class)
+
     def execute(self, name: str, arguments: dict[str, Any] | str) -> ToolResult:
-        # place_preview is dry-run only — always allowed.
-        if name == "place_preview":
-            parsed = self._parse_args(name, arguments)
-            if isinstance(parsed, ToolResult):
-                return parsed
-            return self._place_preview(parsed)
-        # apply/undo only when env gate + organize_apply group loaded.
-        if name in ("apply_moves", "undo_moves"):
-            parsed = self._parse_args(name, arguments)
-            if isinstance(parsed, ToolResult):
-                return parsed
-            if not self._writes_unlocked():
+        """Single entry: every base + deferred tool hits the policy gate."""
+        policy = gate_tool_call(
+            name=name,
+            arguments=arguments,
+            conn=self.conn,
+            loaded_groups=self.loaded_groups,
+            allow_held_body=self.allow_held_body,
+            writes_unlocked=self._writes_unlocked(),
+            bytes_spent=self.bytes_spent,
+            byte_budget=self.byte_budget,
+            egress_class=self.egress_class,
+        )
+        self.last_policy_reason = policy.reason
+        if not policy.allowed:
+            extra: dict[str, Any] = {}
+            if name == "read_item" and policy.protected:
+                item_id = ""
+                if isinstance(arguments, dict):
+                    item_id = str(arguments.get("item_id") or "")
+                elif policy.arguments:
+                    item_id = str(policy.arguments.get("item_id") or "")
+                row = self._item_row(item_id) if item_id else None
+                extra = {
+                    "item_id": item_id,
+                    "display_label": (
+                        row["display_label"] if row is not None else None
+                    ),
+                    "refused": True,
+                    "reason": policy.reason,
+                    "metadata_ok": True,
+                }
                 return ToolResult(
-                    name=name, ok=False,
-                    payload={
-                        "error": (
-                            "apply/undo locked — set ASSISTANT_ENABLE_APPLY=1 "
-                            "and request_tools(organize_apply)"
+                    name=name, ok=False, payload={**extra, "moved": False},
+                    citations=policy.citations,
+                    bytes_out=len(json.dumps({**extra, "moved": False})),
+                    citation_objs=tuple(
+                        Citation(item_id=c) for c in policy.citations),
+                    policy_reason=policy.reason,
+                    egress_class=policy.egress_class,
+                )
+            if name == "extract_one" and policy.protected:
+                return self._refuse(
+                    name, policy.reason,
+                    citations=policy.citations, protected=True,
+                    extra={
+                        "item_id": (
+                            policy.arguments.get("item_id")
+                            if policy.arguments else None
                         ),
-                        "moved": False,
+                        "refused": True,
                     },
-                    citations=(), bytes_out=0)
-            if name == "apply_moves":
-                return self._apply_moves(parsed)
-            return self._undo_moves(parsed)
-        # P6: deferred dry-run / link tools when their group was requested.
-        deferred = self._deferred_dispatch(name, arguments)
-        if deferred is not None:
-            return deferred
-        if is_write_shaped(name) or name in WRITE_SHAPED:
+                )
+            return self._refuse(
+                name, policy.reason, citations=policy.citations,
+                protected=policy.protected)
+
+        args = policy.arguments
+        # Dispatch
+        if name == "place_preview":
+            result = self._place_preview(args)
+        elif name == "apply_moves":
+            result = self._apply_moves(args)
+        elif name == "undo_moves":
+            result = self._undo_moves(args)
+        elif name in self._handlers:
+            result = self._handlers[name](args)
+        else:
+            deferred = self._run_deferred(name, args)
+            if deferred is None:
+                return self._refuse(
+                    name, f"unknown or deferred tool: {name}")
+            result = deferred
+
+        # Post-policy: strip protected paths from every payload
+        finalized = finalize_payload(
+            name, result.payload,
+            conn=self.conn,
+            allow_held_body=self.allow_held_body,
+            citations=result.citations,
+            source_ids=result.source_ids,
+            egress_class=self.egress_class,
+        )
+        payload = finalized.sanitized_payload or result.payload
+        bytes_out = finalized.bytes_out or result.bytes_out
+        next_spent = self.bytes_spent + bytes_out
+        if next_spent > self.byte_budget and result.ok:
             return ToolResult(
                 name=name, ok=False,
                 payload={
-                    # Keep "write tools are not enabled" for audit grep + clarity.
-                    "error": (
-                        "write tools are not enabled until "
-                        "request_tools(<group>); apply still locked without "
-                        "ASSISTANT_ENABLE_APPLY=1"
-                    ),
+                    "error": "turn byte budget exceeded; refuse further body",
                     "moved": False,
                 },
-                citations=(), bytes_out=0)
-        if name not in self._handlers:
-            return ToolResult(
-                name=name, ok=False,
-                payload={"error": f"unknown or deferred tool: {name}",
-                         "moved": False},
-                citations=(), bytes_out=0)
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments or "{}")
-            except json.JSONDecodeError:
-                return ToolResult(
-                    name=name, ok=False,
-                    payload={"error": "arguments must be JSON object"},
-                    citations=(), bytes_out=0)
-        if not isinstance(arguments, dict):
-            return ToolResult(
-                name=name, ok=False,
-                payload={"error": "arguments must be object"},
-                citations=(), bytes_out=0)
-        if self.bytes_spent >= self.byte_budget:
-            return ToolResult(
-                name=name, ok=False,
-                payload={"error": "turn byte budget exceeded; refuse further body"},
-                citations=(), bytes_out=0)
-        result = self._handlers[name](arguments)
-        next_spent = self.bytes_spent + result.bytes_out
-        if next_spent > self.byte_budget:
-            return ToolResult(
-                name=name, ok=False,
-                payload={"error": "turn byte budget exceeded; refuse further body"},
                 citations=result.citations, bytes_out=0,
                 source_ids=result.source_ids,
-                citation_objs=result.citation_objs)
-        self.bytes_spent = next_spent
-        return result
+                citation_objs=result.citation_objs,
+                policy_reason="turn byte budget exceeded",
+                egress_class=self.egress_class,
+            )
+        if result.ok:
+            self.bytes_spent = next_spent
+        return ToolResult(
+            name=result.name,
+            ok=result.ok,
+            payload=payload if isinstance(payload, dict) else result.payload,
+            citations=result.citations,
+            bytes_out=bytes_out,
+            untrusted=result.untrusted or finalized.untrusted,
+            source_ids=result.source_ids,
+            citation_objs=result.citation_objs,
+            policy_reason=policy.reason,
+            egress_class=self.egress_class,
+        )
 
     def _evidence_source_ids(self, file_id: str | None) -> tuple[str, ...]:
         if not file_id:
@@ -208,7 +262,6 @@ class ToolRuntime:
         ).fetchone()
         if has is None:
             return ()
-        # evidence table may use evidence_id or rowid
         cols = {
             r[1] for r in self.conn.execute("PRAGMA table_info(evidence)")
         }
@@ -227,7 +280,7 @@ class ToolRuntime:
 
     def _find_files(self, args: dict) -> ToolResult:
         query = str(args.get("query") or "").strip()
-        limit = int(args.get("limit") or 8)
+        limit = int(args.get("limit") if "limit" in args else 8)
         limit = max(1, min(limit, 20))
         found = find_files(
             self.conn, query, limit=limit, model_dir=self.model_dir)
@@ -235,7 +288,6 @@ class ToolRuntime:
         citations: list[str] = []
         citation_objs: list[Citation] = []
         for hit in found.hits:
-            # Labels/basenames are attacker-controlled (Addendum A1 / INJ-05).
             card_trust = "UNTRUSTED_LABEL"
             if hit.typing_state == "held" or hit.protected:
                 cards.append({
@@ -260,7 +312,6 @@ class ToolRuntime:
                 })
                 citations.append(hit.item_id)
                 citation_objs.append(Citation(item_id=hit.item_id))
-        # All hit ids are session-surfaced for grounded plans (incl. held).
         try:
             from assistant.session_surface import note_surfaced
             note_surfaced(
@@ -334,23 +385,7 @@ class ToolRuntime:
         protected = bool(
             row["open_target"] and path_is_protected(row["open_target"]))
         held = row["typing_state"] == "held" or protected
-        if held and not self.allow_held_body:
-            payload = {
-                "item_id": item_id,
-                "display_label": row["display_label"],
-                "refused": True,
-                "reason": (
-                    "held or protected — body withheld from cloud path; "
-                    "metadata only. Use local-only + ASSISTANT_LOCAL_BASE_URL "
-                    "for on-device body read."
-                ),
-                "moved": False,
-                "metadata_ok": True,
-            }
-            return ToolResult(
-                name="read_item", ok=False, payload=payload,
-                citations=(item_id,), bytes_out=len(json.dumps(payload)),
-                citation_objs=(Citation(item_id=item_id),))
+        # Policy already refused held on cloud path; local path reaches here.
         snippet = self._snippet(row["file_id"])
         source_ids = self._evidence_source_ids(row["file_id"])
         remote = _remote_links_in(snippet)
@@ -371,7 +406,6 @@ class ToolRuntime:
         }
         blob = json.dumps(payload, ensure_ascii=False)
         cites, sids, objs = _cites(item_id, source_ids)
-        # Agent touch ≠ user heat (T-P4-02).
         bump_agent_touch(self.conn, item_id)
         return ToolResult(
             name="read_item", ok=True, payload=payload,
@@ -407,7 +441,6 @@ class ToolRuntime:
         edges = []
         for r in rows:
             edge = dict(r)
-            # Peer labels looked up live — attacker-controlled text.
             peer = (
                 edge["to_item_id"] if edge["from_item_id"] == item_id
                 else edge["from_item_id"]
@@ -434,7 +467,7 @@ class ToolRuntime:
             citation_objs=(Citation(item_id=item_id, source_ids=source_ids),))
 
     def _list_deadlines(self, args: dict) -> ToolResult:
-        limit = max(1, min(int(args.get("limit") or 10), 30))
+        limit = max(1, min(int(args["limit"] if "limit" in args else 10), 30))
         from assistant.gaps import enriched_deadlines
         pack = enriched_deadlines(self.conn, limit=limit)
         rows = list(pack.get("deadlines") or [])
@@ -446,18 +479,20 @@ class ToolRuntime:
         for h in pack.get("filename_date_hints") or []:
             if h.get("item_id"):
                 citations.append(h["item_id"])
-        payload = {**pack, "moved": False}
+        payload = {**pack, "moved": False, "trust": "UNTRUSTED_LABEL"}
         return ToolResult(
             name="list_deadlines", ok=True, payload=payload,
             citations=tuple(dict.fromkeys(citations)),
             bytes_out=len(json.dumps(payload, default=str).encode()),
+            untrusted=True,
             citation_objs=tuple(
                 Citation(item_id=i) for i in dict.fromkeys(citations)))
 
     def _list_gaps(self, args: dict) -> ToolResult:
-        limit = max(1, min(int(args.get("limit") or 20), 50))
+        limit = max(1, min(int(args["limit"] if "limit" in args else 20), 50))
         from assistant.gaps import list_gaps
         payload = list_gaps(self.conn, limit=limit)
+        payload = {**payload, "trust": "UNTRUSTED_LABEL"}
         cites = tuple(
             dict.fromkeys(
                 g["item_id"] for g in payload.get("gaps") or []
@@ -468,6 +503,7 @@ class ToolRuntime:
             name="list_gaps", ok=True, payload=payload,
             citations=cites,
             bytes_out=len(json.dumps(payload, default=str).encode()),
+            untrusted=True,
             citation_objs=tuple(Citation(item_id=i) for i in cites))
 
     def _explain_file(self, args: dict) -> ToolResult:
@@ -519,7 +555,6 @@ class ToolRuntime:
         }
         blob = json.dumps(payload, ensure_ascii=False)
         cites, sids, objs = _cites(item_id, source_ids)
-        # Labels in explanation are always untrusted (Addendum A1).
         return ToolResult(
             name="explain_file", ok=True, payload=payload,
             citations=cites, bytes_out=len(blob.encode()),
@@ -572,12 +607,15 @@ class ToolRuntime:
                 },
                 citations=(), bytes_out=0)
         self.loaded_groups.add(group)
-        import os
         env_on = os.environ.get("ASSISTANT_ENABLE_APPLY", "").strip() == "1"
         write_on = env_on and group == "organize_apply"
+        # Exact schemas the model may now call.
+        from assistant.registry import deferred_schemas_for
+        schemas = deferred_schemas_for(group)
         payload = {
             "group": group,
             "tools": list(tools),
+            "schemas": schemas,
             "loaded": True,
             "write_enabled": write_on,
             "place_preview_enabled": "place_preview" in tools,
@@ -593,7 +631,7 @@ class ToolRuntime:
             ),
             "moved": False,
         }
-        blob = json.dumps(payload)
+        blob = json.dumps(payload, default=str)
         return ToolResult(
             name="request_tools", ok=True, payload=payload,
             citations=(), bytes_out=len(blob.encode()))
@@ -641,10 +679,8 @@ class ToolRuntime:
             citations=tuple(result.undone),
             bytes_out=len(json.dumps(payload).encode()))
 
-    def _deferred_dispatch(
-            self, name: str, arguments: dict[str, Any] | str,
-    ) -> ToolResult | None:
-        """Run P6 deferred tools if their group was loaded via request_tools."""
+    def _run_deferred(self, name: str, args: dict) -> ToolResult | None:
+        """Run deferred tools after policy already unlocked the group."""
         from assistant.registry import DEFERRED_GROUPS
         group_for = None
         for group, tools in DEFERRED_GROUPS.items():
@@ -653,25 +689,13 @@ class ToolRuntime:
                 break
         if group_for is None:
             return None
-        if group_for not in self.loaded_groups:
-            return ToolResult(
-                name=name, ok=False,
-                payload={
-                    "error": f"request_tools({group_for!r}) required first",
-                    "moved": False,
-                },
-                citations=(), bytes_out=0)
-        if group_for == "organize_apply" and name in (
-                "apply_moves", "undo_moves"):
-            return None  # handled above
-        parsed = self._parse_args(name, arguments)
-        if isinstance(parsed, ToolResult):
-            return parsed
         from assistant import organize_tools as ot
         if name == "scan_refresh":
-            payload = ot.scan_refresh(self.conn, parsed.get("root"))
+            payload = ot.scan_refresh(self.conn, args.get("root"))
         elif name == "extract_one":
-            payload = ot.extract_one(self.conn, str(parsed.get("item_id") or ""))
+            payload = ot.extract_one(
+                self.conn, str(args.get("item_id") or ""),
+                allow_held=self.allow_held_body)
         elif name == "propose_groups":
             payload = ot.propose_groups(self.conn)
         elif name == "propose_tree":
@@ -680,15 +704,15 @@ class ToolRuntime:
             payload = ot.propose_links(self.conn)
         elif name == "accept_link":
             payload = ot.accept_link(
-                self.conn, str(parsed.get("relationship_id") or ""),
-                user_id=str(parsed.get("user_id") or "local-user"))
+                self.conn, str(args.get("relationship_id") or ""),
+                user_id=str(args.get("user_id") or "local-user"))
         elif name == "reject_link":
             payload = ot.reject_link(
-                self.conn, str(parsed.get("relationship_id") or ""),
-                user_id=str(parsed.get("user_id") or "local-user"))
+                self.conn, str(args.get("relationship_id") or ""),
+                user_id=str(args.get("user_id") or "local-user"))
         elif name == "freeze":
             payload = ot.freeze_plan(
-                self.conn, str(parsed.get("plan_id") or ""))
+                self.conn, str(args.get("plan_id") or ""))
         elif name == "sync_mail" or name == "sync_calendar":
             payload = {
                 "ok": False,
@@ -704,7 +728,7 @@ class ToolRuntime:
         blob = json.dumps(payload, ensure_ascii=False, default=str)
         return ToolResult(
             name=name, ok=bool(payload.get("ok")), payload=payload,
-            citations=(), bytes_out=len(blob.encode()))
+            citations=(), bytes_out=len(blob.encode()), untrusted=True)
 
     def _place_preview(self, args: dict) -> ToolResult:
         from assistant.place_preview import place_preview, preview_as_dict

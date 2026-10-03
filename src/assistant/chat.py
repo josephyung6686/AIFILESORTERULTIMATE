@@ -2,21 +2,26 @@
 
 Default path: find → read/explain → answer with citations.
 Never registers write tools. File snippets tagged untrusted.
+Every tool call passes through assistant.policy.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import os
-
 from assistant.egress import PersistentEgress
 from assistant.local_model import local_chat_turn, require_local_or_refuse
 from assistant.memory_v1 import format_rules_block, retrieve_for_proposal
 from assistant.model_hint import hint_for_question
+from assistant.policy import (
+    classify_egress,
+    parse_answer_citations,
+    validate_citations,
+)
 from assistant.provider import chat_turn, dump_safe, resolve_provider
 from assistant.tools import Citation, ToolRuntime
 from assistant.trust import trust_facts_for
@@ -107,6 +112,7 @@ class ChatAnswer:
     total_ms: float
     moved: bool = False
     pending_user_question: str | None = None
+    egress_class: str = "none"
 
 
 def _local_find_answer(
@@ -118,7 +124,7 @@ def _local_find_answer(
         model_dir: Path | None,
 ) -> ChatAnswer:
     """No-cloud find path: ToolRuntime only, template answer."""
-    runtime = ToolRuntime(conn, model_dir=model_dir)
+    runtime = ToolRuntime(conn, model_dir=model_dir, egress_class="none")
     found = runtime.execute(
         "find_files", {"query": question, "limit": 8})
     turns = [TurnRecord(
@@ -152,7 +158,45 @@ def _local_find_answer(
         model="index-only",
         total_ms=total_ms,
         moved=False,
+        egress_class="none",
     )
+
+
+def _filter_answer_citations(
+        text: str,
+        *,
+        returned_item_ids: tuple[str, ...],
+        returned_source_ids: tuple[str, ...] = (),
+) -> tuple[str, tuple[str, ...]]:
+    """Refuse invented Citations: lines; keep only returned ids."""
+    claimed = parse_answer_citations(text)
+    if not claimed:
+        return text, returned_item_ids
+    valid, _, reason = validate_citations(
+        claimed,
+        returned_item_ids=list(returned_item_ids),
+        returned_source_ids=list(returned_source_ids),
+    )
+    if reason and not valid:
+        # Strip invented citations from the answer text.
+        lines = []
+        for line in text.splitlines():
+            if line.lower().startswith("citations:"):
+                lines.append("Citations: (refused — invented ids)")
+            else:
+                lines.append(line)
+        return "\n".join(lines), ()
+    if set(claimed) - set(valid):
+        lines = []
+        for line in text.splitlines():
+            if line.lower().startswith("citations:"):
+                lines.append(
+                    "Citations: " + (", ".join(valid) if valid else "(none)")
+                )
+            else:
+                lines.append(line)
+        return "\n".join(lines), valid
+    return text, valid if valid else returned_item_ids
 
 
 def ask(
@@ -168,12 +212,13 @@ def ask(
     started = time.perf_counter()
     use_local_gen = False
     local_status = None
+    egress_class = "cloud"
     if local_only:
         local_status = require_local_or_refuse(local_only=True)
         if local_status.available and local_status.supports_tools:
             use_local_gen = True
+            egress_class = local_status.egress_class or "local"
         elif local_status.available and local_status.backend == "apple_fm":
-            # FM present but no tool-loop adapter — index find, no cloud.
             return _local_find_answer(
                 conn, question, started=started, session_id=session_id,
                 model_dir=model_dir,
@@ -191,10 +236,15 @@ def ask(
             or os.environ.get("OLLAMA_MODEL")
             or "local"
         )
+        egress_class = (
+            local_status.egress_class if local_status else "local"
+        )
     else:
         cfg = resolve_provider()
         provider = _provider_name(cfg)
         model_name = cfg.model
+        egress_class = classify_egress(
+            provider=provider, base_url=getattr(cfg, "base_url", None))
     # Touch trust facts so wrong provider copy cannot silently ship.
     _ = trust_facts_for(provider)
     # Freshness: reconcile disk→DB before tools (no daemon required).
@@ -205,13 +255,14 @@ def ask(
         pass
     # Advisory only — never gates which tools are registered.
     _hint = hint_for_question(question)
-    # Held bodies only on local gen path — never cloud BYOK.
+    # Held bodies only on true local egress — never cloud BYOK.
+    allow_held = bool(use_local_gen and egress_class == "local")
     runtime = ToolRuntime(
-        conn, model_dir=model_dir, allow_held_body=bool(use_local_gen))
+        conn, model_dir=model_dir, allow_held_body=allow_held,
+        egress_class=egress_class)
     if _hint.preload_group:
         runtime.execute("request_tools", {"group": _hint.preload_group})
     ledger = PersistentEgress(conn, session_id=session_id)
-    # Track whether any tool moved files this turn (apply/undo path).
     any_moved = False
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": build_system_prompt(conn, question)},
@@ -220,37 +271,55 @@ def ask(
     turns: list[TurnRecord] = []
     all_citations: list[str] = []
     all_objs: list[Citation] = []
+    all_source_ids: list[str] = []
 
     for _ in range(max_rounds):
+        tools = runtime.schemas()
+        request_envelope = {"messages": messages, "tools": tools}
         if use_local_gen:
             assistant_msg = local_chat_turn(
-                messages=messages, tools=runtime.schemas())
+                messages=messages, tools=tools)
         else:
             assistant_msg = chat_turn(
-                messages=messages, tools=runtime.schemas(), config=cfg)
+                messages=messages, tools=tools, config=cfg)
+        # One ledger row per provider request from serialized envelopes.
+        ledger.add_provider_request(
+            provider=provider,
+            model=model_name,
+            request_envelope=request_envelope,
+            response_envelope=assistant_msg,
+            item_ids=list(dict.fromkeys(all_citations)),
+            question=question if not turns else None,
+            egress_class=egress_class,
+        )
         messages.append(assistant_msg)
         tool_calls = assistant_msg.get("tool_calls") or []
         if not tool_calls:
             text = (assistant_msg.get("content") or "").strip()
             total_ms = (time.perf_counter() - started) * 1000.0
             unique = tuple(dict.fromkeys(all_citations))
-            ledger.add(
-                provider=provider, model=model_name,
-                item_ids=unique, bytes_out=runtime.bytes_spent,
-                question=question)
+            text, unique = _filter_answer_citations(
+                text or "(empty model reply)",
+                returned_item_ids=unique,
+                returned_source_ids=tuple(dict.fromkeys(all_source_ids)),
+            )
+            objs = tuple(
+                o for o in all_objs if o.item_id in unique
+            ) if unique else ()
             return ChatAnswer(
                 text=text or "(empty model reply)",
                 citations=unique,
-                citation_objs=tuple(all_objs),
+                citation_objs=objs if objs else tuple(all_objs),
                 turns=tuple(turns),
                 egress_item_ids=unique,
-                egress_bytes=runtime.bytes_spent,
+                egress_bytes=ledger.total_bytes(),
                 egress_session_id=ledger.session_id,
                 provider=provider,
                 model=model_name,
                 total_ms=total_ms,
                 moved=any_moved,
                 pending_user_question=runtime.pending_user_question,
+                egress_class=egress_class,
             )
         for call in tool_calls:
             name = call["function"]["name"]
@@ -266,11 +335,7 @@ def ask(
                 source_ids=result.source_ids))
             all_citations.extend(result.citations)
             all_objs.extend(result.citation_objs)
-            ledger.add(
-                provider=provider, model=model_name,
-                item_ids=list(result.citations),
-                bytes_out=result.bytes_out,
-                question=question if name == "find_files" else None)
+            all_source_ids.extend(result.source_ids)
             content = dump_safe({
                 "ok": result.ok,
                 "untrusted": result.untrusted,
@@ -293,34 +358,32 @@ def ask(
                     citation_objs=tuple(all_objs),
                     turns=tuple(turns),
                     egress_item_ids=unique,
-                    egress_bytes=runtime.bytes_spent,
+                    egress_bytes=ledger.total_bytes(),
                     egress_session_id=ledger.session_id,
                     provider=provider,
                     model=model_name,
                     total_ms=total_ms,
                     moved=any_moved,
                     pending_user_question=runtime.pending_user_question,
+                    egress_class=egress_class,
                 )
 
     total_ms = (time.perf_counter() - started) * 1000.0
     unique = tuple(dict.fromkeys(all_citations))
-    ledger.add(
-        provider=provider, model=model_name,
-        item_ids=unique, bytes_out=runtime.bytes_spent,
-        question=question)
     return ChatAnswer(
         text="Stopped after tool-round budget. Partial citations only.",
         citations=unique,
         citation_objs=tuple(all_objs),
         turns=tuple(turns),
         egress_item_ids=unique,
-        egress_bytes=runtime.bytes_spent,
+        egress_bytes=ledger.total_bytes(),
         egress_session_id=ledger.session_id,
         provider=provider,
         model=model_name,
         total_ms=total_ms,
         moved=any_moved,
         pending_user_question=runtime.pending_user_question,
+        egress_class=egress_class,
     )
 
 
@@ -334,7 +397,6 @@ def format_answer(answer: ChatAnswer) -> str:
                     f"{c.item_id}[src={','.join(c.source_ids[:4])}]")
             else:
                 parts.append(c.item_id)
-        # de-dupe preserving order
         seen = set()
         uniq = []
         for p in parts:

@@ -17,22 +17,33 @@ PROFILES = ("student", "files_only", "job_seeker")
 
 
 def _build_wheel(dist_dir: Path) -> Path:
-    # setuptools always writes into <project>/build; clear stale trees so two
-    # builds in one session cannot collide on half-written paths.
-    build_dir = ROOT / "build"
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
-    here = os.getcwd()
+    """Build from an isolated project copy so concurrent pytest/build cannot
+    race on the shared ``./build`` directory (empty wheels / missing profiles).
+    """
+    staging = Path(tempfile.mkdtemp(prefix="ga-wheel-src-"))
     try:
-        os.chdir(ROOT)
-        from setuptools import build_meta
+        # Minimal tree for setuptools src-layout discovery.
+        for name in ("pyproject.toml", "README.md", "LICENSE"):
+            src = ROOT / name
+            if src.is_file():
+                shutil.copy2(src, staging / name)
+        shutil.copytree(
+            ROOT / "src", staging / "src",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
+        )
+        here = os.getcwd()
+        try:
+            os.chdir(staging)
+            from setuptools import build_meta
 
-        built = build_meta.build_wheel(str(dist_dir))
+            built = build_meta.build_wheel(str(dist_dir))
+        finally:
+            os.chdir(here)
+        wheel = dist_dir / built
+        assert wheel.is_file(), built
+        return wheel
     finally:
-        os.chdir(here)
-    wheel = dist_dir / built
-    assert wheel.is_file(), built
-    return wheel
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 @pytest.fixture(scope="module")

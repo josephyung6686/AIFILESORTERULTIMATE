@@ -1,6 +1,7 @@
 """P3 place_preview / dry-run — never moves files.
 
-Verifies content_hash when present; surfaces full op list for approval UI.
+Verifies content_hash when present; requires hash/file_id/root for apply;
+surfaces held/symlink/out-of-root blockers; full op list for approval UI.
 """
 from __future__ import annotations
 
@@ -41,13 +42,33 @@ class PlacePreview:
 
 
 def _file_hash(path: Path) -> str | None:
-    if not path.is_file():
+    if not path.is_file() or path.is_symlink():
         return None
     h = hashlib.sha256()
     with path.open("rb") as fh:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _under_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def _item_held(conn: sqlite3.Connection, item_id: str) -> bool:
+    has = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='items'"
+    ).fetchone()
+    if has is None:
+        return False
+    row = conn.execute(
+        "SELECT typing_state FROM items WHERE item_id=?", (item_id,)
+    ).fetchone()
+    return bool(row and row["typing_state"] == "held")
 
 
 def place_preview(
@@ -71,6 +92,9 @@ def place_preview(
             can_apply=False,
             blockers=("plan not found",),
         )
+    if row["state"] not in ("approved", "draft"):
+        # Still previewable, but apply will refuse non-approved.
+        pass
     h = plan_hash(conn, plan_id)
     matches = approval_matches_plan(conn, plan_id)
     if not matches:
@@ -79,22 +103,40 @@ def place_preview(
         blockers.append("full list not viewed")
     ops_out: list[PreviewOp] = []
     for r in conn.execute(
-        "SELECT item_id, src, dst, content_hash FROM assistant_plan_ops "
-        "WHERE plan_id = ? ORDER BY item_id",
+        "SELECT item_id, src, dst, content_hash, file_id, "
+        "root_scope, protected_snapshot "
+        "FROM assistant_plan_ops WHERE plan_id = ? ORDER BY item_id",
         (plan_id,),
     ):
         src_p = Path(r["src"])
         dst_p = Path(r["dst"])
-        exists_src = src_p.is_file()
+        exists_src = src_p.is_file() and not src_p.is_symlink()
         dest_exists = dst_p.exists()
         recorded = r["content_hash"]
         hash_ok: bool | None = None
-        if recorded:
+        if not recorded:
+            blockers.append(f"content_hash required for {r['item_id']}")
+        else:
             live = _file_hash(src_p) if exists_src else None
             hash_ok = live == recorded
             if hash_ok is False:
                 blockers.append(
                     f"content_hash mismatch for {r['item_id']}")
+        # file_id / root_scope optional for legacy plans; enforce scope when set.
+        root_scope = r["root_scope"]
+        if root_scope:
+            root = Path(root_scope)
+            try:
+                if not _under_root(src_p, root) or not _under_root(dst_p, root):
+                    blockers.append(
+                        f"out-of-root destination for {r['item_id']}")
+            except OSError:
+                blockers.append(f"unresolvable path for {r['item_id']}")
+        if src_p.is_symlink() or dst_p.is_symlink():
+            blockers.append(f"symlink refused for {r['item_id']}")
+        if _item_held(conn, r["item_id"]) or (
+                r["protected_snapshot"] or "") == "held":
+            blockers.append(f"held item refused for {r['item_id']}")
         if not exists_src:
             blockers.append(f"missing src {r['src']}")
         if dest_exists:

@@ -183,7 +183,12 @@ def freeze_plan(conn: sqlite3.Connection, plan_id: str) -> dict[str, Any]:
     }
 
 
-def extract_one(conn: sqlite3.Connection, item_id: str) -> dict[str, Any]:
+def extract_one(
+        conn: sqlite3.Connection, item_id: str, *,
+        allow_held: bool = False,
+) -> dict[str, Any]:
+    from items.mailbox import path_is_protected
+
     row = conn.execute(
         "SELECT item_id, display_label, file_id, open_target, typing_state "
         "FROM items WHERE item_id=? AND presence='live'",
@@ -191,13 +196,27 @@ def extract_one(conn: sqlite3.Connection, item_id: str) -> dict[str, Any]:
     ).fetchone()
     if row is None:
         return {"ok": False, "error": "item not found", "moved": False}
+    protected = bool(
+        row["open_target"] and path_is_protected(row["open_target"]))
+    held = row["typing_state"] == "held" or protected
+    if held and not allow_held:
+        return {
+            "ok": False,
+            "item_id": item_id,
+            "refused": True,
+            "error": "extract_one refused for held/protected item",
+            "moved": False,
+        }
     return {
         "ok": True,
         "item_id": item_id,
         "display_label": row["display_label"],
         "typing_state": row["typing_state"],
-        "open_target": row["open_target"],
+        "open_target": (
+            None if (held and not allow_held) else row["open_target"]
+        ),
         "moved": False,
+        "trust": "UNTRUSTED_LABEL",
         "note": "metadata only — use read_item for untrusted snippet",
     }
 

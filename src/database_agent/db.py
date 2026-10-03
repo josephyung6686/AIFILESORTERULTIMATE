@@ -62,6 +62,8 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
     database may not live inside any of them (11-ops-runtime.md §2), so P3's
     exclusion rules never have to special-case it.
     """
+    if not isinstance(path, Path):
+        path = Path(path)
     resolved = path.expanduser().resolve()
     for root in scan_roots:
         root = Path(root).expanduser().resolve()
@@ -442,6 +444,26 @@ CREATE TABLE IF NOT EXISTS learning_resets (
 """
 
 
+def _migrate_items_if_present(conn: sqlite3.Connection) -> None:
+    """Apply additive items freshness columns when the items package is installed.
+
+    P1 does not own `items`, but an existing database that already has the table
+    must gain new columns on open without waiting for the next reconcile. Import
+    is deferred so a lean P1-only environment without the items package still
+    opens. Creating the items tables remains `items.schema.create_items_schema`.
+    """
+    found = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'items'"
+    ).fetchone()
+    if found is None:
+        return
+    try:
+        from items.schema import create_items_schema
+    except ImportError:
+        return
+    create_items_schema(conn)
+
+
 def create_schema(conn: sqlite3.Connection) -> None:
     """Create every P1-owned table. Idempotent."""
     conn.executescript(FILES_DDL)
@@ -458,3 +480,4 @@ def create_schema(conn: sqlite3.Connection) -> None:
     # before it reached a bootstrap step. The table that records a withdrawal
     # exists as soon as the database does.
     conn.executescript(CLOUD_CONSENT_DDL)
+    _migrate_items_if_present(conn)
