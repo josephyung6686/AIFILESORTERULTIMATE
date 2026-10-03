@@ -438,3 +438,46 @@ def test_several_rules_over_one_observation_each_write_their_own_row(
         p6_conn, file_id, content_hash)] == ["subject"]
     assert [(r["field_key"], r["reason"]) for r in unresolved_for_file(
         p6_conn, file_id, content_hash)] == [("venue", "context_check_failed")]
+
+
+def test_the_pass_key_is_derived_once_per_pass_and_is_the_same_key(
+        p6_conn, tmp_path, monkeypatch):
+    # The key is three queries over every reading of the version. Asked per row, a
+    # data export with thousands of failing matches spent minutes deriving one
+    # unchanging answer; asked once, every row still carries exactly that answer.
+    import facts.rules as rules_module
+    from facts.cache import pass_cache_key
+    file_id, content_hash = _record(p6_conn, tmp_path, name="many.pdf", body=b"many")
+    for index in range(5):
+        _observe(p6_conn, run_id="r-many", file_id=file_id,
+                 content_hash=content_hash, raw=f"BUSIB 43{index}0",
+                 context_before="Order ", context_after=" shipped")
+    _observe(p6_conn, run_id="r-many", file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", context_before="Syllabus — ")
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(kwargs)
+        return pass_cache_key(*args, **kwargs)
+
+    monkeypatch.setattr(rules_module, "pass_cache_key", counted)
+    apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+                rules=(_course_rule(),), screen=NO_CATALOGUE)
+    assert len(calls) == 1
+    expected = pass_cache_key(p6_conn, file_id=file_id, content_hash=content_hash)
+    keys = {row["cache_key"] for row in unresolved_for_file(
+        p6_conn, file_id, content_hash)}
+    keys |= {row["cache_key"] for row in facts_for_file(
+        p6_conn, file_id, content_hash)}
+    assert len(keys) == 1 and keys == {expected}
+
+
+def test_a_pass_that_writes_nothing_derives_no_key(p6_conn, tmp_path, monkeypatch):
+    import facts.rules as rules_module
+    file_id, content_hash = _record(p6_conn, tmp_path, name="none.pdf", body=b"none")
+    _observe(p6_conn, run_id="r-none", file_id=file_id, content_hash=content_hash,
+             raw="no code here")
+    monkeypatch.setattr(rules_module, "pass_cache_key",
+                        lambda *a, **k: pytest.fail("no row, no key"))
+    assert apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+                       rules=(_course_rule(),), screen=NO_CATALOGUE) == ()
