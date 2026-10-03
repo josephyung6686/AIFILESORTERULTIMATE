@@ -1,8 +1,9 @@
 # Database agent
 
-A local-first file assistant. The filesystem stays the system of record; a local SQLite
-database is the working memory. You point it at a folder. It reads the files, proposes a
-destination tree, and does not move anything until you freeze that tree and apply a branch.
+A local-first file assistant. The product is the files on the Mac. The filesystem stays
+the system of record; a local SQLite database is the working memory. You point it at a
+folder. It reads the files, proposes a destination tree, and does not move anything until
+you freeze that tree and apply a branch.
 Undo puts the bytes back. A file it is not sure about stays where it is. Sensitive files
 are held and are not sent to a cloud model.
 

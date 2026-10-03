@@ -1,7 +1,8 @@
-"""`filesorter sync`, `filesorter view`, and `filesorter suggest`.
+"""`filesorter view` and `filesorter suggest`.
 
-None of these open a socket. Sync without a local fixture stores nothing.
-Suggest never applies a move.
+`sync` stays callable so fixture tests can run. Those fixtures are not product.
+The product is files on this Mac. None of these open a socket. Sync without a
+local fixture stores nothing. Suggest never applies a move.
 """
 from __future__ import annotations
 
@@ -9,10 +10,11 @@ import argparse
 import sys
 from pathlib import Path
 
+# Fixture kinds the tests still pass. Not shown in help. Not product.
+_FIXTURE_KINDS = ("gmail", "calendar")
+
 NO_CREDENTIALS = (
-    "No Gmail or Calendar credentials are configured. Live accounts are not "
-    "connected in this build. Nothing was read and nothing was stored. "
-    "Pass --fixture FILE to import a local JSON export. "
+    "Nothing was read and nothing was stored. "
     "No network call was made."
 )
 
@@ -29,12 +31,19 @@ def _open(path: Path):
 
 def sync_main(argv: list[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
-    parser = argparse.ArgumentParser(prog="filesorter sync")
-    parser.add_argument("kind", choices=("gmail", "calendar"))
+    parser = argparse.ArgumentParser(
+        prog="filesorter sync",
+        description="Files on this Mac are the product. This command does not "
+                    "connect an account.")
+    parser.add_argument("kind", help=argparse.SUPPRESS)
     parser.add_argument("--database", type=Path, default=None)
     parser.add_argument("--fixture", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
+    if args.kind not in _FIXTURE_KINDS:
+        print("That command is not part of this product. Nothing was stored.",
+              file=out)
+        return 2
     if args.fixture is None:
         print(NO_CREDENTIALS, file=out)
         return 0 if args.dry_run else 2
@@ -46,7 +55,7 @@ def sync_main(argv: list[str] | None = None, *, out=None) -> int:
         print(str(refusal), file=out)
         return 2
     if args.dry_run:
-        print(f"Dry-run {args.kind}. Nothing was stored. No network call was made.",
+        print("Dry-run. Nothing was stored. No network call was made.",
               file=out)
         print(f"Would store: {plan['count']}.", file=out)
         print("Fields: " + ", ".join(plan["fields"]) + ".", file=out)
@@ -64,7 +73,7 @@ def sync_main(argv: list[str] | None = None, *, out=None) -> int:
     finally:
         conn.close()
     print(
-        f"Stored {result['stored']} {args.kind} item"
+        f"Stored {result['stored']} item"
         f"{'' if result['stored'] == 1 else 's'}. "
         f"Held: {result['held']}. Unplaced: {result['unplaced']}. "
         "Approved links: 0. Nothing was sent.",

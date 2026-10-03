@@ -1,22 +1,24 @@
 # Product one-pager (v2)
 
-> Founder product write-up (Alana, Sep 30, 2026). Canonical consumer / context-graph direction for FileSorter.
+> Founder product write-up. Canonical consumer / context-graph direction for FileSorter.
 > Older engine design (Joseph): [`planning/00-database-agent-product-design.md`](../planning/00-database-agent-product-design.md).
 
-**Date:** Sep 30, 2026. **Supersedes:** `one-pager.md` (the go/no-go note, kept unchanged).
-**Tags:** plain statements are **founder decisions** (Sep 30, 2026) or **verified facts** from the repo audit. Anything not decided by the founder is tagged **[Proposal]**. No usage, market, or revenue numbers exist yet, and none are invented here.
+**Date:** Oct 2, 2026, updating the Sep 30, 2026 write-up. **Supersedes:** `one-pager.md` (the go/no-go note, kept unchanged).
+**Tags:** plain statements are **founder decisions** (Sep 30, 2026 and Oct 2, 2026) or **verified facts** from the repo audit. Anything not decided by the founder is tagged **[Proposal]**. No usage, market, or revenue numbers exist yet, and none are invented here.
 
-## What changed (founder decisions, Sep 30 2026)
+## What changed (founder decisions)
 
-The product is no longer "a virtual library of files for students." It is a **context graph** over everything a person already has. Files, folders, emails, calendar events, tasks, people and projects are all connected **items** with **relationships**, built automatically from evidence. Example: this PDF was attached to that email, which is about that event, which belongs to that project.
+**Oct 2, 2026.** The product is files on the Mac. A scan reads a folder. There is no account to connect.
+
+**Sep 30, 2026.** The product is no longer "a virtual library of files for students." It is a **context graph** over the files and folders a person already has. Files, folders, tasks, people and projects are connected **items** with **relationships**, built automatically from evidence in those files. Example: this PDF and the notes beside it belong to the same project.
 
 - **Not student-only.** Students are the first starting profile/template. Other profiles come later: job seeker, researcher, freelancer, founder.
 - **The folder tree is one view, not the product.** Classic Folder view stays. New views: Graph, Timeline, Board, Table.
-- **Files never move on disk.** Clicking an item opens the original. Gmail and Calendar are read-only.
+- **Files never move on disk.** Clicking an item opens the original file on the Mac.
 
 ## Why it is different
 
-Notion makes you build structure by hand. This builds structure **automatically from what already exists** on the laptop and in Gmail/Calendar. The pitch is "sorting what exists," not "start a workspace and fill it in."
+Notion makes you build structure by hand. This builds structure **automatically from the files already on the Mac**. The pitch is "sorting what exists," not "start a workspace and fill it in."
 
 ## The views (founder decision: these views exist; layouts are [Proposal])
 
@@ -30,9 +32,9 @@ Notion makes you build structure by hand. This builds structure **automatically 
 
 ## The agent: one ladder, three capabilities (founder decision)
 
-1. **The connector.** Notices that an email, a file and an event are about the same thing and keeps them linked.
+1. **The connector.** Notices that files are about the same project and keeps them linked.
 2. **The nudge.** Watches deadlines and says what is missing before time runs out.
-3. **The assistant.** Answers questions about your own stuff, e.g. "what did the recruiter send me and what do I still owe them?"
+3. **The assistant.** Answers questions about your own files, e.g. "which files did the recruiter leave me, and what do I still owe them?"
 
 All three sit on the same ladder. The agent acts **only with user approval**. Nothing is silent. There is no cloud bypass of protected holds.
 

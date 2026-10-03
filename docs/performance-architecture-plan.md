@@ -4,7 +4,7 @@ Date: 2026-09-30. Status: measurement, plus stages 1 and 2 from the order below.
 
 Branch: `app`. `main` is untouched. Nothing here is merged.
 
-The product is a virtual library. Files stay at their real paths. The index records those paths. Gmail and Calendar are later items on the same graph. This note is about the sorter engine that scan still runs, and about the line between that engine and the app layer. It does not start Gmail, Calendar, or a view.
+The product is files on the Mac. Files stay at their real paths. The index records those paths. This note is about the sorter engine that scan still runs, and about the line between that engine and the app layer. It does not start a view.
 
 ## What this run was
 
@@ -89,7 +89,7 @@ Semantic recognition stays off unless a model directory is passed. This pass doe
 
 **Engine.** Scan, read, extract, facts, recognition, grouping, tree design, placement, privacy holds, and the production orchestrator that runs them. Packages: `scan_agent`, `readers`, `extractors`, `extraction_pool`, `evidence_shape`, `facts`, `recognition`, `grouping`, `tree_design`, `placement`, `privacy`, `orchestrator`, `production`, and the database tables those packages own. The engine may propose a folder. It moves a file only through the existing apply path, after a freeze.
 
-**App.** The path index in `items`: one item id, a real `open_target`, presence `live` or `missing`. Future Gmail and Calendar connectors, and any view that opens `open_target`. The app reads engine tables. It does not call `mutation/execute.py` to rearrange the disk. A click opens the path the index stored.
+**App.** The path index in `items`: one item id, a real `open_target`, presence `live` or `missing`. A view opens `open_target`. The app reads engine tables. It does not call `mutation/execute.py` to rearrange the disk. A click opens the path the index stored.
 
 `cli.py` is the composition root both sides currently share. New app behavior enters through that root the way `create_items_schema` and `project_after_scan` already do. It does not grow a second copy of recognition inside the view.
 
