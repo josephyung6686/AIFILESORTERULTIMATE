@@ -3,19 +3,21 @@
 None of these functions import or call `mutation.execute`. Semantic and
 session edges never appear. Inferred links are omitted from the default graph
 and counted as hidden.
+
+Graph and Board draw through `relationship_service.project_relationships`.
 """
 from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from pathlib import Path, PurePath
+from pathlib import PurePath
 
 from items.profile_loader import ProfilePackage
-
-DRAWABLE = frozenset({"approved"})
-DRAWABLE_WITNESSED = frozenset({"duplicate-of", "attached-to"})
-INFERRED = "inferred"
+from items.relationship_service import (
+    project_relationships,
+    projection_hidden_count,
+)
 
 
 @dataclass(frozen=True)
@@ -56,19 +58,18 @@ def table_view(conn: sqlite3.Connection) -> list[dict]:
     ).fetchall()
     out = []
     for row in rows:
-        links = conn.execute(
-            "SELECT COUNT(*) AS n FROM relationships "
-            "WHERE state = 'approved' AND superseded_by IS NULL "
-            "AND (from_item_id = ? OR to_item_id = ?)",
-            (row["item_id"], row["item_id"]),
-        ).fetchone()["n"]
+        approved = sum(
+            1 for e in project_relationships(
+                conn, surface="list_related", item_id=row["item_id"])
+            if e["state"] == "approved"
+        )
         out.append({
             "item_id": row["item_id"],
             "item_type": row["item_type"],
             "display_label": row["display_label"],
             "typing_state": row["typing_state"],
             "open_target": row["open_target"],
-            "approved_links": links,
+            "approved_links": approved,
         })
     return out
 
@@ -84,27 +85,26 @@ def board_view(conn: sqlite3.Connection) -> dict[str, list[dict]]:
     for hub in hubs:
         columns[hub["display_label"]] = []
     columns["Unplaced"] = []
-    members = conn.execute(
-        "SELECT r.from_item_id, r.to_item_id, i.item_id, i.display_label, "
-        "i.typing_state, i.item_type "
-        "FROM relationships r "
-        "JOIN items i ON i.item_id = r.from_item_id "
-        "WHERE r.rel_type = 'member-of' AND r.superseded_by IS NULL "
-        "AND r.state IN ('approved', 'proposed') "
-        "AND r.confidence IN ('witnessed', 'declared', 'corroborated')"
-    ).fetchall()
+    members = project_relationships(conn, surface="board", rel_type="member-of")
     hub_ids = {h["item_id"]: h["display_label"] for h in hubs}
     placed: set[str] = set()
     for row in members:
         label = hub_ids.get(row["to_item_id"])
         if label is None:
             continue
+        item = conn.execute(
+            "SELECT item_id, display_label, typing_state, item_type "
+            "FROM items WHERE item_id = ?",
+            (row["from_item_id"],),
+        ).fetchone()
+        if item is None:
+            continue
         columns[label].append({
-            "item_id": row["item_id"],
-            "display_label": row["display_label"],
-            "typing_state": row["typing_state"],
+            "item_id": item["item_id"],
+            "display_label": item["display_label"],
+            "typing_state": item["typing_state"],
         })
-        placed.add(row["item_id"])
+        placed.add(item["item_id"])
     for row in conn.execute(
         "SELECT item_id, display_label, typing_state FROM items "
         "WHERE presence = 'live' AND superseded_by IS NULL "
@@ -156,23 +156,11 @@ def graph_view(conn: sqlite3.Connection, *,
         if row is not None:
             nodes.append(dict(row))
     edges = []
-    hidden = 0
     if node_ids:
-        placeholders = ",".join("?" * len(node_ids))
-        rels = conn.execute(
-            f"SELECT * FROM relationships WHERE superseded_by IS NULL "
-            f"AND from_item_id IN ({placeholders}) "
-            f"AND to_item_id IN ({placeholders})",
-            (*node_ids, *node_ids),
-        ).fetchall()
-        for rel in rels:
-            if rel["confidence"] == INFERRED:
-                hidden += 1
-                continue
-            if rel["state"] == "approved" or (
-                    rel["confidence"] == "witnessed"
-                    and rel["rel_type"] in DRAWABLE_WITNESSED
-                    and rel["state"] == "proposed"):
+        node_set = set(node_ids)
+        for rel in project_relationships(conn, surface="graph"):
+            if (rel["from_item_id"] in node_set
+                    and rel["to_item_id"] in node_set):
                 edges.append({
                     "relationship_id": rel["relationship_id"],
                     "rel_type": rel["rel_type"],
@@ -181,8 +169,10 @@ def graph_view(conn: sqlite3.Connection, *,
                     "state": rel["state"],
                     "confidence": rel["confidence"],
                 })
-            elif rel["state"] == "proposed":
-                hidden += 1
+        hidden = projection_hidden_count(
+            conn, surface="graph", among=node_ids)
+    else:
+        hidden = 0
     # Semantic edges live only in group_edges — never counted here as drawn.
     return GraphView(
         nodes=tuple(nodes[:cap]),
@@ -200,13 +190,12 @@ def _hubs_and_members(conn: sqlite3.Connection, cap: int) -> list[str]:
         "ORDER BY display_label"
     ):
         ids.append(row["item_id"])
-    for row in conn.execute(
-        "SELECT from_item_id FROM relationships "
-        "WHERE rel_type = 'member-of' AND state = 'approved' "
-        "AND superseded_by IS NULL"
-    ):
-        if row["from_item_id"] not in ids:
-            ids.append(row["from_item_id"])
+    for edge in project_relationships(
+            conn, surface="list_related", rel_type="member-of"):
+        if edge["state"] != "approved":
+            continue
+        if edge["from_item_id"] not in ids:
+            ids.append(edge["from_item_id"])
         if len(ids) >= cap:
             break
     return ids[:cap]
@@ -214,13 +203,9 @@ def _hubs_and_members(conn: sqlite3.Connection, cap: int) -> list[str]:
 
 def _neighborhood(conn: sqlite3.Connection, center: str, cap: int) -> list[str]:
     ids = [center]
-    for row in conn.execute(
-        "SELECT from_item_id, to_item_id FROM relationships "
-        "WHERE superseded_by IS NULL "
-        "AND (from_item_id = ? OR to_item_id = ?)",
-        (center, center),
-    ):
-        for end in (row["from_item_id"], row["to_item_id"]):
+    for edge in project_relationships(
+            conn, surface="list_related", item_id=center):
+        for end in (edge["from_item_id"], edge["to_item_id"]):
             if end not in ids:
                 ids.append(end)
             if len(ids) >= cap:

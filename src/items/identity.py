@@ -224,11 +224,33 @@ def _point(conn: sqlite3.Connection, item_id: str, file_id: str,
 
 def _ensure_version(conn: sqlite3.Connection, item_id: str, file_id: str,
                     content_hash: str, now: str) -> None:
+    prior = conn.execute(
+        "SELECT content_hash FROM items WHERE item_id = ?",
+        (item_id,),
+    ).fetchone()
+    prior_hash = None if prior is None else prior["content_hash"]
+    existing = conn.execute(
+        "SELECT 1 FROM item_versions WHERE item_id = ? AND file_id = ?",
+        (item_id, file_id),
+    ).fetchone()
     conn.execute(
         "INSERT OR IGNORE INTO item_versions "
         "(item_id, file_id, content_hash, became_live_at) VALUES (?, ?, ?, ?)",
         (item_id, file_id, content_hash, now),
     )
+    # Persist the live content hash on the item row for decision binding.
+    conn.execute(
+        "UPDATE items SET content_hash = ? WHERE item_id = ?",
+        (content_hash, item_id),
+    )
+    changed = (
+        existing is None
+        or (prior_hash is not None and prior_hash != content_hash)
+    )
+    if changed and content_hash:
+        from items.relationship_service import revalidate_for_item_version
+        revalidate_for_item_version(
+            conn, item_id, content_hash=content_hash)
 
 
 def _mark_missing_under(conn: sqlite3.Connection, roots) -> None:

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 
-ITEMS_SCHEMA_VERSION = 4
+ITEMS_SCHEMA_VERSION = 5
 
 ITEMS_DDL = """
 CREATE TABLE IF NOT EXISTS items_meta (
@@ -91,15 +91,21 @@ CREATE INDEX IF NOT EXISTS relationships_by_basis
 -- closed vocabulary in P1; adding `link` there is an owner edit. Until that
 -- edit lands, polarity for a basis_key is recorded here and read exactly.
 CREATE TABLE IF NOT EXISTS relationship_decisions (
-    decision_id     TEXT PRIMARY KEY,
-    basis_key       TEXT NOT NULL,
-    polarity        TEXT NOT NULL,
-    relationship_id TEXT NOT NULL,
-    user_id         TEXT NOT NULL,
-    created_at      TEXT NOT NULL
+    decision_id            TEXT PRIMARY KEY,
+    basis_key              TEXT NOT NULL,
+    polarity               TEXT NOT NULL,
+    relationship_id        TEXT NOT NULL,
+    user_id                TEXT NOT NULL,
+    created_at             TEXT NOT NULL,
+    evidence_ids           TEXT,
+    item_content_versions  TEXT,
+    session_id             TEXT,
+    approval_hash          TEXT
 );
 CREATE INDEX IF NOT EXISTS relationship_decisions_by_basis
     ON relationship_decisions(basis_key, created_at);
+CREATE INDEX IF NOT EXISTS relationship_decisions_by_rel
+    ON relationship_decisions(relationship_id, created_at);
 
 -- Append-only identity / freshness transitions for diagnosing stale search.
 CREATE TABLE IF NOT EXISTS item_identity_events (
@@ -138,6 +144,13 @@ ITEMS_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
     ("freshness_state", "TEXT NOT NULL DEFAULT 'dirty'"),
 )
 
+DECISION_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("evidence_ids", "TEXT"),
+    ("item_content_versions", "TEXT"),
+    ("session_id", "TEXT"),
+    ("approval_hash", "TEXT"),
+)
+
 
 def _migrate_items_columns(conn: sqlite3.Connection) -> None:
     present = {row[1] for row in conn.execute("PRAGMA table_info(items)")}
@@ -150,10 +163,25 @@ def _migrate_items_columns(conn: sqlite3.Connection) -> None:
             )
 
 
+def _migrate_decision_columns(conn: sqlite3.Connection) -> None:
+    present = {
+        row[1] for row in conn.execute("PRAGMA table_info(relationship_decisions)")
+    }
+    if not present:
+        return
+    for column, column_type in DECISION_ADDED_COLUMNS:
+        if column not in present:
+            conn.execute(
+                f"ALTER TABLE relationship_decisions "
+                f"ADD COLUMN {column} {column_type}"
+            )
+
+
 def create_items_schema(conn: sqlite3.Connection) -> None:
     """Create the item tables if they are absent. Safe to call on every run."""
     conn.executescript(ITEMS_DDL)
     _migrate_items_columns(conn)
+    _migrate_decision_columns(conn)
     # Indexes/triggers that depend on migrated columns or tables added after v3.
     conn.executescript(
         """
@@ -173,12 +201,20 @@ def create_items_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS item_identity_events_by_item
             ON item_identity_events(item_id, observed_at);
         CREATE INDEX IF NOT EXISTS items_by_freshness ON items(freshness_state);
+        CREATE INDEX IF NOT EXISTS relationship_decisions_by_rel
+            ON relationship_decisions(relationship_id, created_at);
         CREATE TRIGGER IF NOT EXISTS item_identity_events_no_update
         BEFORE UPDATE ON item_identity_events
         BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
         CREATE TRIGGER IF NOT EXISTS item_identity_events_no_delete
         BEFORE DELETE ON item_identity_events
         BEGIN SELECT RAISE(ABORT, 'item_identity_events is append-only'); END;
+        CREATE TRIGGER IF NOT EXISTS relationship_decisions_no_update
+        BEFORE UPDATE ON relationship_decisions
+        BEGIN SELECT RAISE(ABORT, 'relationship_decisions is append-only'); END;
+        CREATE TRIGGER IF NOT EXISTS relationship_decisions_no_delete
+        BEFORE DELETE ON relationship_decisions
+        BEGIN SELECT RAISE(ABORT, 'relationship_decisions is append-only'); END;
         """
     )
     existing = conn.execute("SELECT version FROM items_meta").fetchone()

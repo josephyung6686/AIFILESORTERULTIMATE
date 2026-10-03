@@ -205,8 +205,14 @@ def merge_persons(
         keep_id: str,
         drop_id: str,
         confirmed: bool = False,
+        user_id: str = "local-user",
+        session_id: str | None = None,
 ) -> PersonItem:
-    """Merge drop into keep. Requires confirmed=True. Never auto."""
+    """Merge drop into keep. Requires confirmed=True. Never auto.
+
+    Relationships and decision provenance migrate transactionally via
+    `relationship_service.migrate_person_relationships`.
+    """
     if not confirmed:
         raise PermissionError("merge requires confirmed=True — nothing changed")
     if keep_id == drop_id:
@@ -214,18 +220,30 @@ def merge_persons(
     ensure_people_schema(conn)
     keep = get_person(conn, keep_id)
     drop = get_person(conn, drop_id)
-    ts = datetime.now(timezone.utc).isoformat()
-    # Move aliases
-    conn.execute(
-        "UPDATE person_aliases SET person_item_id=? "
-        "WHERE person_item_id=? AND superseded_by IS NULL",
-        (keep_id, drop_id),
-    )
-    # Supersede dropped person item
-    conn.execute(
-        "UPDATE items SET presence='missing', superseded_by=? WHERE item_id=?",
-        (keep_id, drop_id),
-    )
+    # One transaction: aliases, relationship migration, person supersession.
+    try:
+        conn.execute("BEGIN")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute(
+            "UPDATE person_aliases SET person_item_id=? "
+            "WHERE person_item_id=? AND superseded_by IS NULL",
+            (keep_id, drop_id),
+        )
+        from items.relationship_service import migrate_person_relationships
+        migrate_person_relationships(
+            conn, keep_id=keep_id, drop_id=drop_id,
+            user_id=user_id, session_id=session_id or user_id,
+        )
+        conn.execute(
+            "UPDATE items SET presence='missing', superseded_by=? WHERE item_id=?",
+            (keep_id, drop_id),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     return get_person(conn, keep_id)
 
 

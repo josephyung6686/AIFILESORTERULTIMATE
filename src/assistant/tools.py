@@ -437,16 +437,19 @@ class ToolRuntime:
                 bytes_out=len(json.dumps(payload).encode()),
                 untrusted=True,
                 citation_objs=(Citation(item_id=item_id),))
-        rows = self.conn.execute(
-            "SELECT relationship_id, from_item_id, to_item_id, rel_type, state "
-            "FROM relationships WHERE superseded_by IS NULL "
-            "AND (from_item_id = ? OR to_item_id = ?) "
-            "ORDER BY rowid DESC LIMIT 40",
-            (item_id, item_id),
-        ).fetchall()
+        from items.relationship_service import project_relationships
+        rows = project_relationships(
+            self.conn, surface="list_related", item_id=item_id)
         edges = []
-        for r in rows:
-            edge = dict(r)
+        for r in rows[:40]:
+            edge = {
+                "relationship_id": r["relationship_id"],
+                "from_item_id": r["from_item_id"],
+                "to_item_id": r["to_item_id"],
+                "rel_type": r["rel_type"],
+                "state": r["state"],
+                "confidence": r["confidence"],
+            }
             peer = (
                 edge["to_item_id"] if edge["from_item_id"] == item_id
                 else edge["from_item_id"]

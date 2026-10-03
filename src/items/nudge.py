@@ -1,10 +1,18 @@
-"""Nudge: local warnings from profile required pairs. No writes to approvals."""
+"""Nudge: local warnings from profile required pairs. No writes to approvals.
+
+Uses the canonical relationship projection. Cancelled/declined events and
+unrelated future events are excluded; selected event evidence is attached.
+"""
 from __future__ import annotations
 
 import sqlite3
 from datetime import datetime, timezone
 
 from items.profile_loader import ProfilePackage
+from items.relationship_service import (
+    CANCELLED_STATUSES,
+    project_relationships,
+)
 from items.schema import create_items_schema
 
 
@@ -46,55 +54,91 @@ def _check_pair(conn, pair: dict, moment: str) -> list[dict]:
     events = []
     if with_event:
         events = conn.execute(
-            "SELECT i.item_id, i.display_label, h.happened_at "
+            "SELECT i.item_id, i.display_label, h.happened_at, h.status "
             "FROM items i JOIN item_headers h ON h.item_id = i.item_id "
             "WHERE i.item_type = 'event' AND h.happened_at >= ? "
             "ORDER BY h.happened_at",
             (moment,),
         ).fetchall()
+        events = [
+            e for e in events
+            if (e["status"] or "").strip().casefold() not in CANCELLED_STATUSES
+        ]
         if not events:
             return []
     found = []
-    soonest = events[0] if events else None
     for hub in hubs:
         if _has_member(conn, hub["item_id"], need_rel, need_schema):
             continue
+        related = _related_future_event(conn, hub["item_id"], events) if events else None
+        # Urgency clock: any non-cancelled future event arms the warning.
+        # Only a hub-related event is named and attached as evidence.
+        soonest = events[0] if events else None
+        chosen = related if related is not None else None
         message = (
             f"{hub_type} {hub['display_label']} has no {need_schema or 'typed'} "
             f"file linked as {need_rel}."
         )
-        if soonest is not None:
+        evidence = [f"hub:{hub['item_id']}"]
+        event_id = None
+        if chosen is not None:
+            event_id = chosen["item_id"]
             message += (
-                f" Next event {soonest['display_label']} at "
-                f"{soonest['happened_at']}."
+                f" Next event {chosen['display_label']} at "
+                f"{chosen['happened_at']}."
             )
+            evidence.append(f"event:{event_id}")
+            if chosen["status"]:
+                evidence.append(f"status:{chosen['status']}")
+        elif soonest is not None:
+            # Eligible future events exist but none are related — do not name them.
+            evidence.append("future_events:present_unrelated")
         message += " Nothing was moved."
         found.append({
             "kind": "missing_member_of",
             "hub_item_id": hub["item_id"],
             "hub": hub["display_label"],
-            "event_item_id": None if soonest is None else soonest["item_id"],
+            "event_item_id": event_id,
             "message": message,
-            "evidence_refs": [f"hub:{hub['item_id']}"],
+            "evidence_refs": evidence,
         })
     return found
 
 
+def _related_future_event(conn, hub_id: str, events: list) -> sqlite3.Row | None:
+    """Soonest future event linked to this hub; skip unrelated calendars."""
+    linked_ids = set()
+    for edge in project_relationships(conn, surface="nudge", item_id=hub_id):
+        other = (
+            edge["to_item_id"] if edge["from_item_id"] == hub_id
+            else edge["from_item_id"]
+        )
+        linked_ids.add(other)
+    for event in events:
+        if event["item_id"] in linked_ids:
+            return event
+    return None
+
+
 def _has_member(conn, hub_id: str, rel_type: str, type_schema: str | None) -> bool:
-    sql = (
-        "SELECT 1 FROM relationships r "
-        "JOIN items f ON f.item_id = r.from_item_id "
-        "WHERE r.to_item_id = ? AND r.rel_type = ? "
-        "AND r.superseded_by IS NULL AND r.state != 'rejected' "
-        "AND (r.confidence = 'witnessed' OR r.state = 'approved') "
-        "AND f.item_type = 'file'"
-    )
-    args: list = [hub_id, rel_type]
-    if type_schema:
-        sql += " AND f.type_schema = ?"
-        args.append(type_schema)
-    sql += " LIMIT 1"
-    return conn.execute(sql, args).fetchone() is not None
+    for edge in project_relationships(
+            conn, surface="nudge", item_id=hub_id, rel_type=rel_type):
+        if edge["to_item_id"] != hub_id and edge["from_item_id"] != hub_id:
+            continue
+        file_id = (
+            edge["from_item_id"] if edge["to_item_id"] == hub_id
+            else edge["to_item_id"]
+        )
+        row = conn.execute(
+            "SELECT item_type, type_schema FROM items WHERE item_id = ?",
+            (file_id,),
+        ).fetchone()
+        if row is None or row["item_type"] != "file":
+            continue
+        if type_schema and row["type_schema"] != type_schema:
+            continue
+        return True
+    return False
 
 
 def render(rows: list[dict]) -> str:

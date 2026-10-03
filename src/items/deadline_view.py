@@ -3,6 +3,8 @@
 A file is on the deadline only when a relationship to that event is witnessed
 or approved. An inferred link is counted as hidden, not as linked. A file the
 caller expected and did not find is missing, and its item row is left in place.
+
+Links are selected through `relationship_service.project_relationships`.
 """
 from __future__ import annotations
 
@@ -10,15 +12,11 @@ import html
 import sqlite3
 from collections.abc import Mapping, Sequence
 
+from items.relationship_service import (
+    live_relationships,
+    project_relationships,
+)
 from items.schema import create_items_schema
-
-
-def _shown(confidence: str, state: str) -> bool:
-    if state in ("rejected", "inferred"):
-        return False
-    if confidence == "inferred":
-        return False
-    return confidence == "witnessed" or state in ("witnessed", "approved")
 
 
 def deadline_view(conn: sqlite3.Connection, *,
@@ -36,10 +34,8 @@ def deadline_view(conn: sqlite3.Connection, *,
         "AND h.happened_at != '' "
         "ORDER BY h.happened_at, i.display_label"
     ).fetchall()
-    links = conn.execute(
-        "SELECT from_item_id, to_item_id, confidence, state, rel_type "
-        "FROM relationships WHERE superseded_by IS NULL"
-    ).fetchall()
+    shown = project_relationships(conn, surface="deadline")
+    all_live = live_relationships(conn)
     deadlines = []
     linked_ids: set[str] = set()
     missing_ids: set[str] = set()
@@ -47,10 +43,10 @@ def deadline_view(conn: sqlite3.Connection, *,
     for event in events:
         event_id = event["item_id"]
         on_deadline = []
-        for link in links:
+        for link in all_live:
             if event_id not in (link["from_item_id"], link["to_item_id"]):
                 continue
-            if not _shown(link["confidence"], link["state"]):
+            if link not in shown and not _link_in(link, shown):
                 hidden += 1
                 continue
             other = (link["to_item_id"] if link["from_item_id"] == event_id
@@ -103,6 +99,11 @@ def deadline_view(conn: sqlite3.Connection, *,
         "hidden_inferred": hidden,
         "wrong_links_shown": 0,
     }
+
+
+def _link_in(link: dict, shown: list[dict]) -> bool:
+    rid = link["relationship_id"]
+    return any(s["relationship_id"] == rid for s in shown)
 
 
 def render_text(view: dict) -> str:
