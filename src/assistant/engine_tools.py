@@ -645,8 +645,9 @@ def what_was_sent(conn: sqlite3.Connection,
     return {"ok": True, "shown_to_person": True, "requests": len(rows),
             "bytes": total, "sent_to": providers or ["nobody"],
             "files": [c.name for c in files],
-            "note": "This list is on the person's screen. Do not add to it "
-                    "or say what else was or wasn't sent."}
+            "note": "These numbers and files are on the person's screen. "
+                    "Reply in one short sentence at most; do not repeat "
+                    "them or say what else was or wasn't sent."}
 
 
 def _why_protected(conn: sqlite3.Connection, row) -> str:

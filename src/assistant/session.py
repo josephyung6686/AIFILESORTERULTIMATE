@@ -71,7 +71,7 @@ def yes_or_no(text: str) -> bool | None:
 #: A sentence telling the person something waits on their screen. Removed
 #: from a reply whenever nothing does: code knows, the model guesses.
 _PROMPT_CLAIM = re.compile(
-    r"\b(on|in front of) (your|the) screen\b|\bwaiting (on|for) (you|your)\b"
+    r"\b(on|in front of) (your |the )?screen\b|\bwaiting (on|for) (you|your)\b"
     r"|\bstill waiting\b|\b(tap|press|click) (yes|no|the button|it)\b"
     r"|\bup for (your )?(confirmation|a yes)|\b(asked|ask) you to confirm\b"
     r"|\bsay \W*yes\W* (and|to|if)\b|\bwaiting for a yes\b",
@@ -340,10 +340,9 @@ class Session:
     def _stop_questions(self) -> None:
         self.asking = None
         self.question_queue = []
-        self._note("The person stopped the questions; nothing was recorded "
-                   "for the open one.")
-        self.emit(ev.Message(text="Stopped the questions. Nothing was "
-                                  "recorded for that one."))
+        line = "Stopped the questions. Nothing was recorded for that one."
+        self._note(line)
+        self.emit(ev.Message(text=line))
 
     def _note(self, text: str) -> None:
         """A code-written line in the conversation's record, so the model
@@ -558,6 +557,10 @@ class Session:
         False for anything else: the model then reads it, told what is on
         the screen, and the prompt stays."""
         words = text.strip().lower().rstrip("!.")
+        if self._maps_to_screen(words, text):
+            # The person's own reply goes in the record, then what happened.
+            self.history.append({"role": "user", "content": text.strip()})
+            self._remember("user", text.strip())
         if self.on_screen in self.pending:
             if words in CANCEL_WORDS:
                 self.confirm(self.on_screen, False)
@@ -583,6 +586,17 @@ class Session:
             if match is not None:
                 self.answer(q.question_id, match.id)
                 return True
+        return False
+
+    def _maps_to_screen(self, words: str, text: str) -> bool:
+        if self.on_screen in self.pending:
+            return words in CANCEL_WORDS or yes_or_no(text) is not None
+        if self.asking is not None:
+            q = self.asking
+            return (words in CANCEL_WORDS or words in SKIP_WORDS
+                    or (words.isdigit() and 1 <= int(words) <= len(q.options))
+                    or any(o.label.casefold() == words.casefold()
+                           for o in q.options))
         return False
 
     def screen_state(self) -> str:
@@ -621,15 +635,14 @@ class Session:
         confirm_id = uuid.uuid4().hex
         self.pending[confirm_id] = proposal
         self.on_screen = confirm_id
-        self._note("Asked the person (yes/no prompt on screen): "
-                   + proposal["summary"])
+        self._note(proposal["summary"] + " (yes/no)")
         self.emit(ev.Confirm(
             confirm_id=confirm_id, summary=proposal["summary"],
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
             sensitive=bool(proposal.get("sensitive")),
             undo_available=proposal["kind"] in ("plan", "branch")))
 
-    def _execute(self, proposal: dict, said_yes: bool = False) -> None:
+    def _execute(self, proposal: dict) -> None:
         from assistant.engine_tools import execute_confirmed
         before = _before_moving(self.conn, proposal)
         try:
@@ -644,16 +657,13 @@ class Session:
             result = _as_moved(self.conn, proposal, before, result)
         if result.get("needs_confirmation"):
             # The step needs one more yes (organise asking about the cloud).
-            if said_yes:
-                self._note("The person said yes.")
             self._propose(result["needs_confirmation"])
             return
         if _forgets_conversations(proposal) and result["ok"]:
             # Forgotten means forgotten now, not from the next session.
             self.history = []
         elif not _forgets_conversations(proposal):
-            self._note(("The person said yes. " if said_yes else "")
-                       + result["text"])
+            self._note(result["text"])
         if result["ok"] and result.get("undo_token"):
             self.last_undo_token = result["undo_token"]
         elif result["ok"] and proposal["kind"] == "undo" and (
@@ -678,16 +688,15 @@ class Session:
         if not yes and proposal.get("on_no"):
             # A no that has its own next step (organise without the cloud).
             self._capture_no(proposal)
-            self._note("The person said no.")
             self._execute(proposal["on_no"])
             return
         if not yes:
             self._capture_no(proposal)
             line = f"Cancelled. {_nothing(proposal)}"
-            self._note(f"The person said no. {line}")
+            self._note(line)
             self.emit(ev.Message(text=line))
             return
-        self._execute(proposal, said_yes=True)
+        self._execute(proposal)
 
     def _capture_no(self, proposal: dict) -> None:
         """A declined sort is a correction the product learns from (dark
@@ -1106,6 +1115,7 @@ _CITATIONS_LINE = re.compile(r"^\W*citations?\b", re.IGNORECASE)
 _DEVELOPER = (
     re.compile(r"\S*\.sqlite\w*\b"),
     re.compile(r"(?<![\w-])--[a-z][\w-]*"),
+    re.compile(r"\bcitations?\b", re.IGNORECASE),
     re.compile(r"\b(deepseek-(chat|reasoner|v[\w.]+)|gpt-[\w.-]+|"
                r"claude-[\w.-]+|o[134]-mini)\b", re.IGNORECASE),
     # Two or more of + × * = between numbers; never - or /, so dates stay.

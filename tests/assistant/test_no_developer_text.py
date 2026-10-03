@@ -17,6 +17,7 @@ def test_a_model_reply_is_scrubbed(conn):
              "That is 0 + 0 + 500 + 12 = 512 files.\n"
              "Reason: low_confidence_abstain.\n"
              "Your essay is in Documents.\n"
+             "No citations needed — nothing new was looked up.\n"
              "**Citations:** abc123")
     Session(conn, provider_turn=lambda **k: {"role": "assistant",
                                              "content": reply},

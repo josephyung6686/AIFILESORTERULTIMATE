@@ -188,7 +188,7 @@ def test_the_outcome_is_remembered_so_nothing_goes_stale(lib):
     s.say("yes")
     said = [m["content"] for m in recent(conn)]
     assert any("Move 1 file into Screenshots" in t for t in said)
-    assert "said yes" in said[-1] and "Moved 1 file" in said[-1]
+    assert said[-2] == "yes" and said[-1].startswith("Moved 1 file")
 
 
 def test_events_say_yes_answers_the_prompt(lib):
