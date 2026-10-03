@@ -373,6 +373,25 @@ def _whole_sentences(text: str, options) -> str:
     return " ".join(kept)
 
 
+def _branch_rows(conn, base: str, branch: str) -> list:
+    """The files the plan places under a proposed folder of that name."""
+    try:
+        from assistant.organize_tools import _sorter_tree
+        tree = _sorter_tree(conn)
+    except Exception:
+        return []
+    if tree is None or not branch:
+        return []
+    ids = [file_id for file_id, d in tree["by_file"].items()
+           if d.outcome == "place" and d.destination is not None and (
+               (path := tree["path"](d.destination.node_id)) == branch
+               or path.startswith(branch + "/"))][:400]
+    if not ids:
+        return []
+    return conn.execute(base + f"AND file_id IN ({','.join('?' * len(ids))})"
+                        " ORDER BY display_label LIMIT 40", ids).fetchall()
+
+
 def _question_files(conn, q, count: int | None = None) -> list[str]:
     """Up to three ordinary files a question is about, by name. Never a
     protected or held one. Read from the index by the question's scope:
@@ -406,6 +425,8 @@ def _question_files(conn, q, count: int | None = None) -> list[str]:
             rows = conn.execute(
                 base + "AND type_schema IS NULL ORDER BY display_label "
                 "LIMIT 40").fetchall()
+        elif kind == "branch" and (placed := _branch_rows(conn, base, rest)):
+            rows = placed
         elif kind == "branch" and rest and "." not in rest:
             rows = conn.execute(
                 base + "AND (type_schema = ? OR type_schema LIKE ?) "
@@ -521,12 +542,53 @@ def question_event(q, index: int, of: int, conn=None):
         files_preview=tuple(names), count=count, index=index, of=of)
 
 
-def open_questions(conn: sqlite3.Connection) -> tuple:
+def askable_questions(conn: sqlite3.Connection) -> tuple[tuple, dict]:
+    """The sorter's open questions a person can answer, and a count of the
+    rest: those about files inside a set-aside coding project, and those
+    naming no file anyone could recognise (files nothing could read)."""
     try:
         from questions.store import open_questions as store_open
-        return store_open(conn)
+        every = store_open(conn)
     except sqlite3.Error:
-        return ()
+        return (), {"inside_projects": 0, "unnamed_files": 0}
+    from assistant.organize_tools import _set_aside_folders, inside_set_aside
+    aside = _set_aside_folders(conn)
+    asked, projects, unnamed = [], 0, 0
+    for q in every:
+        kind, _, rest = q.scope.partition(":")
+        if kind == "folder" and aside and inside_set_aside(
+                conn, rest.strip("/"), aside):
+            projects += 1
+            continue
+        event = question_event(q, 1, 1, conn)
+        # A folder's files, or a subject that was an internal code, are
+        # nameable only by the files themselves.
+        if not event.files_preview and (
+                kind == "folder" or _plain_and_holes(q.prompt, q.options)[1]):
+            unnamed += event.count or 1
+            continue
+        asked.append(q)
+    return tuple(asked), {"inside_projects": projects,
+                          "unnamed_files": unnamed}
+
+
+def open_questions(conn: sqlite3.Connection) -> tuple:
+    return askable_questions(conn)[0]
+
+
+def skipped_sentence(skipped: dict) -> str:
+    """The questions left unasked, as a plain count."""
+    parts = []
+    if skipped.get("unnamed_files"):
+        n = skipped["unnamed_files"]
+        parts.append(f"{_plural(n, 'file')} I couldn't read — "
+                     f"{'it' if n == 1 else 'they'}'ll stay where "
+                     f"{'it is' if n == 1 else 'they are'}.")
+    if skipped.get("inside_projects"):
+        n = skipped["inside_projects"]
+        parts.append(f"{_plural(n, 'question')} about files inside coding "
+                     f"projects {'was' if n == 1 else 'were'} skipped.")
+    return " ".join(parts)
 
 
 SKIP_WORDS = {"skip", "s", "skip it", "not now", "later"}
@@ -805,7 +867,8 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
         return {"ok": False, "error": "Organising stopped with a problem. "
                                       "Nothing moved."}
     _stage(context, "Designing folders… done.")
-    n = len(open_questions(conn))
+    asked, skipped = askable_questions(conn)
+    n = len(asked)
     if n and context is not None:
         context.ask_questions_after_turn = True
     try:
@@ -816,6 +879,8 @@ def run_organise(conn: sqlite3.Connection, path: Path, context: Any,
     text = ((ROUGH + " " if cloud is False else "")
             + "I've looked through the folder. Nothing moved. "
             + (f"I have {_plural(n, 'question')} first. " if n else "")
+            + (skipped_sentence(skipped) + " " if any(skipped.values())
+               else "")
             + "When the folders look right, say “lock in the plan” and you "
               "can then move them one folder at a time.")
     return {"ok": True, "open_questions": n, "summary": summary,

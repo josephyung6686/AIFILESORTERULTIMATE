@@ -104,6 +104,48 @@ def test_ordering_numbers_are_display_only():
     assert display_name("2024-RCC form") == "2024-RCC form"
 
 
+def _record(conn, *qs):
+    from questions.schema import create_questions_schema
+    from questions.store import record_question
+    create_questions_schema(conn)
+    for q in qs:
+        record_question(conn, q, asked_at="2026-10-04T00:00:00+00:00")
+    conn.commit()
+
+
+def test_a_question_naming_no_file_is_not_asked_but_counted(lib):
+    from assistant.engine_tools import askable_questions, open_questions
+    nameless = question_for_unreadable_folder(
+        folder="School", file_count=2, protected_count=0,
+        choices=(DestinationChoice("n1", "Archive"),
+                 DestinationChoice("n2", "Other")))
+    named = question_for_unreadable_folder(
+        folder="School/AP", file_count=3, protected_count=0,
+        choices=(DestinationChoice("n1", "Archive"),
+                 DestinationChoice("n2", "Other")))
+    _record(lib, nameless, named)
+    asked, skipped = askable_questions(lib)
+    assert [q.question_id for q in asked] == [named.question_id]
+    assert skipped["unnamed_files"] == 2
+    assert open_questions(lib) == asked
+
+
+def test_a_question_inside_a_set_aside_project_is_skipped(lib, monkeypatch):
+    from pathlib import Path
+    from assistant import organize_tools
+    from assistant.engine_tools import askable_questions
+    root = Path(lib.execute("SELECT sources FROM corpus_selections"
+                            ).fetchone()[0].strip('[]"'))
+    monkeypatch.setattr(organize_tools, "_set_aside_folders",
+                        lambda c: [root / "School"])
+    _record(lib, question_for_unreadable_folder(
+        folder="School/AP", file_count=3, protected_count=0,
+        choices=(DestinationChoice("n1", "Archive"),
+                 DestinationChoice("n2", "Other"))))
+    asked, skipped = askable_questions(lib)
+    assert asked == () and skipped["inside_projects"] == 1
+
+
 @pytest.mark.parametrize("said", [
     "Education/APMA E2000, Education/Python-1006", "2", "option 2"])
 def test_an_answer_in_the_words_shown_selects_that_option(lib, said):
