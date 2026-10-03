@@ -143,7 +143,7 @@ def test_folder_question_offers_numbered_choices(conn):
 def test_counts_in_peoples_words():
     line = counts_sentence(IndexCounts(800, 488, 14, 4, 2, 0))
     assert "coding projects" in line and "protected" in line
-    assert "held" not in line and "6 files" in line
+    assert "held" not in line and "4 files" in line  # held is inside protected
 
 
 def test_open_and_show_a_found_file(db, monkeypatch):

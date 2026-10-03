@@ -572,7 +572,7 @@ def counts_sentence(c) -> str:
             f"{'are' if c.set_aside != 1 else 'is'} inside "
             f"{folders} coding project{'s' if folders != 1 else ''} — each "
             "is kept as one item and nothing inside is moved.")
-    protected = c.protected + c.held
+    protected = c.protected  # held files are already inside it
     if protected:
         parts.append(f"{_plural(protected, 'file')} "
                      f"{'look' if protected != 1 else 'looks'} personal "

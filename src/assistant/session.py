@@ -265,6 +265,10 @@ class Session:
             self.emit(ev.Message(text=FOLDER_QUESTION))
             return
         self._greet(c)
+        if getattr(c, "unread_documents", 0) and not self._reading_started:
+            # Reading resumes in every session until every file is read.
+            self._reading_started = True
+            self.reader = start_reading(self.conn, self.emit)
         from assistant.engine_tools import open_questions
         n = len(open_questions(self.conn))
         if n:
@@ -280,7 +284,7 @@ class Session:
         name = None if self.no_model else self._provider_name()
         if name:
             lines.append(f"Questions and file snippets go to {name} to answer "
-                         f"you. Protected files ({c.protected + c.held}) "
+                         f"you. Protected files ({c.protected}) "
                          "never leave this Mac.")
         lines.append("What would you like to find or tidy?")
         self.emit(ev.Message(text="\n".join(lines)))
@@ -1006,9 +1010,15 @@ def _read_all(path: str, emit, lock) -> None:
                                       f"{total - done} left"))
         read = indexing.read_document_text(own, on_progress=progress,
                                            limit=None)
-        left = getattr(indexing.counts(own), "unread_documents", 0)
+        left = getattr(read, "unreadable", 0)
+        found = getattr(read, "protected_newly_found", 0)
         text = (f"Finished reading document text ({read} "
                 f"file{'s' if read != 1 else ''}).")
+        if found:
+            text += (f" {found} more file{'s' if found != 1 else ''} "
+                     f"look{'' if found != 1 else 's'} personal now that "
+                     "I've read them, so I protected "
+                     f"{'them' if found != 1 else 'it'}.")
         if left:
             text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
                      "read and "

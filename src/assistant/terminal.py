@@ -84,8 +84,8 @@ class TerminalRenderer:
             parts = [f"Indexed {event.indexed}"]
             if event.set_aside:
                 parts.append(f"Set aside {event.set_aside}")
-            if event.protected + event.held:
-                parts.append(f"Protected {event.protected + event.held}")
+            if event.protected:
+                parts.append(f"Protected {event.protected}")
             if event.open_questions:
                 parts.append(f"Questions {event.open_questions}")
             self._line("· " + " · ".join(parts))
