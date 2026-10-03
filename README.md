@@ -1,46 +1,41 @@
-# Database agent
+# File Companion
 
-A local-first file assistant. The filesystem stays the system of record; a local SQLite
-database is the working memory. You point it at a folder. It reads the files, proposes a
-destination tree, and does not move anything until you freeze that tree and apply a branch.
-Undo puts the bytes back. A file it is not sure about stays where it is. Sensitive files
-are held and are not sent to a cloud model.
+File Companion reads the folders a person chooses and indexes them into one SQLite database. The files stay on disk at their original paths. She opens each file normally, from Finder, at that path.
 
-Product direction → [`docs/product-one-pager.md`](docs/product-one-pager.md).
+Inside the app, the index is sorted into the categories she confirms. She can refuse a category. Anything that does not fit stays unplaced. Sensitive finance, identity, medical, and legal material is held and is not sent to a model.
 
-The design this implements is
-[`planning/00-database-agent-product-design.md`](planning/00-database-agent-product-design.md).
-Search and the folder watcher are not part of this path.
+There is no Gmail, calendar, inbox, or connections step.
 
-Python 3.12. The command is `database-agent`. It runs on macOS and Linux. On Linux, Apple
-Vision OCR, `.doc` via AppKit, and ImageIO metadata are absent; text, PDF, and `.docx`
-still read.
+The folder tree she reviews is the app's sort. It is not a rewrite of her computer. Moving or renaming the real files on disk is a paid action. It does not happen in the free product. Onboarding and a normal scan do not move or rename files. That paid path stays off unless it is explicitly on.
+
+Product description → [`docs/product-one-pager.md`](docs/product-one-pager.md).
+
+Python 3.12. The scan command is `database-agent` (also installed as `filesorter`). It runs on macOS and Linux. On Linux, Apple Vision OCR, `.doc` via AppKit, and ImageIO metadata are absent; text, PDF, and `.docx` still read.
+
+## One database
+
+One SQLite file is the working memory. There is not a second database.
+
+The sorter owns the scan. It records files, exclusion verdicts, and classifications (sensitive, held, or ordinary), then groups and the in-app folder tree. A placement in that database is where the app sorts a file. It does not move the file.
+
+The assistant searches and answers from those same files. Relationships are links she can approve, such as a duplicate or a note that one file belongs with another.
+
+Graphify is a separate developer tool for searching this codebase. It is not part of File Companion.
 
 ## Quickstart
 
 ```bash
 python3.12 -m pip install -e ".[dev,readers]"
-database-agent /path/to/folder --user you --database ./plan.sqlite --accept-groups
-database-agent /path/to/folder --user you --database ./plan.sqlite --freeze
-database-agent /path/to/folder --user you --database ./plan.sqlite --apply BRANCH
-database-agent /path/to/folder --user you --database ./plan.sqlite --undo-everything
+database-agent /path/to/folder --user you --database ./plan.sqlite
 ```
 
-`--accept-groups` writes `proposed-structure.txt` next to the database and moves nothing.
-`--freeze` names each branch and the exact `--apply` line for it, and still moves nothing.
-`--apply BRANCH` moves the files that branch froze. `--undo-everything` puts them back.
-`--stop-after tree` stops once the outline exists.
+That command reads the folder and writes `plan.sqlite`. It does not move or rename anything in the folder.
 
-A scan sorts with a model provider. Set the profile with `filesorter onboard`, then
-`filesorter providers`, then `database-agent FOLDER --database ./plan.sqlite`. The
-scan runs understanding after the rules. It does not ask whether to use a model.
-Protected files stay on this computer. A folder with no provider stops and says to
-set one up. `--model-dry-run` prints what would be sent and does not open a network
-connection. Developers skip the pass with `--no-understand` or
-`FILESORTER_SKIP_UNDERSTANDING=1`. A model cannot invent a folder or move a file
-outside the frozen tree.
+A scan uses a model provider for files the rules do not place. Set the profile with `filesorter onboard`, then `filesorter providers`, then run `database-agent FOLDER --database ./plan.sqlite`. When onboarding has written an answers file, pass it with `--answers FILE`. The scan runs understanding after the rules. Protected files stay on this computer and are not sent to a model. A folder with no provider stops and says to set one up. `--model-dry-run` prints what would be sent and does not open a network connection. Developers skip the understanding pass with `--no-understand` or `FILESORTER_SKIP_UNDERSTANDING=1`.
 
-Score a labelled folder without moving it:
+`--accept-groups` writes `proposed-structure.txt` next to the database. That file is the in-app outline. It does not change the folder on disk. `--stop-after tree` stops once that outline exists.
+
+Score a labelled folder the same way, without changing the files:
 
 ```bash
 python3 -m tools.groundtruth --corpus DIR --labels labels.json --out ./score --force
@@ -54,53 +49,27 @@ python3 -m pytest tests/
 
 `jsonschema` is in the `dev` extra because several tests validate model-response schemas.
 
----
-
-## The document
-
-It is numbered so implementation can proceed part by part — a phase names the section it
-implements (`§2.7 OCR`, `§6.10 the two-condition rule`) and that section is its acceptance
-contract.
-
-| § | What it covers |
-|---|---|
-| 0 | Foundations — filesystem as system of record, SQLite as working memory |
-| 1 | Corpus and root selection, exclusions, the reusable extraction pass |
-| 2 | Content extraction and evidence creation — PDF, DOCX, archives, images, OCR, format coverage |
-| 3 | Facts, facets, and hybrid intelligence — observations vs. facts, reliability states, core tables |
-| 4 | Grouping — seeds, bounded neighbourhoods, the group dossier, stop rules |
-| 5 | User selection for the folder tree — horizontal pass, templates, uneven depth, freeze |
-| 6 | Group-aware classification against the frozen tree — destination profiles, node-local graphs |
-| 7 | Residual files — the controlled miscellaneous library and final review |
-| 8 | Trust, operations, lifecycle — provenance, mutation safety, privacy, replay, budgets, plan versions |
-
----
-
-## Loop (what the user sees)
+## What a scan does
 
 ```text
-1. PICK        sources + destination roots; exclusions applied first
-2. EXTRACT     one reusable pass per file version → evidence in SQLite
-3. FACTS       observations become structured claims, each with evidence and reliability state
-4. GROUP       rules anchor, graph assembles context, LLM judges coherence, validator checks
-5. TREE        design branches horizontally then vertically; freeze the only legal destinations
-6. CLASSIFY    retrieve legal nodes, build a node-local graph, place or abstain
-7. RESIDUAL    surface what did not fit; user decides per set before any AI review
-8. APPLY       plan → verify preconditions → move → verify → conditional undo
+1. CHOOSE      the folders she named; exclusions are recorded first
+2. INDEX       one pass per file version, into the one SQLite database
+3. CLASSIFY    sensitive, held, or ordinary; held material is not sent to a model
+4. GROUP       files that belong together, from evidence in that database
+5. SORT        an in-app folder tree, using only categories she confirmed
+6. REVIEW      unplaced files and held files stay in the index, on their original paths
 ```
 
----
+She reviews that sort in the app. Finder still shows the original paths.
 
 ## Standing constraints
 
-- Evidence is extracted once per content version and reused; never re-read a file per template
-- Raw observations are kept separately from normalized values
-- The LLM may only propose fields in the active schema, and must cite evidence or return `unknown`
-- Every LLM conclusion passes a deterministic validator before it becomes active
-- Word-boundary matching, positional weighting, ranked candidates with a minimum margin
-- Purpose is a first-class facet, distinct from topic; authorship is metadata, not a destination
-- No fuzzy date parsing
-- After freeze: no invented destinations, no silent override of a direct fact
-- Two-condition acceptance — minimum support **and** a margin over the next-best destination
+- One SQLite database for the sorter and the assistant
+- Files stay at their original paths during onboarding and a normal scan
+- Only confirmed categories are used; a refused category is not
+- A file that fits none of them stays unplaced
+- Finance, identity, medical, and legal material is held and is not sent to a model
+- Evidence is extracted once per content version and reused
+- The model may only propose fields in the active schema, and must cite evidence or return `unknown`
 - Correct abstention is a successful outcome
-- Never overwrite on collision; undo is conditional; sensitive material stays local by default
+- Graphify is not part of the product
