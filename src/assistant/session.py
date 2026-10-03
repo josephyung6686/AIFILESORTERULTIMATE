@@ -1243,14 +1243,21 @@ def _read_all(path: str, emit, lock) -> None:
         read = indexing.read_document_text(own, on_progress=progress,
                                            limit=None)
         left = getattr(read, "unreadable", 0)
-        found = getattr(read, "protected_newly_found", 0)
+        # Named on the person's own screen only: this line is never part of
+        # the conversation record or a model request.
+        rows = (own.execute("SELECT display_label FROM items "
+                            "WHERE item_id = ?", (i,)).fetchone()
+                for i in getattr(read, "protected_items", ()))
+        names = [r[0] for r in rows if r is not None]
+        found = len(names)
         text = (f"Finished reading document text ({read} "
                 f"file{'s' if read != 1 else ''}).")
         if found:
             text += (f" {found} more file{'s' if found != 1 else ''} "
                      f"look{'' if found != 1 else 's'} personal now that "
                      "I've read them, so I protected "
-                     f"{'them' if found != 1 else 'it'}.")
+                     f"{'them' if found != 1 else 'it'}: "
+                     f"{', '.join(names)}.")
         if left:
             text += (f" {left} file{'s' if left != 1 else ''} couldn't be "
                      "read and "

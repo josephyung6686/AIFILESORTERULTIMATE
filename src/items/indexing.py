@@ -47,12 +47,15 @@ class ReadOutcome(int):
 
     unreadable: int
     protected_newly_found: int
+    #: The items found personal once read, so the person can be told which.
+    protected_items: tuple[str, ...]
 
     def __new__(cls, read: int, *, unreadable: int = 0,
-                protected_newly_found: int = 0) -> "ReadOutcome":
+                protected_items: tuple[str, ...] = ()) -> "ReadOutcome":
         made = super().__new__(cls, read)
         made.unreadable = unreadable
-        made.protected_newly_found = protected_newly_found
+        made.protected_items = tuple(protected_items)
+        made.protected_newly_found = len(made.protected_items)
         return made
 
 
@@ -249,7 +252,8 @@ def read_document_text(conn: sqlite3.Connection, *,
     sink = RunWriter(conn, author=P5)
     store = ClassificationStore(conn)
     versions = current_versions()
-    done = unreadable = newly_protected = 0
+    done = unreadable = 0
+    newly_protected: list[str] = []
 
     def submit(item_id: str, file_row: dict):
         path = Path(file_row["current_path"])
@@ -305,7 +309,7 @@ def read_document_text(conn: sqlite3.Connection, *,
         return None if _text_was_read(conn, content_hash) else "no text"
 
     def consume(item_id: str, file_row: dict, decision, stamp, handle):
-        nonlocal done, unreadable, newly_protected
+        nonlocal done, unreadable
         try:
             reason = judge(item_id, file_row, decision, stamp, handle)
         except Exception as error:                   # noqa: BLE001
@@ -318,7 +322,7 @@ def read_document_text(conn: sqlite3.Connection, *,
         if reason is not None:
             unreadable += 1
         if item_is_sensitive(conn, item_id):
-            newly_protected += 1
+            newly_protected.append(item_id)
         conn.commit()
         done += 1
         report("read", done, total)
@@ -336,7 +340,7 @@ def read_document_text(conn: sqlite3.Connection, *,
     finally:
         pool.close()
     return ReadOutcome(done, unreadable=unreadable,
-                       protected_newly_found=newly_protected)
+                       protected_items=newly_protected)
 
 
 _UNREADABLE_DDL = """
