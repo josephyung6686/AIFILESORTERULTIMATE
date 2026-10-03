@@ -263,29 +263,79 @@ def ask(
     if _hint.preload_group:
         runtime.execute("request_tools", {"group": _hint.preload_group})
     ledger = PersistentEgress(conn, session_id=session_id)
-    any_moved = False
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": build_system_prompt(conn, question)},
         {"role": "user", "content": question},
     ]
+    if use_local_gen:
+        def turn(*, messages, tools, config=None, **_):
+            return local_chat_turn(messages=messages, tools=tools)
+    else:
+        turn = None
+    _, answer = converse(
+        conn, messages, runtime=runtime, provider_turn=turn, config=cfg,
+        provider=provider, model=model_name, ledger=ledger,
+        max_rounds=max_rounds, egress_class=egress_class, question=question,
+        started=started)
+    return answer
+
+
+def converse(
+        conn: sqlite3.Connection,
+        messages: list[dict[str, Any]],
+        *,
+        runtime: ToolRuntime,
+        provider_turn=None,
+        config=None,
+        provider: str = "deepseek",
+        model: str = "",
+        ledger: PersistentEgress | None = None,
+        max_rounds: int = 6,
+        egress_class: str = "cloud",
+        question: str | None = None,
+        started: float | None = None,
+) -> tuple[list[dict[str, Any]], ChatAnswer]:
+    """The tool loop over a whole history: model turn, tools, repeat.
+
+    `messages` is appended to in place and returned with the answer, so a
+    caller holding a conversation keeps every tool call and reply in order.
+    `provider_turn` is resolved at call time so patches of `chat_turn` hold.
+    """
+    started = time.perf_counter() if started is None else started
+    turn_fn = provider_turn if provider_turn is not None else chat_turn
+    ledger = ledger or PersistentEgress(conn)
+    any_moved = False
     turns: list[TurnRecord] = []
     all_citations: list[str] = []
     all_objs: list[Citation] = []
     all_source_ids: list[str] = []
 
+    def _answer(text: str, unique: tuple[str, ...], objs) -> ChatAnswer:
+        return ChatAnswer(
+            text=text,
+            citations=unique,
+            citation_objs=objs,
+            turns=tuple(turns),
+            egress_item_ids=unique,
+            egress_bytes=ledger.total_bytes(),
+            egress_session_id=ledger.session_id,
+            provider=provider,
+            model=model,
+            total_ms=(time.perf_counter() - started) * 1000.0,
+            moved=any_moved,
+            pending_user_question=runtime.pending_user_question,
+            egress_class=egress_class,
+        )
+
     for _ in range(max_rounds):
         tools = runtime.schemas()
         request_envelope = {"messages": messages, "tools": tools}
-        if use_local_gen:
-            assistant_msg = local_chat_turn(
-                messages=messages, tools=tools)
-        else:
-            assistant_msg = chat_turn(
-                messages=messages, tools=tools, config=cfg)
+        assistant_msg = turn_fn(
+            messages=messages, tools=tools, config=config)
         # One ledger row per provider request from serialized envelopes.
         ledger.add_provider_request(
             provider=provider,
-            model=model_name,
+            model=model,
             request_envelope=request_envelope,
             response_envelope=assistant_msg,
             item_ids=list(dict.fromkeys(all_citations)),
@@ -296,7 +346,6 @@ def ask(
         tool_calls = assistant_msg.get("tool_calls") or []
         if not tool_calls:
             text = (assistant_msg.get("content") or "").strip()
-            total_ms = (time.perf_counter() - started) * 1000.0
             unique = tuple(dict.fromkeys(all_citations))
             text, unique = _filter_answer_citations(
                 text or "(empty model reply)",
@@ -306,21 +355,9 @@ def ask(
             objs = tuple(
                 o for o in all_objs if o.item_id in unique
             ) if unique else ()
-            return ChatAnswer(
-                text=text or "(empty model reply)",
-                citations=unique,
-                citation_objs=objs if objs else tuple(all_objs),
-                turns=tuple(turns),
-                egress_item_ids=unique,
-                egress_bytes=ledger.total_bytes(),
-                egress_session_id=ledger.session_id,
-                provider=provider,
-                model=model_name,
-                total_ms=total_ms,
-                moved=any_moved,
-                pending_user_question=runtime.pending_user_question,
-                egress_class=egress_class,
-            )
+            return messages, _answer(
+                text or "(empty model reply)", unique,
+                objs if objs else tuple(all_objs))
         for call in tool_calls:
             name = call["function"]["name"]
             args = call["function"].get("arguments") or "{}"
@@ -348,43 +385,15 @@ def ask(
                 "content": content,
             })
             if name == "ask_user" and result.payload.get("needs_human"):
-                total_ms = (time.perf_counter() - started) * 1000.0
                 unique = tuple(dict.fromkeys(all_citations))
-                return ChatAnswer(
-                    text=(
-                        f"Need your answer: {result.payload.get('question')}"
-                    ),
-                    citations=unique,
-                    citation_objs=tuple(all_objs),
-                    turns=tuple(turns),
-                    egress_item_ids=unique,
-                    egress_bytes=ledger.total_bytes(),
-                    egress_session_id=ledger.session_id,
-                    provider=provider,
-                    model=model_name,
-                    total_ms=total_ms,
-                    moved=any_moved,
-                    pending_user_question=runtime.pending_user_question,
-                    egress_class=egress_class,
-                )
+                return messages, _answer(
+                    f"Need your answer: {result.payload.get('question')}",
+                    unique, tuple(all_objs))
 
-    total_ms = (time.perf_counter() - started) * 1000.0
     unique = tuple(dict.fromkeys(all_citations))
-    return ChatAnswer(
-        text="Stopped after tool-round budget. Partial citations only.",
-        citations=unique,
-        citation_objs=tuple(all_objs),
-        turns=tuple(turns),
-        egress_item_ids=unique,
-        egress_bytes=ledger.total_bytes(),
-        egress_session_id=ledger.session_id,
-        provider=provider,
-        model=model_name,
-        total_ms=total_ms,
-        moved=any_moved,
-        pending_user_question=runtime.pending_user_question,
-        egress_class=egress_class,
-    )
+    return messages, _answer(
+        "Stopped after tool-round budget. Partial citations only.",
+        unique, tuple(all_objs))
 
 
 def format_answer(answer: ChatAnswer) -> str:
