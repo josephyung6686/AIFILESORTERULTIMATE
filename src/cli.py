@@ -189,7 +189,7 @@ from llm_harness.prompt_library import (
     DraftManifestAmbiguous, DraftNotInManifest,
 )
 from llm_harness.harness import (
-    CallDependencies, CallLane, in_walk_order, run_call,
+    CallDependencies, CallLane, in_walk_order, run_call, run_call_steps,
 )
 from llm_harness.records import (
     CallRefused, FolderLevel, NeedsConsent, P8Verdict, PreCallAbstention,
@@ -3022,6 +3022,25 @@ EXTRACTION_WORKERS: int = 7
 #: slot, so an unbounded window would reserve the whole corpus before any
 #: answer came back.
 CLOUD_CALLS_AT_ONCE: int = EXTRACTION_WORKERS * 4
+
+#: The one knob over that width: a person on a provider that rate-limits them
+#: narrows every cloud lane at once (sites A, C and G) without a code change.
+CLOUD_CALLS_AT_ONCE_NAME: str = "GRAPH_AGENT_CLOUD_CALLS_AT_ONCE"
+
+
+def cloud_calls_at_once(environ: Mapping[str, str] = os.environ) -> int:
+    """How many cloud round trips one pass may hold at once, read from the
+    process environment when a pass opens its lane. Unset is
+    `CLOUD_CALLS_AT_ONCE`; anything that is not a whole number of at least one
+    is refused by name rather than guessed at."""
+    raw = (environ.get(CLOUD_CALLS_AT_ONCE_NAME) or "").strip()
+    if not raw:
+        return CLOUD_CALLS_AT_ONCE
+    if not raw.isdigit() or int(raw) < 1:
+        raise SystemExit(
+            f"{CLOUD_CALLS_AT_ONCE_NAME} is {raw!r}; it must be a whole number "
+            f"of at least 1 (unset means {CLOUD_CALLS_AT_ONCE}).")
+    return int(raw)
 
 #: HOW FAR THE CALLER READS AHEAD, per worker. Deep enough that a worker is never
 #: idle waiting for the next submit -- one request each would leave every worker
@@ -10065,7 +10084,7 @@ class _SituationOfTheKind:
 _NOT_ASKED_ITS_SITUATION = _SituationOfTheKind(asked=False)
 
 
-def _ask_which_situation_of_the_kind(
+def _ask_which_situation_of_the_kind_steps(
         conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         schema_id: str, observations, client, target, bound: int,
         fact_authorities, prompt, roster, now, ceiling, schema_name: str,
@@ -10194,7 +10213,7 @@ def _ask_which_situation_of_the_kind(
             call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
             reused_fields=(verdict.claim_ref,), observed_at=now())
     else:
-        verdict = run_call(
+        verdict = yield from run_call_steps(
             conn, request,
             gate=fact_authorities.gate,
             model_client=client,
@@ -10204,6 +10223,8 @@ def _ask_which_situation_of_the_kind(
                 placeable_file_count=len(roster)),
             observed_at=now,
             usage_recorder=fact_authorities.usage_recorder)
+        if ceiling is not None:
+            ceiling.open_turn(file_id)
         if isinstance(verdict, P8Verdict):
             record_call_identity(
                 conn, identity_id=identity_id, dossier_id=verdict.dossier_id,
@@ -10339,7 +10360,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     decides the file's fields and its folders. Until today the difference was put
     to the PERSON as a branch question, and run 12 printed nine of them offering
     80 bare identifiers -- the owner: *"how am I even supposed to answer this?
-    there is no question and no answer."* So `_ask_which_situation_of_the_kind`
+    there is no question and no answer."* So `_ask_which_situation_of_the_kind_steps`
     runs for exactly the files that question was about: the kind is named, the
     library carries more than one situation for it, no recogniser raised one, and
     the person has not answered. Its refusals, its dossier and its observe-only
@@ -10448,7 +10469,19 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY,
                            operation_mode=operation_mode,
                            cloud_cleared=cloud_cleared)
-    for file_id, content_hash in roster:
+    # `104` §18.15 AT SITE G: the same lane the fact pass runs. Each file's
+    # whole turn below is a generator with one hole in it -- the socket -- and
+    # `in_walk_order` advances every file up to that hole on this thread, holds
+    # up to `cloud_calls_at_once()` cloud round trips in the air at once, and
+    # resumes each file IN WALK ORDER, so the gate, the release, the request
+    # bytes and every row written after an answer are what the serial loop did.
+    # A local target is never beside another local one, so a run with no cloud
+    # judge behaves exactly as it did before.
+    def _one_file(file_id, content_hash):
+        nonlocal over_ceiling, held, held_not_asked, settled_by_kind
+        nonlocal recognised_by_rules, nothing_to_read, reused, declined
+        nonlocal refused_before_sending, no_answer_returned, released
+        nonlocal confirmed
         # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
         # PREVIOUS file for everything its turn took -- the semantic recogniser, the
         # dossier, the call -- and starts this one's; it sits at the top of the body
@@ -10475,7 +10508,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                                 subject_ref=file_id, error=over,
                                 observed_at=now())
                 over_ceiling += 1
-                continue
+                return
         outcome = explain(conn, file_id, content_hash)
         # THE HOLD, READ BEFORE THE FILE IS EITHER ASKED OR SETTLED, because it
         # is what decides which of the two happens. `104` §18 gap 24: the
@@ -10519,7 +10552,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # reads until the person files the record. Not asked, nothing sent.
             held += 1
             held_not_asked += 1
-            continue
+            return
         if settled_by_file_kind(outcome.by_the_rules):
             # `00`:110's ONE SURVIVING BYPASS, and it survives because it is the
             # only case on this site that is literally what the line describes: "a
@@ -10544,7 +10577,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # not asked. Nothing is routed, nothing is assembled and nothing is
             # sent; the recognition the detector wrote is what stands.
             settled_by_kind += 1
-            continue
+            return
         precaution = None
         if current is not None and current.basis in SAFETY_DOMAIN_BASES:
             precaution = precaution_of(conn, outcome.by_the_rules,
@@ -10609,7 +10642,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                     reason=NOT_ELIGIBLE_FOR_MODEL,
                     call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id),
                 observed_at=now()))
-            continue
+            return
         client, target = chosen
         if precaution is not None and target.locality != LOCAL:
             # `104` §18.7, as an invariant rather than a hope. The route already
@@ -10647,7 +10680,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 filename=model_facts.filename_citation(conn, file_id))
         except NothingToAsk:
             nothing_to_read += 1
-            continue
+            return
         # `104` §18.31's reuse, at this site: the gate's own three lines. The
         # identity closes over the list the answer was chosen from, because a
         # library row added since is a different question.
@@ -10669,7 +10702,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
                 reused_fields=(verdict.claim_ref,), observed_at=now())
         else:
-            verdict = run_call(
+            verdict = yield from run_call_steps(
                 conn, request,
                 gate=fact_authorities.gate,
                 # THE CLIENT THIS FILE WAS ROUTED TO, and the same object the
@@ -10694,6 +10727,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 # Taken from A's authorities for R-71's own reason: the mailbox is a
                 # fact about this run and this transport, not about which site asks.
                 usage_recorder=fact_authorities.usage_recorder)
+            # The answer is back and the rest of this turn -- its rows and the
+            # level call -- is this file's again, as it was in the serial loop,
+            # not the nobody the lane's shared wait is charged to.
+            if ceiling is not None:
+                ceiling.open_turn(file_id)
             if isinstance(verdict, P8Verdict):
                 record_call_identity(
                     conn, identity_id=identity_id,
@@ -10720,7 +10758,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 refused_before_sending += 1
             else:
                 no_answer_returned += 1
-            continue
+            return
         if not prompt.ratified:
             # OBSERVE-ONLY UNTIL THE ROW SAYS OTHERWISE. `104` §7 Phase 1 step 6:
             # the verdict is recorded and nothing is applied while the text is a
@@ -10729,7 +10767,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # an observe pass -- and no classification is written, because a record
             # is an act on the answer.
             declined += 1
-            continue
+            return
         # `104` §18.7 S2: the second answer of the same verdict.
         restricted_kind = restricted_kind_named_by_verdict(conn, verdict)
         record = situation_classification(
@@ -10743,7 +10781,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             precaution=precaution)
         if record is None:
             declined += 1
-            continue
+            return
         standing = store.current(file_id, content_hash)
         if standing is not None and standing.protected and not record.protected:
             # THE LOCAL JUDGE'S WORD DOES NOT LIFT A HOLD (13 Sep 2026). Measured
@@ -10753,7 +10791,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # the verdict, for the person; the hold stands until the person lifts
             # it. Counted as left alone, which is what happened to the file.
             declined += 1
-            continue
+            return
         # THE SUPERSESSION IS `assign`'S AND IS NOT SPELLED AGAIN HERE. This
         # record is `llm_supported` and the precaution's is `possible`, so
         # `assign` writes it, retires the precaution row through
@@ -10837,8 +10875,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # in `not_asked_their_situation`, which is about files this stage
             # looked at and passed over: a stage that did not run passed over
             # nothing.
-            continue
-        answered = _ask_which_situation_of_the_kind(
+            return
+        # THE SECOND QUESTION WAITS FOR ITS OWN LANE, below: asked here it would
+        # be performed inline while this batch is being finished, one at a
+        # time. Everything it is handed is fixed by now.
+        level_asks.append((file_id, lambda: _ask_which_situation_of_the_kind_steps(
             conn, file_id=file_id, content_hash=content_hash,
             schema_id=situation,
             # THE KIND CALL'S OWN OBJECTS, handed on rather than rebuilt. The
@@ -10859,7 +10900,25 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # `the_one_situation` reads to tell one of a kind's situations from
             # twenty-six without picking. Off the question this pass already
             # built, never re-derived.
-            raised=question.raised)
+            raised=question.raised)))
+
+    def _level(file_id, asking):
+        if ceiling is not None:
+            ceiling.open_turn(file_id)
+        return (yield from asking())
+
+    level_asks: list = []
+    clock = {} if ceiling is None else {"on_pause": ceiling.close_turn,
+                                        "on_resume": ceiling.open_turn}
+    for _file_id, _done in in_walk_order(
+            ((file_id, _one_file(file_id, content_hash))
+             for file_id, content_hash in roster),
+            lane=CallLane(width=cloud_calls_at_once()), **clock):
+        pass
+    # THE LEVEL QUESTIONS, in the same walk order, through the same lane.
+    for file_id, answered in in_walk_order(
+            ((file_id, _level(file_id, asking)) for file_id, asking in level_asks),
+            lane=CallLane(width=cloud_calls_at_once()), **clock):
         if not answered.asked:
             not_asked_their_situation += 1
         elif answered.situation is None:
@@ -19599,7 +19658,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # ONCE. The same count the fact pass uses. It is not the extraction
             # count: reading a file takes a core and a cloud call takes a socket,
             # and `CLOUD_CALLS_AT_ONCE` is the one answer to the second question.
-            calls_at_once=CLOUD_CALLS_AT_ONCE,
+            calls_at_once=cloud_calls_at_once(),
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
@@ -21070,7 +21129,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # that waits on a model are not the same load, and the reason for each
         # number is written beside the constant.
         hashes = dict(roster)
-        lane = CallLane(width=CLOUD_CALLS_AT_ONCE)
+        lane = CallLane(width=cloud_calls_at_once())
         for file_id, result in in_walk_order(
                 _walked(), lane=lane,
                 # `104` R-175's clock, STOPPED BEFORE A SHARED WAIT AND STARTED
