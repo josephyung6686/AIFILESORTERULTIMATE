@@ -359,7 +359,12 @@ def find_files(
         fused = _rrf([fts_ranks, vec_ranks], k=RRF_K)
     fused, named = _trusted_order(conn, q, fused)
     fused = _drop_weak_tail(fused, keep=named)
-    fused = _drop_partial_matches(conn, q, fused, keep=named | set(vec_ranks))
+    # A protected file is never chosen by the model, so it gets no pass for
+    # one stray word: it must carry as many of the query's words as an
+    # ordinary hit does ("Joseph Yung resume" is not the vaccination card).
+    keep = {i for i in named | set(vec_ranks)
+            if not item_is_sensitive(conn, i)}
+    fused = _drop_partial_matches(conn, q, fused, keep=keep)
     needles = [t.casefold() for t in _query_tokens(q)]
 
     hits: list[FindHit] = []
