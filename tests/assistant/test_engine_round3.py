@@ -100,6 +100,27 @@ def test_an_extra_open_action_is_harmless(conn):
     assert not [e for e in events if e["type"] == "error"]
 
 
+# -- protect / release before organising ---------------------------------------
+
+def test_protect_works_before_any_organise_and_release_says_why_not(lib):
+    from assistant.engine_tools import execute_confirmed
+    from items.file_identity import item_is_sensitive
+    item = lib.execute("SELECT item_id FROM items WHERE display_label = "
+                       "'bank essay.txt'").fetchone()[0]
+    assert not item_is_sensitive(lib, item)
+    done = execute_confirmed(lib, "protection", f"hold:{item}")
+    assert done["ok"], done
+    assert item_is_sensitive(lib, item)
+    assert "protected now" in done["text"]
+    # Releasing widens what may leave the Mac, so it keeps needing the
+    # sorter's own record: a plain sentence, nothing changed.
+    undone = execute_confirmed(lib, "protection", f"release:{item}")
+    assert item_is_sensitive(lib, item)
+    assert not undone["ok"]
+    assert undone["text"] == ("Nothing changed — organise this folder first, "
+                              "then I can treat it as an ordinary file.")
+
+
 # -- plain words --------------------------------------------------------------
 
 def test_the_model_is_told_to_speak_plainly(conn):

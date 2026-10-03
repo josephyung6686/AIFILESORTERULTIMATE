@@ -785,6 +785,25 @@ def _precheck(conn: sqlite3.Connection, plan_id: str) -> str | None:
     return None
 
 
+def _protect_without_a_run(conn: sqlite3.Connection, file_id: str,
+                           now: str) -> None:
+    """One `user` classification row, `protected=True`: it shuts the cloud
+    door and `item_is_sensitive` reads it at once. Narrows, never widens."""
+    import getpass
+    import cli
+    from privacy.classification_store import ClassificationStore
+    from privacy.learning_seam import reclassify
+    from privacy.schema import create_privacy_schema
+    create_privacy_schema(conn)
+    content_hash = conn.execute("SELECT content_hash FROM files "
+                                "WHERE file_id = ?", (file_id,)).fetchone()[0]
+    reclassify(conn, file_id, "sensitive_personal",
+               "the person asked to protect this file in the conversation",
+               store=ClassificationStore(conn), content_hash=content_hash,
+               protected=True, evidence_refs=(), user_id=getpass.getuser(),
+               component_version=cli.COMPONENT_VERSION, observed_at=now)
+
+
 def _protection(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
     import cli
     action, _, item_id = ref.partition(":")
@@ -799,9 +818,15 @@ def _protection(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
     # The sorter's own `--file-held` / `--release` gestures, on this database.
     try:
         if action == "hold":
-            cli.apply_file_held(conn, [row["file_id"]],
-                                plan_version=cli.PLAN_VERSION,
-                                user_id=getpass.getuser(), recorded_at=now)
+            try:
+                cli.apply_file_held(conn, [row["file_id"]],
+                                    plan_version=cli.PLAN_VERSION,
+                                    user_id=getpass.getuser(), recorded_at=now)
+            except (cli.FileHeldRefused, sqlite3.OperationalError):
+                # Not organised yet (no policy, or no privacy tables at all):
+                # the person's protected row alone, the same call
+                # `apply_file_held` makes for it.
+                _protect_without_a_run(conn, row["file_id"], now)
         else:
             cli.apply_release(conn, [row["file_id"]],
                               user_id=getpass.getuser(), recorded_at=now)
@@ -809,8 +834,10 @@ def _protection(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
     except Exception:
         conn.rollback()
         return {"ok": False, "moved": False, "undo_token": None,
-                "text": ("I can't change protection until this folder has "
-                         "been organised once. Nothing changed.")}
+                "text": ("Nothing changed — organise this folder first, then "
+                         "I can treat it as an ordinary file."
+                         if action != "hold" else
+                         "I couldn't protect that file. Nothing changed.")}
     if item_is_sensitive(conn, item_id) != (action == "hold"):
         return {"ok": False, "moved": False, "undo_token": None,
                 "text": "I couldn't change that file's protection. Nothing "
