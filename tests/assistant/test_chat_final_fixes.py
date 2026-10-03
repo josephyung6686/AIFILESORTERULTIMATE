@@ -130,3 +130,33 @@ def test_a_protected_match_says_it_cannot_be_read_then_shows_it(lib,
     assert not any("point to a location" in t for t in lines)
     assert ("I can't read it or send it to the AI — here it is for you:"
             in lines)
+
+
+# -- 8. what was sent says when its list is cut --------------------------------
+
+def test_a_long_sent_list_says_how_many_more(tmp_path):
+    from assistant.egress import PersistentEgress
+    from assistant.engine_tools import what_was_sent
+    root = tmp_path / "Desktop"
+    root.mkdir()
+    for i in range(25):
+        (root / f"note {i:02}.txt").write_text(f"n{i}", encoding="utf-8")
+    conn = open_database(tmp_path / "a.sqlite", scan_roots=[])
+    create_items_schema(conn)
+    reconcile_tree(conn, root)
+    conn.commit()
+    ids = [r[0] for r in conn.execute("SELECT item_id FROM items WHERE "
+                                      "item_type = 'file'")]
+    PersistentEgress(conn).add_provider_request(
+        provider="deepseek", model="m", request_envelope={"x": 1},
+        response_envelope={"y": 2}, item_ids=ids)
+    shown = []
+
+    class Context:
+        def show_locally(self, event):
+            shown.append(event)
+    what_was_sent(conn, Context())
+    listed = sum(len(e.citations) for e in shown)
+    assert listed == 20
+    assert "and 5 more" in " ".join(e.text for e in shown)
+    conn.close()

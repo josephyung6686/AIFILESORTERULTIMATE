@@ -992,6 +992,10 @@ def _size_words(n: int) -> str:
     return f"{max(1, round(n / 1000))} KB" if n else "0 KB"
 
 
+#: How many sent files are listed by name; the rest are counted.
+SENT_SHOWN = 20
+
+
 def what_was_sent(conn: sqlite3.Connection,
                   context: Any = None) -> dict[str, Any]:
     """Today's requests to the AI model, from the egress ledger: how many,
@@ -1027,7 +1031,11 @@ def what_was_sent(conn: sqlite3.Connection,
              "for some, a short piece of text) included:" if files else
              " No file names or text were included.")
     if context is not None and hasattr(context, "show_locally"):
-        context.show_locally(Message(text=text, citations=tuple(files)))
+        context.show_locally(Message(text=text, citations=tuple(
+            files[:SENT_SHOWN])))
+        if len(files) > SENT_SHOWN:
+            context.show_locally(Message(
+                text=f"  and {len(files) - SENT_SHOWN} more"))
     return {"ok": True, "shown_to_person": True, "requests": len(rows),
             "bytes": total, "sent_to": providers or ["nobody"],
             "files": [c.name for c in files],
