@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from items.file_identity import path_is_protected
+from items.file_identity import item_is_sensitive
 
 RRF_K = 60
 DEFAULT_LIMIT = 20
@@ -354,8 +354,7 @@ def find_files(
         ).fetchone()
         if row is None or not _is_live_searchable(row):
             continue
-        protected = bool(
-            row["open_target"] and path_is_protected(row["open_target"]))
+        protected = item_is_sensitive(conn, item_id)
         if protected:
             protected_count += 1
 
