@@ -260,6 +260,26 @@ _ENGINE_SCHEMAS: list[dict[str, Any]] = [
         ["file"],
     ),
     _fn(
+        "remember_rule",
+        "Propose remembering a standing rule the person stated, e.g. "
+        "'always put screenshots in Screenshots'. The person confirms.",
+        {"text": {"type": "string"}},
+        ["text"],
+    ),
+    _fn("list_rules", "List the rules the person asked me to remember.", {}),
+    _fn(
+        "forget_rule",
+        "Propose forgetting one remembered rule, by its number from "
+        "list_rules. The person confirms.",
+        {"number": {"type": "integer"}},
+        ["number"],
+    ),
+    _fn(
+        "forget_conversations",
+        "Propose forgetting past conversations. The person confirms.",
+        {},
+    ),
+    _fn(
         "next_questions",
         "Show the person the sorter's open questions, one at a time. The "
         "app renders them; never answer them for the person.",

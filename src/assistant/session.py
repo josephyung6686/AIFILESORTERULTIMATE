@@ -7,6 +7,7 @@ here from database rows, never from model text.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 import uuid
 from pathlib import Path
@@ -78,7 +79,11 @@ class Session:
         self.provider_turn = provider_turn
         self.emit = emit
         self.session_id = session_id or str(uuid.uuid4())
-        self.history: list[dict[str, Any]] = []
+        from assistant.conversation_store import recent
+        try:
+            self.history: list[dict[str, Any]] = recent(conn)
+        except sqlite3.Error:
+            self.history = []
         self.no_model = False
         self.offering_questions = False
         self.ask_questions_after_turn = False
@@ -156,6 +161,31 @@ class Session:
                                if q.question_id != question_id]
         self._ask_next()
 
+    # -- memory and the no-model mode -------------------------------------
+    def _remember(self, role: str, text: str) -> None:
+        from assistant.conversation_store import save_turn
+        try:
+            save_turn(self.conn, self.session_id, role, text)
+        except sqlite3.Error:
+            pass
+
+    def _without_model(self, text: str) -> None:
+        from assistant.engine_tools import undo_last
+        words = text.strip().lower()
+        if words in ("questions", "question") or words.startswith(
+                ("questions", "go through the questions")):
+            self.start_questions()
+            return
+        if words.startswith("undo"):
+            proposal = undo_last(self.conn)
+            if proposal.get("ok"):
+                self._propose(proposal["needs_confirmation"])
+            else:
+                self.emit(ev.Message(text=proposal["error"]))
+            return
+        for event in route_without_model(self.conn, text):
+            self.emit(event)
+
     # -- a turn ----------------------------------------------------------
     def say(self, text: str) -> None:
         if self.offering_questions:
@@ -165,11 +195,10 @@ class Session:
                 self.start_questions()
                 return
         self.history.append({"role": "user", "content": text})
+        self._remember("user", text)
         self._proposals = []
         if self.no_model:
-            self.emit(ev.Message(text="No AI model is answering right now, "
-                                      "so I can find files, show what I've "
-                                      "got and undo."))
+            self._without_model(text)
             return
         try:
             answer = self._converse(text)
@@ -180,8 +209,10 @@ class Session:
                       "Nothing changed. I can still find files and undo."),
                 changed=False))
             return
+        reply = _strip_citation_line(answer.text)
         self.history.append({"role": "assistant", "content": answer.text})
-        self.emit(ev.Message(text=_strip_citation_line(answer.text),
+        self._remember("assistant", reply)
+        self.emit(ev.Message(text=reply,
                              citations=self._citations(answer.citations)))
         for proposal in self._proposals:
             self._propose(proposal)
@@ -230,11 +261,30 @@ class Session:
                                       "answered. Nothing changed."))
             return
         if not yes:
+            self._capture_no(proposal)
             self.history.append({"role": "assistant",
                                  "content": "Cancelled. Nothing moved."})
             self.emit(ev.Message(text="Cancelled. Nothing moved."))
             return
         self._execute(proposal)
+
+    def _capture_no(self, proposal: dict) -> None:
+        """A declined sort is a correction the product learns from (dark
+        until its release gate passes)."""
+        if proposal["kind"] != "plan":
+            return
+        try:
+            from assistant.memory_l0 import capture_reject
+            items = [r[0] for r in self.conn.execute(
+                "SELECT item_id FROM assistant_plan_ops WHERE plan_id = ?",
+                (proposal["ref"],))]
+            capture_reject(self.conn, ai_proposal={
+                "action": "quick_sort", "plan_id": proposal["ref"],
+                "moves": proposal.get("moves") or []},
+                item_ids=items, reason="person said no")
+            self.conn.commit()
+        except Exception:
+            pass
 
     def undo(self, undo_token: str) -> None:
         from assistant.engine_tools import undo_proposal
@@ -315,6 +365,76 @@ class Session:
                                    folder=_folder_of(row["open_target"]),
                                    open_target=row["open_target"]))
         return tuple(out)
+
+
+NO_MODEL_HELP = ("Without the AI model I can: find <name>, where is <name>, "
+                 "status, show skipped, show protected, questions, undo, help.")
+
+_FIND = re.compile(r"^(find|where('s| is)|search( for)?)\b\s*(my\s+)?",
+                   re.IGNORECASE)
+
+
+def route_without_model(conn: sqlite3.Connection, text: str) -> list:
+    """The deterministic answers that need no model. Everything shown here
+    is rendered on this Mac; nothing is sent anywhere."""
+    from assistant.engine_tools import counts_sentence
+    words = text.strip()
+    lower = words.lower().rstrip("?!.")
+    match = _FIND.match(words)
+    if match:
+        return [_find_locally(conn, words[match.end():].strip(" ?!."))]
+    if lower in ("status", "what have you got", "what have you got?"):
+        c = _counts(conn)
+        return [ev.Message(text=counts_sentence(c) if c is not None else
+                           "Nothing is indexed yet. " + FOLDER_QUESTION)]
+    if lower in ("show skipped", "show protected"):
+        return [_excluded_list(conn, protected=lower.endswith("protected"))]
+    return [ev.Message(text=NO_MODEL_HELP)]
+
+
+def _find_locally(conn: sqlite3.Connection, query: str):
+    from items.file_identity import item_is_sensitive
+    from items.hot_index import find_files
+    if not query:
+        return ev.Message(text="What should I look for?")
+    try:
+        hits = find_files(conn, query, limit=8).hits
+    except Exception:
+        hits = ()
+    if not hits:
+        return ev.Message(text=f"I couldn't find anything matching {query}.")
+    citations, protected = [], 0
+    for hit in hits:
+        row = conn.execute("SELECT open_target FROM items WHERE item_id = ?",
+                           (hit.item_id,)).fetchone()
+        target = row[0] if row is not None else None
+        if hit.protected or item_is_sensitive(conn, hit.item_id):
+            protected += 1
+        citations.append(ev.Citation(name=hit.display_label,
+                                     folder=_folder_of(target),
+                                     open_target=target))
+    line = f"Found {len(citations)}:"
+    if protected:
+        line += (f" ({protected} protected — shown only to you, never "
+                 "sent anywhere)")
+    return ev.Message(text=line, citations=tuple(citations))
+
+
+def _excluded_list(conn: sqlite3.Connection, *, protected: bool):
+    try:
+        from items.identity import excluded_areas
+        areas = [a for a in excluded_areas(conn)
+                 if bool(a["protected"]) == protected]
+    except Exception:
+        areas = []
+    if not areas:
+        return ev.Message(text="Nothing is protected." if protected else
+                          "Nothing is set aside.")
+    head = ("Protected — never opened:" if protected else
+            "Set aside — kept as one item each, nothing inside is moved:")
+    return ev.Message(text=head, citations=tuple(
+        ev.Citation(name=Path(a["folder"]).name, folder=_folder_of(
+            a["folder"]), open_target=a["folder"]) for a in areas))
 
 
 def _strip_citation_line(text: str) -> str:

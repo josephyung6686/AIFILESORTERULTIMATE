@@ -525,6 +525,56 @@ def release(conn: sqlite3.Connection, file: str) -> dict[str, Any]:
         "model from now on.", sensitive=True)
 
 
+# -- rules and memory -------------------------------------------------------
+
+def remember_rule(conn: sqlite3.Connection, text: str) -> dict[str, Any]:
+    text = (text or "").strip()
+    if not text:
+        return {"ok": False, "error": "What should I remember?"}
+    return _proposal("rule", f"add:{text}", f"Remember this rule: “{text}”?")
+
+
+def list_rules(conn: sqlite3.Connection) -> dict[str, Any]:
+    from assistant.memory_v1 import list_rules as rules
+    return {"ok": True, "rules": [
+        {"number": i, "text": r["rule_text"]}
+        for i, r in enumerate(rules(conn), start=1)]}
+
+
+def forget_rule(conn: sqlite3.Connection, number: int) -> dict[str, Any]:
+    from assistant.memory_v1 import list_rules as rules
+    current = rules(conn)
+    if not 1 <= number <= len(current):
+        return {"ok": False, "error": "I don't have a rule with that number."}
+    rule = current[number - 1]
+    return _proposal("rule", f"forget:{rule['rule_id']}",
+                     f"Forget the rule “{rule['rule_text']}”?")
+
+
+def forget_conversations(conn: sqlite3.Connection) -> dict[str, Any]:
+    return _proposal("rule", "forget-conversations:",
+                     "Forget our past conversations? Your files, answers "
+                     "and rules stay.")
+
+
+def _rule(conn: sqlite3.Connection, ref: str) -> dict[str, Any]:
+    action, _, value = ref.partition(":")
+    if action == "add":
+        from assistant.memory_v1 import add_rule
+        add_rule(conn, rule_text=value)
+        text = "Got it — I'll remember that."
+    elif action == "forget":
+        conn.execute("UPDATE memory_rules SET active = 0 WHERE rule_id = ?",
+                     (value,))
+        text = "Forgotten."
+    else:
+        from assistant.conversation_store import forget
+        forget(conn)
+        text = "I've forgotten our past conversations."
+    conn.commit()
+    return {"ok": True, "moved": False, "undo_token": None, "text": text}
+
+
 # -- execution after a yes --------------------------------------------------
 
 def _label(conn: sqlite3.Connection, item_id: str, fallback: str) -> str:
@@ -609,6 +659,8 @@ def execute_confirmed(conn: sqlite3.Connection, kind: str,
     """
     if kind == "protection":
         return _protection(conn, ref)
+    if kind == "rule":
+        return _rule(conn, ref)
     if kind == "folder":
         action, _, folder = ref.partition(":")
         if context is not None:
@@ -684,4 +736,12 @@ def run(conn: sqlite3.Connection, name: str, args: dict,
         return mark_sensitive(conn, str(args.get("file") or ""))
     if name == "release":
         return release(conn, str(args.get("file") or ""))
+    if name == "remember_rule":
+        return remember_rule(conn, str(args.get("text") or ""))
+    if name == "list_rules":
+        return list_rules(conn)
+    if name == "forget_rule":
+        return forget_rule(conn, int(args.get("number") or 0))
+    if name == "forget_conversations":
+        return forget_conversations(conn)
     return {"ok": False, "error": "That isn't something I can do."}
