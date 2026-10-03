@@ -170,8 +170,20 @@ def agree_protected_count(text: str, c) -> str:
     if c is None:
         return text
     now = str(c.protected)  # held files are already inside it
-    text = _PROTECTED_BEFORE.sub(now, text)
-    return _PROTECTED_AFTER.sub(lambda m: m.group(1) + now, text)
+
+    def agree(sentence: str) -> str:
+        if _A_SEARCH.search(sentence):
+            # How many matched a search is not the index's total.
+            return sentence
+        sentence = _PROTECTED_BEFORE.sub(now, sentence)
+        return _PROTECTED_AFTER.sub(lambda m: m.group(1) + now, sentence)
+    return "\n".join(
+        " ".join(agree(p) for p in re.split(r"(?<=[.!?])\s+", line))
+        for line in text.split("\n"))
+
+
+_A_SEARCH = re.compile(r"\bmatch(ed|es|ing)?\b|\bsearch\b|\bcame up\b",
+                       re.IGNORECASE)
 
 
 def _short_reason(exc: BaseException) -> str:
@@ -889,9 +901,8 @@ class Session:
                      + (forgot + "\n" if forgot else "")
                      + self.screen_state()},
                     *self.history]
-        # `converse` appends the model turns and tool replies; the history
-        # keeps the tool messages (between the last user line and the answer)
-        # so a later turn can refer back to them.
+        # `converse` appends the model turns and tool replies to the history;
+        # `_trim` drops those tool replies before the next turn.
         messages, answer = converse(
             self.conn, messages, runtime=runtime,
             provider_turn=self.provider_turn, config=cfg,

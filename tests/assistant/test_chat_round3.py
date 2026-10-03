@@ -102,6 +102,18 @@ def test_a_not_found_reply_over_a_protected_match_is_corrected(lib):
     assert shown[-1].citations[0].name == "Vaccination_Card.pdf"
 
 
+def test_the_number_of_protected_matches_is_not_the_index_total(lib):
+    conn, _ = lib
+    protect(conn, "Vaccination_Card.pdf")
+    protect(conn, "essay.txt")
+    out = []
+    Session(conn, provider_turn=recording(
+        tool_call("find_files", {"query": "vaccination card"}),
+        text("1 protected file matched your search. Say open 1.")),
+        emit=out.append).say("where is my vaccination card")
+    assert said(out)[0].startswith("1 protected file matched")
+
+
 def test_moving_a_protected_file_says_it_is_protected(lib):
     conn, _ = lib
     protect(conn, "Vaccination_Card.pdf")
