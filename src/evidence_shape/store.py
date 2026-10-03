@@ -441,8 +441,8 @@ def is_derived(observation: Observation) -> bool:
 
 
 def line_reading_for(conn: sqlite3.Connection, observation: Observation, *,
-                    extractor_name: str, extractor_version: str
-                    ) -> Observation | None:
+                    extractor_name: str, extractor_version: str,
+                    units: dict | None = None) -> Observation | None:
     """A second reading of the LINE an existing reading's span sits on. Not recorded.
 
     **Here because P4 owns the text, and the repo says so with a test.**
@@ -473,7 +473,18 @@ def line_reading_for(conn: sqlite3.Connection, observation: Observation, *,
     span = observation.location.text_span
     if span is None:
         return None
-    unit = unit_for_observation(conn, observation)
+    if units is None:
+        unit = unit_for_observation(conn, observation)
+    else:
+        # `units` is the CALLER'S per-pass memo, keyed as D12 keys a unit. A unit is
+        # never rewritten (`text_units_no_rewrite`), so reading it once per pass is
+        # the same unit; read per reading, a multi-megabyte unit was loaded once for
+        # every code-shaped identifier in it.
+        key = (observation.run_id,
+               serialize_container_path(observation.location.container_path))
+        if key not in units:
+            units[key] = unit_for_observation(conn, observation)
+        unit = units[key]
     if unit is None or span.end > unit.length:
         return None
     text = unit.text
