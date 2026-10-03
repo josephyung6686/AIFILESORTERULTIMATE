@@ -28080,6 +28080,8 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # `providers` is a command, not a folder. It is recognised only as the first
     # word, and only when the next word is one of its own commands, so a scan of
     # a directory that happens to be named `providers` still scans.
+    # Fixture sync stays callable for tests. It is not product and its help
+    # does not offer an account to connect.
     if asked[:1] == ["sync"] and (
             len(asked) == 1 or asked[1] in ("gmail", "calendar")
             or asked[1].startswith("-")):

@@ -4,7 +4,7 @@ Date: 2026-09-30. Status: proposal, except the sections marked **Exists**, and e
 
 Branch: `app`, starting from `cursor/item-relationship-model-29aa` (that branch stacks the sorting pipeline and context onboarding). `main` is untouched. Nothing here is merged.
 
-The owner decided the product is a context graph over what a person already has. Files, folders, emails, calendar events, tasks, people, and projects are items. Relationships are built from evidence. The folder tree is one view among Graph, Timeline, Board, Table, and Folder. Files stay where they are on disk; choosing an item opens the original path. Gmail and Calendar are read-only. A student profile is the first profile, and profiles are pluggable. The agent has one ladder: connector, nudge, assistant. It acts only with approval. It does not change anything silently, and it does not send a protected hold to the cloud.
+The owner decided the product is a context graph over the files a person already has on the Mac. Files, folders, tasks, people, and projects are items. Relationships are built from evidence in those files. The folder tree is one view among Graph, Timeline, Board, Table, and Folder. Files stay where they are on disk; choosing an item opens the original path. A student profile is the first profile, and profiles are pluggable. The agent has one ladder: connector, nudge, assistant. It acts only with approval. It does not change anything silently, and it does not send a protected hold to the cloud. There is no account to connect.
 
 This note starts from `docs/architecture-audit.md` and from the code that audit names. Anything below marked **Proposal** is not in the repository.
 
@@ -14,7 +14,6 @@ This note starts from `docs/architecture-audit.md` and from the code that audit 
 - Whether the macOS run passed `--semantic-model`.
 - A line-by-line reading of every `group_edges.weight` writer. The column exists (`src/grouping/schema.py`). This note does not adopt that float as a confidence.
 - A platform filesystem watcher. `SessionWatch.poll` is the stdlib stand-in; FSEvents is still not bound. Stage (a) re-finds a renamed file through `observe_path` on the next `reconcile_tree` or live scan. `scan_agent/scan.py` still has a path that does not re-hash when size and mtime are unchanged.
-- Gmail and Calendar APIs, scopes, and payload shapes. No ingester exists in `src/`. A search for those products in Python found only academic-calendar wording in the sorter.
 - Whether an edited structural answer now creates a draft plan version. `planning/75` recorded that link as missing on 2026-08-30. This pass did not re-audit it.
 - A database shared by two people. `learning_records` requires `user_id IS NOT NULL` and does not filter to the current user (`src/database_agent/learning.py`).
 
@@ -56,7 +55,7 @@ One local model of the person's items and the evidenced links between them, so a
 
 **Exists.** Apply still renames or copies (`mutation/execute.py`). Leave-in-place is a residual policy (`tree_design/vocabulary.py` `leave-in-place`). There is no in-repo screen that opens `current_path`.
 
-**Proposal.** The context graph is a new pair of tables, items and relationships. It does not reuse `group_edges` as its storage. Those edges are file-to-file, they carry a float `weight`, and they exist to group files before a model sees a dossier. A life link from an email to a project does not fit that row. The seven edge types may be *projected* into relationships (the witnessed-links stage after the thin slice). They stay where they are.
+**Proposal.** The context graph is a new pair of tables, items and relationships. It does not reuse `group_edges` as its storage. Those edges are file-to-file, they carry a float `weight`, and they exist to group files before a model sees a dossier. A life link from a file to a project does not fit that row. The seven edge types may be *projected* into relationships (the witnessed-links stage after the thin slice). They stay where they are.
 
 **Proposal.** `tree_nodes` stays the proposed filing tree of the sorter. The Folder view in this product reads `files.current_path`. It does not read `tree_nodes`, and it does not call `mutation/execute.py`. Until a later owner ruling turns apply off, the sorter can still move files. This plan does not turn apply off. A view that promises "nothing moved" must not share a button with apply.
 
@@ -68,8 +67,6 @@ One local model of the person's items and the evidenced links between them, so a
 |---|---|---|
 | `file` | yes | `file_id` of the live version, chained across supersession |
 | `folder` | yes | directory inode when `lstat` works, else the path string, reattached by the same vanished-home rule as files |
-| `email` | later, stage (b) | provider message id + local account id |
-| `event` | later, stage (b) | provider event id + calendar id |
 | `project` | yes, as a declared name | the profile's project id, not a folder path |
 | `course` | yes, as a declared name | the profile's course id |
 | `person` | no, until a profile asks | a local id; an address is an alias |
@@ -87,7 +84,7 @@ One local model of the person's items and the evidenced links between them, so a
 - Two live copies (same hash, both paths exist) are two items. `observe_path` already refuses to merge them. A `duplicate` relationship may connect them. Merging them would be a silent change.
 - A recycled inode is not an identity. `files_table.py` already treats `st_dev`/`st_ino` as a candidate confirmed against the live filesystem. The item layer uses that result. It does not store an inode as a primary key.
 
-**Proposal.** `open_target` for a file or folder is `current_path`. Choosing the item opens that path. For an email or event it is the provider's own deep link, stored locally, and the bytes stay on the laptop. There is no virtual filesystem.
+**Proposal.** `open_target` for a file or folder is `current_path`. Choosing the item opens that path. The bytes stay on the Mac. There is no virtual filesystem.
 
 **Proposal.** A missing path does not delete the item. The item's `presence` becomes `missing` until a later scan finds it. Links to it stay, with the same state they had. Deleting a row because the file moved is how a rename looks like data loss.
 
@@ -99,11 +96,10 @@ One local model of the person's items and the evidenced links between them, so a
 |---|---|---|
 | `duplicate-of` | same bytes, two live paths | `content_hash` equality from `files` |
 | `version-of` | later bytes of the same item chain, or a grouping `version-family` edge | supersession, or a projected `group_edges` row |
-| `attached-to` | a file was an attachment of an email, or one file's bytes are named inside another | hash match against an attachment part; the part's message id |
-| `about` | an email or file is about an event or a project | the person approved it, or a witnessed id (a course code the profile named, an event id in the subject) |
-| `member-of` | a file or email belongs to a project or course the person declared | an approved link, or a folder the person named in `named_projects` / `named_courses` |
-| `occurs-on` | an item is tied to an event's time | the event id, or a date the person confirmed |
-| `from-person` | an email's from-address alias | the address on the stored header, not a guessed display name |
+| `attached-to` | one file's bytes are named inside another | hash match between two files on this Mac |
+| `about` | a file is about a project | the person approved it, or a witnessed id (a course code the profile named) |
+| `member-of` | a file belongs to a project or course the person declared | an approved link, or a folder the person named in `named_projects` / `named_courses` |
+| `occurs-on` | a file is tied to a date | a date the person confirmed |
 
 **Proposal.** These are not the seven `EDGE_TYPES`. A projection stage may copy a `duplicate` or `version-family` edge into `duplicate-of` or `version-of` and set `source` to `grouping`. It copies `evidence_ref` through. It does not copy `mutual-semantic-retrieval` or `bounded-session`. Those two are already forbidden from anchoring a group. Showing them as life links is how the graph becomes a hairball.
 
@@ -111,7 +107,7 @@ One local model of the person's items and the evidenced links between them, so a
 
 - `why`: one or more evidence refs already in the database (an observation key, a `group_edges.evidence_ref`, a message-id plus attachment hash). Empty `why` is not a row. The writer refuses it.
 - `confidence`: a closed word, not a float. `witnessed` means the bytes or the provider id say so. `declared` means the person typed it (a project name, a course). `inferred` means the connector proposed it from a shared topic and it is not yet witnessed. `corroborated` means two independent witnessed facts. `group_edges.weight` is not this field.
-- `source`: a closed word. `scan`, `grouping`, `profile`, `gmail`, `calendar`, `connector`, `person`.
+- `source`: a closed word. `scan`, `grouping`, `profile`, `connector`, `person`.
 - `state`: `proposed`, `approved`, `rejected`, `withdrawn`. New rows from the connector and from projection start at `proposed`. Nothing in the agent ladder writes `approved`.
 - Supersession columns in the same shape as `group_edges` (`supersedes`, `superseded_by`). Undo inserts a new row and links it. Undo does not delete.
 
@@ -131,7 +127,7 @@ A package names:
 - item types it turns on
 - relationship types the connector is allowed to propose
 - which declared-life schema ids map to which item type (`academic` → a `course` item when the person also named a course; `career` → no automatic project)
-- required pairs for the nudge, as data: for example a `course` item expects a `member-of` file whose recognition is `academic` before the course event's date. Missing means a warning. Missing does not create a file or a link.
+- required pairs for the nudge, as data: for example a `course` item expects a `member-of` file whose recognition is `academic` before the date the course names. Missing means a warning. Missing does not create a file or a link.
 - the default view and the graph cap (section 7)
 
 **Proposal.** The package does not include safety schemas as optional. `SAFETY_DOMAIN_IDS` stay holds whether or not the package lists them. A package that omits `identity` does not release a passport. That matches the gate test: an identity document stays protected when identity is not a declared life.
@@ -220,28 +216,11 @@ CREATE TABLE IF NOT EXISTS relationships (
 
 **Proposal.** `typing_state = held` is set when the classification is protected or the basis is `safety_domain`. The schema id may still be `identity`. Held is not unplaced, and it is not a filing destination.
 
-## 7. Gmail and Calendar
+## 7. What stays on the Mac
 
-**Exists.** Nothing ingests either. Academic-year parsing in `cli.py` is a date fact for coursework, not a calendar account.
+**Exists.** The product is the files on the Mac. A file item stores the path, the hash, and the label. Opening it opens that path. There is no account to connect.
 
-**Proposal.** An ingester is a later stage, off by default, read-only, local.
-
-What it stores on the laptop:
-
-- Account id (a local label the person picks, plus the provider's account id).
-- Email: message id, thread id, internal date, From and To as addresses, subject, attachment filenames, attachment hashes, and a pointer to a local file item when a hash matches `files.content_hash`.
-- Event: event id, calendar id, start, end, title, and a status word from the provider.
-- The OAuth refresh token, in the operating system's credential store or in a file beside the database that no dossier builder reads. It is not a column in `items`.
-
-What it does not store as a releasable excerpt, and what must not leave the laptop:
-
-- Full message bodies, raw RFC822, attachment bytes, calendar descriptions, and attendee lists beyond the addresses needed for `from-person`.
-- Any of the nine `ALWAYS_LOCAL` members, by a new door. Bodies are complete extracted text. Tokens and message ids joined to a path are paths-and-edits territory.
-- Protected-kind material (`identity_document`, `medical_record`, financial statements, credentials, legal documents naming the person). If an attachment hash matches a file whose classification is protected, the email item's `typing_state` is `held` and the body is not passed to a model call. The local link `attached-to` may exist. The hold reads the same precaution path the detector already uses. The gate does not get a special case for "it came from Gmail".
-
-**Proposal.** Scopes are read-only. The ingester has no send and no modify. A test that sees a network call other than the read, or a body byte inside a model-request fixture, fails the stage.
-
-**Proposal.** Subjects and titles can themselves be sensitive. They stay in `items.display_label` locally. A cloud assistant may see a subject only when the item is not held and the existing release gate would already allow that text. This plan adds no new releasable kind.
+**Exists.** A protected file stays held. The hold reads the precaution path the detector already uses. Held is not a filing destination, and the file is not sent to a model.
 
 ## 8. Views
 
@@ -254,7 +233,7 @@ What it does not store as a releasable excerpt, and what must not leave the lapt
 | Folder | Live file and folder items, grouped by the parent of `open_target`. | The on-disk tree. No inferred edges. Click opens `open_target`. |
 | Table | One row per live item: type, label, typing_state, open target, count of approved links. | No edges drawn. Unplaced is a column value, not a hidden drop. |
 | Board | One column per declared `project` or `course` item. Cards are items with an approved or witnessed `member-of` to that column. | A last column, Unplaced, for `typing_state = unplaced` with no such link. Held items are a separate strip, not a column the person can drop a card into by accident. |
-| Timeline | Items that have a time: email internal date, event start, or file timestamp labeled as filesystem time. | A window of 90 days (package data). Files with only an mtime are not mixed into the event lane unless a relationship `occurs-on` is approved. |
+| Timeline | Files by the timestamp on the file, labeled as filesystem time. | A window of 90 days (package data). A file is not placed on a date unless a relationship `occurs-on` is approved. |
 | Graph | Neighborhood of one item the person selected, or of one project. | Cap 40 nodes (package data). Edges drawn: `approved`, plus `witnessed` `duplicate-of` and `attached-to`. `inferred` edges are omitted and counted in a line under the figure ("12 proposed links hidden"). Semantic and session edges are never drawn. If the person has not selected a center, the graph shows the project and course items and their approved members, not the corpus. |
 
 **Proposal.** The default graph query returns at most the cap, and returns the hidden count. A query that returns every item is a test failure. Density is not solved by a force-directed layout.
@@ -280,8 +259,8 @@ What it does not store as a releasable excerpt, and what must not leave the lapt
 
 **Proposal.** Three capabilities, one store, increasing privilege. None of them write `state = approved` or call `mutation/execute.py`.
 
-1. Connector. Notices a witnessed or inferred claim and inserts `proposed`. It prefers `witnessed` (hash, attachment, declared course id in the file's own name). An inferred link requires two declared lives and at least two terms on each side inside the allow-list. One shared ordinary word is not a link. That is the same failure mode as the professional catalogues: ordinary words outvoted coursework.
-2. Nudge. Reads the profile's required pairs and the calendar times. A missing item produces one local warning with the evidence refs. It does not create the missing item and does not approve a stand-in.
+1. Connector. Notices a witnessed or inferred claim and inserts `proposed`. It prefers `witnessed` (hash match, declared course id in the file's own name). An inferred link requires two declared lives and at least two terms on each side inside the allow-list. One shared ordinary word is not a link. That is the same failure mode as the professional catalogues: ordinary words outvoted coursework.
+2. Nudge. Reads the profile's required pairs and the dates on the files. A missing item produces one local warning with the evidence refs. It does not create the missing item and does not approve a stand-in.
 3. Assistant. Answers from local rows a question can cite. The citation is an `item_id` and an evidence ref. A held item is omitted from any cloud request and named locally as held, without its body. The assistant does not invent a destination folder.
 
 Approval is a person event (section 5). Silent approval is a test failure at every stage that has a writer.
@@ -316,18 +295,9 @@ The stage order below. Done when the thin slice is the first build order in this
 
 **Continue (proposal).** Wrong identity changes: 0. Every deleted fixture file is still a row with `presence = missing`. Unplaced is reported on its own and is not the name for missing.
 
-### Stage (b) — read-only Gmail and Calendar, stored locally as items
+### Stage (b) — not a product stage
 
-**Fixture path is in.** Files: `src/items/mailbox.py`, `src/items/commands.py`, `tests/items/test_mailbox_local.py`. A fixture message and a fixture event, not a live account. Live Gmail and Calendar are not connected. See `docs/local-items-and-views.md`.
-
-**Check.** One message, one attachment whose hash matches a local file: an email item, stored locally, with the message id and the hash, and no body in any table the model-release path reads. One calendar event: an event item with the provider event id, start, end, and title, and no description. A protected local file matched by attachment hash: the email item's `typing_state` is `held`, and a model-request builder returns no body and no attachment text. The test double has no network and no send.
-
-- Wrong: a body, token, or raw message stored as a releasable excerpt, or an item written as approved. Count those as wrong, not as unplaced.
-- Unplaced: an attachment hash that matches no local file stays an email item with no file link. That is unplaced relative to the library, not a wrong link, and the email item is still stored.
-
-**Kill (proposal).** A body, token, or raw message appears in a releasable excerpt, or the ingester writes `approved`, or it sends or modifies.
-
-**Continue (proposal).** The fixture message and the fixture event are local items. Wrong excerpts: 0. Held stays held. Unplaced attachments (no matching file) stay unplaced and are still listed.
+The product is the files on the Mac. There is no second source and no account step. The build order does not add one.
 
 ### Stage (c) — one deadline-to-files view
 
@@ -403,8 +373,6 @@ Student turns on file, folder, project, course, and the relationship subset in s
 - Treating `group_edges` as the context graph locks every link into file-to-file and drags semantic edges into the picture. Section 3 refuses that reuse on purpose.
 - Teaching the recogniser from link rejects would re-open the professional-schema failure. Section 5 keeps those stores apart.
 - An edit that mints a new `file_id` looks like a new document unless stage (a)'s version chain is in place. Shipping relationships before that chain orphans links on every save.
-- Inodes do not exist for an email. Using a path as the only identity for mail will break when the provider rewrites a label.
-- Gmail subjects and calendar titles are often more sensitive than a filename. Storing them is required for a timeline and is a standing local-only obligation. A later "just this once" excerpt is the risk.
 - The sorter still moves files on apply. A Folder view that opens `current_path` is honest only while nothing else relocates the file in the same session. The two behaviours need separate commands.
 - The default graph cap is a product choice (40, 90 days). A wrong cap is a bad picture. An absent cap is an unreadable one. The kill is the absent cap, not the particular number.
 - Extending `CORRECTION_SCOPES` and `RESERVED_EVENT_TYPES` is a closed-vocabulary edit. It needs the same kind of owner note `branch` and `refused move` already have. Implementing the approve/reject stage without that note should stop.
@@ -421,7 +389,7 @@ Student turns on file, folder, project, course, and the relationship subset in s
 | Pluggable profiles, student first | Section 4 |
 | Correction memory that learns exact link decisions and does not only suppress by accident | Section 5 |
 | Tables and migrations versus what stays | Section 6 |
-| What mail and calendar store, and what stays on the laptop | Section 7 |
+| What a file item stores, and what stays on the Mac | Section 7 |
 | Five views, including a default that is not the full graph | Section 8 |
 | Recognition gate feeds typing; wrong and unplaced apart | Section 9 |
 | Staged order, a check per stage, kill/continue as proposals | Section 11 |

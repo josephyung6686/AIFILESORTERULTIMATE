@@ -1,13 +1,8 @@
-"""Read-only mail and calendar headers, stored as local items.
+"""Fixture headers stored as local items.
 
-The live Gmail and Calendar APIs are not connected. A `MailboxSource` is the
-interface a later macOS or provider connector would implement. This module's
-only source is a JSON fixture on disk. It does not open a socket.
-
-Stored: ids, addresses, subject or title, attachment filenames and hashes,
-event start, end, calendar id, and status. Not stored: message bodies,
-calendar descriptions, attachment bytes, and OAuth tokens. Tokens are not a
-column. A fixture that carries them is ingested without writing them.
+These fixtures are not product. The product is files on this Mac.
+This module does not open a socket. A fixture that carries a body, a
+description, or a token is ingested without writing those fields.
 """
 from __future__ import annotations
 
@@ -66,7 +61,8 @@ def dry_run_plan(data: dict, *, kind: str) -> dict:
         rows = _events(data)
         fields = STORED_EVENT_FIELDS
     else:
-        raise MailboxRefused(f"{kind!r} is not gmail or calendar.")
+        raise MailboxRefused(
+            f"{kind!r} is not a fixture this module reads. Nothing was stored.")
     return {
         "kind": kind,
         "count": len(rows),
@@ -87,7 +83,8 @@ def ingest_fixture(conn: sqlite3.Connection, data: dict, *, kind: str,
     elif kind == "calendar":
         written = [_upsert_event(conn, event, now) for event in _events(data)]
     else:
-        raise MailboxRefused(f"{kind!r} is not gmail or calendar.")
+        raise MailboxRefused(
+            f"{kind!r} is not a fixture this module reads. Nothing was stored.")
     held = sum(1 for item in written if item["typing_state"] == HELD)
     unplaced = sum(1 for item in written if item["typing_state"] == UNPLACED)
     return {
