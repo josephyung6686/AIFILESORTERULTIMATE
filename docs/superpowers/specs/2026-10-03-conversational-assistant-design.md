@@ -1,130 +1,128 @@
-# Conversational Assistant — Design
+# Conversational Assistant — Design (v2)
 
-**Date:** 2026-10-03 · **Owner decisions:** talk-first (one conversation), cloud brain by default, sensitive files never sent, Gmail/Calendar cut, UI owned elsewhere.
+**Date:** 2026-10-03 · **Owner decisions:** talk-first; cloud brain (DeepSeek) by default; sensitive files never sent; Gmail/Calendar cut; UI built by someone else against the contract in §9.
 
 ## Goal
 
-A person types `database-agent`, talks to it, and everything — find, ask, sort a few files, organise a whole folder, undo — works, makes sense, and asks them only when a real decision is needed. Done when a judge agent playing a first-time user on real files finds nothing confusing or broken, and the full suite, release gate and pilot pass.
+A person types `database-agent`, talks to it, and everything — find, ask, sort a few files, organise a whole folder, answer its questions, undo — works, makes sense, and asks them only when a real decision is needed. Done when a judge agent playing a first-time user on real files finds nothing confusing or broken, and the full suite, release gate and pilot pass.
 
-## Approach
+## Shape
 
-One conversation on top of the existing engine. The assistant's tool loop (`assistant/chat.py:ask`) becomes multi-turn; the sorter's pipeline is reached through tools that call `cli.main(argv, out=stream)` — the injection point the sorter already has — so nothing in the sorter is duplicated. Existing subcommands stay as thin wrappers for scripts and the UI.
+```
+ terminal chat ─┐                         ┌─ assistant tools (find, read, quick sort, plans, undo …)
+                ├─ Session (engine) ──────┤
+ desktop app ───┘   events out,           └─ sorter (index, organise, questions, tree, apply)
+                    actions in                       │
+                                   one database ─────┘  ~/.graph-agent/database-agent.sqlite
+```
+
+- **`assistant/session.py` — `Session`** is the engine. It owns the conversation history, the permission level, pending confirmations and the event stream. It has no printing in it.
+- **Renderers** draw `Session` events: `assistant/terminal.py` (numbered choices, progress lines) and, for the desktop app, `database-agent --events` (JSON lines on stdout, actions on stdin, §9).
+- **Tools** are the only way the model acts; each wraps an existing seam (§4). The model decides; code delivers (constitution): confirmations, permission checks, sensitivity checks and question rendering are code, never model text.
 
 ## 1. Entry points
 
 | Typed | Behaviour |
 |---|---|
-| `database-agent` (terminal) | Opens the conversation. |
-| `database-agent "where is my CV"` | One question, one answer, exits. |
-| `database-agent <FOLDER> [flags]` | The sorter, unchanged, for scripts. |
-| `database-agent search\|ask\|plan\|db\|…` | Existing subcommands, unchanged. |
+| `database-agent` | Opens the chat. |
+| `database-agent ~/Desktop` (no other flags, in a terminal) | Opens the chat looking after that folder. |
+| `database-agent "where is my CV"` | One answer, exits. |
+| `database-agent <FOLDER> --flags…` | The sorter, unchanged, for scripts and existing runs. |
+| `database-agent search\|ask\|plan\|db\|memory\|view\|watch …` | Existing subcommands for scripts. |
+| `database-agent --events` | Engine over JSON lines, for the desktop app. |
 
-One database for everything: `~/.graph-agent/database-agent.sqlite` (an explicit `--database` wins).
+Routing lives in `database_agent/entrypoint.py` only; `cli.main` is untouched.
 
-First run with nothing indexed: the assistant asks which folder to look after, indexes it, and reports counts (indexed / set aside / protected) before anything else.
+## 2. A session
 
-## 2. The conversation
+1. **Open.** Load the last 5 conversations (§7), the permission level, the counts. If nothing is indexed: "Which folder should I look after?"
+2. **Index fast** (`index_folder`): scan + exclusions + local sensitivity rules + item projection, streamed as `progress`, finishing with a `counts` event. Seconds, not minutes; no cloud call.
+3. **Greet** with counts and suggestions (§6), then wait.
+4. **Each turn:** the person's words → the tool loop (`chat.converse(conn, messages, …)`, the multi-turn form of today's `ask`) → `message` with citations. Tool payloads stay in the session; oldest payloads drop first when history exceeds the model budget.
+5. **Open questions** queued while the person was away are offered as a series on return (§5).
 
-- `assistant/session.py` (new, one purpose): the read–reply loop. Holds the message history for the session; each turn calls the tool loop with that history. Oldest tool payloads are dropped first when the history exceeds the model budget; the person's words and the assistant's replies are kept.
-- `chat.ask` is split so the loop takes a message list (`converse(conn, messages, …)`); `ask(question)` stays as the one-shot wrapper.
-- Long-running tools print progress lines to the terminal as they run (the sorter's own screen, streamed) and return a short summary to the model.
-- Output style: plain sentences, paths shown relative to `~`, filenames as citations, no IDs or hashes, no latency or egress footers. The counts line (set aside / protected) appears on first contact and whenever it changes, not on every reply.
+## 3. Owner rulings that shape behaviour
 
-## 3. Tools (each wraps an existing seam)
+- **Software projects** are findable, never sorted: each is ONE item (name, README, top-level file names); code inside is never read; nothing inside is moved.
+- **Sensitive files**: "where is my passport?" → the renderer shows name and folder from the database; the model is told only "1 protected file matched — shown to the person locally". Content is never opened or sent.
+- **Suggestions** (gaps: set-aside areas, missing files, unsorted files, open questions, plus `items.suggest` / `items.nudge` warnings with the calendar-deadline parts removed) appear in the greeting, on "anything I should look at?", and as the app's `suggestions` event. `items/deadline_view.py` is deleted; `suggest`/`nudge` stay as the engine's source.
+- **Cloud brain**: DeepSeek by default; any configured key works; without one, §8.
 
-| Tool | Seam | Changes files? |
+## 4. Tools
+
+| Tool | Seam | Effect |
 |---|---|---|
-| `status` | DB counts: indexed, set aside, protected, held, tree state, open questions, last moves | no |
-| `index_folder(path)` | fast index: scan + exclusions + local sensitivity rules, records the selection | no |
-| `find`, `read_item`, `list_related` … | existing assistant tools | no |
-| `show_skipped`, `show_protected` | `exclusion_verdicts`; protected names only when asked (the sorter's `--show-protected` rule) | no |
-| `organise_folder(path)` | `cli.main([path, --stop-after tree …])` | no |
-| `show_tree` | sorter's tree from the DB (Lane E) | no |
-| `answer_question(answer)` | `cli.main([path, --answer …])` | no |
-| `quick_sort(files, destination?)` | plan → preview; files into the sorter's tree folder when one exists, else type groups | proposes |
-| `apply_branch(branch)`, `apply_plan(plan)` | sorter apply / assistant apply (one move seam, Lane A) | **yes — confirm** |
-| `undo_last` | the most recent move from either journal | **yes — confirm** |
-| `mark_sensitive(file)`, `release(file)` | sorter `--file-held` / `--release` | **yes — confirm** |
+| `status` | DB counts + level + open questions + last move | read |
+| `index_folder(path)` | `scan_agent` selection + scan + `items.project.project_context_graph` + local sensitivity rules | writes index only |
+| `find`, `read_item`, `list_related`, `list_gaps` | existing assistant tools (Lane B's sensitivity gate) | read |
+| `show_skipped`, `show_protected` | `exclusion_verdicts`; protected names rendered locally | read |
+| `organise_folder(path)` | `cli.main([path, "--stop-after", "tree", …], out=progress)` | writes tree proposal, no moves |
+| `show_tree` | sorter's tree/placements via SQL (Lane E) | read |
+| `next_questions` | `questions.store.open_questions` | read |
+| `answer_question(id, option_id\|text\|skip)` | `questions.store.record_answer` (what `--answer` writes), then resume organise | writes answer |
+| `quick_sort(files, destination?)` | plan + preview; destination from the sorter's tree when one exists (Lane E), else type groups | proposes |
+| `apply_plan(plan)`, `apply_branch(branch)` | assistant apply / sorter apply, one move seam (Lane A) | **moves — §5 gate** |
+| `undo_last` | most recent move in either journal | **moves — §5 gate** |
+| `mark_sensitive(file)`, `release(file)` | sorter `--file-held` / `--release` store | **changes protection — always confirms** |
+| `remember_rule(text)`, `forget_rule(id)`, `list_rules` | `memory_v1` | rules — confirms |
+| `set_level(n)` | session setting in DB | settings |
 
-## 3a. Owner decisions on behaviour (3 Oct)
+## 5. Decisions the person makes
 
-- **Software projects** are findable, never sorted: each project is indexed as ONE item (its name, README, top-level file names) so "where's my Hoyahacks project" works; its code is never read, and nothing inside it is ever moved.
-- **Sensitive files**: "where is my passport?" shows the file's name and folder on screen straight from the database — the code renders it, it never passes through the cloud model, and the content is never opened.
-- **Cloud brain**: DeepSeek by default.
-- **Suggestions** live in the engine (`suggestions` = gaps: set-aside areas, missing files, unsorted files, open questions), shown in the chat's opening message, on "anything I should look at?", and by the desktop app. The standalone `suggest` command and the nudge/deadline code are deleted.
+**Permission levels** (stored in the DB; changed by saying so):
 
-## 3b. Permission levels
-
-| Level | Moves you asked for | Always asks regardless |
+| Level | Moves the person asked for | Always confirms |
 |---|---|---|
-| 1 Ask every time (**default for a new user**) | ask y/N | — |
-| 2 Small sorts automatic | ≤20 ordinary files happen at once, with undo | sensitive files, whole-folder / branch applies |
-| 3 Hands-off | happen at once, with undo | sensitive files, whole-folder / branch applies |
+| 1 Ask every time (default) | confirm | — |
+| 2 Small sorts automatic | ≤20 ordinary files at once, with undo | sensitive files, branch/whole-folder applies, protection changes |
+| 3 Hands-off | at once, with undo | sensitive files, branch/whole-folder applies, protection changes |
 
-The level is stored in the database; the person changes it by saying so ("be more hands-off", "ask me every time"). After a few approved moves at level 1 the assistant may offer level 2 once.
+**Confirmations** are `confirm` events built by code from the plan rows (moves listed, sensitive flag, undo available). Only an explicit yes from the person executes; the model can never confirm.
 
-## 3c. Questions to the person
+**Questions** come from `structural_questions`, never from parsing the sorter's screen. One question object = `prompt` (text), `evidence_context` (why), `unlocks` / `will_not_do` (what it changes), `options` (buttons), plus free text and skip — exactly what `structural_answers` can record (`choice`, `free_text`, `skipped`, `revoked`). Rendered by code, not paraphrased by the model. Live: asked one at a time as organising reaches them. Queued: unanswered rows wait; on return, "While you were away I have 6 questions — want to go through them?". Wording rule: plain sentences a student or job-seeker understands; no schema ids, situation codes or branch ids; the judge loop rewrites any prompt text that fails this (ratified prompt rows are versioned, never edited in place).
 
-The engine never asks a cryptic question. Every question — from the sorter (which branch a file belongs to, what a folder means) or the assistant — is one structured object:
+## 6. Counts, never silent
 
-```json
-{"question_id": "q_…", "text": "These 14 files look like your Georgetown Prep coursework. Where should they live?",
- "why": "They share a school name and course codes.",
- "options": [{"id": "a", "label": "School / Georgetown Prep"}, {"id": "b", "label": "Keep where they are"}],
- "allow_text": true, "allow_skip": true, "files_preview": ["AP world notes.docx", "…"], "count": 14}
-```
+`counts` (indexed, set aside, protected, held, open questions) is emitted on open, after indexing, and whenever it changes. "Show skipped" / "show protected" list them. The same totals appear in `db check`, `watch`, `view` and the sorter's header.
 
-- Wording rules: plain sentences a student or job-seeker understands; says what it noticed and why it asks; never internal names (schema ids, situation codes, branch ids); 2–4 options plus "type your own" and "skip / decide for me".
-- **Live**: while the person is in the chat, questions are asked one at a time as the work reaches them.
-- **Queued**: questions raised while the person is away (a long organise run) pile up in the database; when they return the assistant says "While you were away I have 6 questions — want to go through them?" and presents them as a series. Answers resume the work.
-- The terminal renders options as numbered choices (`1) … 2) … or type your own`); the desktop app renders the same object as buttons.
+## 7. Memory
 
-## 4. Confirmation (code delivers, the model never approves)
+- Decisions (answers, holds, rejected links, frozen plans): in the DB as today.
+- Rules: `remember_rule` → `memory_rules`, injected into every prompt (`memory_v1.retrieve_for_proposal`).
+- Corrections: every reject/edit/correction in chat → `diff_events` (wire `capture_reject`, `capture_edit`, `capture_accept_correction`). Atoms stay dark until their release gate passes.
+- Recent conversations: the person's words and the assistant's replies (never tool payloads, never protected-file names) of the last 5 sessions in a local `conversation_turns` table; a new session starts with the last ~20 exchanges. "Forget our conversations" deletes them.
 
-A tool that moves files or changes a hold returns `needs_confirmation` with a one-line plain summary ("Move 5 files → ~/Desktop/Screenshots/. Nothing sensitive."). The session — code, not the model — prints it and asks `Go ahead? [y/N]`. Only a typed `y` executes, and the result goes back to the model. Big changes (whole-folder organise, apply a branch) happen only when the person asks for them.
+## 8. Without a model
 
-## 5. Without an API key
+If no key is configured or the provider fails: one line ("No AI model is set up, so I can find files, show what I've got and undo — set DEEPSEEK_API_KEY to chat"), then a deterministic router handles find / where is / status / show skipped / show protected / questions / undo / help.
 
-The session says once: "No AI model is set up, so I can find files, show what I've got, and undo — not chat. To chat, set DEEPSEEK_API_KEY." A small deterministic router then handles: find/where is X → `find`; status; show skipped; undo; help.
+## 9. Contract for the desktop app
 
-## 5a. Memory (owner: rules, decisions and recent conversations)
+`database-agent --events`: one JSON object per line.
 
-- **Decisions** — answers, holds/releases, rejected links, frozen plans — stay in the database as today.
-- **Rules** — "always put screenshots in Screenshots" becomes a `memory_rules` row after a confirm (`add_rule` finally has a caller, as a `remember_rule` tool); "what are my rules" lists them; "forget that rule" deactivates it. Rules are already injected into every prompt (`memory_v1.retrieve_for_proposal`).
-- **Corrections** — every reject, edit and correction made in chat goes to `diff_events` (wire the unused `capture_reject` / `capture_edit` / `capture_accept_correction`). Learned atoms stay dark until their release gate passes, as now.
-- **Recent conversations** — the person's words and the assistant's replies (never tool payloads, never anything about a protected or held file) of the last 5 sessions are kept in a local `conversation_turns` table. A new session starts with the last ~20 exchanges as context. "Forget our conversations" deletes them.
+| Event | Fields |
+|---|---|
+| `message` | `text`, `citations[]` (`name`, `folder`, `open_target`) |
+| `progress` | `stage`, `done`, `total`, `line` |
+| `question` | `question_id`, `text`, `why`, `changes`, `options[]` (`id`, `label`), `allow_text`, `allow_skip`, `files_preview[]`, `count`, `index`, `of` |
+| `confirm` | `confirm_id`, `summary`, `moves[]` (`from`, `to`), `sensitive`, `undo_available` |
+| `counts` | `indexed`, `set_aside`, `protected`, `held`, `open_questions` |
+| `suggestions` | `items[]` (`kind`, `text`, `action`) |
+| `done` | `moved`, `undo_token` |
+| `error` | `text`, `changed` |
 
-## 6. Safety
+Actions in: `say(text)`, `answer(question_id, option_id | text | skip)`, `confirm(confirm_id, yes|no)`, `set_level(1|2|3)`, `undo(undo_token)`.
 
-Unchanged rules, enforced in one place: sensitivity is read live from the database plus both protection lists (Lane B); sensitive files never enter a cloud request; every provider request is a ledger row; nothing moves without a typed yes; every move is undoable.
+## 10. Errors
 
-## 7. Errors
+No traceback reaches the person. Missing index → the folder question. Model or network failure → one line saying what failed and that nothing changed, then §8.
 
-No tracebacks reach the person. Missing index → "Nothing indexed yet — which folder should I look after?" Model/network failure → one line saying what failed and that nothing changed.
+## 11. Testing
 
-## 7a. Contract for the desktop app
-
-The terminal chat and the desktop app are two renderers of the same engine. The engine emits, and the app renders, exactly these objects (JSON, one per line on the session's event stream):
-
-| Event | Fields | App renders |
-|---|---|---|
-| `message` | `text`, `citations[]` (`name`, `folder`, `open_target`) | assistant bubble; citations as file chips that open the file |
-| `progress` | `stage`, `done`, `total`, `line` | progress row; collapses when finished |
-| `question` | as in §3c | question card with option buttons, text box, skip |
-| `confirm` | `summary`, `moves[]` (`from`, `to`), `sensitive: false`, `undo_available: true` | approve / cancel card listing the moves |
-| `counts` | `indexed`, `set_aside`, `protected`, `held`, `open_questions` | status strip; tapping opens the list |
-| `suggestions` | `items[]` (`kind`, `text`, `action`) | "worth a look" list |
-| `done` | `moved`, `undo_token` | undo toast |
-| `error` | `text`, `changed: false` | inline notice; never a stack trace |
-
-The app sends back: `say(text)`, `answer(question_id, option_id | text | skip)`, `confirm(confirm_id, yes | no)`, `set_level(1|2|3)`, `undo(undo_token)`.
-
-## 8. Testing
-
-- Conversation tests with a scripted fake provider (tool calls in, transcript out): first run, find, quick sort with confirm and with refusal, organise → question → answer → show tree, apply branch with confirm, undo, no-key fallback, sensitive file never in a request envelope.
-- The pilot drives the conversation on a copied real corpus.
-- A judge agent plays a first-time user on the real Desktop sample; every confusion it reports is fixed and re-judged until it reports none.
+- `Session` tests with a scripted fake provider: open on empty DB, index, counts, find, sensitive file shown locally and absent from every request envelope, quick sort at each level, confirm yes/no, organise → open questions → answer → tree, apply branch, undo, rules, conversation memory and forget, no-model router, `--events` round trip.
+- Pilot drives a `Session` on a copied real corpus.
+- Judge loop: a first-time-user agent on the real Desktop sample, live DeepSeek; each round's issues fixed, at most 3 rounds, then reported plainly.
 
 ## Dependencies
 
-Lanes A–E (one move seam, one exclusion record, live sensitivity, one default DB, empty state, one router, tree from the DB) merge first. Round 2 (fast index with local sensitivity rules, counts everywhere, search ranking) lands with or before the conversation.
+Lanes A–E (one move seam, one exclusion record, live sensitivity, one default DB and empty state, one router, tree from the DB) merge before the Session is built on them.
