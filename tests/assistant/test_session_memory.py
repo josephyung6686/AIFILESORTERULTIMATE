@@ -83,8 +83,10 @@ def test_forget_clears_this_sessions_history_at_once(db):
     s.say("yes")
     s.say("what were we talking about?")
     sent = [m for m in turn.seen[-1] if m["role"] != "system"]
-    assert sent[0] == {"role": "user",
-                       "content": "what were we talking about?"}
+    assert sent[:2] == [
+        {"role": "assistant",
+         "content": "I've forgotten our past conversations."},
+        {"role": "user", "content": "what were we talking about?"}]
     assert recent(db) == [
         {"role": "user", "content": "what were we talking about?"},
         {"role": "assistant", "content": "Nothing yet."}]

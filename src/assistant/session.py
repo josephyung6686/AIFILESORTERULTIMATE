@@ -660,8 +660,9 @@ class Session:
             self._propose(result["needs_confirmation"])
             return
         if _forgets_conversations(proposal) and result["ok"]:
-            # Forgotten means forgotten now, not from the next session.
-            self.history = []
+            # Forgotten means forgotten now, not from the next session; the
+            # model still learns that it happened (this session only).
+            self.history = [{"role": "assistant", "content": result["text"]}]
         elif not _forgets_conversations(proposal):
             self._note(result["text"])
         if result["ok"] and result.get("undo_token"):
