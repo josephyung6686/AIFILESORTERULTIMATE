@@ -29,6 +29,7 @@ from placement.vocabulary import (
     RETURN_TO_PLACEMENT,
 )
 from tree_design.records import Node
+from tree_design.vocabulary import PROPOSED
 
 from apply_run.branches import qualified_path
 from apply_run.freeze import (
@@ -214,6 +215,26 @@ def _name(names: Mapping[str, str], file_id: str) -> str:
     return names.get(file_id, file_id)
 
 
+def _proposed_with_no_file(proposal: FrozenProposal,
+                           nodes: Sequence[Node]) -> list[str]:
+    """Proposed folders no frozen file goes into, highest first and once.
+
+    `--apply` makes a directory only for a plan, so these are never built.
+    """
+    by_id = {node.node_id: node for node in nodes}
+    used: set[str] = set()
+    for plan in proposal.plans:
+        current = by_id.get(plan.requested_destination_node)
+        while current is not None and current.node_id not in used:
+            used.add(current.node_id)
+            current = by_id.get(current.parent_node_id or "")
+    empty = {node.node_id for node in nodes
+             if node.node_type == PROPOSED and node.node_id not in used}
+    return sorted(qualified_path(node, nodes) for node in nodes
+                  if node.node_id in empty
+                  and node.parent_node_id not in empty)
+
+
 def freeze_lines(proposal: FrozenProposal, *,
                  names: Mapping[str, str],
                  nodes: Sequence[Node],
@@ -296,6 +317,11 @@ def freeze_lines(proposal: FrozenProposal, *,
     else:
         lines.append(f"Frozen: {total} file(s) are ready to move, in "
                      f"{len(by_branch)} branch(es).")
+    dropped = _proposed_with_no_file(proposal, nodes)
+    if dropped:
+        lines.append(_wrap(
+            "Not built, because no file goes there: "
+            + ", ".join(f"'{label}'" for label in dropped) + ".", indent=""))
     for branch in sorted(by_branch):
         plans = by_branch[branch]
         lines.append("")

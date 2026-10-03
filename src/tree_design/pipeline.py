@@ -60,8 +60,8 @@ from tree_design.records import (
 from tree_design.residuals import ResidualChoice, ResidualTemplate, project_residual_nodes
 from tree_design.routing import BranchContext, CompositionCandidate, RoutingReport, route_branch
 from tree_design.store import (
-    apply_review_action, nodes_for_version, open_draft, write_node,
-    write_plan_version,
+    ReviewActionRefused, apply_review_action, nodes_for_version, open_draft,
+    write_node, write_plan_version,
 )
 from tree_design.templates import CompositionConflict
 from tree_design.user_edits import UserLevelEdit, user_level_edits
@@ -1661,16 +1661,36 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
             "populated from this branch's facts, so accepting it would write "
             "nodes nothing supports (§5.4)")
 
-    new_version = _apply(conn, authorities, decisions, action=_Action(
-        review_action_id=f"ra_accept_{parent.origin_node_id}",
-        surface=decisions.surface,
-        subject_ref=parent.origin_node_id, plan_version=version, action=ACCEPT,
-        correction_scope="node", presented_state_ref=f"ps_{option_id}",
-        user_id=decisions.user_id, observed_at=decisions.created_at,
-        payload={"option_id": option_id}),
-        project=_projection(conn, authorities, decisions, evidence=evidence,
-                            validation=validation,
-                            parent_origin_id=parent.origin_node_id))
+    project = _projection(conn, authorities, decisions, evidence=evidence,
+                          validation=validation,
+                          parent_origin_id=parent.origin_node_id)
+    projected_counts: list[int] = []
+
+    def counted(action, plan_version_id: str) -> tuple[Node, ...]:
+        nodes = project(action, plan_version_id)
+        projected_counts.append(len(nodes))
+        return nodes
+
+    try:
+        new_version = _apply(conn, authorities, decisions, action=_Action(
+            review_action_id=f"ra_accept_{parent.origin_node_id}",
+            surface=decisions.surface,
+            subject_ref=parent.origin_node_id, plan_version=version,
+            action=ACCEPT, correction_scope="node",
+            presented_state_ref=f"ps_{option_id}",
+            user_id=decisions.user_id, observed_at=decisions.created_at,
+            payload={"option_id": option_id}),
+            project=counted)
+    except ReviewActionRefused:
+        if projected_counts != [0]:
+            raise
+        # The chosen shape builds nothing inside this branch. One branch is
+        # not the whole plan: it keeps its own node, as `opt_no_split` does,
+        # and the rest of the tree is designed and frozen.
+        return version, BranchDesign(
+            origin_node_id=parent.origin_node_id, candidate=candidate,
+            routing=report, options=options, chosen_option_id=option_id,
+            evidence=None, warnings=chosen.warnings)
     return new_version, BranchDesign(
         origin_node_id=parent.origin_node_id, candidate=candidate,
         routing=report, options=options, chosen_option_id=option_id,
