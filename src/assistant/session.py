@@ -40,6 +40,53 @@ PROVIDER_NAMES = {"deepseek": "DeepSeek", "openai": "OpenAI",
 
 YES_WORDS = {"y", "yes", "yeah", "yep", "sure", "ok", "okay", "go ahead",
              "1", "yes please", "sure thing", "go"}
+NO_WORDS = {"n", "no", "nope", "nah", "2", "no thanks", "don't", "dont"}
+#: Commands, never answers: they cancel what is on the screen.
+CANCEL_WORDS = {"cancel", "stop", "never mind", "nevermind", "forget it"}
+SKIP_WORDS = {"s", "skip", "skip it", "not now", "later"}
+_YES_FIRST = {"y", "yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go"}
+_NO_FIRST = {"n", "no", "nope", "nah"}
+#: A reply with any of these is more than a yes or a no: the model reads it.
+_MORE_THAN_YES_NO = re.compile(
+    r"\?|\b(but|only|except|instead|which|what|why|how|where|wait)\b")
+
+
+def yes_or_no(text: str) -> bool | None:
+    """True / False when the whole reply is a plain yes or no, else None."""
+    words = text.strip().lower().rstrip("!.")
+    if words in YES_WORDS:
+        return True
+    if words in NO_WORDS:
+        return False
+    tokens = re.findall(r"[a-z']+|\d+", words)
+    if not tokens or len(tokens) > 6 or _MORE_THAN_YES_NO.search(words):
+        return None
+    if tokens[0] in _NO_FIRST:
+        return False
+    if tokens[0] in _YES_FIRST or "yes" in tokens:
+        return True
+    return None
+
+
+#: A sentence telling the person something waits on their screen. Removed
+#: from a reply whenever nothing does: code knows, the model guesses.
+_PROMPT_CLAIM = re.compile(
+    r"\b(on|in front of) (your|the) screen\b|\bwaiting (on|for) (you|your)\b"
+    r"|\bstill waiting\b|\b(tap|press|click) (yes|no|the button|it)\b"
+    r"|\bup for (your )?(confirmation|a yes)|\b(asked|ask) you to confirm\b"
+    r"|\bsay \W*yes\W* (and|to|if)\b|\bwaiting for a yes\b",
+    re.IGNORECASE)
+
+
+def drop_prompt_claims(text: str) -> str:
+    out = []
+    for line in text.splitlines():
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = [p for p in parts if not _PROMPT_CLAIM.search(p)]
+        if line.strip() and not kept:
+            continue
+        out.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
 LEVEL_WORDS = {
     1: "OK — I'll ask before moving anything.",
@@ -122,6 +169,10 @@ class Session:
         self.question_total = 0
         #: confirm_id -> proposal awaiting the person's yes or no.
         self.pending: dict[str, dict] = {}
+        #: The one yes/no prompt on the person's screen, and the one sorter
+        #: question being asked: what the chat may say is waiting.
+        self.on_screen: str | None = None
+        self.asking: ev.Question | None = None
         self._proposals: list[dict] = []
         self._protected_hits: tuple[str, ...] = ()
         self._opened = False
@@ -267,7 +318,28 @@ class Session:
             self.reader = start_reading(self.conn, self.emit)
 
     def cancel(self) -> None:
-        self.cancel_requested = True
+        """`cancel`: No to the prompt on screen, or stop the questions, or
+        stop organising."""
+        if self.on_screen in self.pending:
+            self.confirm(self.on_screen, False)
+        elif self.asking is not None:
+            self._stop_questions()
+        else:
+            self.cancel_requested = True
+
+    def _stop_questions(self) -> None:
+        self.asking = None
+        self.question_queue = []
+        self._note("The person stopped the questions; nothing was recorded "
+                   "for the open one.")
+        self.emit(ev.Message(text="Stopped the questions. Nothing was "
+                                  "recorded for that one."))
+
+    def _note(self, text: str) -> None:
+        """A code-written line in the conversation's record, so the model
+        (now and in later sessions) knows what really happened."""
+        self.history.append({"role": "assistant", "content": text})
+        self._remember("assistant", text)
 
     # -- the sorter's questions ------------------------------------------
     def start_questions(self) -> None:
@@ -279,6 +351,7 @@ class Session:
 
     def _ask_next(self) -> None:
         from assistant.engine_tools import question_event
+        self.asking = None
         if not self.question_queue:
             self.emit(ev.Message(text="That's all the questions for now. "
                                       "Thanks — I'll use your answers when "
@@ -286,7 +359,8 @@ class Session:
             return
         q = self.question_queue[0]
         index = self.question_total - len(self.question_queue) + 1
-        self.emit(question_event(q, index, self.question_total))
+        self.asking = question_event(q, index, self.question_total)
+        self.emit(self.asking)
 
     def answer(self, question_id: str, value: str) -> None:
         from assistant.engine_tools import record_person_answer
@@ -296,9 +370,10 @@ class Session:
             self.emit(ev.Error(text="I couldn't save that answer. Nothing "
                                     "changed.", changed=False))
             return
-        self.history.append({"role": "assistant", "content": (
-            "The person skipped a question." if kind == "skipped" else
-            "The person answered one of the sorter's questions.")})
+        if self.asking is not None and self.asking.question_id == question_id:
+            self.asking = None
+        self._note("The person skipped a question." if kind == "skipped" else
+                   "The person answered one of the sorter's questions.")
         self.question_queue = [q for q in self.question_queue
                                if q.question_id != question_id]
         self._ask_next()
@@ -382,6 +457,8 @@ class Session:
         if self.awaiting_key:
             self._take_key(text)
             return
+        if self._reply_to_screen(text):
+            return
         if self._local_command(text):
             return
         if self.awaiting_folder:
@@ -410,7 +487,9 @@ class Session:
                 changed=False))
             return
         reply = plain_reply(self.conn, _strip_citation_line(answer.text))
-        self.history.append({"role": "assistant", "content": answer.text})
+        if not self._prompt_will_show():
+            reply = drop_prompt_claims(reply) or "OK."
+        self.history.append({"role": "assistant", "content": reply})
         self._remember("assistant", reply)
         self.emit(ev.Message(text=reply,
                              citations=self._citations(answer.citations)))
@@ -420,11 +499,96 @@ class Session:
             self.emit(ev.Message(
                 text="Protected — shown only to you, never sent anywhere:",
                 citations=self._citations(self._protected_hits)))
+        shown_before = self.on_screen
         for proposal in self._proposals:
             self._propose(proposal)
         if self.ask_questions_after_turn:
             self.ask_questions_after_turn = False
             self.start_questions()
+            return
+        if self.on_screen in self.pending and self.on_screen == shown_before:
+            summary = self.pending[self.on_screen]["summary"]
+            self.emit(ev.Message(text=f"Still waiting for your yes or no: "
+                                      f"{summary}  1) Yes  2) No"))
+        elif self.asking is not None:
+            self._ask_again()
+
+    def _prompt_will_show(self) -> bool:
+        """Whether, after this turn, something waits on the person's screen."""
+        from assistant.engine_tools import get_level, level_allows
+        if self.on_screen in self.pending or self.asking is not None:
+            return True
+        if self.ask_questions_after_turn:
+            return True
+        level = get_level(self.conn)
+        return any(not level_allows(level, p["kind"],
+                                    len(p.get("moves") or ()),
+                                    bool(p.get("sensitive")))
+                   for p in self._proposals)
+
+    def _ask_again(self) -> None:
+        """The question stays on screen unless the model recorded an answer
+        to it this turn; then the next one is asked."""
+        from assistant.engine_tools import open_questions
+        asked = self.asking
+        if asked.question_id in {q.question_id
+                                 for q in open_questions(self.conn)}:
+            self.emit(asked)
+            return
+        self.question_queue = [q for q in self.question_queue
+                               if q.question_id != asked.question_id]
+        self._ask_next()
+
+    def _reply_to_screen(self, text: str) -> bool:
+        """A reply to the prompt or question on screen, mapped by code.
+        False for anything else: the model then reads it, told what is on
+        the screen, and the prompt stays."""
+        words = text.strip().lower().rstrip("!.")
+        if self.on_screen in self.pending:
+            if words in CANCEL_WORDS:
+                self.confirm(self.on_screen, False)
+                return True
+            answer = yes_or_no(text)
+            if answer is None:
+                return False
+            self.confirm(self.on_screen, answer)
+            return True
+        if self.asking is not None:
+            q = self.asking
+            if words in CANCEL_WORDS:
+                self._stop_questions()
+                return True
+            if words in SKIP_WORDS:
+                self.answer(q.question_id, "skip")
+                return True
+            if words.isdigit() and 1 <= int(words) <= len(q.options):
+                self.answer(q.question_id, q.options[int(words) - 1].id)
+                return True
+            match = next((o for o in q.options
+                          if o.label.casefold() == words.casefold()), None)
+            if match is not None:
+                self.answer(q.question_id, match.id)
+                return True
+        return False
+
+    def screen_state(self) -> str:
+        """What is on the person's screen, for the model, from code state."""
+        if self.on_screen in self.pending:
+            summary = self.pending[self.on_screen]["summary"]
+            return ("On the person's screen right now: a yes/no prompt — "
+                    f"“{summary}”. Their newest message did not answer it, "
+                    "so it stays; they answer it by saying yes or no.")
+        if self.asking is not None:
+            q = self.asking
+            options = "; ".join(f"{i}) {o.label}"
+                                for i, o in enumerate(q.options, start=1))
+            return ("On the person's screen right now: the question "
+                    f"“{q.text}” (options: {options}). If their newest "
+                    "message answers it, call answer_question with their "
+                    "words; if they ask about it, explain and leave it open.")
+        return ("Nothing is waiting on the person's screen right now: no "
+                "yes/no prompt and no question. Never say something is "
+                "waiting for them.")
 
     # -- decisions the person makes ---------------------------------------
     def _propose(self, proposal: dict) -> None:
@@ -434,15 +598,24 @@ class Session:
                         bool(proposal.get("sensitive"))):
             self._execute(proposal)
             return
+        if self.on_screen in self.pending:
+            old = self.pending.pop(self.on_screen)
+            line = (f"Cancelled: {old['summary'].rstrip('?.')}. "
+                    f"{_nothing(old)}")
+            self._note(line)
+            self.emit(ev.Message(text=line))
         confirm_id = uuid.uuid4().hex
         self.pending[confirm_id] = proposal
+        self.on_screen = confirm_id
+        self._note("Asked the person (yes/no prompt on screen): "
+                   + proposal["summary"])
         self.emit(ev.Confirm(
             confirm_id=confirm_id, summary=proposal["summary"],
             moves=tuple(ev.Move(src=m["from"], dst=m["to"]) for m in moves),
             sensitive=bool(proposal.get("sensitive")),
             undo_available=proposal["kind"] in ("plan", "branch")))
 
-    def _execute(self, proposal: dict) -> None:
+    def _execute(self, proposal: dict, said_yes: bool = False) -> None:
         from assistant.engine_tools import execute_confirmed
         try:
             result = execute_confirmed(self.conn, proposal["kind"],
@@ -451,7 +624,9 @@ class Session:
             result = {"ok": False, "moved": False, "undo_token": None,
                       "text": "Something went wrong, so I stopped. "
                               "Nothing changed."}
-        self.history.append({"role": "assistant", "content": result["text"]})
+        if not _forgets_conversations(proposal):
+            self._note(("The person said yes. " if said_yes else "")
+                       + result["text"])
         if result["ok"] and result.get("undo_token"):
             self.last_undo_token = result["undo_token"]
         elif result["ok"] and proposal["kind"] == "undo" and (
@@ -467,17 +642,19 @@ class Session:
 
     def confirm(self, confirm_id: str, yes: bool) -> None:
         proposal = self.pending.pop(confirm_id, None)
+        if confirm_id == self.on_screen:
+            self.on_screen = None
         if proposal is None:
             self.emit(ev.Message(text="That question has already been "
                                       "answered. Nothing changed."))
             return
         if not yes:
             self._capture_no(proposal)
-            self.history.append({"role": "assistant",
-                                 "content": "Cancelled. Nothing moved."})
-            self.emit(ev.Message(text="Cancelled. Nothing moved."))
+            line = f"Cancelled. {_nothing(proposal)}"
+            self._note(f"The person said no. {line}")
+            self.emit(ev.Message(text=line))
             return
-        self._execute(proposal)
+        self._execute(proposal, said_yes=True)
 
     def _capture_no(self, proposal: dict) -> None:
         """A declined sort is a correction the product learns from (dark
@@ -538,7 +715,7 @@ class Session:
         self._proposals = runtime.pending_confirmations
         messages = [{"role": "system",
                      "content": build_system_prompt(self.conn, text)
-                     + "\n" + PLAIN_WORDS},
+                     + "\n" + PLAIN_WORDS + "\n" + self.screen_state()},
                     *self.history]
         # `converse` appends the model turns and tool replies; the history
         # keeps the tool messages (between the last user line and the answer)
@@ -581,6 +758,17 @@ class Session:
                                    matched_by=_matched_by(
                                        self.conn, row["content_hash"])))
         return tuple(out)
+
+
+def _forgets_conversations(proposal: dict) -> bool:
+    return (proposal.get("kind") == "rule"
+            and str(proposal.get("ref", "")).startswith("forget-conversations"))
+
+
+def _nothing(proposal: dict) -> str:
+    return ("Nothing moved." if proposal.get("kind") in ("plan", "undo",
+                                                         "branch")
+            else "Nothing changed.")
 
 
 def open_in_finder(path: str, *, reveal: bool) -> bool:
