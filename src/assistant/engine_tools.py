@@ -589,8 +589,9 @@ def run_index(conn: sqlite3.Connection, path: Path,
     def progress(stage: str, done: int, total: int) -> None:
         if emit is not None:
             emit(Progress(stage=stage, done=done, total=total,
-                          line=f"Indexing {done} of {total}"
-                          if stage != "done" else "Indexed."))
+                          line=("Indexed." if stage == "done" else
+                                f"Indexing {done} of {total}" if total else
+                                f"Indexing… {done} files so far")))
     try:
         from items.indexing import index_folder as index
         c = index(conn, path, on_progress=progress)
