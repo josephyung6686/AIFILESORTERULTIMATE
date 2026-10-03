@@ -16,7 +16,19 @@ from pathlib import Path
 from items.file_identity import item_is_sensitive
 
 RRF_K = 60
-DEFAULT_LIMIT = 20
+#: A chat answer names a few files; a caller that wants more passes `limit`.
+DEFAULT_LIMIT = 8
+#: A hit scoring under this share of the best hit is a weak tail and dropped,
+#: unless its own name (or its folder's) carries a word of the question.
+WEAK_TAIL_RATIO = 0.4
+#: Words a question is made of. Alone they match nearly every file, so they
+#: are not searched for unless the query has nothing else.
+STOPWORDS = frozenset("""
+a about all an and any are as at be by can could did do does file files find
+folder folders for from get give have has how i in is it its look me my name
+named of on or please say says show some that the their there these this
+those to was were what where which who why with you your
+""".split())
 CHUNK_CHARS = 800
 MAX_CHUNKS_PER_ITEM = 40
 # Index past the historical 4k evidence cap so late markers remain findable.
@@ -151,7 +163,8 @@ def _chunk_text(text: str, *, size: int = CHUNK_CHARS) -> list[tuple[int, int, s
 
 
 def _query_tokens(query: str) -> list[str]:
-    latin = [t for t in _SAFE.sub(" ", query).split() if t]
+    words = [t for t in _SAFE.sub(" ", query).split() if t]
+    latin = [t for t in words if t.casefold() not in STOPWORDS] or words
     cjk_terms = cjk_bigrams(query).split()
     return list(dict.fromkeys(latin + cjk_terms))[:24]
 
@@ -344,7 +357,10 @@ def find_files(
         vector_used = False
     else:
         fused = _rrf([fts_ranks, vec_ranks], k=RRF_K)
-    fused = _trusted_order(conn, q, fused)
+    fused, named = _trusted_order(conn, q, fused)
+    fused = _drop_weak_tail(fused, keep=named)
+    fused = _drop_partial_matches(conn, q, fused, keep=named | set(vec_ranks))
+    needles = [t.casefold() for t in _query_tokens(q)]
 
     hits: list[FindHit] = []
     protected_count = 0
@@ -361,6 +377,11 @@ def find_files(
             continue
         protected = item_is_sensitive(conn, item_id)
         if protected:
+            # Shown only when the person asked for it by name: a protected
+            # row matched on its folder or a stray word looks alarming.
+            label = (row["display_label"] or "").casefold()
+            if not any(n and n in label for n in needles):
+                continue
             protected_count += 1
 
         chunk_id = best_chunks.get(item_id) or vec_best_chunks.get(item_id)
@@ -847,25 +868,73 @@ def _is_archived(path: str) -> bool:
 
 
 def _trusted_order(conn, query: str, fused: list[tuple[str, float]]):
-    """Filename matches first, archived copies after current files, junk last."""
+    """Named matches first, archived copies after current files, junk last.
+
+    Named, in order: a project whose name carries a word of the query (the
+    folder the person asked for), a file whose own name does, then a file
+    whose folder's name does. Returns the order and the ids that were named.
+    """
     tokens = [t.casefold() for t in _query_tokens(query)] or [query.casefold()]
-    needles = tokens
+
+    def has_word(text: str) -> bool:
+        text = text.casefold()
+        return any(n and n in text for n in tokens)
 
     def tier(item_id: str, score: float):
         row = conn.execute(
-            "SELECT display_label, open_target FROM items WHERE item_id = ?",
-            (item_id,),
+            "SELECT display_label, open_target, item_type FROM items "
+            "WHERE item_id = ?", (item_id,),
         ).fetchone()
         if row is None:
-            return (1, 1, 1, -score, item_id)
-        label = (row["display_label"] or "").casefold()
-        named = any(n and n in label for n in needles)
+            return (1, 3, 1, -score, item_id)
         target = row["open_target"] or ""
+        if has_word(row["display_label"] or ""):
+            named = 0 if row["item_type"] == "project" else 1
+        elif target and has_word(Path(target).parent.name):
+            named = 2
+        else:
+            named = 3
         junk = _is_junk_path(target)
-        return (int(junk), int(not named), int(_is_archived(target)), -score, item_id)
+        return (int(junk), named, int(_is_archived(target)), -score, item_id)
 
     ordered = sorted((tier(i, s), i, s) for i, s in fused)
-    return [(i, s) for _, i, s in ordered]
+    named = {i for t, i, _ in ordered if t[1] < 3}
+    return [(i, s) for _, i, s in ordered], named
+
+
+def _drop_partial_matches(conn, query: str, fused: list[tuple[str, float]], *,
+                          keep: set[str]) -> list[tuple[str, float]]:
+    """Of hits found by words alone, keep those carrying as many of the
+    question's words as the best hit does: "stroke research" should not
+    return every file that says "research" once a file says both.
+    """
+    words = [t for t in _query_tokens(query) if not _CJK.search(t)]
+    if len(words) < 2 or not fused:
+        return fused
+    ids = [i for i, _ in fused]
+    marks = ",".join("?" * len(ids))
+    covered: dict[str, int] = {}
+    for word in words:
+        try:
+            rows = conn.execute(
+                "SELECT DISTINCT item_id FROM item_fts WHERE item_fts MATCH ? "
+                f"AND item_id IN ({marks})", (f'"{word}"', *ids)).fetchall()
+        except sqlite3.OperationalError:
+            return fused
+        for row in rows:
+            covered[row[0]] = covered.get(row[0], 0) + 1
+    best = max(covered.values(), default=0)
+    return [(i, s) for i, s in fused
+            if i in keep or covered.get(i, 0) >= best]
+
+
+def _drop_weak_tail(fused: list[tuple[str, float]], *,
+                    keep: set[str] = frozenset()) -> list[tuple[str, float]]:
+    """Drop hits far weaker than the best one, keeping any in `keep`."""
+    if not fused:
+        return fused
+    floor = max(score for _, score in fused) * WEAK_TAIL_RATIO
+    return [(i, s) for i, s in fused if s >= floor or i in keep]
 
 
 def _rrf(rank_maps: list[dict[str, int]], *, k: int) -> list[tuple[str, float]]:
